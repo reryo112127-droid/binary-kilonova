@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', 'Noto Sans JP', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<!-- Header Navigation -->
+<header class="sticky top-0 z-20 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center p-4 justify-between max-w-md mx-auto">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-400">arrow_back</span>
+<h1 class="text-lg font-bold tracking-tight">X投稿選択</h1>
+</div>
+<button class="bg-primary text-white px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">check</span>
+                完了
+            </button>
+</div>
+<!-- Genre Tabs -->
+<div class="flex overflow-x-auto hide-scrollbar px-4 gap-6 border-b border-slate-100 dark:border-slate-800">
+<a class="flex flex-col items-center border-b-2 border-primary py-3 shrink-0" href="#">
+<span class="text-xs font-bold text-primary">新作</span>
+</a>
+<a class="flex flex-col items-center border-b-2 border-transparent py-3 shrink-0" href="#">
+<span class="text-xs font-bold text-slate-500">セール</span>
+</a>
+<a class="flex flex-col items-center border-b-2 border-transparent py-3 shrink-0" href="#">
+<span class="text-xs font-bold text-slate-500">匿名</span>
+</a>
+<a class="flex flex-col items-center border-b-2 border-transparent py-3 shrink-0" href="#">
+<span class="text-xs font-bold text-slate-500">レディ</span>
+</a>
+<a class="flex flex-col items-center border-b-2 border-transparent py-3 shrink-0" href="#">
+<span class="text-xs font-bold text-slate-500">VR</span>
+</a>
+<a class="flex flex-col items-center border-b-2 border-transparent py-3 shrink-0" href="#">
+<span class="text-xs font-bold text-slate-500">コラボ</span>
+</a>
+</div>
+</header>
+<!-- Main Content Grid -->
+<main class="flex-1 p-4 max-w-md mx-auto w-full">
+<div class="grid grid-cols-2 gap-4">
+<!-- Movie Card 1 -->
+<div class="flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 p-2">
+<div class="relative">
+<div class="absolute top-1 left-1 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">新作</div>
+<div class="w-full aspect-[3/4] bg-slate-200 dark:bg-slate-800 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Vertical movie poster artistic style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAa9ikT47ZufLCxzdew2FuMlNGOtDaAZR5PCxPuWeya_hObbwQyorzlYAGH2Baos9SJPik1MzfmasCfStrymM6X5N5M_C-GnhHlhC8H0eQj-OLcA0-vsBDXQCdUywpwuftYxeccU0A7lsYDA7KOKcy83xs51XkLsYQ1vRMX-yCKG2AxlwfYPeXqMqwmPG-Y5ZI5Kl6fN7mpmrOGIoRMeYE_I2L5rOiZKN-Itc48ULGtZDYLgrrohb8f47DMptcYEAnAvOz7irlMRIY"/>
+</div>
+</div>
+<div class="mt-2 mb-1 px-1">
+<h3 class="text-xs font-bold truncate leading-tight">サイバーパンク 2077</h3>
+</div>
+<div class="w-full aspect-video bg-slate-100 dark:bg-slate-800 rounded mb-2 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Horizontal sample screenshot from movie" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMRshq8iZgXYWnn7nD-9uxU8SFFX0wTI5oILJc-7TOwd-zdlPpk-nEgPDDByZAk5yH66VksgS9Z9jUeKmL6r-V8PcFO2i4LG6Ci-nf645B-7pYqM0T2vWUAoXKWUGgScMO7ob7gd9oaruH0ngoAMppzhv-GujXPtqMNijzRoS1pF7U3hFXL1d1RneHd2JnLpWmuo5DQ_HY413Pk6ZTzK5-LqMa-PvtWzYfvem--0xk6nAIZdbonbcsV9UVcmqXZfPo81JVfVrxbu0"/>
+</div>
+<!-- Compact Action Buttons -->
+<div class="grid grid-cols-2 gap-1 mb-2">
+<button class="bg-primary text-white text-[10px] py-1 rounded font-medium">パケ投稿</button>
+<button class="bg-primary/10 text-primary text-[10px] py-1 rounded font-medium">サンプ投稿</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] py-1 rounded font-medium">しない</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] py-1 rounded font-medium">戻る</button>
+</div>
+<!-- Secondary Actions -->
+<div class="flex flex-col gap-1 border-t border-slate-50 dark:border-slate-800 pt-2">
+<button class="text-[9px] text-slate-400 dark:text-slate-500 text-left truncate flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">block</span> BEST/総集編除外
+                    </button>
+<button class="text-[9px] text-slate-400 dark:text-slate-500 text-left flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">move_item</span> ジャンル移動
+                    </button>
+</div>
+</div>
+<!-- Movie Card 2 -->
+<div class="flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 p-2 opacity-80">
+<div class="relative">
+<div class="absolute top-1 left-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">SALE</div>
+<div class="w-full aspect-[3/4] bg-slate-200 dark:bg-slate-800 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Cinema style vertical movie cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCj7HCMunB0y3khMUdw_Btvm-GPQkxVSTcn1xun_FcxsvHP2IF0cPuWrGjdeSAwpR0yrslvHVe6HbCDmMY4AwhtbOOO4BXnklDI1WJFPyWDdp8KwLBEoCtJCwfuSpcXc-Zy_Db5O7Kvd4-ZBHY5if0ZzWawxM_USB2ohq-YInS0UKNUQ0IGc0yYx6xoer9034L321RmXpcRTfI9pkskiy_wbClpCZ0PrjeuFJaU-i5oFIyKk5r5qZR_A2S_39AdXv5DDo2fuvKVBGc"/>
+</div>
+</div>
+<div class="mt-2 mb-1 px-1">
+<h3 class="text-xs font-bold truncate leading-tight">真夜中のストリート</h3>
+</div>
+<div class="w-full aspect-video bg-slate-100 dark:bg-slate-800 rounded mb-2 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="City lights sample image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJCkJ9jAkYkVBn0AEKD-WtwsyKb5-A29HQQOTK5R9dJt2_Ov-_qXyVFowrHmRZyyMpRWjmWGKXmU4BF5a3BOl2pY65_bNVMGU1H38LVUi1cigXzl6KIhw98UO5_Uu5OogVMKmMwSZmrQlEjW5Jm7KaiJZJUEiS99VAvuG8wuOGhOgKpRULcPeymzrxrUj9-MxXmkSyJU35bKyOxr0Cocu5iTVaj-DCZY4o7NFbZCwTigpzACMqmMjCZgpRY0wqM6wig0KK3HnfqwM"/>
+</div>
+<div class="grid grid-cols-2 gap-1 mb-2">
+<button class="bg-slate-200 dark:bg-slate-700 text-slate-500 text-[10px] py-1 rounded font-medium">パケ投稿</button>
+<button class="bg-slate-200 dark:bg-slate-700 text-slate-500 text-[10px] py-1 rounded font-medium">サンプ投稿</button>
+<button class="bg-primary text-white text-[10px] py-1 rounded font-medium">投稿不可</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 text-[10px] py-1 rounded font-medium">戻る</button>
+</div>
+<div class="flex flex-col gap-1 border-t border-slate-50 dark:border-slate-800 pt-2">
+<button class="text-[9px] text-slate-400 text-left flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">block</span> 除外済み
+                    </button>
+</div>
+</div>
+<!-- Movie Card 3 -->
+<div class="flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 p-2">
+<div class="relative">
+<div class="absolute top-1 left-1 bg-slate-800 text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">匿名</div>
+<div class="w-full aspect-[3/4] bg-slate-200 dark:bg-slate-800 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Mystery themed vertical cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB232NUjZ896Y6pFdz-R5zPSZ-AoHp6aj2ks48U1ufVWZzurRHQoCQSLip42TfgwBEshJd_jy3eBhLbt-HxVpaFRW_rCHLfLDlu5AjJ28sfY8mWyOzIgRJljWCyZOwcNiy29OoDgsBqa9RgUWUg6VVGPqGO0dyTwUr0bNNmMD3uLb_eZQnV9L7TXZkf8JJo2P2JjXs87NroLwCovtdWtytB87MlWcliKaRcViulSwILPJ3Z9uv5AhovKXx1EVGDUa2wr63tHlCEabs"/>
+</div>
+</div>
+<div class="mt-2 mb-1 px-1">
+<h3 class="text-xs font-bold truncate leading-tight">アンノウン・コード</h3>
+</div>
+<div class="w-full aspect-video bg-slate-100 dark:bg-slate-800 rounded mb-2 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Digital grid sample image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdv6HgZOGQwCGaGPdb2A6dqPz4DtVDYfMLHs3BYyQbe2gC8QGEqtw6R_yChj_wpeVnLMD1iNIyBUr_t70G_pPofl37pgFhUs3bj7HvRNlMNbzSv6dmjAWsFVE3d4rwFsf4FIzJsH5mH_UTG6Hag-PpdgU5i-Bz3-RZ9851iCVnuo-h9EN9YsqHobfu4QlEb4YPN9vS2IMhf4MbcoV3a9-9I3La_5RCKdIFKQSJqciDWswmwOY-eSd8ZNU-gGwt1ERr__cHXd4Y2CU"/>
+</div>
+<div class="grid grid-cols-2 gap-1 mb-2">
+<button class="bg-primary text-white text-[10px] py-1 rounded font-medium">パケ投稿</button>
+<button class="bg-primary/10 text-primary text-[10px] py-1 rounded font-medium">サンプ投稿</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 text-[10px] py-1 rounded font-medium">しない</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 text-[10px] py-1 rounded font-medium">戻る</button>
+</div>
+</div>
+<!-- Movie Card 4 -->
+<div class="flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 p-2">
+<div class="relative">
+<div class="absolute top-1 left-1 bg-pink-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">LADY</div>
+<div class="w-full aspect-[3/4] bg-slate-200 dark:bg-slate-800 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Elegant vertical package image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjA6Do4eO2kAYOH79KFJkkic1E-l2xjKOYeIgCQzEYQe7cLNRWLOmcE_L--qgtMLDy5r5x1_YeOddO2WuszdS3FTfPRJ1UNngBIz94EAzxsXPRWOu1Me7SMD6eEJMhMRtMOw1e_GEMRJ3bDgfKsDkTgP-A5xfYWairiu1_STgNYglKoFqZmAa9zGpLz-wdr5sBdtZPdgfxcp0MA3yXBy2KhHsS8cVkA68JAEYAABwfLY5G_ebM0TT8hc0Z91ma24IfCgIhDCST02g"/>
+</div>
+</div>
+<div class="mt-2 mb-1 px-1">
+<h3 class="text-xs font-bold truncate leading-tight">秘密の花園</h3>
+</div>
+<div class="w-full aspect-video bg-slate-100 dark:bg-slate-800 rounded mb-2 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Floral aesthetic sample image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfDvc-nqoYMGHvm8hqb5U0FLaPnXwlHiVSSshyyDmaqo4csJX3fibQz9iUM7I7Wrlr3RjCuiTB5W6-A1TegN5BNV6CY3U_cMcjIMNjg1MI1OvuqO5BzeADvofsMA3LEZIRDXjKjZyx7wU6DYMuGoPy8I7ftudKHlTD_2dh7Mssozi1FNFU-iHp3edYDAtQCs3tSSGYCynDaTzo9-6RZgfnVEnb5G1-bGrpg46n5WWSibq4K0MwrXxFtVMEiCd9p6i_yEYGr85Z-Z8"/>
+</div>
+<div class="grid grid-cols-2 gap-1 mb-2">
+<button class="bg-primary text-white text-[10px] py-1 rounded font-medium">パケ投稿</button>
+<button class="bg-primary/10 text-primary text-[10px] py-1 rounded font-medium">サンプ投稿</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 text-[10px] py-1 rounded font-medium">しない</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 text-[10px] py-1 rounded font-medium">戻る</button>
+</div>
+</div>
+<!-- Movie Card 5 -->
+<div class="flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 p-2">
+<div class="relative">
+<div class="absolute top-1 left-1 bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">VR</div>
+<div class="w-full aspect-[3/4] bg-slate-200 dark:bg-slate-800 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="VR tech vertical package image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyLKbYrB__A0IFgrIYPHTdyknP2QdfLPq3vofn4mc_wWTL25aOlZqU8FWY9yxMZmZ1f0AIfhXE9dVVVZl2_xmNLOCBzVDNnoH1EyJ3eHIu8YQYu_BjucO6_EXgFzNxUgRRjlBMg1bSW-CHLQivDHsEDDEzByQBQRIAefd43q1tm4E4Hm2OIMpUNwOaTb_0yTFkE2uxtJKy8OD7HBUX3uUSwghYG4-GU72Bx66IMcuGviaf9v4P_ttrTRXPwS0YdN-OZNq7KZCWxRQ"/>
+</div>
+</div>
+<div class="mt-2 mb-1 px-1">
+<h3 class="text-xs font-bold truncate leading-tight">次元の狭間 VR</h3>
+</div>
+<div class="w-full aspect-video bg-slate-100 dark:bg-slate-800 rounded mb-2 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="VR perspective sample image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-Nc-b4GOeEiMENx_1rZxniqxhRnEYOpjLRPvOwI-_e27cp6pQP56WatG-V570D05zvRoV4FOv_xkieYVCm_yPBcfgS0_3fG4X62R-OZphBJ16Nizp2VjJcp6Oj0iBkggfFN4jgNhhfRyjpTfJCQAk7DqKpMLyI6uGD0WqL_igYcWfA1GF2pe_VsQYXKF8exrWNd5HsxUmoHChy1do74ND4B7XM6Ap3hMeaXga68dA3vNqWsXj5SI4c_Jc44PPXD1ixz-K3b2sdRs"/>
+</div>
+<div class="grid grid-cols-2 gap-1 mb-2">
+<button class="bg-primary text-white text-[10px] py-1 rounded font-medium">パケ投稿</button>
+<button class="bg-primary/10 text-primary text-[10px] py-1 rounded font-medium">サンプ投稿</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 text-[10px] py-1 rounded font-medium">しない</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 text-[10px] py-1 rounded font-medium">戻る</button>
+</div>
+</div>
+<!-- Movie Card 6 -->
+<div class="flex flex-col bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 p-2">
+<div class="relative">
+<div class="absolute top-1 left-1 bg-teal-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">COLLABO</div>
+<div class="w-full aspect-[3/4] bg-slate-200 dark:bg-slate-800 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Collaboration abstract movie poster" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAq2zGRr_a25YbYSjIzdsZKHIwuKx31sqe3U6n943YWkiumMMMNec9z0caom1j9LakhEi5tZl7t5kkIz0DBLpXyoyp9jav9K_uxxJs7E5vGSlPgt2pMCTqimUxAfrC-qjoUI1VtZU8ilC36cMjmjC-rlPYH7NfPqaq8dUUDC5Cj3c2czyrDHvGU3sAgJ2WfuV8XlyELtQkb0IK7Z_FTGBehaRiZ1JbngqBTfvDgJUryidFCNigW7xAAOQWn3-qY_GzWnKFXSLW_jRo"/>
+</div>
+</div>
+<div class="mt-2 mb-1 px-1">
+<h3 class="text-xs font-bold truncate leading-tight">異世界・狂想曲</h3>
+</div>
+<div class="w-full aspect-video bg-slate-100 dark:bg-slate-800 rounded mb-2 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Abstract colorful sample image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsXS1_GTkucKyAKnlrT1JsZ6q7wlwDrZao0dYJKYs1wQc1T5JB9V_Dn09DCjNwNAzs4CERUgkNCrFilGLennsX1OoHRR5hIjRfwIlEM25lrSZy7kYtchVLMAuwFYqB5d0ZxW8Np8O42jckcIXLoftUfKJuoYOMSXZ1FFSTPAGezWIxwzw2f4Uv-fY_K0E_3oo4sNDD1Y76k4eSLCvebgP70k5fog1jDYkAo6gjO7Ax26AxLd4BGhZy_wIUKgOaMixW40wwGwLtGlg"/>
+</div>
+<div class="grid grid-cols-2 gap-1 mb-2">
+<button class="bg-primary text-white text-[10px] py-1 rounded font-medium">パケ投稿</button>
+<button class="bg-primary/10 text-primary text-[10px] py-1 rounded font-medium">サンプ投稿</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 text-[10px] py-1 rounded font-medium">しない</button>
+<button class="bg-slate-100 dark:bg-slate-800 text-slate-600 text-[10px] py-1 rounded font-medium">戻る</button>
+</div>
+</div>
+</div>
+<div class="mt-8 mb-24 flex flex-col items-center gap-4">
+<p class="text-xs text-slate-400 dark:text-slate-500">全ての投稿選択が完了しました</p>
+<button class="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">refresh</span>
+                リストを更新
+            </button>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 pb-safe z-30">
+<div class="flex justify-around items-center h-16 max-w-md mx-auto">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">home</span>
+<span class="text-[10px] font-medium">ホーム</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="text-[10px] font-medium">検索</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<span class="text-[10px] font-medium">ランキング</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">play_circle</span>
+<span class="text-[10px] font-medium">ビデオ</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">マイページ</span>
+</a>
+</div>
+</nav>
+</body></html>

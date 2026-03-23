@@ -1,0 +1,30 @@
+{
+    "name": "mgs-scraper",
+    "version": "1.0.0",
+    "description": "MGS動画 完全網羅スクレイピング・システム",
+    "private": true,
+    "scripts": {
+        "status": "node scripts/status.js",
+        "update": "node scripts/fanza_daily_update.js",
+        "update:fast": "node scripts/fanza_daily_update.js --no-price",
+        "suggest": "node scripts/build_suggest_cache.js",
+        "phase1": "node scripts/phase1_list_scrape.js",
+        "phase2": "node scripts/phase2_detail_scrape.js",
+        "phase3": "node scripts/phase3_daily_update.js",
+        "stats": "node scripts/stats.js",
+        "export": "node scripts/export_csv.js",
+        "test:parser": "node scripts/test_parser.js"
+    },
+    "dependencies": {
+        "@anthropic-ai/sdk": "^0.80.0",
+        "@atproto/api": "^0.19.4",
+        "@google/generative-ai": "^0.24.1",
+        "@libsql/client": "^0.17.0",
+        "better-sqlite3": "^12.8.0",
+        "cheerio": "^1.0.0",
+        "dotenv": "^17.3.1",
+        "sql.js": "^1.11.0",
+        "telegraf": "^4.16.3",
+        "twitter-api-v2": "^1.29.0"
+    }
+}

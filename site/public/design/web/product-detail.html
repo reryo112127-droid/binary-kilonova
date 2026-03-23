@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>作品詳細 | ArtPortal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&amp;family=Public+Sans:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#ec5b13",
+                "background-light": "#ffffff",
+                "background-dark": "#121212",
+              },
+              fontFamily: {
+                "sans": ["Noto Sans JP", "Public Sans", "sans-serif"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #FFFFFF;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Suggestion box styles */
+        .search-container:focus-within .search-suggestions {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .search-suggestions {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+</head>
+<body class="bg-white text-slate-900 antialiased">
+<!-- Updated Header: Specific items and order in one row -->
+<header class="sticky top-0 z-50 w-full border-b border-slate-100 bg-white/90 backdrop-blur-md">
+<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between gap-3 py-3 overflow-x-auto hide-scrollbar">
+<!-- Site Logo -->
+<div class="flex items-center gap-2 shrink-0">
+<div class="text-primary">
+<span class="material-symbols-outlined text-2xl" style="">filter_hdr</span>
+</div>
+<h1 class="text-lg font-black tracking-tight text-slate-900" style="">ArtPortal</h1>
+</div>
+<!-- Search Bar with Suggestions -->
+<div class="flex items-center gap-2 shrink-0">
+<div class="relative w-48 search-container">
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+<span class="material-symbols-outlined text-sm" style="">search</span>
+</div>
+<input class="block w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-full bg-slate-50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-xs transition-all" placeholder="検索..." type="text"/>
+<!-- Suggestion List -->
+<div class="search-suggestions absolute top-full left-0 mt-2 w-64 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden z-[60]">
+<div class="p-3">
+<div class="mb-3">
+<h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-2">作品名</h4>
+<div class="space-y-0.5">
+<a class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-sm text-slate-300 group-hover:text-primary">movie</span>
+<span class="text-[11px] font-medium text-slate-700">光の残響 - Echoes of Light</span>
+</a>
+<a class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-sm text-slate-300 group-hover:text-primary">movie</span>
+<span class="text-[11px] font-medium text-slate-700">青の境界線</span>
+</a>
+</div>
+</div>
+<div class="mb-3">
+<h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-2">出演者</h4>
+<div class="space-y-0.5">
+<a class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg transition-colors group" href="#">
+<div class="w-4 h-4 rounded-full bg-slate-100 overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8YXSAT_ivPJVeJEYneEkVEZvh0kg1kAumQGia25baetzAR5cB8YWx2maxnkvH7gPBQDpw_LvqJfjnWPfhRODrRca1_DRiUD9Mjr4XJlBHggcoOhkl3WXEZQvzTxfAVp-ga3O7EShX8iZXnG6UFhZ09H0WXldIVGgEaifN0_Vd7v9izKT_j24Fn_Ct8h5DTBWMNOnJfN8evNJSmQodDk811OiNcJC0g5O_hehiIcyU28xgX3Dk812IfAgdkSfJJ-Omju3ecMB-L6s"/>
+</div>
+<span class="text-[11px] font-medium text-slate-700">佐藤 健一</span>
+</a>
+<a class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg transition-colors group" href="#">
+<div class="w-4 h-4 rounded-full bg-slate-100 overflow-hidden shrink-0 text-[8px] flex items-center justify-center font-bold text-slate-400">MR</div>
+<span class="text-[11px] font-medium text-slate-700">Maria Rossi</span>
+</a>
+</div>
+</div>
+<div>
+<h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 px-2">メーカー</h4>
+<div class="space-y-0.5">
+<a class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-sm text-slate-300 group-hover:text-primary">apartment</span>
+<span class="text-[11px] font-medium text-slate-700">Tokyo Media Lab</span>
+</a>
+<a class="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined text-sm text-slate-300 group-hover:text-primary">apartment</span>
+<span class="text-[11px] font-medium text-slate-700">ArtPortal Originals</span>
+</a>
+</div>
+</div>
+</div>
+<div class="bg-slate-50 p-2 border-t border-slate-100">
+<a class="block text-center text-[10px] font-bold text-primary hover:underline" href="#">すべての候補を表示</a>
+</div>
+</div>
+</div>
+<button class="shrink-0 text-[10px] font-bold text-slate-500 hover:text-primary flex items-center gap-0.5 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">tune</span>
+                        詳細検索
+                    </button>
+</div>
+<!-- Navigation Items -->
+<nav class="flex items-center gap-3 shrink-0">
+<a class="text-xs font-bold text-slate-600 hover:text-primary whitespace-nowrap transition-colors" href="#" style="">予約作品</a>
+<a class="text-xs font-bold text-slate-600 hover:text-primary whitespace-nowrap transition-colors" href="#" style="">新作</a>
+<a class="text-xs font-bold text-slate-600 hover:text-primary whitespace-nowrap transition-colors" href="#" style="">ランキング</a>
+</nav>
+<!-- Actions -->
+<div class="flex items-center gap-3 shrink-0">
+<a class="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline whitespace-nowrap" href="#" style="">
+<span class="material-symbols-outlined text-base" style="">add_circle</span>
+                        情報を追加
+                    </a>
+<a class="flex items-center gap-1 text-slate-500 hover:text-primary group shrink-0" href="#" style="">
+<div class="h-7 w-7 rounded-full bg-slate-200 overflow-hidden ring-1 ring-slate-100">
+<img alt="ユーザーアイコン" class="" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8YXSAT_ivPJVeJEYneEkVEZvh0kg1kAumQGia25baetzAR5cB8YWx2maxnkvH7gPBQDpw_LvqJfjnWPfhRODrRca1_DRiUD9Mjr4XJlBHggcoOhkl3WXEZQvzTxfAVp-ga3O7EShX8iZXnG6UFhZ09H0WXldIVGgEaifN0_Vd7v9izKT_j24Fn_Ct8h5DTBWMNOnJfN8evNJSmQodDk811OiNcJC0g5O_hehiIcyU28xgX3Dk812IfAgdkSfJJ-Omju3ecMB-L6s" style=""/>
+</div>
+<span class="text-[11px] font-bold" style="">マイページ</span>
+</a>
+<div class="flex items-center border-l border-slate-200 pl-3 gap-2 shrink-0">
+<a class="text-[11px] font-bold px-2 py-1.5 hover:text-primary transition-colors whitespace-nowrap" href="#" style="">ログイン</a>
+<a class="text-[11px] font-bold px-3 py-1.5 bg-primary text-white rounded-full hover:bg-orange-600 transition-colors whitespace-nowrap" href="#" style="">新規登録</a>
+</div>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="flex flex-col gap-8">
+<!-- 1. Top: Large package image (landscape) -->
+<div class="w-full aspect-[21/9] rounded-2xl overflow-hidden bg-slate-100 shadow-sm">
+<img alt="Main visual" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCq3fX4PahHpkmX-kxDBk7kNAPoOVlNpMVOhxzXG0zs-QjXs8X-9dCzG51wHQJgWtexCj7afhockyCRRPTHRS-e9O8rScBnrmVMLE_Ab-GKsGtNOY59ecJV45qCvsc30fCBA4inbG8_y35ByJxbfH31Xb0whJDZMHZmxApwTcz0B02DX7GdkpUsj25t6YSn0LvtJo2rx2I3zxjcGOLGCoekgfKnjF_upbX3D_XyxTarIP_dXU1ps3K-xj1G1A7_BWDq6cGDr15HUYA" style=""/>
+</div>
+<!-- 2. Below image: Thumbnails & Video Button -->
+<div class="flex items-center gap-4">
+<div class="flex-1 flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+<div class="shrink-0 w-32 aspect-video rounded-lg overflow-hidden border-2 border-primary cursor-pointer">
+<img alt="thumb1" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCq3fX4PahHpkmX-kxDBk7kNAPoOVlNpMVOhxzXG0zs-QjXs8X-9dCzG51wHQJgWtexCj7afhockyCRRPTHRS-e9O8rScBnrmVMLE_Ab-GKsGtNOY59ecJV45qCvsc30fCBA4inbG8_y35ByJxbfH31Xb0whJDZMHZmxApwTcz0B02DX7GdkpUsj25t6YSn0LvtJo2rx2I3zxjcGOLGCoekgfKnjF_upbX3D_XyxTarIP_dXU1ps3K-xj1G1A7_BWDq6cGDr15HUYA" style=""/>
+</div>
+<div class="shrink-0 w-32 aspect-video rounded-lg overflow-hidden border border-slate-200 hover:border-primary cursor-pointer transition-colors">
+<img alt="thumb2" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCq3fX4PahHpkmX-kxDBk7kNAPoOVlNpMVOhxzXG0zs-QjXs8X-9dCzG51wHQJgWtexCj7afhockyCRRPTHRS-e9O8rScBnrmVMLE_Ab-GKsGtNOY59ecJV45qCvsc30fCBA4inbG8_y35ByJxbfH31Xb0whJDZMHZmxApwTcz0B02DX7GdkpUsj25t6YSn0LvtJo2rx2I3zxjcGOLGCoekgfKnjF_upbX3D_XyxTarIP_dXU1ps3K-xj1G1A7_BWDq6cGDr15HUYA" style=""/>
+</div>
+<div class="shrink-0 w-32 aspect-video rounded-lg overflow-hidden border border-slate-200 hover:border-primary cursor-pointer transition-colors">
+<img alt="thumb3" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCq3fX4PahHpkmX-kxDBk7kNAPoOVlNpMVOhxzXG0zs-QjXs8X-9dCzG51wHQJgWtexCj7afhockyCRRPTHRS-e9O8rScBnrmVMLE_Ab-GKsGtNOY59ecJV45qCvsc30fCBA4inbG8_y35ByJxbfH31Xb0whJDZMHZmxApwTcz0B02DX7GdkpUsj25t6YSn0LvtJo2rx2I3zxjcGOLGCoekgfKnjF_upbX3D_XyxTarIP_dXU1ps3K-xj1G1A7_BWDq6cGDr15HUYA" style=""/>
+</div>
+</div>
+<button class="shrink-0 flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-all" style="">
+<span class="material-symbols-outlined" style="">play_circle</span>
+                    サンプル動画を再生
+                </button>
+</div>
+<!-- 3. Below visuals: Product Details -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-4">
+<div class="lg:col-span-2 space-y-8">
+<div>
+<div class="flex items-center gap-4 mb-4">
+<h2 class="text-3xl font-black text-slate-900 leading-tight" style="">光の残響 - Echoes of Light (Special Edition)</h2>
+<button class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="">
+<span class="material-symbols-outlined text-rose-500 text-xl group-hover:fill-1" style="">favorite</span>
+<span class="text-sm font-bold text-slate-700 whitespace-nowrap" style="">いいね</span>
+</button>
+<button class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="">
+<span class="material-symbols-outlined text-slate-500 text-xl" style="">person_add</span>
+<span class="text-sm font-bold text-slate-700" style="">出演者を追加</span>
+</button>
+</div>
+<div class="flex flex-wrap gap-4 text-sm">
+<span class="px-2 py-1 bg-slate-100 rounded text-slate-600" style="">デジタルアート</span>
+<span class="px-2 py-1 bg-slate-100 rounded text-slate-600" style="">4K Ultra HD</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+<div class="flex border-b border-slate-100 pb-2">
+<span class="w-32 text-slate-400 text-sm" style="">出演者 / 制作者</span>
+<span class="flex-1 font-medium text-primary" style="">佐藤 健一, Maria Rossi</span>
+</div>
+<div class="flex border-b border-slate-100 pb-2">
+<span class="w-32 text-slate-400 text-sm" style="">メーカー</span>
+<span class="flex-1 font-medium" style="">Tokyo Media Lab</span>
+</div>
+<div class="flex border-b border-slate-100 pb-2">
+<span class="w-32 text-slate-400 text-sm" style="">レーベル</span>
+<span class="flex-1 font-medium" style="">ArtPortal Originals</span>
+</div>
+<div class="flex border-b border-slate-100 pb-2">
+<span class="w-32 text-slate-400 text-sm" style="">ジャンル</span>
+<span class="flex-1 font-medium" style="">抽象画, デジタル, ヒーリング</span>
+</div>
+<div class="flex border-b border-slate-100 pb-2">
+<span class="w-32 text-slate-400 text-sm" style="">品番</span>
+<span class="flex-1 font-medium uppercase" style="">AP-2024-001</span>
+</div>
+<div class="flex border-b border-slate-100 pb-2">
+<span class="w-32 text-slate-400 text-sm" style="">収録時間</span>
+<span class="flex-1 font-medium" style="">124分</span>
+</div>
+</div>
+<!-- Sale Info Field -->
+<div class="py-4 px-6 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3">
+<span class="material-symbols-outlined text-rose-500" style="">campaign</span>
+<div class="text-sm">
+<span class="font-bold text-rose-600" style="">セール情報:</span>
+<span class="ml-2 font-medium text-slate-700" style="">3月17日まで30%オフ</span>
+</div>
+</div>
+<!-- Affiliate Links Section -->
+<section class="bg-slate-50 p-8 rounded-2xl border border-slate-100">
+<h3 class="text-xl font-bold mb-6 flex items-center gap-2" style="">
+<span class="material-symbols-outlined text-primary" style="">shopping_bag</span>
+                            この作品を見る　</h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<a class="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl hover:shadow-md hover:border-primary transition-all group" href="#" style="">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white font-black text-xs" style="">FANZA</div>
+<div class="text-sm font-bold text-slate-900" style="">FANZAで視聴する</div>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="">open_in_new</span>
+</a>
+<a class="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl hover:shadow-md hover:border-primary transition-all group" href="#" style="">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-[#005BAC] rounded-lg flex items-center justify-center text-white font-black text-xs" style="">MGS</div>
+<div class="text-sm font-bold text-slate-900" style="">MGS動画で視聴する</div>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="">open_in_new</span>
+</a>
+</div>
+<p class="mt-4 text-[11px] text-slate-400 text-center" style="">※外部の配信サイトへ移動します。</p>
+</section>
+<!-- Review Statistics -->
+<section class="bg-white p-8 rounded-2xl border border-slate-100">
+<h3 class="text-xl font-bold mb-6" style="">レビュー統計</h3>
+<div class="flex flex-col md:flex-row items-center gap-10">
+<div class="text-center">
+<div class="text-5xl font-black text-slate-900 mb-2" style="">4.8</div>
+<div class="flex text-amber-500 justify-center mb-1">
+<span class="material-symbols-outlined fill-1" style="">star</span>
+<span class="material-symbols-outlined fill-1" style="">star</span>
+<span class="material-symbols-outlined fill-1" style="">star</span>
+<span class="material-symbols-outlined fill-1" style="">star</span>
+<span class="material-symbols-outlined fill-1 text-slate-300" style="">star</span>
+</div>
+<div class="text-xs text-slate-400" style="">1,240件の評価</div>
+</div>
+<div class="flex-1 w-full space-y-2">
+<div class="flex items-center gap-3">
+<span class="text-xs w-4" style="">5</span>
+<div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[85%]"></div>
+</div>
+<span class="text-xs w-8 text-right" style="">85%</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs w-4" style="">4</span>
+<div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[10%]"></div>
+</div>
+<span class="text-xs w-8 text-right" style="">10%</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs w-4" style="">3</span>
+<div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[3%]"></div>
+</div>
+<span class="text-xs w-8 text-right" style="">3%</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- 2. Main Content Update: "About this work" section removed, leaving whitespace -->
+<div class="space-y-6">
+<!-- Section removed as per request -->
+</div>
+</div>
+<!-- Review Section -->
+<section class="mt-12 pt-12 border-t border-slate-100">
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+<h3 class="text-2xl font-black" style="">ユーザーレビュー</h3>
+<div class="flex gap-3 w-full sm:w-auto">
+<button class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-full font-bold hover:bg-black transition-colors" style="">
+<span class="material-symbols-outlined" style="">edit</span>
+                            レビューを書く
+                        </button>
+</div>
+</div>
+<div class="space-y-8">
+<!-- Review Item 1 -->
+<div class="border-b border-slate-100 pb-8">
+<div class="flex items-center gap-4 mb-3">
+<div class="h-10 w-10 rounded-full bg-slate-100 overflow-hidden">
+<img alt="user" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8YXSAT_ivPJVeJEYneEkVEZvh0kg1kAumQGia25baetzAR5cB8YWx2maxnkvH7gPBQDpw_LvqJfjnWPfhRODrRca1_DRiUD9Mjr4XJlBHggcoOhkl3WXEZQvzTxfAVp-ga3O7EShX8iZXnG6UFhZ09H0WXldIVGgEaifN0_Vd7v9izKT_j24Fn_Ct8h5DTBWMNOnJfN8evNJSmQodDk811OiNcJC0g5O_hehiIcyU28xgX3Dk812IfAgdkSfJJ-Omju3ecMB-L6s" style=""/>
+</div>
+<div>
+<div class="text-sm font-bold" style="">アート愛好家A</div>
+<div class="flex text-amber-500 text-xs">
+<span class="material-symbols-outlined text-sm fill-1" style="">star</span>
+<span class="material-symbols-outlined text-sm fill-1" style="">star</span>
+<span class="material-symbols-outlined text-sm fill-1" style="">star</span>
+<span class="material-symbols-outlined text-sm fill-1" style="">star</span>
+<span class="material-symbols-outlined text-sm fill-1" style="">star</span>
+</div>
+</div>
+<span class="ml-auto text-xs text-slate-400" style="">2024.03.15</span>
+</div>
+<p class="text-slate-600 text-sm leading-relaxed" style="">
+                            繊細な色の移り変わりが本当に美しいです。4Kディスプレイで見るとその緻密さが際立ちます。部屋のインテリアとしても最高の一枚です。
+                        </p>
+</div>
+</div>
+<div class="mt-8 text-center">
+<button class="text-primary font-bold text-sm hover:underline" style="">全てのレビューを見る (1,240件)</button>
+</div>
+</section>
+<!-- Recommended Section -->
+<section class="mt-20">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-2xl font-black" style="">おすすめ作品</h3>
+<a class="text-sm font-bold text-slate-400 hover:text-primary transition-colors flex items-center gap-1" href="#" style="">
+                        もっと見る
+                        <span class="material-symbols-outlined text-sm" style="">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+<div class="group">
+<div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-100 mb-3 shadow-sm group-hover:shadow-md transition-all relative">
+<img alt="Recommended 1" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCq3fX4PahHpkmX-kxDBk7kNAPoOVlNpMVOhxzXG0zs-QjXs8X-9dCzG51wHQJgWtexCj7afhockyCRRPTHRS-e9O8rScBnrmVMLE_Ab-GKsGtNOY59ecJV45qCvsc30fCBA4inbG8_y35ByJxbfH31Xb0whJDZMHZmxApwTcz0B02DX7GdkpUsj25t6YSn0LvtJo2rx2I3zxjcGOLGCoekgfKnjF_upbX3D_XyxTarIP_dXU1ps3K-xj1G1A7_BWDq6cGDr15HUYA" style=""/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">add_circle</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500 transition-colors">
+<span class="material-symbols-outlined text-sm">favorite</span>
+</button>
+</div></div>
+<h4 class="text-sm font-bold text-slate-900 mb-3 line-clamp-1" style="">静止する時間</h4>
+<button class="w-full py-2 text-xs font-bold border border-slate-200 rounded-lg hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all" style="">
+                            詳細を見る
+                        </button>
+</div>
+<div class="group">
+<div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-100 mb-3 shadow-sm group-hover:shadow-md transition-all relative">
+<img alt="Recommended 2" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCq3fX4PahHpkmX-kxDBk7kNAPoOVlNpMVOhxzXG0zs-QjXs8X-9dCzG51wHQJgWtexCj7afhockyCRRPTHRS-e9O8rScBnrmVMLE_Ab-GKsGtNOY59ecJV45qCvsc30fCBA4inbG8_y35ByJxbfH31Xb0whJDZMHZmxApwTcz0B02DX7GdkpUsj25t6YSn0LvtJo2rx2I3zxjcGOLGCoekgfKnjF_upbX3D_XyxTarIP_dXU1ps3K-xj1G1A7_BWDq6cGDr15HUYA" style=""/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">add_circle</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500 transition-colors">
+<span class="material-symbols-outlined text-sm">favorite</span>
+</button>
+</div></div>
+<h4 class="text-sm font-bold text-slate-900 mb-3 line-clamp-1" style="">青の境界線</h4>
+<button class="w-full py-2 text-xs font-bold border border-slate-200 rounded-lg hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all" style="">
+                            詳細を見る
+                        </button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-slate-950 text-slate-400 py-16 mt-20">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+<div class="col-span-1 md:col-span-2 space-y-6">
+<div class="flex items-center gap-2 text-white">
+<span class="material-symbols-outlined text-3xl" style="">filter_hdr</span>
+<h2 class="text-xl font-black tracking-tight" style="">ArtPortal</h2>
+</div>
+<p class="max-w-xs leading-relaxed text-sm" style="">
+                        次世代のアーティストとコレクターを繋ぐ、日本最大級のデジタルアートプラットフォーム。
+                    </p>
+<div class="flex gap-4">
+<a class="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center hover:bg-primary transition-colors" href="#" style="">
+<span class="material-symbols-outlined text-xl" style="">public</span>
+</a>
+<a class="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center hover:bg-primary transition-colors" href="#" style="">
+<span class="material-symbols-outlined text-xl" style="">alternate_email</span>
+</a>
+</div>
+</div>
+<div>
+<h3 class="text-white font-bold mb-6 text-sm" style="">サービス</h3>
+<ul class="space-y-4 text-xs">
+<li class="" style=""><a class="hover:text-primary transition-colors" href="#" style="">作品を探す</a></li>
+<li class="" style=""><a class="hover:text-primary transition-colors" href="#" style="">アーティスト登録</a></li>
+</ul>
+</div>
+<div>
+<h3 class="text-white font-bold mb-6 text-sm" style="">会社情報</h3>
+<ul class="space-y-4 text-xs">
+<li class="" style=""><a class="hover:text-primary transition-colors" href="#" style="">運営会社</a></li>
+<li class="" style=""><a class="hover:text-primary transition-colors" href="#" style="">プライバシーポリシー</a></li>
+</ul>
+</div>
+</div>
+<div class="pt-8 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px]">
+<p class="" style="">© 2024 ArtPortal Inc. All Rights Reserved.</p>
+<div class="flex gap-6">
+<a class="hover:text-white" href="#" style="">利用規約</a>
+<a class="hover:text-white" href="#" style="">特定商取引法に基づく表記</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

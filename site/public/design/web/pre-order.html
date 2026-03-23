@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>予約作品一覧 | MEDIASHOP</title>
+<!-- BEGIN: Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- END: Tailwind CSS CDN -->
+<style data-purpose="custom-typography">
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+  </style>
+<style data-purpose="custom-layout">
+    /* 5x3 Grid Layout */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    @media (max-width: 1280px) {
+      .product-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 1024px) {
+      .product-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 640px) {
+      .product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    /* Toggle Switch Style */
+    .toggle-checkbox:checked {
+      right: 0;
+      border-color: #2563eb;
+      background-color: #2563eb;
+    }
+    .toggle-checkbox:checked + .toggle-label {
+      background-color: #2563eb;
+    }
+  </style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/></head>
+<body class="bg-[#f8f9fa] text-gray-900 leading-relaxed">
+<!-- BEGIN: MainHeader -->
+<header class="bg-white border-b border-gray-100 sticky top-0 z-50">
+<div class="container mx-auto px-4">
+<div class="flex items-center justify-between h-16">
+<!-- ロゴ -->
+<div class="flex-shrink-0">
+<a class="text-xl font-bold tracking-tighter text-blue-600" href="#" style="">MEDIA<span class="text-gray-900" style="">SHOP</span></a>
+</div>
+<!-- 検索窓 -->
+<div class="hidden md:flex flex-1 max-w-xl mx-12">
+<div class="relative w-full">
+<input class="w-full pl-10 pr-4 py-1.5 bg-gray-100 border-none rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition text-sm" placeholder="作品を検索する..." type="text"/>
+<div class="absolute left-3 top-2 text-gray-400">
+<svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+</div>
+<!-- ナビゲーション -->
+<nav class="hidden lg:flex items-center space-x-6">
+<a class="text-xs font-medium text-gray-500 hover:text-blue-600 transition" href="#" style="">新作</a>
+<a class="text-xs font-bold text-blue-600 border-b-2 border-blue-600 pb-5 translate-y-[2px]" href="#" style="">予約</a>
+<a class="text-xs font-medium text-gray-500 hover:text-blue-600 transition" href="#" style="">ランキング</a>
+<a class="text-xs font-medium text-gray-500 hover:text-blue-600 transition" href="#" style="">マイページ</a>
+</nav>
+</div>
+</div>
+</header>
+<!-- END: MainHeader -->
+<main class="container mx-auto px-4 py-4">
+<!-- BEGIN: Breadcrumbs -->
+<nav aria-label="Breadcrumb" class="flex text-[11px] text-gray-400 mb-6" data-purpose="breadcrumb">
+<ol class="inline-flex items-center space-x-2">
+<li class="" style=""><a class="hover:text-blue-600" href="#" style="">ホーム</a></li>
+<li class="flex items-center" style="">
+<svg aria-hidden="true" class="w-2.5 h-2.5 mx-1" fill="none" viewbox="0 0 6 10" xmlns="http://www.w3.org/2000/svg">
+<path d="m1 9 4-4-4-4" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium text-gray-600" style="">予約作品一覧</span>
+</li>
+</ol>
+</nav>
+<!-- END: Breadcrumbs -->
+<div class="flex flex-col lg:flex-row gap-8">
+<!-- BEGIN: Sidebar -->
+<aside class="w-full lg:w-64 flex-shrink-0 space-y-6" data-purpose="sidebar-filter">
+<!-- サービス切替 (Segmented Control) -->
+<div class="bg-gray-100 p-1 rounded-lg flex">
+<button class="flex-1 text-[11px] font-bold py-1.5 rounded-md bg-white shadow-sm text-blue-600" style="">MGS動画</button>
+<button class="flex-1 text-[11px] font-medium py-1.5 rounded-md text-gray-500 hover:text-gray-700" style="">FANZA</button>
+</div>
+<!-- 発売予定日カレンダー -->
+<div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+<h2 class="font-bold text-sm mb-4 text-gray-800" style="">発売予定日で探す</h2>
+<div class="mb-4">
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="text-[12px] font-bold" style="">2024年 11月</span>
+<div class="flex space-x-1">
+<button class="p-1 hover:bg-gray-100 rounded text-gray-400" style=""><svg class="w-3 h-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="2"></path></svg></button>
+<button class="p-1 hover:bg-gray-100 rounded text-gray-400" style=""><svg class="w-3 h-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2"></path></svg></button>
+</div>
+</div>
+<div class="grid grid-cols-7 text-center text-[10px] text-gray-400 mb-2">
+<div class="" style="">日</div><div class="" style="">月</div><div class="" style="">火</div><div class="" style="">水</div><div class="" style="">木</div><div class="" style="">金</div><div class="" style="">土</div>
+</div>
+<div class="grid grid-cols-7 gap-1 text-center text-[11px]">
+<div class="py-1 text-gray-300" style="">27</div><div class="py-1 text-gray-300" style="">28</div><div class="py-1 text-gray-300" style="">29</div><div class="py-1 text-gray-300" style="">30</div><div class="py-1 text-gray-300" style="">31</div><button class="py-1 hover:bg-blue-50 rounded transition" style="">1</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">2</button>
+<button class="py-1 hover:bg-blue-50 rounded transition" style="">3</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">4</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">5</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">6</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">7</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">8</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">9</button>
+<button class="py-1 hover:bg-blue-50 rounded transition" style="">10</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">11</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">12</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">13</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">14</button><button class="py-1 bg-blue-600 text-white rounded font-bold" style="">15</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">16</button>
+<button class="py-1 hover:bg-blue-50 rounded transition" style="">17</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">18</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">19</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">20</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">21</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">22</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">23</button>
+</div>
+</div>
+<!-- クイックフィルター -->
+<div class="flex flex-wrap gap-2 pt-2 border-t border-gray-50">
+<button class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100" style="">本日</button>
+<button class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100" style="">明日</button>
+<button class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100" style="">今週末</button>
+</div>
+</div>
+<!-- 各種フィルター -->
+<div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-6">
+<!-- メーカー -->
+<div>
+<h3 class="font-bold text-xs mb-3 text-gray-700" style="">メーカー</h3>
+<select class="w-full text-[12px] border-gray-200 rounded-lg focus:ring-blue-500/20 focus:border-blue-500">
+<option>すべてのメーカー</option>
+<option>メーカーA</option>
+<option>メーカーB</option>
+<option>メーカーC</option>
+</select>
+</div>
+<!-- 出演者 -->
+<div>
+<h3 class="font-bold text-xs mb-3 text-gray-700" style="">出演者</h3>
+<div class="relative mb-2">
+<input class="w-full text-[11px] pl-8 pr-3 py-1.5 border-gray-200 rounded-lg focus:ring-blue-500/20 focus:border-blue-500" placeholder="出演者名で検索..." type="text"/>
+<svg class="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-width="2"></path></svg>
+</div>
+<div class="max-h-32 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+<label class="flex items-center text-[11px] text-gray-600 cursor-pointer hover:bg-gray-50 p-1 rounded" style="">
+<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
+                出演者 A
+              </label>
+<label class="flex items-center text-[11px] text-gray-600 cursor-pointer hover:bg-gray-50 p-1 rounded" style="">
+<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
+                出演者 B
+              </label>
+<label class="flex items-center text-[11px] text-gray-600 cursor-pointer hover:bg-gray-50 p-1 rounded" style="">
+<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
+                出演者 C
+              </label>
+</div>
+</div>
+<!-- ジャンル -->
+<div>
+<h3 class="font-bold text-xs mb-3 text-gray-700" style="">ジャンル</h3>
+<div class="grid grid-cols-1 gap-2">
+<label class="flex items-center text-[12px] text-gray-600 cursor-pointer" style="">
+<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
+                アクション
+              </label>
+<label class="flex items-center text-[12px] text-gray-600 cursor-pointer" style="">
+<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
+                RPG
+              </label>
+<label class="flex items-center text-[12px] text-gray-600 cursor-pointer" style="">
+<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
+                アドベンチャー
+              </label>
+</div>
+</div>
+<!-- 表示切替トグル -->
+<div class="pt-4 border-t border-gray-50 space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-[11px] text-gray-600" style="">BEST/総集編非表示</span>
+<label class="inline-flex relative items-center cursor-pointer" style="">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[11px] text-gray-600" style="">VR作品非表示</span>
+<label class="inline-flex relative items-center cursor-pointer" style="">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+</label>
+</div>
+</div>
+<button class="w-full bg-gray-900 text-white text-[12px] font-bold py-2.5 rounded-lg hover:bg-gray-800 transition shadow-sm" style="">
+            検索条件をクリア
+          </button>
+</div>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: MainContent -->
+<section class="flex-1">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+<div class="flex items-center flex-wrap gap-4">
+<h1 class="text-xl font-bold text-gray-800" style="">予約作品一覧</h1>
+<!-- 並び替え (移設) -->
+<div class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
+<span class="text-[11px] text-gray-400 whitespace-nowrap" style=""><br/></span>
+<select class="text-[11px] border-none bg-transparent p-0 pr-6 focus:ring-0 font-medium">
+<option>発売日が近い順</option>
+<option>人気順</option>
+</select>
+</div>
+<!-- 詳細検索ボタン (新規) -->
+<a class="inline-flex items-center text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition border border-blue-100" href="#" style="">
+<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-width="2.5"></path></svg>
+              詳細検索
+            </a>
+</div>
+<p class="text-xs text-gray-400" style="">全 124 件の予約受付中タイトル</p>
+</div>
+<!-- 商品グリッド (横5×縦3 = 15作品) -->
+<div class="product-grid" id="products-grid" data-purpose="product-list">
+<!-- Card 1 -->
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group">
+<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">
+<img alt="作品画像" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAjjtSmggW7ws5labCwXPAlVi3ciYYr0N1xdsc3gOoWz4TgeTfiWQocG96Ob-3iZ-lq3aTRfY9DSI2I5ITV1_TWlj9PXThJFtV66kEJN_XaAerM1trl9gWHGrL-yY2nsGDx1P5RkDw6sFOIEN9KyFqcQ_kqbXzkqbp4dwl1n4vMsByvRog6f2CdJaJj7ARMIB_KcHZM4JzVMfi458OWVupxRliumPLhKpSknzTe7utGDta-8w5eLEQi5YHosel85VHIVtDgY98xJo" style=""/>
+<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm" style="">予約受付中</span>
+</div>
+<div class="flex flex-col flex-1 p-2.5">
+<h3 class="text-[12px] font-bold line-clamp-2 leading-tight h-8 group-hover:text-blue-600 transition mb-1" style="">エターナル・ファンタジー：黎明の騎士団</h3>
+<p class="text-[10px] text-gray-400 mb-1.5 mb-4" style="">2024/11/15 発売</p>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<!-- Card 2 -->
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group">
+<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">
+<img alt="作品画像" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3lyoogKLBc24_JarlYa_VKlNFkj5FH4vB1l_-gAEYwPdCBSTMtlse9KcU17QfSbx5K5wD25CWl8aGYr45TQj5oEKita4wNyjbTYminhdtMkOMgRIi0lQf0fWR6sgovUcp1ZFw3aoeXlV96Tj5spq7LM0h7CX4irxGFkSRi97ys5_ZCQJzrFE5nHvQCL3elA2lmvoIqUkkt8Nt7yjAvUKmk1OfbYMAWglkd3FdYHnmRNlEpGXlsROVeWhAlwxuf4KfdRc3YXsum3g" style=""/>
+<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm" style="">予約受付中</span>
+</div>
+<div class="flex flex-col flex-1 p-2.5">
+<h3 class="text-[12px] font-bold line-clamp-2 leading-tight h-8 group-hover:text-blue-600 transition mb-1" style="">サイバー・ハッカーズ 2077</h3>
+<p class="text-[10px] text-gray-400 mb-1.5 mb-4" style="">2024/12/05 発売</p>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<!-- Card 3 -->
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group">
+<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">
+<img alt="作品画像" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmuFEp1ZFN3PGlP_yXUcEYyYM9e6mun9Mpm4sLKMDDaNKS7T2Npd_hAEpUC3m34MXMiZW4pinrroWU_I7OlUK2YKXAhqbEcLaTd3T3to9JgQcBA7YQwAtvP104Xb3OaWMeTRqAaEF81nvshAlEJm8JvZhp449PHEehlxWI37Db15JhJQEL4Z91n2ELbhknlMQzuK0-IfZnKwYBJUNN4_5Vk6OIue6DVZNJAdzL0H9xMUyedHG5s2IO08R_8pr0H0pwMFolw022RLM" style=""/>
+</div>
+<div class="flex flex-col flex-1 p-2.5">
+<h3 class="text-[12px] font-bold line-clamp-2 leading-tight h-8 group-hover:text-blue-600 transition mb-1" style="">Cooking Master Pro</h3>
+<p class="text-[10px] text-gray-400 mb-1.5 mb-4" style="">2024/11/22 発売</p>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<!-- Card 4 -->
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group">
+<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">
+<img alt="作品画像" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmL-HOFhz3yj_aUbXmtGq_8mpUG2lkjbsKkP6hYR5N9bMLH8zllBCWburEeTK8oQjekjn5jHzYyZaP47ZM-6bArOntMRA5YMdS6CqSrKmzBK4Zgok4fTBLiw0xg1Typ59yqg2XXCj-k14XNz9EnggORp8XWCd-R-N6gmeV2sIxsUHhU0q5uU_XXHGBMqTUzL2MYsE3qN3ser9kjidY-RkcI1FRyp07bRAJwz-2M8oS8KSKBxnyizbgRYPKY1b7a4JQHKF2dorue18" style=""/>
+</div>
+<div class="flex flex-col flex-1 p-2.5">
+<h3 class="text-[12px] font-bold line-clamp-2 leading-tight h-8 group-hover:text-blue-600 transition mb-1" style="">Racing World Tour 2025</h3>
+<p class="text-[10px] text-gray-400 mb-1.5 mb-4" style="">2025/01/20 発売</p>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<!-- Card 5 -->
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group">
+<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">
+<img alt="作品画像" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAr05a9H7nQQn-3sNcIIfIdJfrDYt10VXJgVOn52kUyV5jnvBDF2ys_a3b4MouSE4-8lmoY5jbF_3S4b7wIGHPDCnT9L7pY-EYtLbc8u5UDu0tUAJPvpQFNWs7HT7AX9guut3zxwG_HIHj82qtcUonz6bXwZVTe4SYtua8IrwyAXzLq6ibNIL036xbKMBzrdruo3XbVldQi0g5fdZignMnBZAor-W__EfqqResYyqJdJTlIH7OZA0m6N3TdfKgp5oh0Z32tJLNks8Y" style=""/>
+</div>
+<div class="flex flex-col flex-1 p-2.5">
+<h3 class="text-[12px] font-bold line-clamp-2 leading-tight h-8 group-hover:text-blue-600 transition mb-1" style="">ミステリー・アイランド</h3>
+<p class="text-[10px] text-gray-400 mb-1.5 mb-4" style="">2024/12/10 発売</p>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<!-- Placeholder Cards (6-15) -->
+<script>
+            for(let i=0; i<10; i++) {
+              document.write(`
+                <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+                  <div class="aspect-[3/4] bg-gray-50 relative"></div>
+                  <div class="p-3 flex flex-col flex-1">
+                    <div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+                    <div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+                    <div class="mt-auto h-4 w-1/3 bg-gray-100 rounded"></div>
+                  </div>
+                </article>
+              `);
+            }
+          </script>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+<div class="aspect-[3/4] bg-gray-50 relative"></div>
+<div class="flex flex-col flex-1 p-2.5">
+<div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+<div class="aspect-[3/4] bg-gray-50 relative"></div>
+<div class="flex flex-col flex-1 p-2.5">
+<div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+<div class="aspect-[3/4] bg-gray-50 relative"></div>
+<div class="flex flex-col flex-1 p-2.5">
+<div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+<div class="aspect-[3/4] bg-gray-50 relative"></div>
+<div class="flex flex-col flex-1 p-2.5">
+<div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+<div class="aspect-[3/4] bg-gray-50 relative"></div>
+<div class="flex flex-col flex-1 p-2.5">
+<div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+<div class="aspect-[3/4] bg-gray-50 relative"></div>
+<div class="flex flex-col flex-1 p-2.5">
+<div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+<div class="aspect-[3/4] bg-gray-50 relative"></div>
+<div class="flex flex-col flex-1 p-2.5">
+<div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+<div class="aspect-[3/4] bg-gray-50 relative"></div>
+<div class="flex flex-col flex-1 p-2.5">
+<div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+<div class="aspect-[3/4] bg-gray-50 relative"></div>
+<div class="flex flex-col flex-1 p-2.5">
+<div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition duration-300 group opacity-60">
+<div class="aspect-[3/4] bg-gray-50 relative"></div>
+<div class="flex flex-col flex-1 p-2.5">
+<div class="h-3 w-3/4 bg-gray-100 rounded mb-2"></div>
+<div class="h-2 w-1/2 bg-gray-50 rounded mb-4"></div>
+<div class="flex justify-end space-x-2 mt-2"><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"><span class="material-symbols-outlined text-[18px]">add</span></button><button class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-50 hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition"><span class="material-symbols-outlined text-[18px]">favorite</span></button></div></div>
+</article>
+</div>
+<!-- ページネーション -->
+<div class="mt-12 flex justify-center">
+<nav class="flex items-center space-x-1">
+<a class="p-2 text-gray-300 hover:text-blue-600 transition" href="#" style="">
+<svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" fill-rule="evenodd"></path>
+</svg>
+</a>
+<a class="w-8 h-8 flex items-center justify-center text-xs font-bold bg-blue-600 text-white rounded-lg shadow-md shadow-blue-500/20" href="#" style="">1</a>
+<a class="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition" href="#" style="">2</a>
+<a class="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition" href="#" style="">3</a>
+<span class="px-2 text-xs text-gray-300" style="">...</span>
+<a class="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition" href="#" style="">10</a>
+<a class="p-2 text-gray-300 hover:text-blue-600 transition" href="#" style="">
+<svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" fill-rule="evenodd"></path>
+</svg>
+</a>
+</nav>
+</div>
+</section>
+<!-- END: MainContent -->
+</div>
+</main>
+<!-- BEGIN: Footer (Minimized) -->
+<footer class="bg-white border-t border-gray-100 py-3 mt-auto">
+<div class="container mx-auto px-4">
+<div class="flex flex-col md:flex-row items-center justify-between gap-2">
+<div class="flex space-x-4 text-[10px] text-gray-400">
+<a class="hover:text-blue-600 transition" href="#" style="">会社概要</a>
+<a class="hover:text-blue-600 transition" href="#" style="">お問い合わせ</a>
+<a class="hover:text-blue-600 transition" href="#" style="">利用規約</a>
+<a class="hover:text-blue-600 transition" href="#" style="">プライバシーポリシー</a>
+</div>
+<div class="text-[10px] text-gray-300" style="">
+          © 2024 MEDIASHOP Inc.
+        </div>
+</div>
+</div>
+</footer>
+<!-- END: Footer -->
+<script>(function(){
+var g=document.getElementById('products-grid');
+if(!g)return;
+g.innerHTML='<p class="col-span-5 text-center text-slate-400 py-8">読み込み中...</p>';
+fetch('/api/products?sort=new&limit=15').then(function(r){return r.json();}).then(function(d){
+  if(!d||!d.length){g.innerHTML='<p class="col-span-5 text-center text-slate-400 py-8">作品がありません</p>';return;}
+  g.innerHTML=d.map(function(p){
+    var img=p.main_image_url||'';
+    var t=((p.title||'').substring(0,40)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
+    var pid=encodeURIComponent(p.product_id||'');
+    return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
+      +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
+      +(img?'<img alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="'+img+'"/>':'<div class="w-full h-full bg-slate-200"></div>')
+      +'<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">予約受付中</span>'
+      +'</div>'
+      +'<div class="p-3"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8">'+t+'</h3>'
+      +'<p class="text-[10px] text-gray-400">'+dt+'</p></div></article>';
+  }).join('');
+}).catch(function(){g.innerHTML='<p class="col-span-5 text-center text-slate-400 py-8">エラーが発生しました</p>';});
+})();
+</script>
+</body></html>

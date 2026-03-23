@@ -1,0 +1,54 @@
+name: Daily Update (FANZA + MGS)
+
+on:
+  schedule:
+    - cron: '10 1 * * *'   # 毎日 10:10 JST (= 01:10 UTC)
+  workflow_dispatch:         # 手動実行
+
+concurrency:
+  group: daily-update
+  cancel-in-progress: false
+
+jobs:
+  fanza-update:
+    name: FANZA 日次更新
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run FANZA daily update
+        run: node scripts/fanza_daily_update.js
+        env:
+          DMM_API_ID:        ${{ secrets.DMM_API_ID }}
+          DMM_AFFILIATE_ID:  ${{ secrets.DMM_AFFILIATE_ID }}
+          DMM_AFFILIATE_IDS: ${{ secrets.DMM_AFFILIATE_IDS }}
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+
+  mgs-update:
+    name: MGS 日次更新
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run MGS daily update
+        run: node scripts/phase3_daily_update.js
+        env:
+          TURSO_MGS_URL:   ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN: ${{ secrets.TURSO_MGS_TOKEN }}

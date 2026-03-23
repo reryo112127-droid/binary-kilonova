@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#1a110d",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        
+        /* Premium Podium Textures */
+        .podium-gold { 
+            background: linear-gradient(135deg, #f9d423 0%, #ffdb6e 25%, #d4af37 50%, #f9d423 75%, #b8860b 100%);
+            box-shadow: 0 10px 30px -5px rgba(212, 175, 55, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+        .podium-silver { 
+            background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 25%, #bdbdbd 50%, #e0e0e0 75%, #757575 100%);
+            box-shadow: 0 10px 30px -5px rgba(158, 158, 158, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+        .podium-bronze { 
+            background: linear-gradient(135deg, #cd7f32 0%, #e6a57e 25%, #a0522d 50%, #cd7f32 75%, #8b4513 100%);
+            box-shadow: 0 10px 30px -5px rgba(139, 69, 19, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+
+        /* Stage Effects */
+        .stage-glow {
+            background: radial-gradient(circle at center, rgba(236, 91, 19, 0.15) 0%, transparent 70%);
+        }
+        .dark .stage-glow {
+            background: radial-gradient(circle at center, rgba(236, 91, 19, 0.2) 0%, transparent 70%);
+        }
+
+        .spotlight {
+            position: absolute;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150%;
+            height: 140%;
+            background: conic-gradient(from 180deg at 50% 0%, transparent 150deg, rgba(255,255,255,0.1) 180deg, transparent 210deg);
+            filter: blur(40px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Sparkle Animation */
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+        .sparkle {
+            position: absolute;
+            background: white;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            animation: sparkle 2s infinite;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 transition-colors duration-300">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-6 py-4 sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<div class="text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl" style="">emoji_events</span>
+</div>
+<h2 class="text-lg font-bold tracking-tight" style="">ひょう2026年出演者ランキング</h2>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-xl h-10 w-10 bg-slate-100 dark:bg-slate-800 hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-[20px]" style="">share</span>
+</button>
+<button class="flex items-center justify-center rounded-xl h-10 w-10 bg-slate-100 dark:bg-slate-800 hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-[20px]" style="">search</span>
+</button>
+</div>
+</header>
+<main class="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
+<!-- Podium Section -->
+<section class="mb-16 relative overflow-hidden rounded-3xl py-12 px-4 bg-white/40 dark:bg-white/5 border border-white/20 shadow-2xl">
+<div class="stage-glow absolute inset-0 pointer-events-none"></div>
+<div class="spotlight"></div>
+<!-- Sparkles -->
+<div class="sparkle w-3 h-3 top-10 left-[20%] animate-[sparkle_3s_infinite]"></div>
+<div class="sparkle w-2 h-2 top-24 right-[15%] animate-[sparkle_4s_infinite_1s]"></div>
+<div class="sparkle w-4 h-4 bottom-20 left-[10%] animate-[sparkle_2.5s_infinite_0.5s]"></div>
+<div class="sparkle w-2 h-2 top-40 left-[45%] animate-[sparkle_5s_infinite_2s]"></div>
+<h1 class="relative z-10 text-center text-4xl font-black mb-16 tracking-[0.2em] text-slate-900 dark:text-white drop-shadow-sm" style=""><span class="text-primary">2026年</span>出演者ランキング</h1>
+<div id="actress-podium-row" class="relative z-10 flex items-end justify-center gap-2 sm:gap-8 pt-8">
+<!-- 2nd Place -->
+<div class="flex flex-col items-center group w-1/3 max-w-[190px]">
+<div class="relative mb-6">
+<div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-slate-300 overflow-hidden shadow-2xl relative z-10 ring-8 ring-slate-300/10">
+<img class="w-full h-full object-cover" data-alt="Female performer professional portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoAEl1b4Tq_kqJ3pcsGQ35aHjx5ux4mlqaSl2thWIBEXlJMfOiK04CIXAev_5IZqb7T1huNDbXehVPWPzJMOYffY4n7O33MtMxgCdWq2Bhr0tm8ulmxuKFW1noouwSL9tyavPsV-XypmsMOebkbmC-eTOqbBLnV20Muro93CSMKjtB1gtzawNBXeHRqs4a_ktLTxV5fYrnzopeeG0OOjC5qGtQzX0iCgeqfH-X8frHMqIkuLdsMU6MG4YHXsqFd2Z1eVznVxSRwRM" style=""/>
+</div>
+<div class="absolute -top-4 -right-2 podium-silver text-slate-800 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20" style="">2</div>
+</div>
+<div class="w-full podium-silver h-32 sm:h-40 rounded-t-2xl flex flex-col items-center justify-start p-3 shadow-2xl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent"></div>
+<span class="relative font-bold text-sm sm:text-lg text-slate-900 text-center line-clamp-1 mt-3" style="">田中 健太</span>
+<span class="relative text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-700/60 mt-1" style="">Silver </span>
+</div>
+<div class="flex items-center gap-4 mt-6">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform" style="">
+<span class="material-symbols-outlined text-xl text-slate-500" style="">add</span>
+</button>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform" style="">
+<span class="material-symbols-outlined text-xl text-slate-500" style="">favorite</span>
+</button>
+</div>
+</div>
+<!-- 1st Place -->
+<div class="flex flex-col items-center group w-1/3 max-w-[240px] -translate-y-8">
+<div class="relative mb-8 scale-110">
+<div class="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-[6px] border-yellow-400 overflow-hidden shadow-[0_20px_50px_rgba(234,179,8,0.3)] relative z-10 ring-[12px] ring-yellow-400/10">
+<img class="w-full h-full object-cover" data-alt="Male star performer smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQ7tS7tDiBD4bkw_ckNVuiOt-dESiwvYFWWtX6Jnt4tqfoMEzFJyElUckV6B409GvFjVGT0HSLRbSV-z1IR8CHe8hVhOfqGQTrT1go6Y5VME2AdzI79fqxF1ikomkI3bakE6g-kSALctcleJSltOr_lam-qDSpprnv-OJ9JtK3sfBZv8A4-aJEqtjTbSkWDjQAKDuWyc5wNH6QbpeHjGrlEV2bl3JmcD04xyvD_38AI1s5H17QX7HoedOhAyBwPGwTC6jhd28ggBs" style=""/>
+</div>
+<div class="absolute -top-6 -right-2 podium-gold text-yellow-900 w-14 h-14 rounded-full flex items-center justify-center font-black shadow-xl border-4 border-white z-20 animate-bounce">
+<span class="material-symbols-outlined text-2xl" style="">star</span>
+</div>
+</div>
+<div class="w-full podium-gold h-44 sm:h-56 rounded-t-3xl flex flex-col items-center justify-start p-4 shadow-[0_25px_50px_-12px_rgba(234,179,8,0.5)] relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-t from-yellow-600/20 to-transparent"></div>
+<span class="relative font-black text-base sm:text-2xl text-slate-900 text-center line-clamp-1 mt-4" style="">斎藤 結衣</span>
+<div class="relative flex items-center gap-1 mt-2 bg-white/30 backdrop-blur-sm px-4 py-1 rounded-full text-[10px] sm:text-xs font-black text-yellow-900 uppercase tracking-widest" style="">
+                    Champion
+                </div>
+</div>
+<div class="flex items-center gap-5 mt-8">
+<button class="flex items-center justify-center w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-xl border border-yellow-200 dark:border-yellow-900/30 hover:scale-110 transition-transform" style="">
+<span class="material-symbols-outlined text-2xl text-primary" style="">add</span>
+</button>
+<button class="flex items-center justify-center w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-xl border border-yellow-200 dark:border-yellow-900/30 hover:scale-110 transition-transform" style="">
+<span class="material-symbols-outlined text-2xl text-primary" style="">favorite</span>
+</button>
+</div>
+</div>
+<!-- 3rd Place -->
+<div class="flex flex-col items-center group w-1/3 max-w-[190px]">
+<div class="relative mb-6">
+<div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-amber-600 overflow-hidden shadow-2xl relative z-10 ring-8 ring-amber-600/10">
+<img class="w-full h-full object-cover" data-alt="Actress headshot professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLZ05nIlWMwBzL5QUB-GZxU33RvjRTpt8MNoIgT2MR1nQaKa_3MngjFwwgOGjoPtHd-ZAanTacFy1-7c8HWs3ZMPmiTQ5_kLDFg86NcRkRBnKyhlYJkFkYox0sAkCHQPy1Dv8rHcjsLNZvGWEe59oLK1pQKirLRHqmYgXOVIdzoGqYSFzanQ9KfKrfwQD_-dNfhFeLR9QPVfIAnEoh5FhFXDCcsZkJcLv32QQ-Oqwg7q0WNKLzsSE683VtI30Y6ph_aTZGPLCrCbI" style=""/>
+</div>
+<div class="absolute -top-4 -right-2 podium-bronze text-white w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20" style="">3</div>
+</div>
+<div class="w-full podium-bronze h-28 sm:h-32 rounded-t-2xl flex flex-col items-center justify-start p-3 shadow-2xl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent"></div>
+<span class="relative font-bold text-sm sm:text-lg text-slate-900 text-center line-clamp-1 mt-3" style="">佐藤 舞</span>
+<span class="relative text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-100/60 mt-1" style="">Bronze </span>
+</div>
+<div class="flex items-center gap-4 mt-6">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform" style="">
+<span class="material-symbols-outlined text-xl text-slate-500" style="">add</span>
+</button>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform" style="">
+<span class="material-symbols-outlined text-xl text-slate-500" style="">favorite</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Ranking List Section (4th - 50th) -->
+<section class="pb-24">
+<div class="flex items-center justify-between mb-8 border-l-4 border-primary pl-4">
+<h2 class="text-xl font-bold" style="">4位 〜 50位</h2>
+<div class="text-sm text-slate-500 flex items-center gap-1" style="">
+<span class="material-symbols-outlined text-sm" style="">schedule</span>
+                        2026年10月更新
+                    </div>
+</div>
+<!-- High Density Grid Layout -->
+<div id="actress-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+<!-- Rank 4 -->
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAh9NlZNF8DqT11aM3UlgSz5BGJ3FFzfmEa6EF76f0Og9s8fqzKFmdNXuk9PQ3yi4_rd1BhxMJUQXjSjoKr9_h8rU7ZOgeoWd8E7I2tSd_AdwDJNrlclScFMHGb_yaqo8s85us0-vJ3cSUlWFNXFbHq5_Eukir3O1M34TvMqs0RzhDI_tiZLxf4R4_fwkKevEXhYbQRiPhsDDmhvt8hzkAw7PT2gSF5iPEjsxlL9tLkVmJUUIL9e_qSlOQIUYy1rCOWZnaHXih1ZLI" style=""/>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">4</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">高橋 勇気</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Actor</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<!-- Rank 5 -->
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6Jhz98OlYvCOClERFksfPR84KFkO649cqZhFs-VklvJnzEhdL2FKOj1iFTa9RRA5yFz5HvAh8v_KwqNSpKzKSmuEDVEe9Ep3M-HmHRBZ2rO-HraxmoJV9mUoPWDlbDSedEWbRuutWo9nr6RC4JnYQaW7lMVyXxVerUMtnY4C9bIgXlPBzLZ6chgdzhJskOvdno0zx3csIazJMljhUwo3n075YttvFycC9yI9iVmsPbbcsJ7L1phM65ExRVOg8zxRs1otMoIUbVF0" style=""/>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">5</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">伊藤 美咲</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Model</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<!-- Rank 6 -->
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC67PhZkPyioEdiAPxHKvzASkJTwVqyC4vwPR6tltnED1Xxy2UaqZDbsns_REwRfqQAfV7PErTn0XDtXqoEljJ_DUXmE2dSYzkqXc8vfWiiqxhNpPr2sw2UvV3jq0MLZJhox0BvsKTyl3oq3oHREyyS3_rY-pvZdx3-r8ZS_t7BefnBJHsc5lwarGALRtMWd3j5cL68vbO_VxRF3jladaXUzqo0vKBkCwiX4GAatBvCqFmyvIMBjejtE6eijTFN2B1TdYs9E-208-8" style=""/>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">6</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">渡辺 翔太</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Musician</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<!-- Rank 7 -->
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0WIg5kLZ4nmfig9E1zY1Jgyz-u4Jau5L9rwwSBkoNL43WSV6JgJbE6z3TPE1UhKQ84Ap9ctGyA4tzxYqtvGf4vE3L57qEfQO1Cl5RVNefo-yyAsPzl591Ajk4fBkzbA3EpZOl1deOOxNciEQXS2KDpXzndWTpHwBHqoIERI7PI18ETIWNK_U0kG8k6tU_V-Nwob73UA5y0gEy9I-ViXEC_DX-9IKFj0ERqQqDq_LuCrVkIifIVBUNv5brXUvj3Uh6F6MQTzoL24E" style=""/>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">7</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">小林 凜</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Artist</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<!-- Rank 8 -->
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDibWcBCqpb6ObsIWKEyGjCs8GeUu7zkKlwNbQR_1iLgNzweKPW-UWHfvZRd8e1CtTKBXexPvn8f5PVEghPS0v4QTVNUNpflz2KIVBaLIDcckyrqg6qPFj9tkNxxOzC0jaJ6jOrJIsnLNMgK2mDaEXaEW3Ulyp0wPtrHDu6_PMwwvrWM15dBNct0SU3QI76TniF3fT1GxfWqqx5OPyry-cS4TKwlAuY8Ev5AAe4DY2zwIy8GTTn_irDfBdJdPYbe5U-ITvCKJZ6ndc" style=""/>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">8</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">加藤 拓海</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">TV Talent</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<!-- Rank 9 -->
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeYE0ZCQv7DDO9YhP9_Q6tmtLda-WHuWu-xj5pQwF6CS_zJQ8WGxuf8ABTEHq59t6s8roZyL2PcZGY-TASI2c0apoSCUV4pDMnk4urVvO5RhvpqQA4UYxiPcSs6srO8R8SrTHUPg6Dz1wPxLFjShLRiB61X36n9ReVMdUXepEtkGOek6tvLGmEkpSX66S_z3Z77ambGgrdQTFP7z1CdaDGKOFm-n13vZHdXUqH2fDxPGvL3w_kKAjU9GvDRnv-EeFScaa8U0ZYJ7g" style=""/>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">9</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">清水 奈々</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Singer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<script>
+                        const names = ["山口 葵", "森田 誠", "中島 健", "石井 杏奈", "藤本 翼", "松本 優", "岡田 准", "三浦 春", "橋本 環", "菅田 将", "有村 架", "広瀬 す", "横浜 流", "小松 菜", "北村 匠", "吉沢 亮", "杉咲 花", "高橋 一", "斎藤 工", "長澤 ま", "綾瀬 は", "堺 雅人", "阿部 寛", "天海 祐", "戸田 恵", "松坂 桃", "二宮 和", "櫻井 翔", "松本 潤", "大野 智", "相葉 雅", "木村 拓", "中居 正", "香取 慎", "草彅 剛", "稲垣 吾", "福山 雅", "米津 玄", "菅田 将", "星野 源", "宇多田"];
+                        const jobs = ["Artist", "Actor", "Musician", "Model", "Singer", "Dancer", "Performer", "Comedian"];
+                        
+                        let html = '';
+                        for (let i = 10; i <= 50; i++) {
+                            const name = names[(i-10) % names.length];
+                            const job = jobs[i % jobs.length];
+                            html += `
+                            <div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+                                <div class="relative shrink-0">
+                                    <div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-slate-300 dark:text-slate-500">account_circle</span>
+                                    </div>
+                                    <span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm">${i}</span>
+                                </div>
+                                <div class="flex-1 min-w-0 pr-12">
+                                    <h3 class="font-bold text-xs sm:text-sm truncate">${name}</h3>
+                                    <p class="text-[10px] text-slate-400 truncate mt-0.5">${job}</p>
+                                </div>
+                                <div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+                                    <button class="text-slate-300 hover:text-primary transition-colors">
+                                        <span class="material-symbols-outlined text-[18px]">add</span>
+                                    </button>
+                                    <button class="text-slate-300 hover:text-red-500 transition-colors">
+                                        <span class="material-symbols-outlined text-[18px]">favorite</span>
+                                    </button>
+                                </div>
+                            </div>`;
+                        }
+                        document.write(html);
+                    </script>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">10</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">山口 葵</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Musician</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">11</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">森田 誠</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Model</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">12</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">中島 健</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Singer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">13</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">石井 杏奈</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Dancer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">14</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">藤本 翼</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Performer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">15</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">松本 優</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Comedian</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">16</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">岡田 准</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Artist</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">17</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">三浦 春</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Actor</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">18</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">橋本 環</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Musician</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">19</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">菅田 将</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Model</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">20</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">有村 架</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Singer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">21</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">広瀬 す</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Dancer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">22</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">横浜 流</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Performer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">23</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">小松 菜</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Comedian</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">24</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">北村 匠</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Artist</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">25</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">吉沢 亮</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Actor</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">26</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">杉咲 花</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Musician</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">27</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">高橋 一</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Model</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">28</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">斎藤 工</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Singer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">29</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">長澤 ま</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Dancer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">30</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">綾瀬 は</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Performer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">31</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">堺 雅人</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Comedian</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">32</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">阿部 寛</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Artist</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">33</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">天海 祐</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Actor</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">34</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">戸田 恵</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Musician</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">35</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">松坂 桃</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Model</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">36</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">二宮 和</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Singer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">37</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">櫻井 翔</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Dancer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">38</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">松本 潤</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Performer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">39</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">大野 智</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Comedian</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">40</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">相葉 雅</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Artist</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">41</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">木村 拓</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Actor</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">42</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">中居 正</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Musician</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">43</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">香取 慎</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Model</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">44</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">草彅 剛</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Singer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">45</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">稲垣 吾</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Dancer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">46</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">福山 雅</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Performer</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">47</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">米津 玄</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Comedian</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">48</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">菅田 将</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Artist</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">49</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">星野 源</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Actor</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group">
+<div class="relative shrink-0">
+<div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-500" style="">account_circle</span>
+</div>
+<span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm" style="">50</span>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h3 class="font-bold text-xs sm:text-sm truncate" style="">宇多田</h3>
+<p class="text-[10px] text-slate-400 truncate mt-0.5" style="">Musician</p>
+</div>
+<div class="absolute right-2 bottom-2 flex items-center gap-1.5">
+<button class="text-slate-300 hover:text-primary transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">add</span>
+</button>
+<button class="text-slate-300 hover:text-red-500 transition-colors" style="">
+<span class="material-symbols-outlined text-[18px]" style="">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="mt-12 mb-20 flex flex-col items-center gap-6">
+<button class="w-full max-w-md py-4 bg-primary hover:bg-primary/90 text-white rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group" style="">
+<span class="material-symbols-outlined text-2xl" style="">expand_more</span>
+    もっと見る (100位まで表示)
+  </button>
+<p class="text-xs text-slate-400 font-medium" style="">50位まで表示中（全100位）</p>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border border-slate-200 dark:border-slate-800 rounded-full px-8 py-3 shadow-2xl z-50 flex items-center gap-10">
+<a class="text-slate-400 hover:text-primary transition-colors flex flex-col items-center gap-0.5" href="#" style="">
+<span class="material-symbols-outlined" style="">home</span>
+<span class="text-[10px] font-bold" style="">ホーム</span>
+</a>
+<a class="text-primary flex flex-col items-center gap-0.5" href="#" style="">
+<span class="material-symbols-outlined fill-1" style="">leaderboard</span>
+<span class="text-[10px] font-bold" style="">ランキング</span>
+</a>
+<a class="text-slate-400 hover:text-primary transition-colors flex flex-col items-center gap-0.5" href="#" style="">
+<span class="material-symbols-outlined" style="">person</span>
+<span class="text-[10px] font-medium" style="">マイページ</span>
+</a>
+</nav>
+</div>
+</div>
+<script>(function(){
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+var ORDER=[1,0,2];
+var POD_CFG=[
+  {rank:2,wrap:'w-1/3 max-w-[190px]',imgSz:'w-24 h-24 sm:w-32 sm:h-32 rounded-full',border:'border-4 border-slate-300',cls:'podium-silver',podH:'h-32 sm:h-40',label:'Silver'},
+  {rank:1,wrap:'w-1/3 max-w-[240px] -translate-y-8',imgSz:'w-28 h-28 sm:w-36 sm:h-36 rounded-full',border:'border-[6px] border-yellow-400',cls:'podium-gold',podH:'h-44 sm:h-56',label:'Champion'},
+  {rank:3,wrap:'w-1/3 max-w-[190px]',imgSz:'w-24 h-24 sm:w-32 sm:h-32 rounded-full',border:'border-4 border-amber-600',cls:'podium-bronze',podH:'h-28 sm:h-32',label:'Bronze'}
+];
+fetch('/api/ranking/actress?limit=50').then(function(r){return r.json();}).then(function(d){
+  var items=d||[];
+  var podRow=document.getElementById('actress-podium-row');
+  var grid=document.getElementById('actress-grid');
+  if(podRow&&items.length>=3){
+    podRow.innerHTML=ORDER.map(function(pi,i){
+      var c=POD_CFG[i];var a=items[pi]||{};
+      var img=a.sample_image||'';var name=esc(a.name||'');var an=encodeURIComponent(a.name||'');
+      return '<div class="flex flex-col items-center group '+c.wrap+' cursor-pointer" onclick="location.href=\'/actress/'+an+'\'">'
+        +'<div class="relative mb-6"><div class="'+c.imgSz+' '+c.border+' overflow-hidden shadow-2xl relative z-10">'
+        +(img?'<img class="w-full h-full object-cover" src="'+img+'"/>':'<div class="w-full h-full bg-slate-200"></div>')
+        +'</div><div class="absolute -top-4 -right-2 '+c.cls+' text-slate-800 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20">'+c.rank+'</div></div>'
+        +'<div class="w-full '+c.cls+' '+c.podH+' rounded-t-2xl flex flex-col items-center justify-start p-3 shadow-2xl">'
+        +'<span class="font-bold text-sm text-slate-900 text-center line-clamp-1 mt-3">'+name+'</span>'
+        +'<span class="text-[10px] font-black uppercase tracking-widest text-slate-700/60 mt-1">'+c.label+'</span>'
+        +'</div></div>';
+    }).join('');
+  }
+  if(grid&&items.length>3){
+    grid.innerHTML=items.slice(3).map(function(a,i){
+      var rank=i+4;var img=a.sample_image||'';var name=esc(a.name||'');var an=encodeURIComponent(a.name||'');
+      return '<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group cursor-pointer" onclick="location.href=\'/actress/'+an+'\'">'
+        +'<div class="relative shrink-0"><div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100">'
+        +(img?'<img class="w-full h-full object-cover" src="'+img+'"/>':'<span class="material-symbols-outlined text-slate-300 flex items-center justify-center w-full h-full text-2xl">account_circle</span>')
+        +'</div><span class="absolute -top-2 -left-2 bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-sm">'+rank+'</span></div>'
+        +'<div class="flex-1 min-w-0 pr-8"><h3 class="font-bold text-xs sm:text-sm truncate">'+name+'</h3></div>'
+        +'</div>';
+    }).join('');
+  }
+}).catch(function(){});
+})();
+</script>
+</body></html>

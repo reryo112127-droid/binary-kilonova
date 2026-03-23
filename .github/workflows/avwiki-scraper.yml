@@ -1,0 +1,63 @@
+name: AVWiki Scraper
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # 毎時0分
+  workflow_dispatch:        # 手動実行
+
+concurrency:
+  group: avwiki-scraper
+  cancel-in-progress: false  # 前回が終わるまで待つ
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    name: AVWiki スクレイプ (女優 + 品番)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 女優プロフィールスクレイプ（30秒間隔、最大50分）
+      - name: Scrape actress profiles
+        run: timeout 50m node scripts/scrape_avwiki_full.js --interval 30 || true
+        env:
+          CI: ''   # avwikiスクレイパーはCI変数不要
+
+      # 品番→女優マッピングスクレイプ（15秒間隔、最大50分）
+      - name: Scrape product actress mapping
+        run: timeout 50m node scripts/scrape_avwiki_products.js --interval 15 || true
+        env:
+          CI: ''
+          TURSO_MGS_URL:    ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:  ${{ secrets.TURSO_MGS_TOKEN }}
+          TURSO_FANZA_URL:  ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+
+      # 進捗ファイルをコミットしてpush（次回の続き再開に使う）
+      - name: Commit progress
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add \
+            data/avwiki_full.jsonl \
+            data/avwiki_full_progress.json \
+            data/avwiki_product_map.jsonl \
+            data/avwiki_products_progress.json \
+            data/avwiki_url_list.json \
+            data/avwiki_product_urls.json \
+            || true
+          git diff --staged --quiet || \
+            git commit -m "avwiki: scraper progress [skip ci]" && \
+            git push

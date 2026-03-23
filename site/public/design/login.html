@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Public Sans', 'Noto Sans JP', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<header class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="flex items-center p-4 justify-between max-w-md mx-auto w-full">
+<button aria-label="戻る" class="flex size-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100">arrow_back</span>
+</button>
+<h1 class="text-lg font-bold flex-1 text-center pr-10">ログイン・新規登録</h1>
+</div>
+</header>
+<main class="flex-1 flex flex-col max-w-md mx-auto w-full px-6 pb-12">
+<div class="pt-8 pb-10 text-center">
+<div class="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-primary/10">
+<span class="material-symbols-outlined text-primary text-4xl">favorite</span>
+</div>
+<h2 class="text-2xl font-bold leading-tight mb-2">好きな女優・作品を教えてください</h2>
+<p class="text-slate-600 dark:text-slate-400 text-sm">好きな女優・作品のいずれか一方を必ず入力してください。あなたの好みに合わせたコンテンツをお届けします。</p>
+</div>
+<form class="space-y-6 flex-1">
+<div class="space-y-6"><div class="space-y-2"><label class="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">好きなAV女優 <span class="text-xs font-normal text-slate-500 ml-1">(いずれか必須)</span></label><div class="relative"><input class="w-full h-14 px-4 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-0 transition-all placeholder:text-slate-400" type="text"/></div></div><div class="space-y-2"><label class="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">好きなAV作品 <span class="text-xs font-normal text-slate-500 ml-1">(いずれか必須)</span></label><div class="relative"><input class="w-full h-14 px-4 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-0 transition-all placeholder:text-slate-400" type="text"/></div></div></div>
+<div class="space-y-2">
+<label class="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
+                    理由
+                </label>
+<div class="relative">
+<textarea class="w-full min-h-[160px] p-4 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-primary focus:ring-0 transition-all placeholder:text-slate-400 resize-none" placeholder="それを好きな理由を自由に書いてください"></textarea>
+</div>
+<p class="text-[10px] text-slate-400 dark:text-slate-500 text-right pr-1">
+                    最大400文字まで
+                </p>
+</div>
+<div class="pt-4 mt-auto">
+<button class="w-full h-14 bg-primary hover:bg-primary/90 text-white font-bold text-lg rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2" type="submit">
+                    はじめる
+                    <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                    続行することで、<a class="underline text-primary" href="#">利用規約</a>と<a class="underline text-primary" href="#">プライバシーポリシー</a>に同意したことになります。
+                </p>
+</div>
+</form>
+</main>
+<div class="h-8 shrink-0"></div>
+</body></html>

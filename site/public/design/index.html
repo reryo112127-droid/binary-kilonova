@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@300&display=swap" rel="stylesheet"/>
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  }
+  a:hover .icon-wrap { background: #000; }
+  a:hover .icon-wrap span { color: #fff; }
+  a:hover .label { color: #000; }
+  .tab-btn.active { color: #000; border-bottom-color: #000; }
+  .tab-btn { color: #9ca3af; border-bottom: 2px solid transparent; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+</style>
+</head>
+<body class="bg-white min-h-screen">
+
+<!-- Header -->
+<header class="border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 bg-white z-10">
+  <span class="text-sm font-semibold tracking-widest text-gray-400 uppercase">Design</span>
+  <div class="flex gap-6 text-xs font-medium">
+    <button class="tab-btn active pb-1" data-tab="mobile" onclick="switchTab('mobile')">Mobile · 25</button>
+    <button class="tab-btn pb-1" data-tab="web" onclick="switchTab('web')">Web · 28</button>
+  </div>
+</header>
+
+<!-- Mobile Tab -->
+<div id="tab-mobile" class="tab-panel active">
+<main class="max-w-2xl mx-auto px-6 py-8">
+  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-6">
+
+    <a href="home.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">home</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">ホーム</span>
+    </a>
+
+    <a href="products.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">grid_view</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">作品一覧</span>
+    </a>
+
+    <a href="product-detail.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">movie</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">作品詳細</span>
+    </a>
+
+    <a href="video.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">play_circle</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">動画視聴</span>
+    </a>
+
+    <a href="search-actress.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">person_search</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">検索（女優）</span>
+    </a>
+
+    <a href="search-other.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">search</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">検索（その他）</span>
+    </a>
+
+    <a href="advanced-search.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">tune</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">詳細検索</span>
+    </a>
+
+    <a href="ranking.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">trophy</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">ランキング</span>
+    </a>
+
+    <a href="custom-ranking.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">leaderboard</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">カスタムランキング</span>
+    </a>
+
+    <a href="custom-ranking-create.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">add_chart</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">ランキング作成</span>
+    </a>
+
+    <a href="review.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">rate_review</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">レビュー投稿</span>
+    </a>
+
+    <a href="review-complete.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">check_circle</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">レビュー完了</span>
+    </a>
+
+    <a href="login.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">login</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">ログイン</span>
+    </a>
+
+    <a href="mypage.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">person</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">マイページ</span>
+    </a>
+
+    <a href="sns-register.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">share</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">SNS登録</span>
+    </a>
+
+    <a href="sns-register-complete.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">task_alt</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">SNS登録完了</span>
+    </a>
+
+    <a href="x-post-select.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">post</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">X投稿選別</span>
+    </a>
+
+    <a href="info-add-select.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">add_circle</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">情報追加選択</span>
+    </a>
+
+    <a href="cast-add.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">group_add</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">出演者追加</span>
+    </a>
+
+    <a href="cast-add-complete.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">how_to_reg</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">追加完了</span>
+    </a>
+
+    <a href="rename-register.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">edit_note</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">改名登録</span>
+    </a>
+
+    <a href="rename-register-complete.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">verified</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">改名完了</span>
+    </a>
+
+    <a href="age-verify.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">shield_person</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">年齢確認</span>
+    </a>
+
+    <a href="privacy.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">lock</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">プライバシー</span>
+    </a>
+
+    <a href="terms.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">description</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">利用規約</span>
+    </a>
+
+  </div>
+</main>
+</div>
+
+<!-- Web Tab -->
+<div id="tab-web" class="tab-panel">
+<main class="max-w-2xl mx-auto px-6 py-8">
+  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-6">
+
+    <a href="web/home.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">home</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">ホーム</span>
+    </a>
+
+    <a href="web/new-products.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">fiber_new</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">新作</span>
+    </a>
+
+    <a href="web/pre-order.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">bookmark</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">予約作品</span>
+    </a>
+
+    <a href="web/product-detail.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">movie</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">作品詳細</span>
+    </a>
+
+    <a href="web/ranking.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">trophy</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">ランキング</span>
+    </a>
+
+    <a href="web/ranking-2026.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">workspace_premium</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">2026作品ランキング</span>
+    </a>
+
+    <a href="web/actress-ranking-2026.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">star</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">2026出演者ランキング</span>
+    </a>
+
+    <a href="web/advanced-search.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">tune</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">詳細検索</span>
+    </a>
+
+    <a href="web/search-actress.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">person_search</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">検索（女優）</span>
+    </a>
+
+    <a href="web/search-other.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">search</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">検索（その他）</span>
+    </a>
+
+    <a href="web/custom-ranking.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">leaderboard</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">カスタムランキング</span>
+    </a>
+
+    <a href="web/custom-ranking-create.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">add_chart</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">ランキング作成</span>
+    </a>
+
+    <a href="web/mypage.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">person</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">マイページ</span>
+    </a>
+
+    <a href="web/login.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">login</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">ログイン</span>
+    </a>
+
+    <a href="web/register.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">app_registration</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">新規登録</span>
+    </a>
+
+    <a href="web/sns-register.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">share</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">SNS登録</span>
+    </a>
+
+    <a href="web/sns-register-complete.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">task_alt</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">SNS登録完了</span>
+    </a>
+
+    <a href="web/review.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">rate_review</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">レビュー投稿</span>
+    </a>
+
+    <a href="web/review-complete.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">check_circle</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">レビュー完了</span>
+    </a>
+
+    <a href="web/rename-register.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">edit_note</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">改名登録</span>
+    </a>
+
+    <a href="web/rename-register-complete.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">verified</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">改名完了</span>
+    </a>
+
+    <a href="web/cast-add.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">group_add</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">出演者追加</span>
+    </a>
+
+    <a href="web/cast-add-complete.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">how_to_reg</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">追加完了</span>
+    </a>
+
+    <a href="web/info-add-select.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">add_circle</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">情報追加選択</span>
+    </a>
+
+    <a href="web/x-post-select.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">post</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">X投稿選別</span>
+    </a>
+
+    <a href="web/age-verify.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">shield_person</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">年齢確認</span>
+    </a>
+
+    <a href="web/privacy.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">lock</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">プライバシー</span>
+    </a>
+
+    <a href="web/terms.html" class="flex flex-col items-center gap-2 group">
+      <div class="icon-wrap w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center transition-all duration-150">
+        <span class="material-symbols-outlined text-[22px] text-gray-700">description</span>
+      </div>
+      <span class="label text-[10px] text-gray-400 text-center leading-tight transition-colors">利用規約</span>
+    </a>
+
+  </div>
+</main>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+</script>
+
+</body>
+</html>

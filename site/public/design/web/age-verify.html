@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;700&amp;family=Noto+Sans+JP:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ec5b13",
+              "background-light": "#f8f6f6",
+              "background-dark": "#221610",
+            },
+            fontFamily: {
+              "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<title>年齢確認 | Age Verification</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased">
+<div class="relative flex min-h-screen w-full flex-col items-center justify-center p-4">
+<!-- Main Container -->
+<div class="w-full max-w-[520px] bg-white dark:bg-slate-900 rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+<!-- Logo Section -->
+<div class="pt-10 pb-6 flex flex-col items-center gap-4">
+<div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-4xl">
+                        verified_user
+                    </span>
+</div>
+<h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">AVランキング</h1>
+</div>
+<!-- Content Section -->
+<div class="px-8 pb-10 text-center">
+<div class="mb-8">
+<div class="w-full h-48 rounded-lg mb-6 overflow-hidden bg-slate-100" data-alt="Abstract orange and white minimalist pattern">
+<div class="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary/30 text-6xl">lock</span>
+</div>
+</div>
+<h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4 leading-relaxed">
+                        このサイトは成人向けコンテンツのサイトです。
+                    </h2>
+<p class="text-lg font-medium text-slate-600 dark:text-slate-400">
+                        あなたは18歳以上ですか？
+                    </p>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-4">
+<button class="w-full h-14 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+<span>はい（18歳以上です）</span>
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+<button class="w-full h-14 bg-transparent border-2 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        いいえ（18歳未満です）
+                    </button>
+</div>
+<!-- Footer Note -->
+<div class="mt-8">
+<p class="text-sm text-slate-400 dark:text-slate-500">
+                        18歳未満の方の閲覧は固くお断りいたします。
+                    </p>
+</div>
+</div>
+</div>
+<!-- External Links / Policy -->
+<div class="mt-8 flex gap-6 text-xs text-slate-400 dark:text-slate-500">
+<a class="hover:text-primary transition-colors" href="#">プライバシーポリシー</a>
+<a class="hover:text-primary transition-colors" href="#">利用規約</a>
+</div>
+</div>
+</body></html>

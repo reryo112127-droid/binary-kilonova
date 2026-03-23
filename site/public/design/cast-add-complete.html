@@ -1,0 +1,101 @@
+<!DOCTYPE html><html class="light" lang="ja"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="relative flex min-h-screen w-full flex-col max-w-[480px] mx-auto bg-background-light dark:bg-background-dark shadow-xl">
+<!-- Header -->
+<header class="flex items-center px-4 py-4 justify-between border-b border-slate-200 dark:border-slate-800">
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" style="">
+<span class="material-symbols-outlined text-slate-700 dark:text-slate-300" style="">arrow_back</span>
+</button>
+<h1 class="text-lg font-bold flex-1 text-center pr-10" style="">完了</h1>
+</header>
+<!-- Success Content -->
+<main class="flex-1 flex flex-col items-center justify-center px-6 py-12">
+<div class="flex flex-col items-center gap-8 w-full">
+<!-- Large Success Icon -->
+<div class="flex items-center justify-center size-24 rounded-full bg-green-100 dark:bg-green-900/30 text-green-500">
+<span class="material-symbols-outlined !text-6xl" style="font-variation-settings: &quot;wght&quot; 600;">check_circle</span>
+</div>
+<div class="flex flex-col items-center gap-3 text-center">
+<h2 class="text-2xl font-bold tracking-tight" style="">出演者の追加が完了しました</h2>
+<p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-[280px]" style="">
+                        入力された出演者情報は正常に保存され、作品情報に反映されました。
+                    </p>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-3 w-full mt-8">
+<button class="flex h-14 w-full cursor-pointer items-center justify-center rounded-xl bg-primary text-white text-base font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity" style="">
+                        作品ページに戻る
+                    </button>
+<button class="flex h-14 w-full cursor-pointer items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 text-base font-bold hover:bg-primary/20 transition-colors" style="">ホーム画面に戻る</button>
+</div>
+</div>
+</main>
+<!-- Illustration/Placeholder -->
+<div class="px-6 pb-12">
+<div class="h-32 w-full rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 border border-primary/10 flex items-center justify-center overflow-hidden">
+<div class="relative w-full h-full flex items-center justify-center opacity-40">
+<span class="material-symbols-outlined !text-6xl text-primary" style="">person_add</span>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation Bar -->
+<nav class="sticky bottom-0 flex border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-2 pb-6 pt-2">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-primary" href="#" style="">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">home</span>
+<span class="text-[10px] font-medium leading-none" style="">ホーム</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-slate-400 dark:text-slate-500" href="#" style="">
+<span class="material-symbols-outlined" style="">search</span>
+<span class="text-[10px] font-medium leading-none" style="">検索</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-slate-400 dark:text-slate-500" href="#" style="">
+<span class="material-symbols-outlined" style="">emoji_events</span>
+<span class="text-[10px] font-medium leading-none" style="">ランキング</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-slate-400 dark:text-slate-500" href="#" style="">
+<span class="material-symbols-outlined" style="">play_circle</span>
+<span class="text-[10px] font-medium leading-none" style="">動画</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 py-1 text-slate-400 dark:text-slate-500" href="#" style="">
+<span class="material-symbols-outlined" style="">account_circle</span>
+<span class="text-[10px] font-medium leading-none" style="">マイページ</span>
+</a>
+</nav>
+</div>
+</body></html>

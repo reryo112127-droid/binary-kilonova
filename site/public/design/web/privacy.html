@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Public Sans", "Noto Sans JP", sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex h-16 items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="text-primary">
+<svg class="size-8" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<span class="text-xl font-bold tracking-tight">Nova Solutions</span>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">ホーム</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">サービス</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">料金</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">お問い合わせ</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="hidden sm:inline-flex items-center justify-center rounded-xl bg-primary px-6 py-2 text-sm font-bold text-white hover:bg-opacity-90 transition-all">
+                        ログイン
+                    </button>
+<button class="md:hidden p-2 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main class="min-h-screen">
+<!-- Hero Section -->
+<section class="relative py-16 md:py-24 overflow-hidden bg-white dark:bg-background-dark">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-6">
+                    Legal Information
+                </div>
+<h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-6">
+                    プライバシーポリシー
+                </h1>
+<p class="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+                    Nova Solutionsは、お客様の個人情報を保護し、プライバシーを尊重することをお約束します。
+                </p>
+</div>
+<!-- Decorative element -->
+<div class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+<div class="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+</section>
+<!-- Breadcrumbs -->
+<nav class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-2 text-sm">
+<a class="text-slate-500 hover:text-primary transition-colors" href="#">ホーム</a>
+<span class="material-symbols-outlined text-sm text-slate-400">chevron_right</span>
+<span class="text-slate-900 dark:text-slate-100 font-medium">プライバシーポリシー</span>
+</nav>
+<!-- Content Section -->
+<article class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:pb-24">
+<div class="prose prose-slate dark:prose-invert max-w-none">
+<div class="bg-white dark:bg-slate-900/50 rounded-2xl p-8 md:p-12 shadow-sm border border-slate-100 dark:border-slate-800">
+<p class="text-slate-600 dark:text-slate-400 leading-relaxed mb-12">
+                        Nova Solutions（以下「当社」といいます）は、当社が提供するサービス（以下「本サービス」といいます）における、ユーザーの個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
+                    </p>
+<div class="space-y-12">
+<!-- Section 1 -->
+<section>
+<h2 class="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">
+<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-base">1</span>
+                                個人情報の収集方法
+                            </h2>
+<p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                当社は、ユーザーが本サービスを利用する際に、氏名、生年月日、住所、電話番号、メールアドレスなどの個人情報をお尋ねすることがあります。また、ユーザーと提携先などとの間でなされたユーザーの個人情報を含む取引記録や決済に関する情報を、当社の提携先（情報提供元、広告主、広告配信先などを含みます）などから収集することがあります。
+                            </p>
+</section>
+<!-- Section 2 -->
+<section>
+<h2 class="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">
+<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-base">2</span>
+                                個人情報を収集・利用する目的
+                            </h2>
+<p class="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                                当社が個人情報を収集・利用する目的は、以下のとおりです。
+                            </p>
+<ul class="space-y-3 text-slate-600 dark:text-slate-400 list-none pl-0">
+<li class="flex gap-3">
+<span class="text-primary mt-1 flex-shrink-0 material-symbols-outlined text-sm">check_circle</span>
+<span>当社サービスの提供・運営のため</span>
+</li>
+<li class="flex gap-3">
+<span class="text-primary mt-1 flex-shrink-0 material-symbols-outlined text-sm">check_circle</span>
+<span>ユーザーからのお問い合わせに回答するため（本人確認を行うことを含む）</span>
+</li>
+<li class="flex gap-3">
+<span class="text-primary mt-1 flex-shrink-0 material-symbols-outlined text-sm">check_circle</span>
+<span>利用規約に違反したユーザーや、不正・不当な目的でサービスを利用しようとするユーザーの特定をし、ご利用をお断りするため</span>
+</li>
+<li class="flex gap-3">
+<span class="text-primary mt-1 flex-shrink-0 material-symbols-outlined text-sm">check_circle</span>
+<span>上記の利用目的に付随する目的</span>
+</li>
+</ul>
+</section>
+<!-- Section 3 -->
+<section>
+<h2 class="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">
+<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-base">3</span>
+                                個人情報の第三者提供
+                            </h2>
+<p class="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                                当社は、次に掲げる場合を除いて、あらかじめユーザーの同意を得ることなく、第三者に個人情報を提供することはありません。ただし、個人情報保護法その他の法令で認められる場合を除きます。
+                            </p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+<div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-sm">
+<p class="font-bold mb-2">法令に基づく場合</p>
+<p class="text-slate-500">公的機関からの要請や法律の規定に基づく必要最低限の開示。</p>
+</div>
+<div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-sm">
+<p class="font-bold mb-2">安全の確保</p>
+<p class="text-slate-500">人の生命、身体または財産の保護のために必要がある場合。</p>
+</div>
+</div>
+</section>
+<!-- Section 4 -->
+<section>
+<h2 class="flex items-center gap-3 text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">
+<span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-base">4</span>
+                                プライバシーポリシーの変更
+                            </h2>
+<p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+                                本ポリシーの内容は、法令その他本ポリシーに別段の定めのある事項を除いて、ユーザーに通知することなく、変更することができるものとします。当社が別途定める場合を除いて、変更後のプライバシーポリシーは、本ウェブサイトに掲載したときから効力を生じるものとします。
+                            </p>
+</section>
+</div>
+<div class="mt-16 pt-8 border-t border-slate-100 dark:border-slate-800">
+<p class="text-sm text-slate-500 dark:text-slate-500 text-right">
+                            最終更新日：2024年5月20日
+                        </p>
+</div>
+</div>
+</div>
+</article>
+</main>
+<!-- Footer -->
+<footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-12">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-2">
+<div class="text-primary/60">
+<svg class="size-6" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<span class="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">Nova Solutions</span>
+</div>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">利用規約</a>
+<a class="text-sm text-slate-900 dark:text-white font-medium" href="#">プライバシーポリシー</a>
+<a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">特定商取引法に基づく表記</a>
+<a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">運営会社</a>
+</div>
+<div class="text-sm text-slate-400">
+                    © 2024 Nova Solutions Inc. All rights reserved.
+                </div>
+</div>
+</div>
+</footer>
+</body></html>

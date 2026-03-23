@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Public Sans", sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen text-slate-900 dark:text-slate-100">
+<div class="layout-container flex h-full grow flex-col">
+<header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark px-6 py-4 md:px-10">
+<div class="flex items-center gap-3">
+<div class="flex items-center justify-center rounded-lg bg-primary p-2 text-white">
+<span class="material-symbols-outlined" style="">person_add</span>
+</div>
+<h2 class="text-lg font-bold tracking-tight" style="">SNS情報登録</h2>
+</div>
+<button class="flex items-center justify-center rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" style="">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-400" style="">close</span>
+</button>
+</header>
+<main class="flex flex-1 justify-center py-10 px-4 md:px-0">
+<div class="w-full max-w-[560px] flex flex-col gap-8">
+<div class="flex flex-col gap-2">
+<h1 class="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white" style="">SNSアカウント情報を登録する</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm" style=""><br/></p>
+</div>
+<form class="flex flex-col gap-6" onsubmit="event.preventDefault();location.href='/actress/sns-register/complete'">
+<div class="space-y-4">
+<label class="block" style="">
+<span class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block" style="">出演者名</span>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl" style="">badge</span>
+<input class="form-input block w-full pl-11 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-primary focus:ring-primary dark:focus:ring-primary/50 h-12 text-base transition-shadow" placeholder="" type="text"/>
+</div>
+</label>
+<label class="block" style="">
+<span class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block" style="">X (Twitter)</span>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl" style="">alternate_email</span>
+<input class="form-input block w-full pl-11 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-primary focus:ring-primary dark:focus:ring-primary/50 h-12 text-base" placeholder="@username" type="text"/>
+</div>
+<p class="mt-1.5 text-xs text-slate-400" style="">ユーザー名を入力してください</p>
+</label>
+<label class="block" style="">
+<span class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block" style="">Instagram</span>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl" style="">photo_camera</span>
+<input class="form-input block w-full pl-11 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:border-primary focus:ring-primary dark:focus:ring-primary/50 h-12 text-base" placeholder="@username" type="text"/>
+</div>
+<p class="mt-1.5 text-xs text-slate-400" style="">インスタグラムのIDを入力してください</p>
+</label>
+</div>
+<div class="flex flex-col sm:flex-row gap-3 pt-4">
+<button class="flex-1 inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3.5 text-base font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95" style="" type="submit">
+                            情報を送信する
+                        </button>
+<button onclick="history.back()" class="flex-1 inline-flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 px-6 py-3.5 text-base font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all" style="" type="button">
+                            キャンセル
+                        </button>
+</div>
+</form>
+<div class="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/10">
+<div class="flex gap-3">
+<span class="material-symbols-outlined text-primary" style="">info</span>
+<div class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed" style="">
+                            登録された情報はプロフィールページにアイコンとして表示されます。リンクが正しいか送信前に再度ご確認ください。
+                        </div>
+</div>
+</div>
+</div>
+</main>
+<footer class="mt-auto py-8 text-center text-slate-400 text-xs border-t border-slate-100 dark:border-slate-800">
+            © 2024 SNS Registration Portal. All rights reserved.
+        </footer>
+</div>
+</body></html>

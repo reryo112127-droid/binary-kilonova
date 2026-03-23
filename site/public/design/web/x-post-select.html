@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>動画選択 - SNS投稿連携</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-4 lg:px-20 py-3">
+<div class="mx-auto max-w-[1400px] flex items-center justify-between gap-4">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-3xl">play_circle</span>
+<h2 class="text-xl font-bold leading-tight tracking-tight hidden sm:block">動画選択</h2>
+</div>
+</div>
+<div class="flex flex-1 max-w-md mx-4">
+<div class="relative w-full">
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+<span class="material-symbols-outlined text-lg">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 focus:ring-primary focus:border-primary text-sm" placeholder="作品を検索..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center justify-center p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm">share</span>
+<span class="hidden sm:inline">一括投稿する</span>
+</button>
+</div>
+</div>
+</header>
+<main class="mx-auto max-w-[1400px] w-full px-4 py-8">
+<!-- 3x2 Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- 1. 新作 (New) -->
+<div class="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col">
+<div class="flex items-center justify-between mb-4 border-l-4 border-primary pl-3">
+<h2 class="text-lg font-bold">新作 <span class="text-xs font-normal text-slate-500 ml-1">New Works</span></h2>
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">PICK UP</span>
+</div>
+<div class="space-y-4 flex-grow">
+<!-- Package Image -->
+<div class="relative group cursor-pointer aspect-[3/4] rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700">
+<img alt="New Package" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCsjJ0pYFadbG0KqCTdJZE0gNg2h5MLHaGOgnLk31hYzaWW0BOJv98mUh-lSlu2SPNfYa9HBUjpe99c-enWZ7M5wZqjEOTLR7qf4_i42kLqvHrW3Qj1NuA1EW4DIuNdY7fxsnxPXOfxPgfc__DnufyzHoxSqUAjddQR_gZJXWibjVkv_0SW_k3M4qpfmFYEKp5teiT0fpuCGtDa5hTwI8G-z-Nqr7sP5hO0G1ZcX3AEndrlwwTO9HAAt6DDbRjNALLSVy_bKZwerQ"/>
+<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="bg-white text-primary text-xs font-bold px-3 py-2 rounded-lg shadow-lg flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">send</span> パッケージ投稿
+                            </button>
+</div>
+</div>
+<!-- Sample Images Row -->
+<div class="grid grid-cols-4 gap-2">
+<div class="aspect-video rounded-md overflow-hidden relative group cursor-pointer border border-slate-100">
+<img alt="Sample 1" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfDzm5xCm86kFHbpcWtSvHEVTG3fVSDmKxeTZNoE8aT-SUOjN5gw-L1NnSmEgncBFXl-Fw9g4Ne3Y-cOnyFGNsVO2sNsYLmcdFH0RuqdnuD8NgVuPrQx4ALUePterjrf4fiZ2_0DvU5_N_rnQSZ-AokKihFMY5pglBwVF7yaRD8vyO-T7nE-TJbk2K4qX13MbLg-jfiNRYRs0lB5QI6yj08jm1oQMN-fH0rAfW1XzNGFD_Zn7ef0FPmH19w7OCIc1WqPp1fjc24wE"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm">add_circle</span>
+</div>
+</div>
+<div class="aspect-video rounded-md overflow-hidden relative group cursor-pointer border border-slate-100">
+<img alt="Sample 2" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUMHNCxYEAO0coIzX6dcufjEttMCYSQnVso5PnehTm-y1F2M1wEEuJNAkf093bie6SrcMsMUZhYWRF6RDn0lPxK6CdLZRR7krW67cAEIJh75XE73050kXV7pICRAEQN9oAhpYsaRBYd-aApgzlFqo0IHIRPfzfEZ_zRxOtkyNH8HGPc0SYkzBBBDorzgJr4LuJiLszVqYu8GnVw1_pS5Dw7-cP1_57HkowVPk4jN1IlLljWWIME5MBonmvxjf-ehfR6EhT5Xd3BPw"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm">add_circle</span>
+</div>
+</div>
+<div class="aspect-video rounded-md bg-slate-50 flex items-center justify-center text-[10px] text-slate-400 border border-dashed border-slate-200">+3</div>
+<div class="aspect-video rounded-md bg-slate-50 flex items-center justify-center text-[10px] text-slate-400 border border-dashed border-slate-200">MORE</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="mt-6 space-y-2">
+<div class="grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-90 shadow-sm">
+<span class="material-symbols-outlined text-sm">auto_fix_high</span> パケ投稿
+                        </button>
+<button class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20">
+<span class="material-symbols-outlined text-sm">image</span> サンプル投稿
+                        </button>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-medium hover:bg-slate-50">
+<span class="material-symbols-outlined text-sm">close</span> 投稿しない
+                        </button>
+<button class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-medium hover:bg-slate-50">
+<span class="material-symbols-outlined text-sm">undo</span> 戻る
+                        </button>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-bold hover:bg-amber-100">
+<span class="material-symbols-outlined text-sm">auto_awesome_motion</span> 投稿しない (BEST/総集編)
+                    </button>
+<button class="w-full flex items-center justify-between py-2 px-3 rounded-lg border border-red-100 text-red-600 text-[11px] font-medium hover:bg-red-50">
+<span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">category</span> ジャンル間違い</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</div>
+<!-- 2. セール (Sale) -->
+<div class="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col">
+<div class="flex items-center justify-between mb-4 border-l-4 border-red-500 pl-3">
+<h2 class="text-lg font-bold">セール <span class="text-xs font-normal text-slate-500 ml-1">Sale</span></h2>
+<span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">SALE</span>
+</div>
+<div class="space-y-4 flex-grow">
+<div class="aspect-[3/4] rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700">
+<img alt="Sale Package" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBn8sInCzmYhDlQkYdK7C2lQUjv_2-S3fxEmEKdyugZJti3j3t3vqGE-rMcLSTW6gcHoBMaRZ90HXablko4pZOn9961o0k-zzBi1HMwL0MLt4eGcOuqNunSEHucRlwrzMx4TVA8qdoVQFeNyOsvSj3EtzYoulGNkWNltKlWuRpFoPfUGCcdS6FtuVn0VzU9Wj8xaLMQBS_icsg_K42FY-mPGGEwSHMz4L2R9LeEZjYAikVyQuiwKebUAYzUZOdBfXPvBepEAbreew0"/>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+</div>
+</div>
+<div class="mt-6 space-y-2">
+<div class="grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary text-white text-xs font-bold shadow-sm">
+<span class="material-symbols-outlined text-sm">auto_fix_high</span> パケ投稿
+                        </button>
+<button class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary/10 text-primary text-xs font-bold">
+<span class="material-symbols-outlined text-sm">image</span> サンプル投稿
+                        </button>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="py-2 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-medium">投稿しない</button>
+<button class="py-2 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-medium">戻る</button>
+</div>
+<button class="w-full py-2 px-3 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-bold">投稿しない (BEST)</button>
+<button class="w-full flex items-center justify-between py-2 px-3 rounded-lg border border-red-100 text-red-600 text-[11px]">
+<span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">category</span> ジャンル間違い</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</div>
+<!-- 3. 匿名 (Anonymous) -->
+<div class="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col">
+<div class="flex items-center justify-between mb-4 border-l-4 border-slate-800 pl-3">
+<h2 class="text-lg font-bold">匿名 <span class="text-xs font-normal text-slate-500 ml-1">Anonymous</span></h2>
+</div>
+<div class="space-y-4 flex-grow">
+<div class="aspect-[3/4] rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700 grayscale">
+<img alt="Anonymous Package" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2EDqxcHKYyJ-9KViivDH9IIAyBGTdxr6dmFu9O-3HcGYmGOKbMQppD_4dVcbbIuD6b0jmBMuKkGzQtc9zkuerkiLXgSQR7fCRUiDhTZlNQL1F9sYSgC76xBt_Wb_oYk2m-p_nwZt-AaW46OAFrKIeEj8xjzChN1Epm9_68CHMB4skpnqC93od1ba7BeUSMzzPPW4H_dVOC7m1US189syNIPfw7de8vRuIH6HobrYaqNbOdjr6afXmJUIoe7RjkUZA4Vz0MsGEn5E"/>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+</div>
+</div>
+<div class="mt-6 space-y-2">
+<div class="grid grid-cols-2 gap-2">
+<button class="bg-primary text-white py-2.5 rounded-lg text-xs font-bold">パケ投稿</button>
+<button class="bg-primary/10 text-primary py-2.5 rounded-lg text-xs font-bold">サンプル投稿</button>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="py-2 rounded-lg border border-slate-200 text-[11px]">投稿しない</button>
+<button class="py-2 rounded-lg border border-slate-200 text-[11px]">戻る</button>
+</div>
+<button class="w-full py-2 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-bold">投稿しない (BEST)</button>
+<button class="w-full flex items-center justify-between py-2 px-3 border border-red-100 text-red-600 text-[11px] rounded-lg">
+<span>ジャンル間違い</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</div>
+<!-- 4. 淑女 (Lady) -->
+<div class="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col">
+<div class="flex items-center justify-between mb-4 border-l-4 border-pink-400 pl-3">
+<h2 class="text-lg font-bold">淑女 <span class="text-xs font-normal text-slate-500 ml-1">Lady</span></h2>
+</div>
+<div class="space-y-4 flex-grow">
+<div class="aspect-[3/4] rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700">
+<img alt="Lady Package" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnYn6UGx0Be0o6hl2QeSVO6Kf9zbv0GJGhR9eA3LnWhRD6m9pcoz_3wkhu1NYA21XE6RVzt_BQ5t10RrfUa9T57Owc4tw1hU4UAzRxl6TBfFVpyrhUjFxwukcW3coYRZeL18upM_w_TyVhZZaT4mNNtoe6VjwcnUAJOEvQif9jtSTQJti8FPQLyOKs1UtJ3UNOhdnv1Y_vjSsmJ0wwU4jG-iRunvTQh6udO1fPEDY2CTsn3k3stY_5kX7HkGwDPXnpmGZAYoT7Q18"/>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+</div>
+</div>
+<div class="mt-6 space-y-2">
+<div class="grid grid-cols-2 gap-2">
+<button class="bg-primary text-white py-2.5 rounded-lg text-xs font-bold">パケ投稿</button>
+<button class="bg-primary/10 text-primary py-2.5 rounded-lg text-xs font-bold">サンプル投稿</button>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="py-2 rounded-lg border border-slate-200 text-[11px]">投稿しない</button>
+<button class="py-2 rounded-lg border border-slate-200 text-[11px]">戻る</button>
+</div>
+<button class="w-full py-2 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-bold">投稿しない (BEST)</button>
+<button class="w-full flex items-center justify-between py-2 px-3 border border-red-100 text-red-600 text-[11px] rounded-lg">
+<span>ジャンル間違い</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</div>
+<!-- 5. VR -->
+<div class="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col">
+<div class="flex items-center justify-between mb-4 border-l-4 border-purple-500 pl-3">
+<h2 class="text-lg font-bold">VR <span class="text-xs font-normal text-slate-500 ml-1">VR Experience</span></h2>
+</div>
+<div class="space-y-4 flex-grow">
+<div class="aspect-[3/4] rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700">
+<img alt="VR Package" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAi2BMHs4tJvF_Ms-6Ur1DK0DiYFkGrOY8rm_XcH00jSdZ7rmxcAnbIzRIs7His308quoEekhl5LIEoebbmSbsZAAkM-i5Phex3X4YrmE4GdCoFVfh0HnkLTsqOUvOZcLTh88kxZfgCrT5Hy0s-hwP0AgByxTOcmhs7qReALFVTPaDi3ZrsDumd-ujDvfCUx7Las-PTW4AEomD8inqhXZPPL677ACwVLILKlmr7k0gcgO28mcIZxMCPqJrA3FSj__L5CozU78paGJw"/>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+</div>
+</div>
+<div class="mt-6 space-y-2">
+<div class="grid grid-cols-2 gap-2">
+<button class="bg-primary text-white py-2.5 rounded-lg text-xs font-bold">パケ投稿</button>
+<button class="bg-primary/10 text-primary py-2.5 rounded-lg text-xs font-bold">サンプル投稿</button>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="py-2 rounded-lg border border-slate-200 text-[11px]">投稿しない</button>
+<button class="py-2 rounded-lg border border-slate-200 text-[11px]">戻る</button>
+</div>
+<button class="w-full py-2 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-bold">投稿しない (BEST)</button>
+<button class="w-full flex items-center justify-between py-2 px-3 border border-red-100 text-red-600 text-[11px] rounded-lg">
+<span>ジャンル間違い</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</div>
+<!-- 6. 共演作 (Collab) -->
+<div class="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col">
+<div class="flex items-center justify-between mb-4 border-l-4 border-indigo-500 pl-3">
+<h2 class="text-lg font-bold">共演作 <span class="text-xs font-normal text-slate-500 ml-1">Collab</span></h2>
+</div>
+<div class="space-y-4 flex-grow">
+<div class="aspect-[3/4] rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700">
+<img alt="Collab Package" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbUcxHBnSKi23aDfdNRZr5BgZZqNAmIy3Ep9g_FcNbml5YX4P42C3_7Zjm12SoZAC24VDNrNDmFwmIgy-mI4RLlRW1XJBks26tlYxjV2YmK-B3IXWYEJg-_5v6gNGnq1-nlfHv0M7V6ihXrGXwxe-Lwj__0AoyuB3zyJb59mjXqo_jZDw1-2H-mH1jGGQpxDIWHaSD9A1IituHzOVK1Ma7ECJzVbjxLjCEknZHcYiwYDrowDcIC8Xf8mmFYo6lOttU9mq3Et1sEek"/>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+<div class="aspect-video bg-slate-100 rounded-md"></div>
+</div>
+</div>
+<div class="mt-6 space-y-2">
+<div class="grid grid-cols-2 gap-2">
+<button class="bg-primary text-white py-2.5 rounded-lg text-xs font-bold">パケ投稿</button>
+<button class="bg-primary/10 text-primary py-2.5 rounded-lg text-xs font-bold">サンプル投稿</button>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="py-2 rounded-lg border border-slate-200 text-[11px]">投稿しない</button>
+<button class="py-2 rounded-lg border border-slate-200 text-[11px]">戻る</button>
+</div>
+<button class="w-full py-2 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-bold">投稿しない (BEST)</button>
+<button class="w-full flex items-center justify-between py-2 px-3 border border-red-100 text-red-600 text-[11px] rounded-lg">
+<span>ジャンル間違い</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 mt-20 py-8 px-4">
+<div class="mx-auto max-w-[1400px] flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2 text-slate-400">
+<span class="material-symbols-outlined">play_circle</span>
+<span class="text-xs font-bold uppercase tracking-widest">Video Selector</span>
+</div>
+<div class="flex gap-6 text-xs text-slate-500 font-medium">
+<a class="hover:text-primary transition-colors" href="#">利用規約</a>
+<a class="hover:text-primary transition-colors" href="#">プライバシーポリシー</a>
+<a class="hover:text-primary transition-colors" href="#">ヘルプ</a>
+<a class="hover:text-primary transition-colors" href="#">お問い合わせ</a>
+</div>
+<p class="text-[10px] text-slate-400">© 2024 Video Selector. All rights reserved.</p>
+</div>
+</footer>
+</div>
+</body></html>

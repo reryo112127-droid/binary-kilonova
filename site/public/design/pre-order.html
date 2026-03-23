@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html class="light" lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>予約受付中 | AVランキング</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#ec5b13",
+        "background-light": "#f8f6f6",
+        "background-dark": "#1a110d",
+      },
+      fontFamily: { "display": ["Noto Sans JP", "Public Sans", "sans-serif"] },
+      borderRadius: {"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},
+    },
+  },
+}
+</script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="relative flex min-h-screen flex-col">
+<!-- Header replaced by injectMobileLayout -->
+<header></header>
+<main class="px-3 py-4 pb-24">
+  <div class="mb-4 flex items-center justify-between">
+    <div>
+      <h2 class="text-xl font-black tracking-tight">予約受付中</h2>
+      <p id="product-count" class="text-xs text-slate-500 dark:text-slate-400">読み込み中...</p>
+    </div>
+  </div>
+  <div id="product-grid" class="grid grid-cols-3 gap-2.5">
+  </div>
+</main>
+<!-- Bottom nav replaced by injectMobileLayout -->
+<nav class="fixed bottom-0 left-0 right-0"></nav>
+</div>
+<script>
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function getPosterImageUrl(url) {
+  if (!url) return '';
+  if (url.includes('pb_e_')) return url.replace('pb_e_', 'pf_o1_');
+  if (url.endsWith('pl.jpg')) return url.replace('pl.jpg', 'pt.jpg');
+  return url;
+}
+function getSessionId(){var sid=localStorage.getItem('av-session-id');if(!sid){var arr=new Uint8Array(16);crypto.getRandomValues(arr);sid=Array.from(arr).map(function(b,i){return(i===4||i===6||i===8||i===10?'-':'')+(b<16?'0':'')+b.toString(16);}).join('');localStorage.setItem('av-session-id',sid);}return sid;}
+function isLiked(id){try{return JSON.parse(localStorage.getItem('av-liked-ids')||'[]').indexOf(id)!==-1;}catch(e){return false;}}
+function toggleLike(pid,btn){var sid=getSessionId();fetch('/api/like/product/'+encodeURIComponent(pid),{method:'POST',headers:{'x-session-id':sid}}).then(function(r){return r.json();}).then(function(d){var icon=btn.querySelector('.material-symbols-outlined');if(icon){icon.style.fontVariationSettings=d.liked?"'FILL' 1":"'FILL' 0";icon.style.color=d.liked?'#ef4444':'#94a3b8';}try{var liked=JSON.parse(localStorage.getItem('av-liked-ids')||'[]');if(d.liked){if(liked.indexOf(pid)===-1)liked.push(pid);}else{liked=liked.filter(function(i){return i!==pid;});}localStorage.setItem('av-liked-ids',JSON.stringify(liked));}catch(e){}}).catch(function(){});}
+function makeProductCard(p) {
+  var id = p.product_id || '';
+  var encId = encodeURIComponent(id);
+  var img = getPosterImageUrl(p.main_image_url || '');
+  var title = esc(p.title || '');
+  var date = (p.sale_start_date || '').slice(0, 10);
+  var liked = isLiked(id);
+  var hStyle = liked ? "font-variation-settings:'FILL' 1;color:#ef4444" : "color:#94a3b8";
+  return '<article class="group cursor-pointer" onclick="location.href=\'/product/'+encId+'\'">'+
+    '<div class="aspect-[3/4] overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 relative mb-1.5 shadow-sm">'+
+    (img ? '<img alt="" class="w-full h-full object-cover object-top" src="'+esc(img)+'" loading="lazy"/>' : '')+
+    '<span class="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow-sm">予約</span>'+
+    '<div class="absolute bottom-1 right-1 flex gap-0.5">'+
+    '<button class="bg-white/90 rounded-full p-0.5 shadow-sm" onclick="event.stopPropagation();toggleLike(\''+esc(id)+'\',this)">'+
+    '<span class="material-symbols-outlined text-[11px]" style="'+hStyle+'">favorite</span></button>'+
+    '</div></div>'+
+    '<h3 class="text-[10px] font-bold line-clamp-2 leading-tight mb-0.5 group-hover:text-primary transition-colors">'+title+'</h3>'+
+    (date ? '<p class="text-[9px] text-slate-400">'+date+' 発売予定</p>' : '')+
+    '</article>';
+}
+function skeletons() {
+  return Array(12).fill('<div class="animate-pulse"><div class="aspect-[3/4] bg-slate-200 dark:bg-slate-700 rounded-xl mb-1.5"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-0.5"></div></div>').join('');
+}
+async function load() {
+  var el = document.getElementById('product-grid');
+  var cnt = document.getElementById('product-count');
+  if (!el) return;
+  el.innerHTML = skeletons();
+  var d = new Date();
+  d.setDate(d.getDate() + 1);
+  var tomorrow = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  try {
+    var res = await fetch('/api/products?source=fanza&sort=new&fromDate='+encodeURIComponent(tomorrow)+'&limit=60');
+    var products = res.ok ? await res.json() : [];
+    if (!products.length) {
+      el.innerHTML = '<p class="col-span-full text-center py-12 text-slate-400 text-sm">予約作品が見つかりませんでした</p>';
+      if (cnt) cnt.textContent = '0件';
+      return;
+    }
+    el.innerHTML = products.map(makeProductCard).join('');
+    if (cnt) cnt.textContent = products.length + '件';
+  } catch(e) {
+    el.innerHTML = '<p class="col-span-full text-center py-12 text-slate-400 text-sm">読み込みエラー</p>';
+  }
+}
+load();
+</script>
+</body>
+</html>

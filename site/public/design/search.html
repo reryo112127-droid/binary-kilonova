@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>映画データベース - 検索結果</title>
+<!-- Tailwind CSS v3 CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style data-purpose="custom-typography">
+    body {
+      font-family: 'Noto Sans JP', 'Public Sans', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .text-xxs {
+      font-size: 0.65rem;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+<script id="tailwind-config">
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#ec5b13",
+                }
+            }
+        }
+    }
+</script>
+</head>
+<body class="bg-white text-gray-900">
+<!-- BEGIN: Header -->
+<header class="sticky top-0 z-50 bg-white border-b border-gray-100 py-3 px-4">
+<div class="flex justify-center items-center">
+<h1 class="text-lg font-bold tracking-tight">メーカー名 / ジャンル名</h1>
+</div>
+</header>
+<!-- END: Header -->
+<main class="pb-[80px]">
+<!-- BEGIN: FilterAndActionArea -->
+<section class="flex flex-col gap-2 py-4" data-purpose="filter-controls">
+<!-- 1. Top row: Type switching (3-way toggle) -->
+<div class="px-4">
+<div class="flex h-10 items-center justify-center rounded-lg bg-gray-100 p-1">
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-1 text-sm font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary shadow-sm has-[:checked]:shadow-none">
+<span>すべて</span>
+<input checked="" class="hidden" name="content-type" type="radio" value="all"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-1 text-sm font-bold text-gray-400 transition-all has-[:checked]:bg-white has-[:checked]:text-primary shadow-sm has-[:checked]:shadow-none">
+<span>予約作品</span>
+<input class="hidden" name="content-type" type="radio" value="pre-order"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-1 text-sm font-bold text-gray-400 transition-all has-[:checked]:bg-white has-[:checked]:text-primary shadow-sm has-[:checked]:shadow-none">
+<span>新作</span>
+<input class="hidden" name="content-type" type="radio" value="new-releases"/>
+</label>
+</div>
+</div>
+<!-- 2. Middle row: Filter toggles -->
+<div class="flex items-center gap-2 overflow-x-auto px-4 no-scrollbar">
+<button class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full bg-gray-100 px-3 py-1">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+<div class="h-4 w-px bg-gray-200 shrink-0"></div>
+<button class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
+<span class="text-[11px] font-medium text-gray-600">BEST/総集編</span>
+<span class="material-symbols-outlined text-[18px] text-primary">toggle_on</span>
+</button>
+<button class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
+<span class="text-[11px] font-medium text-gray-600">VR作品</span>
+<span class="material-symbols-outlined text-[18px] text-gray-300">toggle_off</span>
+</button>
+<button class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</button>
+</div>
+<!-- 3. Bottom row: Sort order -->
+<div class="flex items-center gap-2 px-4">
+<div class="flex h-9 flex-1 items-center justify-center rounded-md bg-gray-100 p-0.5">
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-sm px-1 text-[11px] font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary shadow-sm has-[:checked]:shadow-none">
+<span class="truncate">新着順</span>
+<input checked="" class="hidden" name="sort-order" type="radio" value="new"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-sm px-1 text-[11px] font-bold text-gray-400 transition-all has-[:checked]:bg-white has-[:checked]:text-primary shadow-sm has-[:checked]:shadow-none">
+<span class="truncate">人気順</span>
+<input class="hidden" name="sort-order" type="radio" value="popular"/>
+</label>
+</div>
+<button class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">south</span>
+</button>
+</div>
+</section>
+<!-- END: FilterAndActionArea -->
+<!-- BEGIN: ResultsGrid -->
+<section class="px-4">
+<div class="grid grid-cols-3 gap-x-2 gap-y-4">
+<!-- Movie Item 1-12 -->
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 1" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA67G0_UWjX3FzKijibSpeftNRUcXf2tvia5b-O6KxQN_ZIXiBJj7yMZQb7nlcbj2IFXppInksDYWupzPtC37MPMyr-iEzlN3HiCka9eqqw8lFFiINwHFcn8psah0QOPxWkHtsvKYoz0N13fT8ayjVB_hu43D6pxY8opTWaM2Ape5j3MumWxav-2d5jSDHgYIxylUBNJesqODZuyBRY9fQhIblpe4Tf9rFXcpV7Fvl7dORDbIQT5WeErI8dKCg_aXffT_12w4wqzSY"/>
+<div class="absolute top-1 left-1 px-1 py-0.5 bg-primary text-white text-[7px] font-bold rounded-sm">新作</div>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 2" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpFZe7Lu3C1cxVo9dfkFmMahygUNMOSrxxM80Jh9AK9py3iK9zC7_mecPlOSawVqDdnzFADktRz3cFmzTsQU4AiCIwxBEd-XmThWS5Ybyv-eLvsK-zN7jdXl8H9jFLucmiytP2I4EeoQkpfJaXeJnMQqolQnKG0chRXw6rWn9EmV-xj6D4VHvuMuv5-cYjOT3XQx2kclSvZWvkqRWfAvhm3HeJv65dBeWR-z7yFo15H38STEfzV6XvibMRtPH_GLo44SQs6DsOc1Y"/>
+<div class="absolute top-1 left-1 px-1 py-0.5 bg-blue-600 text-white text-[7px] font-bold rounded-sm">予約</div>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 3" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIeZx1-l8lJHrzzrnKFeDt--ymFMDZxwjNQqOa2FrFB2f_cbeuqHvt_yKlMgzirwN5EFTj9ZJTKfjs_hgUwubOdxaoAzY-1vxk2DxAGgtYDj3-LHS-wbyDGMHBksXpN25j5u4v-gLBrY1kpErltnzl-VONbT6AEeWLUuqacsaWX50qdWUG6q_ylwT-OlbFMxGpiEx3RbnbZYmCy8mIdrAw4U9s2pho62G5ST-fc1j8n-VL5zZF0mfRsEGf3Ub_24GqfkQZLJhsnyY"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 4" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiCGL-4u8can-GohefYNh8gLOlzj2YgN-gkJMIJX8d3AR9gVVZ3pUR-1jD7W9Ji3LGUdaDTgyy2FkHD5pjC648VmyCg1ZgVYEUCB-L8gOTDWEtICUqxGIBaBsONDT3RwkGGzP_E8MzE-nWPDFhVYlf7zjYTdInqF5s1rkLD4uttkpx_s1Q7EIdWH0WdE8wn2FqJ_snCH5O8PNMhJ1FJbcoooGFntHsG-G-UUJyIaGMSOQ0rysF76U8m5PmTrb8mVxO9len_No5_Nc"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 5" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBeysSZfrZBWITUIrJCIEurRi2_v4YeI0EX-XYd16FA2F_-mHyeeQxWQ_ciykE74Pe6R2lG531Ojc1ZnLULZLAHo7DDlbEbJLdWzpshwPep2acm_DjKn49ugOAanJoip73cjvhr2tk-iTDiN1etnr99SitqyKJ1aYD8LjIgLpio1YPs8KwgLHY3YDDD1vPDFJNqbmHqi1mcGdAMoRYjNvTs__X-nOvR32-dCTSEtYCVn6Zx1Ia8DAe0DgCFKklQlSchMyEJvfwrnQ"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white text-primary">
+<span class="material-symbols-outlined text-[14px] fill-1" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 6" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDK9308ZtOpE2NZwPgrEKWCSHA4CldlN2bl7tammNQdzB_3Tp7CpWT3od99p-jwlVp929ewiQ3S40Z4yu0G2o7J2vxWys48z41IWpHbAdq_BCkYUwlFINO93wSzvBykm_o7HAlrS4-SN8cY1csEMd1qPAJugfCDEG20mLXj2djABRnmEmY7k0MjSidmQS-QQBUMYYDSIpXmXD2Et7VMkLy5kkuhQ9YLmCKNLMLhI4wwsWGwQODg1xRAGwne9gjfneIx4vS8bhl_3kA"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 7" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApgXgqINSDV8tjDSCTRwG2CERHzMCfWHdUqieBPiVWIE8Ukm0dq5oZWZ6AE1Oa6Oc-QNUn1PIJ_Kv2kNhGQiIoFFzqIEr5C9Yk1t6EkkKnNEvcQq5VLAX-dJoQ96OZMZrVDMgiIEscmWVXX7nm9S-mGV_-ZMU6_Fo4TyRdvnpzFhgziwjZzHHUJp6tVDL-GXk4NYcEW6TNWbDlSHRROKttHQRWFARBeNIHMS1l_bWHcz7pEexDDqRGeAfFOhaYSaUwN6gun5Upido"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 8" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZv-2nTtFSNdZLbI79oOUO22VdXfO9M3nTt7uecAMnEIqCq5vycwXgmZsnQJic6fAaZNN3YzmP_Vt1WKWFL9ZSu8L0qR0JHHOaiE2ufN0SkIfOm1HPduwe5QZXZXbxoz4-p0IBDuP99ZdvDoaiYfWnfJhn04G_CXy6okv2U3GI5O1SZ8oRK-z6_zT1_0YPyPbhjonjtB7DzC7PRzsGYtgJj1jZGj7DeA9IxmHyKkih8mxRSyCzTEnjeVE3HkTZhP4gVb_VtjEk5OQ"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 9" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZYWwK2DFTVDmH8JLghnkwxGWHYpZA4942rAQ9bcN-So56RwRhhX8KBTuefTcH85GLKSfM8JAXsLUQsaGUo9lkfFR0KRhIwpqjygctVN9D2VuLLSK5CP-UFksyd3VZQ6eM5x-pp002JIEzDex2QlbMcxy6znx3J6Sxo9pLy7ZS8acN0UzH_isp0Wbs58sIboXmzukw6lt_CCjJ_hoc-XWeIMjGU2EXwdjZixA_L2BNgO1hRtiF-z3gQ8bh6srkzNMOZKAaR2yzcXo"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 10" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoOyWvPyAeTSnCX-PzJl71DFfOLGQjsoyKhINxPSC5HHjZmGnFAyH5-pc5N-rb3YrhkpPUW9uvbO9DKTMchihB5ykFPG_1FpZhCdmDO3HpO76f_xGw_cuIiom2y7TGH1mWdvbWFZV95e0u41mN9neCAEQH0c4o_EORmkgqdqigsaseRq8AKPFfBMqMITiqwis2cZIOsNpxDz-fR2gN7yThvIiCMTyxwuu2H2iWEjoMc8AnTD08De2_nhChALm-Da6R3r0zQJ8KMyE"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 11" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbEEO5jCtglHLH8Ng2JtRC9-N4SrTboz1QfVyGtzP2ip5wlTm0zRJ6hxYGyiJm5SLQ7op7wCfiON0_5rKSIyN88cpcRBUMqATzyM8wLQK7HTvh9s4uQiOV8vR-YVqFCBlcU3I_G5eyV153qP-VzfEm77qOOgaGbvbUo2r6X5Ah4tOE2MsnPURz0Nn1tTDAVevLdW3s6Nd404YW6RyfY7pwd5IC5JACjkyiHcWZaZBF8dmwSSifS4qtlUnQWnG5CoA_fYKKJ7D9UCA"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 12" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcjYLrT2oYksKwtv8ecJzQYkOdGv0yhSkJSSfLnoyy4XqKYLsFRJMbicNLL_R2rC1rcuvQhopcfl7_k8NzrNn6ka4eRyVu2b2IBUszjMNlG01AZJBN0HVTCXpWmxaCq42BVkkNvKFMCf2PKBZup0RPsBpzycR2PZ3zGfFQjiNZbGmwHKgd6VT1rx68TMteXf1Njypk1pKW_1DhbmqVvrt-7ba2VSPL-IEzr6ACDhLK-m5fQHI_fiG0ngqArFRSQ8PSSLaoGl1-1ks"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+</div>
+</section>
+<!-- END: ResultsGrid -->
+</main>
+<!-- BEGIN: BottomNavigation -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 pb-6 pt-2 flex items-center justify-around z-50">
+<a class="flex flex-col items-center gap-1 group" href="#">
+<span class="material-symbols-outlined text-gray-400">home</span>
+<span class="text-[10px] text-gray-400">ホーム</span>
+</a>
+<a class="flex flex-col items-center gap-1 group" href="#">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="text-[10px] font-bold text-primary">検索</span>
+</a>
+<a class="flex flex-col items-center gap-1 group" href="#">
+<span class="material-symbols-outlined text-gray-400">bar_chart</span>
+<span class="text-[10px] text-gray-400">ランキング</span>
+</a>
+<a class="flex flex-col items-center gap-1 group" href="#">
+<span class="material-symbols-outlined text-gray-400">play_circle</span>
+<span class="text-[10px] text-gray-400">動画</span>
+</a>
+<a class="flex flex-col items-center gap-1 group" href="#">
+<span class="material-symbols-outlined text-gray-400">person</span>
+<span class="text-[10px] text-gray-400">マイページ</span>
+</a>
+</nav>
+<!-- END: BottomNavigation -->
+</body></html>

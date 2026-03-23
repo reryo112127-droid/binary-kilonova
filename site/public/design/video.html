@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#1a110d",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', 'Noto Sans JP', sans-serif; }
+        .aspect-video-container { aspect-ratio: 16 / 9; width: 100%; }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-slate-100 overflow-hidden">
+<!-- Main Content Container -->
+<main class="relative h-screen w-full flex flex-col bg-black">
+<!-- Video Area (Immersive Dark Background) -->
+<div class="flex-1 flex flex-col justify-center bg-black overflow-y-auto">
+<!-- Header for context -->
+<div class="p-4 flex items-center justify-between">
+<button class="p-2 -ml-2 text-white">
+<span class="material-symbols-outlined">arrow_back_ios_new</span>
+</button>
+<span class="font-bold text-sm">おすすめ動画</span>
+<button class="p-2 -mr-2 text-white"><span class="material-symbols-outlined">search</span></button>
+</div>
+<!-- Horizontal Video Container (16:9) -->
+<div class="relative w-full aspect-video-container bg-zinc-900 group">
+<!-- Background Video Placeholder -->
+<div class="absolute inset-0 bg-cover bg-center" data-alt="A professional dancer performing modern choreography in a neon lit studio" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC0sQuQ-KyLWt7DdiVpwkOLTE2yQJtE6fEZOHkw4Wuvj4hpa8vyP8708ywR9hjQokhzhztkBxdnZz1M0T-mwEM67I5_qG2mwJn1rr7snxJZVjiKj8MfWRKGFi4wO21Qwhbg2mGiFE_44gKAoRH9OsnMr3wCVllNHooG9adP-7q6bzoZAiWnlI3G6kMI2ABwQyTgp4yBuWaHS7BoqEHYVh3qaBcyVVqM-DB1YIZmDmvcnAKnwGfwHIRE4mISuk7eRSkwMyRNwvLu0aY');">
+</div>
+<!-- Play/Pause Indicator -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="bg-black/40 rounded-full p-4">
+<span class="material-symbols-outlined text-white text-[48px] fill-current">play_arrow</span>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="absolute bottom-0 left-0 w-full h-1 bg-white/20">
+<div class="h-full bg-primary" style="width: 35%;"></div>
+</div>
+</div>
+<!-- Information Area below video -->
+<div class="p-4 bg-background-dark flex-1">
+<div class="flex flex-col gap-4">
+<div>
+<h1 class="text-white font-bold text-xl mb-4">ダイナミック・モダン・コレオグラフィー</h1>
+<!-- Actress Profile Section -->
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full border-2 border-primary overflow-hidden">
+<img alt="DanceMaster Yuki" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsXlCcIwoA3whhQ9e1vfpBb4tckwA23hOQPAZGAlQahVpE-vcqX4QcYttjDTbOAecnBwEzRLUvT_yqF4OeI5iD4d2Iz5BMsv7OFZa66QgOJwzL-j0iW3nh2cccP9UaVs_4GT472efGKwGjBx1H-9Q4wDJjDQD2ATgfSGwBq8CurMm7zJF0Xxhsgf5bWeTUm8Jk6UvrgOzprpur79Pim47qPH0oE904YEMjve_jauaZHni8inlrPK7WrCO0x8LESXeaoSGkl1kPi8g"/>
+</div>
+<div>
+<p class="text-white font-bold text-base">DanceMaster Yuki</p>
+<p class="text-slate-400 text-xs">2.4M followers</p>
+</div>
+</div>
+</div>
+<!-- Action Buttons Row (Like, Add on the right side) -->
+<div class="flex items-center justify-between border-t border-white/10 pt-6 mt-2">
+<div class="flex items-center gap-6">
+<button class="flex flex-col items-center gap-1 group/btn">
+<span class="material-symbols-outlined text-[28px] text-white">chat</span>
+<span class="text-[12px] font-medium text-slate-300">842</span>
+</button>
+</div>
+<div class="flex gap-4">
+<button class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[28px]">add</span>
+</button>
+<button class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-[28px] fill-current">favorite</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation Bar -->
+<nav class="flex h-16 w-full items-center justify-around border-t border-slate-800 bg-background-dark px-2 shrink-0">
+<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<p class="text-[10px] font-medium font-display">ホーム</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">search</span>
+<p class="text-[10px] font-medium font-display">検索</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">emoji_events</span>
+<p class="text-[10px] font-medium font-display">ランキング</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px] fill-current">play_circle</span>
+<p class="text-[10px] font-medium font-display">動画</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">person</span>
+<p class="text-[10px] font-medium font-display">マイページ</p>
+</a>
+</nav>
+</main>
+</body></html>

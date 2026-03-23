@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AVランキング | アートワークデータベース</title>
+<!-- Tailwind CSS CDN with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter & Noto Sans JP -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'custom-primary': '#ffffff',
+            'brand-orange': '#FF6B00',
+            'gold': '#D4AF37',
+            'silver': '#C0C0C0',
+            'bronze': '#CD7F32',
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+          },
+          borderRadius: {
+            'custom': '4px', // ROUND_FOUR preference
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-layouts">
+    /* Custom scrollbar for the horizontal slider */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    body {
+      background-color: #ffffff;
+      color: #1a1a1a;
+    }
+
+    /* Adjusting section transitions for a tighter feel */
+    section {
+      border-bottom: 1px solid #f3f4f6;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased text-gray-900">
+<!-- BEGIN: MainHeader -->
+<header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100" data-purpose="global-header">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between h-16">
+<!-- Logo -->
+<div class="flex-shrink-0 flex items-center">
+<a class="text-xl font-bold tracking-tighter text-black" href="#" style="">AVランキング</a>
+</div>
+<!-- Central Search Bar -->
+<div class="flex-1 max-w-md mx-6 flex items-center space-x-2">
+<div class="relative group flex-1">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+<svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</span>
+<input class="block w-full pl-9 pr-3 py-1.5 border border-gray-200 rounded-custom text-xs focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-all" placeholder="作品名、アーティスト名で検索..." type="text"/>
+</div>
+<button class="flex-shrink-0 flex items-center space-x-1 px-3 py-1.5 bg-brand-orange text-white rounded-custom text-[10px] font-bold hover:bg-orange-600 transition-colors shadow-sm" style="">
+<span class="material-symbols-outlined text-sm" style="">tune</span>
+<span class="" style="">詳細検索</span>
+</button>
+</div>
+<!-- Navigation -->
+<nav class="hidden md:flex items-center space-x-6 text-xs font-medium">
+<a class="text-gray-500 hover:text-black transition-colors" href="#" style="">新作</a>
+<a class="text-gray-500 hover:text-black transition-colors" href="#" style="">予約</a>
+<a class="text-gray-500 hover:text-black transition-colors" href="#" style="">ランキング</a>
+<a class="text-gray-500 hover:text-black transition-colors flex items-center" href="#" style="">
+<svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+          情報を追加
+        </a>
+<a class="text-gray-500 hover:text-black transition-colors" href="#" style="">マイページ</a>
+<div class="flex items-center space-x-3 ml-2">
+<button class="text-xs font-medium text-gray-600" style="">ログイン</button>
+<button class="bg-black text-white px-3 py-1.5 rounded-custom text-xs font-medium hover:bg-gray-800 transition-colors" style="">新規登録</button>
+</div>
+</nav>
+</div>
+</div>
+</header>
+<!-- END: MainHeader -->
+<main>
+<div class="bg-gray-50/30">
+<!-- BEGIN: 1. 予約作品 Section -->
+<section class="py-4 sm:py-6" data-purpose="pre-order-section">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+<h2 class="text-lg font-bold tracking-tight flex items-center" style="">
+            予約作品
+            <span class="ml-2 text-[10px] font-normal text-gray-400 uppercase tracking-widest" style="">Pre-order</span>
+</h2>
+<a class="text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-black" href="/pre-order" style="">もっと見る</a>
+</div>
+<div class="flex overflow-x-auto space-x-4 no-scrollbar pb-2" data-purpose="carousel-container" id="home-preorder-list">
+<!-- Card 1-8 -->
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="Pre-order 1" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzP6ySh7H-Bq_20ZxzWqkgnqO0IB3ZwKMdAzAXHoG18AlaA1Zby85nitlyc6LPPYgt4Yj361hLQPz_0TfOi6DLAYtbbtwWeXfwLZGe1G-A3Wrqp7A8YCUDbW2gZwNzzIzQjO6L-wh4h2OoSAMkwk42CQNUWTec_WM5EiUbyW8R9UMYZEVqix1o56VCIPvGmtmSIiKMr2Scb9A_cQeDlEXk514D87w2G_u1HElCKJc00XR2c0CEP-BBnC6ygG5kVWKeRUWFASHkxmU" style=""/>
+<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">予約</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">幻想の森：Limited</h5>
+<p class="text-[10px] text-gray-400" style="">2024.12 RELEASE</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="Pre-order 2" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsqxqwJnXFGZsAtxRDGmp_-bUQqEQjeLDx2h6CPhCJt4-jZZ5_sZSVms9bq8ohMCpp30J55I9Hctx13dVrG6mI1PhPjWkDy7BVUdC8Y4ko68G_x8GXFioRoq9qUYFNAbkriJrycP3rCSOsAPbj95bPzQ1OWgdDif-q_U6mvf1hpiAM8jDoOksj0gq0np8kkGkByxe2yQAceWBdeeVxIzdg6bHvS8His2oVJgvNQXHVp7RtaFXMILDXNA_-mm0-YCxOw-4lBEAdiP0" style=""/>
+<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">予約</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">静寂の刻：プレミアム</h5>
+<p class="text-[10px] text-gray-400" style="">2025.01 RELEASE</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="Pre-order 3" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm6I58dLfHKYyPw0TdMjEPvAut47GUrFmpMeFp7MYsJebxCb9kzDfEFvy8qeRP-IxoYzahG8gVLnu-YHIpsr7uA9PXBQwsGx7HQV5JnbvXj89Vnkt5x8k6GDce1OIj97_UDI6icBqvvAVrnly5TgCvr_Mt0iNduhWHEWtY6Ob22qY0mc9QUUMWlWaG4aQ6-1mb2KiJaeNq4gWoZDfPYJ_krqU2rOrsFpr-kADOMY0m-vbwy48vJVQiUYZOCcKXeiUfA2FHHGCpUDg" style=""/>
+<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">予約</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">クリスタル・ドーム</h5>
+<p class="text-[10px] text-gray-400" style="">2025.02 RELEASE</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="Pre-order 4" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCavaUXLJ9PrcoRmxd-vAdBf1yeM04iHIiF50IYeSA68nJWNMrrEnwrnFOP_j06-TQOTJMnBHvo1yBKrEzEgvumgeXEFMVwMPGq6Xs0J4dUlJi5wOZsSWlQPc2ZhCNESxQ5DsKs-5PkfsFOGvLrXSaIsejYuRyx_srrrYf0rK8Cc32SU9VtmQjwj9Ru4R_f83WePP4AWVyMDt05og6sy2eyUjC33GEekJh1ROtxzmlx98cID80vTcf5bGGJ_Lrhkhy6682oKVa4-xA" style=""/>
+<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">予約</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">夜明けのポートレート</h5>
+<p class="text-[10px] text-gray-400" style="">2024.12 RELEASE</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="Pre-order 5" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLrEpmnfWrQzvoSWa9BcMvuGFDw5LVk-Ds1bDu2yV6ebYRaV5G_k2uaiiYg11m6Sl0-XFjrQORsAypc5DA6CO8e_zfBe7KGHNEMXfKJZZDDrKPgnDurwkb5uyaSUndNQfw9eXYcVun6_5QjMZh_LXMjm_2_Ucx9VoLHqls_aYUcRATcg-YsLJp7lcBP4UGon67pWl463UaT9Alsi71CsTnI9wtV9e0hix2nwNpfSa8UElMRtVmWX71yVQ5XuaTZNYQ9aiAzCCgorU" style=""/>
+<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">予約</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">NEO-TOKYO 03</h5>
+<p class="text-[10px] text-gray-400" style="">2025.03 RELEASE</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="Pre-order 6" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvuSMD0OLR5zJbq-pYQRnzLZaI78aUEHPlQ6dNMwwhTp_ZbrHxsHR5Rmdg-9nxA6RcsT9f0wVr9yfo3wvfHBe4gv29X8Ys17eiV0f5PphcFVd-ceuAu53AEmbHzsxtxIukttok9JO96ImFOkbc_WFwIKMwAb8arnZmKQfYUHi4HI4xlmCeQDg1E4yos147G1BAT62R0zD4_JpEnTW605KIEqJ-XWuZavjm1zG3K-TDBiIJvQROQ8VwsSBkUFQ6oSX9s8uGhvuLhTo" style=""/>
+<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">予約</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">構造の美学 v2</h5>
+<p class="text-[10px] text-gray-400" style="">2025.04 RELEASE</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="Pre-order 7" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAefm_SxnsFET2CzoKxOhzZwtOK3Hwfufs6oCn-0DXO9calnGrQXwkV1Go5i184OG-4yuiIMGkSy4WT0YhIKalqtd8n-qRQpWki7ulnkmbrbaZQYH2qv_-5s-78zmgLtTYBy58Wq70yhWUbrubOECKsLM1bHYstTPCb3g27RmqC8vvoZArtUw-6A_hf4FpPFtVXYtSBBbWpcFhfRGLhx2uUCoDzC0yufVPxnozlU0UPQGsVF-iES0Hg4j05tk0AL2PKh6Du45NarU4" style=""/>
+<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">予約</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">都市の色彩：夜</h5>
+<p class="text-[10px] text-gray-400" style="">2025.01 RELEASE</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="Pre-order 8" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzQxgeMNCBNpkYzqvoFW6RvpY2V7vrRpl3VQyIy_NRY_uB1DlBFSJEmwsTeF8iT2Sj9eDYUTZf6jDhVI6RBx3phILMYB1lmD6qAwtSTeqfrD_AegzKMRCBCzwEnEa35XmmUSIjQEyd21BI-TPsZhy8qlzOlXud_fSjfA5mB3_qngKe1awUse2JFEMOrLb9Oz92XjPKv9cg1xkfSP4qK27yjTZ3SFPlm9XvM1W7UbYq218IZZYgdOq7HaDYz7e43d9qUFWKIwo4I5c" style=""/>
+<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">予約</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">未来都市：再構築</h5>
+<p class="text-[10px] text-gray-400" style="">2025.05 RELEASE</p>
+</div>
+</div>
+</div>
+</section>
+<!-- BEGIN: 2. 新作 Section -->
+<section class="py-4 sm:py-6" data-purpose="new-arrivals-section">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+<h2 class="text-lg font-bold tracking-tight flex items-center" style="">
+            新作
+            <span class="ml-2 text-[10px] font-normal text-gray-400 uppercase tracking-widest" style="">New Arrivals</span>
+</h2>
+<a class="text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-black" href="/new" style="">もっと見る</a>
+</div>
+<div class="flex overflow-x-auto space-x-4 no-scrollbar pb-2" data-purpose="carousel-container" id="home-new-list">
+<!-- Card 1-8 -->
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="New 1" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAefm_SxnsFET2CzoKxOhzZwtOK3Hwfufs6oCn-0DXO9calnGrQXwkV1Go5i184OG-4yuiIMGkSy4WT0YhIKalqtd8n-qRQpWki7ulnkmbrbaZQYH2qv_-5s-78zmgLtTYBy58Wq70yhWUbrubOECKsLM1bHYstTPCb3g27RmqC8vvoZArtUw-6A_hf4FpPFtVXYtSBBbWpcFhfRGLhx2uUCoDzC0yufVPxnozlU0UPQGsVF-iES0Hg4j05tk0AL2PKh6Du45NarU4" style=""/>
+<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">新作</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">都市の色彩</h5>
+<p class="text-[10px] text-gray-400" style="">Available Now</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="New 2" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5qfbeB4m70sE-D4z1DQv1HIt60-s7ctCmDDB2_PLe_MI4AqE8qhX7eZuVLdajtkxmego-wvb9UemGrYL6iSiAE3knH1RvjCgGOigzmX9bWe_R1Amfok2IwZPcVJ3hoDVtcNREPvryRLH_dfDhqMvic8sq1a1B4-_6IYdGuSrI02FsvNba13P4gsJVnZSmY_9hYHn9P-_97K2awLgxai2frwoz3bnuLRUp7MDyEQYchjdebcgQ0e9TNBaqkJ9m-ErLQRjsYTzkgwA" style=""/>
+<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">新作</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">静寂の深海</h5>
+<p class="text-[10px] text-gray-400" style="">Available Now</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="New 3" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA10vfLsot4gmHaO_fk3L77gB3hetYngaLwaX-SFIY0pTX-5CxjIjjUcI-jaRXp_Ld66GX1ONtOSWp17wfuFlSpBDHhue8WFzf67jjvwvzhminuaxzarMYtmWJJmBj6FbkmIrdeSKpxuDZDiX0exeWvypihPuPxj_AKAzouyiqF3-1ThDf41rqOobD8zxAX016Lz1LcWQ4Ra57hox93lBNMdeH9Rqkb3mKj29Y7QlyfZ-tiLw0FossviJ-l8KldgC3FKvblf6hHZJM" style=""/>
+<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">新作</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">午後の木漏れ日</h5>
+<p class="text-[10px] text-gray-400" style="">Available Now</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="New 4" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm6I58dLfHKYyPw0TdMjEPvAut47GUrFmpMeFp7MYsJebxCb9kzDfEFvy8qeRP-IxoYzahG8gVLnu-YHIpsr7uA9PXBQwsGx7HQV5JnbvXj89Vnkt5x8k6GDce1OIj97_UDI6icBqvvAVrnly5TgCvr_Mt0iNduhWHEWtY6Ob22qY0mc9QUUMWlWaG4aQ6-1mb2KiJaeNq4gWoZDfPYJ_krqU2rOrsFpr-kADOMY0m-vbwy48vJVQiUYZOCcKXeiUfA2FHHGCpUDg" style=""/>
+<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">新作</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">構造の美学</h5>
+<p class="text-[10px] text-gray-400" style="">Available Now</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="New 5" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzQxgeMNCBNpkYzqvoFW6RvpY2V7vrRpl3VQyIy_NRY_uB1DlBFSJEmwsTeF8iT2Sj9eDYUTZf6jDhVI6RBx3phILMYB1lmD6qAwtSTeqfrD_AegzKMRCBCzwEnEa35XmmUSIjQEyd21BI-TPsZhy8qlzOlXud_fSjfA5mB3_qngKe1awUse2JFEMOrLb9Oz92XjPKv9cg1xkfSP4qK27yjTZ3SFPlm9XvM1W7UbYq218IZZYgdOq7HaDYz7e43d9qUFWKIwo4I5c" style=""/>
+<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">新作</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">未来都市 2099</h5>
+<p class="text-[10px] text-gray-400" style="">Available Now</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="New 6" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvuSMD0OLR5zJbq-pYQRnzLZaI78aUEHPlQ6dNMwwhTp_ZbrHxsHR5Rmdg-9nxA6RcsT9f0wVr9yfo3wvfHBe4gv29X8Ys17eiV0f5PphcFVd-ceuAu53AEmbHzsxtxIukttok9JO96ImFOkbc_WFwIKMwAb8arnZmKQfYUHi4HI4xlmCeQDg1E4yos147G1BAT62R0zD4_JpEnTW605KIEqJ-XWuZavjm1zG3K-TDBiIJvQROQ8VwsSBkUFQ6oSX9s8uGhvuLhTo" style=""/>
+<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">新作</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">構造の美学 02</h5>
+<p class="text-[10px] text-gray-400" style="">Available Now</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="New 7" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsqxqwJnXFGZsAtxRDGmp_-bUQqEQjeLDx2h6CPhCJt4-jZZ5_sZSVms9bq8ohMCpp30J55I9Hctx13dVrG6mI1PhPjWkDy7BVUdC8Y4ko68G_x8GXFioRoq9qUYFNAbkriJrycP3rCSOsAPbj95bPzQ1OWgdDif-q_U6mvf1hpiAM8jDoOksj0gq0np8kkGkByxe2yQAceWBdeeVxIzdg6bHvS8His2oVJgvNQXHVp7RtaFXMILDXNA_-mm0-YCxOw-4lBEAdiP0" style=""/>
+<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">新作</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">静寂の刻</h5>
+<p class="text-[10px] text-gray-400" style="">Available Now</p>
+</div>
+<div class="flex-none w-[160px] space-y-2 group cursor-pointer relative">
+<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">
+<img alt="New 8" class="w-full h-full object-cover transition-transform group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzP6ySh7H-Bq_20ZxzWqkgnqO0IB3ZwKMdAzAXHoG18AlaA1Zby85nitlyc6LPPYgt4Yj361hLQPz_0TfOi6DLAYtbbtwWeXfwLZGe1G-A3Wrqp7A8YCUDbW2gZwNzzIzQjO6L-wh4h2OoSAMkwk42CQNUWTec_WM5EiUbyW8R9UMYZEVqix1o56VCIPvGmtmSIiKMr2Scb9A_cQeDlEXk514D87w2G_u1HElCKJc00XR2c0CEP-BBnC6ygG5kVWKeRUWFASHkxmU" style=""/>
+<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm" style="">新作</span>
+<div class="absolute bottom-2 right-2 flex items-center gap-1.5">
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-brand-orange hover:bg-brand-orange hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+<h5 class="text-xs font-bold truncate" style="">幻想の森</h5>
+<p class="text-[10px] text-gray-400" style="">Available Now</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- BEGIN: 3. 2026年ランキング Section -->
+<section class="py-6 sm:py-8 bg-white" data-purpose="main-ranking-section">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-end justify-between mb-4 border-b border-gray-100 pb-3">
+<h3 class="text-xl font-bold tracking-tight" style="">2026年ランキング <span class="text-xs font-normal text-gray-400 ml-2" style="">2026 Ranking</span></h3>
+<a class="text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-black" href="/ranking" style="">すべてのランキング</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4" data-purpose="ranking-grid" id="home-ranking-list">
+<!-- Row 1: Item 1 & Item 2 -->
+<div class="flex items-center space-x-4 p-3 bg-gray-50/50 border border-gray-100 rounded-custom hover:bg-white hover:shadow-sm transition-all group">
+<div class="flex-shrink-0 w-8 text-center">
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 text-white font-black text-sm italic shadow-[0_0_15px_rgba(234,179,8,0.5)] border border-yellow-200/50" style="">
+<span class="drop-shadow-[0_0_2px_rgba(255,255,255,0.8)]" style="">1</span>
+<span class="material-symbols-outlined absolute -top-1 -right-1 text-[10px] text-white animate-pulse" style="">flare</span>
+</span>
+</div>
+<img alt="Rank 1" class="w-12 h-16 object-cover rounded shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCavaUXLJ9PrcoRmxd-vAdBf1yeM04iHIiF50IYeSA68nJWNMrrEnwrnFOP_j06-TQOTJMnBHvo1yBKrEzEgvumgeXEFMVwMPGq6Xs0J4dUlJi5wOZsSWlQPc2ZhCNESxQ5DsKs-5PkfsFOGvLrXSaIsejYuRyx_srrrYf0rK8Cc32SU9VtmQjwj9Ru4R_f83WePP4AWVyMDt05og6sy2eyUjC33GEekJh1ROtxzmlx98cID80vTcf5bGGJ_Lrhkhy6682oKVa4-xA" style=""/>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm text-gray-900 group-hover:underline truncate" style="">夜明けのポートレート</h4>
+<p class="text-[11px] text-gray-500" style="">佐藤 健一</p>
+<div class="flex items-center mt-1 space-x-2">
+<span class="text-[10px] text-yellow-500 flex items-center" style="">★ 4.8</span>
+<span class="text-[9px] bg-white px-1 border border-gray-100 rounded text-gray-500" style="">デジタル</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] text-green-600 font-bold" style="">▲2</span>
+<div class="flex items-center gap-2 mt-2">
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex items-center space-x-4 p-3 bg-gray-50/50 border border-gray-100 rounded-custom hover:bg-white hover:shadow-sm transition-all group">
+<div class="flex-shrink-0 w-8 text-center">
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 via-slate-400 to-slate-600 text-white font-black text-sm italic shadow-[0_0_15px_rgba(148,163,184,0.5)] border border-slate-100/50" style="">
+<span class="drop-shadow-[0_0_2px_rgba(255,255,255,0.8)]" style="">2</span>
+<span class="material-symbols-outlined absolute -top-1 -right-1 text-[10px] text-white animate-pulse" style="">flare</span>
+</span>
+</div>
+<img alt="Rank 2" class="w-12 h-16 object-cover rounded shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5qfbeB4m70sE-D4z1DQv1HIt60-s7ctCmDDB2_PLe_MI4AqE8qhX7eZuVLdajtkxmego-wvb9UemGrYL6iSiAE3knH1RvjCgGOigzmX9bWe_R1Amfok2IwZPcVJ3hoDVtcNREPvryRLH_dfDhqMvic8sq1a1B4-_6IYdGuSrI02FsvNba13P4gsJVnZSmY_9hYHn9P-_97K2awLgxai2frwoz3bnuLRUp7MDyEQYchjdebcgQ0e9TNBaqkJ9m-ErLQRjsYTzkgwA" style=""/>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm text-gray-900 group-hover:underline truncate" style="">静寂の深海</h4>
+<p class="text-[11px] text-gray-500" style="">田中 美咲</p>
+<div class="flex items-center mt-1 space-x-2">
+<span class="text-[10px] text-yellow-500 flex items-center" style="">★ 4.6</span>
+<span class="text-[9px] bg-white px-1 border border-gray-100 rounded text-gray-500" style="">水彩</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] text-red-600 font-bold" style="">▼1</span>
+<div class="flex items-center gap-2 mt-2">
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Row 2: Item 3 & Item 4 -->
+<div class="flex items-center space-x-4 p-3 bg-gray-50/50 border border-gray-100 rounded-custom hover:bg-white hover:shadow-sm transition-all group">
+<div class="flex-shrink-0 w-8 text-center">
+<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-[#E6B980] via-[#CD7F32] to-[#8B4513] text-white font-black text-sm italic shadow-[0_0_15px_rgba(205,127,50,0.5)] border border-[#E6B980]/50" style="">
+<span class="drop-shadow-[0_0_2px_rgba(255,255,255,0.8)]" style="">3</span>
+<span class="material-symbols-outlined absolute -top-1 -right-1 text-[10px] text-white animate-pulse" style="">flare</span>
+</span>
+</div>
+<img alt="Rank 3" class="w-12 h-16 object-cover rounded shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA10vfLsot4gmHaO_fk3L77gB3hetYngaLwaX-SFIY0pTX-5CxjIjjUcI-jaRXp_Ld66GX1ONtOSWp17wfuFlSpBDHhue8WFzf67jjvwvzhminuaxzarMYtmWJJmBj6FbkmIrdeSKpxuDZDiX0exeWvypihPuPxj_AKAzouyiqF3-1ThDf41rqOobD8zxAX016Lz1LcWQ4Ra57hox93lBNMdeH9Rqkb3mKj29Y7QlyfZ-tiLw0FossviJ-l8KldgC3FKvblf6hHZJM" style=""/>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm text-gray-900 group-hover:underline truncate" style="">午後の木漏れ日</h4>
+<p class="text-[11px] text-gray-500" style="">伊藤 絵里</p>
+<div class="flex items-center mt-1 space-x-2">
+<span class="text-[10px] text-yellow-500 flex items-center" style="">★ 4.5</span>
+<span class="text-[9px] bg-white px-1 border border-gray-100 rounded text-gray-500" style="">油彩</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] text-gray-400 font-bold" style="">-</span>
+<div class="flex items-center gap-2 mt-2">
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex items-center space-x-4 p-3 bg-gray-50/50 border border-gray-100 rounded-custom hover:bg-white hover:shadow-sm transition-all group">
+<div class="flex-shrink-0 w-8 text-center">
+<span class="flex items-center justify-center w-7 h-7 rounded-full bg-slate-200 text-slate-600 font-black text-sm italic" style="">4</span>
+</div>
+<img alt="Rank 4" class="w-12 h-16 object-cover rounded shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm6I58dLfHKYyPw0TdMjEPvAut47GUrFmpMeFp7MYsJebxCb9kzDfEFvy8qeRP-IxoYzahG8gVLnu-YHIpsr7uA9PXBQwsGx7HQV5JnbvXj89Vnkt5x8k6GDce1OIj97_UDI6icBqvvAVrnly5TgCvr_Mt0iNduhWHEWtY6Ob22qY0mc9QUUMWlWaG4aQ6-1mb2KiJaeNq4gWoZDfPYJ_krqU2rOrsFpr-kADOMY0m-vbwy48vJVQiUYZOCcKXeiUfA2FHHGCpUDg" style=""/>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm text-gray-900 group-hover:underline truncate" style="">構造の美学</h4>
+<p class="text-[11px] text-gray-500" style="">山本 正道</p>
+<div class="flex items-center mt-1 space-x-2">
+<span class="text-[10px] text-yellow-500 flex items-center" style="">★ 4.4</span>
+<span class="text-[9px] bg-white px-1 border border-gray-100 rounded text-gray-500" style="">建築</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] text-green-600 font-bold" style="">▲1</span>
+<div class="flex items-center gap-2 mt-2">
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Row 3: Item 5 & Item 6 -->
+<div class="flex items-center space-x-4 p-3 bg-gray-50/50 border border-gray-100 rounded-custom hover:bg-white hover:shadow-sm transition-all group">
+<div class="flex-shrink-0 w-8 text-center">
+<span class="flex items-center justify-center w-7 h-7 rounded-full bg-slate-200 text-slate-600 font-black text-sm italic" style="">5</span>
+</div>
+<img alt="Rank 5" class="w-12 h-16 object-cover rounded shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzQxgeMNCBNpkYzqvoFW6RvpY2V7vrRpl3VQyIy_NRY_uB1DlBFSJEmwsTeF8iT2Sj9eDYUTZf6jDhVI6RBx3phILMYB1lmD6qAwtSTeqfrD_AegzKMRCBCzwEnEa35XmmUSIjQEyd21BI-TPsZhy8qlzOlXud_fSjfA5mB3_qngKe1awUse2JFEMOrLb9Oz92XjPKv9cg1xkfSP4qK27yjTZ3SFPlm9XvM1W7UbYq218IZZYgdOq7HaDYz7e43d9qUFWKIwo4I5c" style=""/>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm text-gray-900 group-hover:underline truncate" style="">未来都市 2099</h4>
+<p class="text-[11px] text-gray-500" style="">渡辺 浩二</p>
+<div class="flex items-center mt-1 space-x-2">
+<span class="text-[10px] text-yellow-500 flex items-center" style="">★ 4.3</span>
+<span class="text-[9px] bg-white px-1 border border-gray-100 rounded text-gray-500" style="">SF</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] text-red-600 font-bold" style="">▼2</span>
+<div class="flex items-center gap-2 mt-2">
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex items-center space-x-4 p-3 bg-gray-50/50 border border-gray-100 rounded-custom hover:bg-white hover:shadow-sm transition-all group">
+<div class="flex-shrink-0 w-8 text-center">
+<span class="flex items-center justify-center w-7 h-7 rounded-full bg-slate-200 text-slate-600 font-black text-sm italic" style="">6</span>
+</div>
+<img alt="Rank 6" class="w-12 h-16 object-cover rounded shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm6I58dLfHKYyPw0TdMjEPvAut47GUrFmpMeFp7MYsJebxCb9kzDfEFvy8qeRP-IxoYzahG8gVLnu-YHIpsr7uA9PXBQwsGx7HQV5JnbvXj89Vnkt5x8k6GDce1OIj97_UDI6icBqvvAVrnly5TgCvr_Mt0iNduhWHEWtY6Ob22qY0mc9QUUMWlWaG4aQ6-1mb2KiJaeNq4gWoZDfPYJ_krqU2rOrsFpr-kADOMY0m-vbwy48vJVQiUYZOCcKXeiUfA2FHHGCpUDg" style=""/>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-sm text-gray-900 group-hover:underline truncate" style="">クリスタル・ドーム</h4>
+<p class="text-[11px] text-gray-500" style="">山本 正道</p>
+<div class="flex items-center mt-1 space-x-2">
+<span class="text-[10px] text-yellow-500 flex items-center" style="">★ 4.3</span>
+<span class="text-[9px] bg-white px-1 border border-gray-100 rounded text-gray-500" style="">建築</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] text-gray-400 font-bold" style="">-</span>
+<div class="flex items-center gap-2 mt-2">
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+<button class="text-brand-orange hover:opacity-75 transition-opacity">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">favorite</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BEGIN: Footer -->
+<footer class="bg-[#f9f9f9] border-t border-gray-200 py-8" data-purpose="global-footer">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+<!-- Links -->
+<div class="flex justify-center space-x-6 mb-6">
+<a class="text-[11px] font-bold text-gray-600 hover:text-black transition-colors" href="/terms" style="">利用規約</a>
+<a class="text-[11px] font-bold text-gray-600 hover:text-black transition-colors" href="/privacy" style="">プライバシーポリシー</a>
+</div>
+<!-- Disclaimer -->
+<div class="max-w-3xl mx-auto mb-6">
+<p class="text-[10px] leading-relaxed text-gray-500" style="">
+        本サイトに掲載されている豊胸情報、素人作品の出演者予想、および別名義情報は、インターネット上の推測やユーザー提供情報を含む独自の調査に基づくものであり、公式な事実を断定・保証するものではありません。
+      </p>
+</div>
+<!-- Disclosure & Credits -->
+<div class="space-y-2">
+<p class="text-[10px] text-gray-400" style="">当サイトはアフィリエイトプログラムにより収益を得ています</p>
+<div class="flex flex-wrap justify-center gap-x-4 text-[10px] text-gray-400">
+<span class="" style="">Powered by DMM.com Webサービス</span>
+<span class="" style="">Powered by MGS動画</span>
+</div>
+<p class="text-[10px] text-gray-400 mt-4" style="">© 2024 AVランキング. All Rights Reserved.</p>
+</div>
+</div>
+</footer>
+<!-- END: Footer -->
+<script>
+(function(){
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function poster(url){
+    if(!url)return'https://via.placeholder.com/120x160?text=No+Image';
+    if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');
+    return url;
+  }
+  function purl(id){return'/product/'+encodeURIComponent(id);}
+
+  function renderCard(p,label,labelClass){
+    return '<a href="'+purl(p.product_id)+'" class="flex-none w-[160px] space-y-2 group relative block">'
+      +'<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">'
+      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover transition-transform group-hover:scale-105"/>'
+      +'<span class="absolute top-2 left-2 '+labelClass+' text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">'+label+'</span>'
+      +'</div>'
+      +'<h5 class="text-xs font-bold truncate">'+esc(p.title)+'</h5>'
+      +'<p class="text-[10px] text-gray-400">'+esc(p.actresses||p.maker||'')+'</p>'
+      +'</a>';
+  }
+
+  function renderRankItem(p, rank){
+    var medal='';
+    if(rank===1)medal='<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 text-white font-black text-sm italic shadow-[0_0_15px_rgba(234,179,8,0.5)] border border-yellow-200/50"><span class="drop-shadow-[0_0_2px_rgba(255,255,255,0.8)]">1</span></span>';
+    else if(rank===2)medal='<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 text-white font-black text-sm italic border border-gray-200/50"><span>2</span></span>';
+    else if(rank===3)medal='<span class="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-orange-300 via-orange-500 to-orange-700 text-white font-black text-sm italic border border-orange-200/50"><span>3</span></span>';
+    else medal='<span class="flex items-center justify-center w-8 h-8 text-gray-500 font-bold text-sm">'+rank+'</span>';
+    return '<a href="'+purl(p.product_id)+'" class="flex items-center space-x-4 p-3 bg-gray-50/50 border border-gray-100 rounded-custom hover:bg-white hover:shadow-sm transition-all group block">'
+      +'<div class="flex-shrink-0 w-8 text-center">'+medal+'</div>'
+      +'<div class="flex-shrink-0 w-14 h-[75px] overflow-hidden rounded bg-gray-100">'
+      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover"/>'
+      +'</div>'
+      +'<div class="flex-1 min-w-0">'
+      +'<p class="text-xs font-bold truncate">'+esc(p.title)+'</p>'
+      +'<p class="text-[10px] text-gray-400 truncate">'+esc(p.actresses||p.maker||'')+'</p>'
+      +'</div>'
+      +'</a>';
+  }
+
+  // Fetch pre-order section
+  fetch('/api/products?sort=pre-order&limit=8&excludeBest=1').then(function(r){return r.json();}).then(function(data){
+    var list=document.getElementById('home-preorder-list');
+    if(list&&data&&data.length){
+      list.innerHTML=data.map(function(p){return renderCard(p,'予約','bg-red-600');}).join('');
+    }
+  }).catch(function(){});
+
+  // Fetch new arrivals section
+  fetch('/api/products?sort=new&limit=8&excludeBest=1').then(function(r){return r.json();}).then(function(data){
+    var list=document.getElementById('home-new-list');
+    if(list&&data&&data.length){
+      list.innerHTML=data.map(function(p){return renderCard(p,'新作','bg-blue-600');}).join('');
+    }
+  }).catch(function(){});
+
+  // Fetch ranking section
+  fetch('/api/ranking?limit=10&excludeBest=1').then(function(r){return r.json();}).then(function(data){
+    var grid=document.getElementById('home-ranking-list');
+    if(grid&&data&&data.length){
+      grid.innerHTML=data.map(function(p,i){return renderRankItem(p,i+1);}).join('');
+    }
+  }).catch(function(){});
+})();
+</script>
+</body></html>

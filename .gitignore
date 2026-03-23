@@ -1,0 +1,33 @@
+# 依存関係
+node_modules/
+site/node_modules/
+
+# 環境変数（絶対にcommitしない）
+.env
+.env.*
+!.env.example
+
+# ローカルSQLite（Tursoに同期済み）
+data/*.db
+
+# 大容量生データ（Turso管理）
+data/mgs_products.jsonl
+data/mgs_products_by_maker.jsonl
+data/mgs_products_by_actress.jsonl
+data/mgs_products_by_month.jsonl
+data/mgs_details.jsonl
+data/mgs_actress_matches.jsonl
+data/mgs_video_urls.jsonl
+data/fanza_products.jsonl
+data/fanza_video_urls.jsonl
+data/fanza_actresses_raw.jsonl
+
+# ビルド出力
+site/.next/
+site/tsconfig.tsbuildinfo
+
+# ログ
+logs/
+
+# スクレイパーロックファイル（実行時一時ファイル）
+data/*.lock

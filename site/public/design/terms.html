@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+        }
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<!-- Header -->
+<header class="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-2">
+<div class="text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">token</span>
+</div>
+<span class="font-bold text-lg tracking-tight">Platform</span>
+</div>
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-400">info</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="max-w-2xl mx-auto px-5 pt-8 pb-32">
+<div class="mb-10">
+<h1 class="text-3xl font-bold mb-3 tracking-tight">サービス利用規約</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm">最終更新日：2023年10月27日</p>
+</div>
+<div class="prose prose-slate dark:prose-invert max-w-none space-y-10">
+<!-- Intro -->
+<section>
+<p class="leading-relaxed text-slate-700 dark:text-slate-300">
+                    この利用規約（以下，「本規約」といいます。）は，本サービスの利用条件を定めるものです。登録ユーザーの皆さま（以下，「ユーザー」といいます。）には，本規約に従って，本サービスをご利用いただきます。
+                </p>
+</section>
+<!-- Article 1 -->
+<section>
+<h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+<span class="w-1.5 h-6 bg-primary rounded-full"></span>
+                    第1条（適用）
+                </h2>
+<div class="space-y-4 text-slate-700 dark:text-slate-300 leading-loose">
+<p>1. 本規約は，ユーザーと当社との間の本サービスの利用に関わる一切の関係に適用されるものとします。</p>
+<p>2. 当社は本サービスに関し，本規約のほか，ご利用にあたってのルール等，各種の規定（以下，「個別規定」といいます。）をすることがあります。これら個別規定はその名称のいかんに関わらず，本規約の一部を構成するものとします。</p>
+</div>
+</section>
+<!-- Article 2 -->
+<section>
+<h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+<span class="w-1.5 h-6 bg-primary rounded-full"></span>
+                    第2条（利用登録）
+                </h2>
+<div class="space-y-4 text-slate-700 dark:text-slate-300 leading-loose">
+<p>1. 本サービスにおいては，登録希望者が本規約に同意の上，当社の定める方法によって利用登録を申請し，当社がこれに対する承認を登録希望者に通知することによって，利用登録が完了するものとします。</p>
+<p>2. 当社は，利用登録の申請者に以下の事由があると判断した場合，利用登録の申請を承認しないことがあり，その理由については一切の開示義務を負わないものとします。</p>
+<ul class="list-disc pl-5 space-y-2">
+<li>利用登録の申請に際して虚偽の事項を届け出た場合</li>
+<li>本規約に違反したことがある者からの申請である場合</li>
+<li>その他，当社が利用登録を相当でないと判断した場合</li>
+</ul>
+</div>
+</section>
+<!-- Article 3 -->
+<section>
+<h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+<span class="w-1.5 h-6 bg-primary rounded-full"></span>
+                    第3条（ユーザーIDおよびパスワードの管理）
+                </h2>
+<div class="space-y-4 text-slate-700 dark:text-slate-300 leading-loose">
+<p>1. ユーザーは，自己の責任において，本サービスのユーザーIDおよびパスワードを適切に管理するものとします。</p>
+<p>2. ユーザーは，いかなる場合にも，ユーザーIDおよびパスワードを第三者に譲渡または貸与し，もしくは第三者と共用することはできません。</p>
+</div>
+</section>
+<!-- Article 4 -->
+<section>
+<h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+<span class="w-1.5 h-6 bg-primary rounded-full"></span>
+                    第4条（禁止事項）
+                </h2>
+<div class="space-y-4 text-slate-700 dark:text-slate-300 leading-loose">
+<p>ユーザーは，本サービスの利用にあたり，以下の行為をしてはなりません。</p>
+<ul class="list-decimal pl-5 space-y-2">
+<li>法令または公序良俗に違反する行為</li>
+<li>犯罪行為に関連する行為</li>
+<li>当社のサーバーまたはネットワークの機能を破壊したり，妨害したりする行為</li>
+<li>当社のサービスの運営を妨害するおそれのある行為</li>
+<li>他のユーザーに関する個人情報等を収集または蓄積する行為</li>
+<li>他のユーザーに成りすます行為</li>
+</ul>
+</div>
+</section>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-2 pb-6 pt-2">
+<div class="max-w-2xl mx-auto flex items-center justify-around">
+<a class="flex flex-col items-center gap-1 min-w-[64px] text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">ホーム</span>
+</a>
+<a class="flex flex-col items-center gap-1 min-w-[64px] text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="text-[10px] font-medium">検索</span>
+</a>
+<a class="flex flex-col items-center gap-1 min-w-[64px] text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">rewarded_ads</span>
+<span class="text-[10px] font-medium">ランキング</span>
+</a>
+<a class="flex flex-col items-center gap-1 min-w-[64px] text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">play_circle</span>
+<span class="text-[10px] font-medium">動画</span>
+</a>
+<a class="flex flex-col items-center gap-1 min-w-[64px] text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="text-[10px] font-medium">マイページ</span>
+</a>
+</div>
+</nav>
+</body></html>

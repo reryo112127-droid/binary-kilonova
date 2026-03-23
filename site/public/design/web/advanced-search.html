@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700;900&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', 'Noto Sans JP', sans-serif; }
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #ec5b13;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex flex-col min-h-screen w-full overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-3 lg:px-20">
+<div class="flex items-center gap-4">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"></path>
+</svg>
+</div>
+<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight" style="">詳細検索</h2>
+</div>
+<div class="flex items-center gap-8">
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#" style="">ホーム</a>
+<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#" style="">人気ランキング</a>
+<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#" style="">マイリスト</a>
+</nav>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border border-slate-200 dark:border-slate-700" data-alt="User profile avatar icon placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAh1shzY0k0lYEL0MqnQEDP1sJ1LFyRHinQiHAnLIOvPXZFDKFWGmnFFJcpTBfAU48N6_znHyDl2iIBecXXkj4JQbG1EJOuB9zg3hpuvwcOQdWkw3GsEvU72nSIu-ew57r_cHkFtTPSEaaOw834iZoQrzppumyS-4txCXhfKQbXVtqBPSYTxADPRONlaTDDZg7myireriDmI5U0zGW8DssDs3etkMWsxOQH6QiISQTrSVEedp2rTHlDvGbKci7VERrVrQaBxFBSKzU");'></div>
+</div>
+</header>
+<main class="flex-1 max-w-4xl mx-auto w-full px-4 py-8 lg:py-12">
+<div class="mb-10 text-center">
+<h1 class="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-4" style="">詳細検索</h1>
+<p class="text-slate-500 dark:text-slate-400 text-lg" style="">詳細な条件を指定して、あなただけのベストランキングを作成しましょう。</p>
+</div>
+<div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 lg:p-10 space-y-8">
+<!-- Platform Selection -->
+<section>
+<h3 class="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2" style="">
+<span class="material-symbols-outlined text-base" style="">podcasts</span>
+                        配信プラットフォーム
+                    </h3>
+<div class="flex flex-wrap gap-4">
+<label class="flex-1 min-w-[120px] cursor-pointer group" style="">
+<input checked="" class="hidden peer" name="platform" type="radio"/>
+<div class="flex items-center justify-center p-4 rounded-lg border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+<span class="text-slate-600 dark:text-slate-300 peer-checked:text-primary font-bold" style="">MGS動画</span>
+</div>
+</label>
+<label class="flex-1 min-w-[120px] cursor-pointer group" style="">
+<input class="hidden peer" name="platform" type="radio"/>
+<div class="flex items-center justify-center p-4 rounded-lg border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+<span class="text-slate-600 dark:text-slate-300 peer-checked:text-primary font-bold" style="">FANZA</span>
+</div>
+</label>
+<label class="flex-1 min-w-[120px] cursor-pointer group" style="">
+<input class="hidden peer" name="platform" type="radio"/>
+<div class="flex items-center justify-center p-4 rounded-lg border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+<span class="text-slate-600 dark:text-slate-300 peer-checked:text-primary font-bold" style="">両方</span>
+</div>
+</label>
+</div>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Manufacturer Select -->
+<section>
+<label class="block text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4" style="">
+                            メーカー選択
+                        </label>
+<div class="relative">
+<select class="w-full rounded-lg border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-primary focus:border-primary h-32" multiple="">
+<option>SOD Create</option>
+<option>S1 NO.1 STYLE</option>
+<option>MOODYZ</option>
+<option>Idea Pocket</option>
+<option>Prestige</option>
+<option>Faleno</option>
+</select>
+<p class="mt-2 text-xs text-slate-400 italic" style="">複数選択可能です</p>
+</div>
+</section>
+<!-- Performer Search -->
+<section>
+<label class="block text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4" style="">
+                            出演者検索
+                        </label>
+<div class="space-y-3">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" style="">search</span>
+<input class="w-full pl-10 rounded-lg border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-primary focus:border-primary" placeholder="名前を入力して検索" type="text"/>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium" style="">
+                                    指定なし
+                                    <button class="ml-1 material-symbols-outlined text-xs" style="">close</button>
+</span>
+</div>
+</div>
+</section>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-100 dark:border-slate-800 pt-8">
+<!-- Release Year -->
+<section>
+<label class="block text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4" style="">
+                            年代・公開時期
+                        </label>
+<select class="w-full rounded-lg border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-primary focus:border-primary">
+<option>歴代すべて</option>
+<option>2026年</option>
+<option>2025年</option>
+<option>2024年</option>
+<option>2020年代</option>
+<option>2010年代</option>
+</select>
+</section>
+<!-- Genre Select -->
+<section>
+<label class="block text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4" style="">
+                            ジャンル
+                        </label>
+<select class="w-full rounded-lg border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-primary focus:border-primary h-20" multiple="">
+<option>ドラマ</option>
+<option>バラエティ</option>
+<option>美少女</option>
+<option>人妻</option>
+<option>単体作品</option>
+</select>
+</section>
+</div>
+<!-- Physical Filters -->
+<section class="border-t border-slate-100 dark:border-slate-800 pt-8">
+<h3 class="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6" style="">身体的特徴フィルタ</h3>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<label class="text-sm font-medium" style="">身長</label>
+<span class="text-sm font-bold text-primary" style="">140cm - 180cm+</span>
+</div>
+<input class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary slider-thumb" max="190" min="140" type="range" value="160"/>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<label class="text-sm font-medium" style="">カップ数</label>
+<span class="text-sm font-bold text-primary" style="">Aカップ - Qカップ+</span>
+</div>
+<input class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary slider-thumb" max="17" min="0" type="range" value="5"/>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<label class="text-sm font-medium" style="">年齢</label>
+<span class="text-sm font-bold text-primary" style="">18歳 - 60歳+</span>
+</div>
+<input class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary slider-thumb" max="70" min="18" type="range" value="25"/>
+</div>
+</div>
+</section>
+<!-- Action Button -->
+<div class="pt-10 flex justify-center">
+<button class="bg-primary hover:bg-primary/90 text-white text-lg font-bold py-5 px-12 rounded-full shadow-lg shadow-primary/20 transition-all transform hover:scale-[1.02] flex items-center gap-3" style=""><span class="material-symbols-outlined">auto_awesome</span>この条件で検索する</button>
+</div>
+</div>
+<!-- Footer Small -->
+<footer class="mt-12 text-center text-slate-400 dark:text-slate-500 text-sm">
+<p class="" style="">© 2024 Custom Ranking Maker. All rights reserved.</p>
+</footer>
+</main>
+</div>
+</body></html>

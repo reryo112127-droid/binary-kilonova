@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                        "gold": "#FFD700",
+                        "silver": "#C0C0C0",
+                        "bronze": "#CD7F32",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    @keyframes sparkle {
+        0%, 100% { opacity: 0; transform: scale(0.5); }
+        50% { opacity: 1; transform: scale(1.2); }
+    }
+    .sparkle-icon {
+        animation: sparkle 2s infinite ease-in-out;
+    }
+    .gold-glow {
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    }
+</style>
+<title>2026年 作品ランキング 100選</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-4 lg:px-40 py-3">
+<div class="flex items-center justify-between gap-8 max-w-[1200px] mx-auto">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-3xl font-bold" style="">trophy</span>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight" style="">2026作品AWARD</h2>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors" href="#" style="">ホーム</a>
+<a class="text-primary text-sm font-bold border-b-2 border-primary" href="#" style="">ランキング</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors" href="#" style="">ニュース</a>
+</nav>
+</div>
+<div class="flex flex-1 justify-end gap-4">
+<div class="relative hidden sm:block w-full max-w-xs">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl" style="">search</span>
+<input class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/50" placeholder="作品を検索..." type="text"/>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-xl h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined" style="">notifications</span>
+</button>
+<button class="flex items-center justify-center rounded-xl h-10 w-10 bg-primary text-white shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity" style="">
+<span class="material-symbols-outlined" style="">person</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 w-full max-w-[1200px] mx-auto px-4 py-8 lg:px-10">
+<!-- Hero Title -->
+<div class="mb-12 text-center">
+<h1 class="text-4xl md:text-5xl font-black text-slate-900 dark:text-slate-100 mb-4" style="">2026年 作品ランキング</h1>
+<p class="text-slate-500 dark:text-slate-400 text-lg" style=""><br/></p>
+</div>
+<!-- Podium Top 3 Section -->
+<div class="mb-16 grid grid-cols-1 md:grid-cols-3 gap-8 items-end max-w-5xl mx-auto px-4">
+<!-- 2nd Place -->
+<div id="rank-2-card" class="order-2 md:order-1 group cursor-pointer">
+<div class="relative flex flex-col items-center p-6 bg-white dark:bg-slate-800 rounded-t-[2.5rem] border-x-4 border-t-4 border-slate-200 dark:border-slate-700 shadow-2xl overflow-visible">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
+<div class="bg-gradient-to-tr from-slate-400 to-slate-100 rounded-full p-1.5 shadow-xl border-4 border-white">
+<span class="material-symbols-outlined text-4xl text-slate-600 font-bold" style="">military_tech</span>
+</div>
+</div>
+<div class="w-full aspect-[3/4] rounded-2xl overflow-hidden mb-5 shadow-lg group-hover:scale-[1.03] transition-transform duration-500">
+<img id="rank-2-img" alt="Silver Award" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjzWqNjMkG0pg8EfKL43gMsuScDi7UPdt7EVk8GVndTtxymXo7J7d1n0GTeG8Tn17-VSdXRxWm9pje2iPIxJ_KZtTDYVK_jJFOzrKeJ3NBiwJry0RQ212qtbvhvKnvftLG4fYzz84ErF3nU6QDbe2JGmJXb5h53OVloqAvnMJ7uomkxoC6DMjz5qYCkrUh9iPhNUn5EmYd-0-XuhygkDUwDNg0kZEhnIfR5DnZpH343acCAnsF4dDw99JD2q13khyFUZYBoM6rUN4" style=""/>
+</div>
+<span class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mb-1" style="">Silver </span>
+<h3 id="rank-2-title" class="text-xl font-bold text-slate-800 dark:text-slate-100 text-center line-clamp-1" style="">星のささやき</h3>
+<div class="mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-sm fill-current" style="">star</span>
+<span class="text-slate-700 dark:text-slate-300 font-bold" style="">4.8</span>
+</div>
+</div>
+<div class="h-20 bg-gradient-to-b from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 rounded-b-2xl flex flex-col items-center justify-center shadow-inner relative">
+<span class="text-slate-500 dark:text-slate-400 font-black text-4xl" style="">2</span>
+<div class="flex gap-4 mt-2">
+<button class="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-600 shadow-sm transition-colors" style=""><span class="material-symbols-outlined text-lg" style="">add</span></button>
+<button class="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 hover:bg-white text-red-500 shadow-sm transition-colors" style=""><span class="material-symbols-outlined text-lg fill-current" style="">favorite</span></button>
+</div>
+</div>
+</div>
+<!-- 1st Place -->
+<div id="rank-1-card" class="order-1 md:order-2 group z-20 scale-110 mb-4 cursor-pointer">
+<div class="relative flex flex-col items-center p-8 bg-white dark:bg-slate-800 rounded-t-[3rem] border-x-4 border-t-4 border-yellow-400/50 gold-glow shadow-[0_20px_50px_rgba(255,215,0,0.2)] overflow-visible">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center z-30">
+<div class="bg-gradient-to-tr from-yellow-500 via-amber-200 to-yellow-500 rounded-full p-2.5 shadow-2xl border-4 border-white">
+<span class="material-symbols-outlined text-5xl text-amber-700 font-bold" style="">workspace_premium</span>
+</div>
+</div>
+<div class="w-full aspect-[3/4] rounded-2xl overflow-hidden mb-6 shadow-2xl group-hover:scale-[1.03] transition-transform duration-500 ring-4 ring-yellow-400/30">
+<img id="rank-1-img" alt="Gold Award" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYEDV6XBxB0QNnS_ahvvhUM_hbMdLMzoiU3MkZLI_jeNJb6R1RdWh5PPu-h4T8P7B_W1-fXQEOgTNJtihW5MFfCqh1vrHIN2BhK-EAQrvFhu460TA0zk27rykAFORVBx_fXrUl-aju86Ss8nlu6HMY5oUEGz1t9SwXPTPpf9HjhWfeXMJZdZH829On8SVio7YMCqZyWMdDXdV4QCT49zritLjtNnzd8aFbM-Hj75QNafyJEUkuRaCfFVITmnQpmJzSrOX1B0xs4To" style=""/>
+</div>
+<span class="text-primary font-black text-sm uppercase tracking-[0.3em] mb-1" style=""> Champion</span>
+<h3 id="rank-1-title" class="text-2xl font-black text-slate-900 dark:text-slate-100 text-center" style="">黎明の騎士</h3>
+<div class="mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-xl fill-current" style="">star</span>
+<span class="text-slate-900 dark:text-slate-100 font-black text-xl" style="">4.9</span>
+</div>
+</div>
+<div class="h-28 rounded-b-2xl flex flex-col items-center justify-center shadow-2xl relative overflow-hidden bg-gradient-to-b from-[#FFD700] via-[#FFC107] to-[#B8860B]">
+<div class="absolute inset-0 bg-white/20 opacity-30 transform -skew-x-12 translate-x-full animate-[shimmer_3s_infinite]"></div>
+<span class="font-black text-6xl drop-shadow-lg text-amber-900/40" style="">1</span>
+<div class="flex gap-6 mt-2 z-10">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md transition-all hover:scale-110" style=""><span class="material-symbols-outlined text-xl" style="">add</span></button>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-red-500 shadow-md transition-all hover:scale-110" style=""><span class="material-symbols-outlined text-xl fill-current" style="">favorite</span></button>
+</div>
+</div>
+</div>
+<!-- 3rd Place -->
+<div id="rank-3-card" class="order-3 md:order-3 group cursor-pointer">
+<div class="relative flex flex-col items-center p-6 bg-white dark:bg-slate-800 rounded-t-[2.5rem] border-x-4 border-t-4 border-orange-200 dark:border-orange-900/30 shadow-2xl overflow-visible">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
+<div class="bg-gradient-to-tr from-orange-400 to-orange-100 rounded-full p-1.5 shadow-xl border-4 border-white">
+<span class="material-symbols-outlined text-4xl text-orange-800 font-bold" style="">military_tech</span>
+</div>
+</div>
+<div class="w-full aspect-[3/4] rounded-2xl overflow-hidden mb-5 shadow-lg group-hover:scale-[1.03] transition-transform duration-500">
+<img id="rank-3-img" alt="Bronze Award" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrwIg3CNrnRjRsY62naXk-PSgnRMKd3muouT9nuipuFOq7m1VCp__fePQWI9JCed_V9lofMgwGJlbWKE8Gd5ezQOcN1IRkZerC9kx8KBsDiaV0gAH1Qo8aIp4Bmv-aT8PV8Pqf3gI3hc6f5ffmi8PVpzfGNZXF0j3L4etfy4VJXxTkNMpO9vXdcGPYRKM9i5D7Ap3ankSWsp9oUfvFHFXnOtRhirul4YfwK6LyW4V6x7yOg-A8zQpr_3FddKCoY0HiQCZnOfrqKq0" style=""/>
+</div>
+<span class="text-orange-600/70 font-bold text-xs uppercase tracking-[0.2em] mb-1" style="">Bronze </span>
+<h3 id="rank-3-title" class="text-xl font-bold text-slate-800 dark:text-slate-100 text-center line-clamp-1" style="">未来航路</h3>
+<div class="mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-sm fill-current" style="">star</span>
+<span class="text-slate-700 dark:text-slate-300 font-bold" style="">4.7</span>
+</div>
+</div>
+<div class="h-16 bg-gradient-to-b from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-900/50 rounded-b-2xl flex flex-col items-center justify-center shadow-inner relative">
+<span class="text-orange-700/40 dark:text-orange-400/40 font-black text-3xl" style="">3</span>
+<div class="flex gap-4 mt-1">
+<button class="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 hover:bg-white text-slate-600 shadow-sm transition-colors" style=""><span class="material-symbols-outlined text-base" style="">add</span></button>
+<button class="flex items-center justify-center w-7 h-7 rounded-full bg-white/80 hover:bg-white text-red-500 shadow-sm transition-colors" style=""><span class="material-symbols-outlined text-base fill-current" style="">favorite</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- 4th - 100th Dense Grid List -->
+<div class="space-y-6">
+<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+<h2 class="text-2xl font-bold flex items-center gap-2 text-slate-800 dark:text-white" style="">
+<span class="material-symbols-outlined text-primary" style="">list</span>
+                        4位 〜 100位
+                    </h2>
+</div>
+<!-- Dense Item Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="ranking-grid">
+<!-- Item Template Re-applied with interaction icons -->
+<script>
+                        const mockImages = [
+                            "https://lh3.googleusercontent.com/aida-public/AB6AXuCwlSzpLSFyj40-89dtXnhyfsUdCxAdbmwFK9NPDtVPJe9VzyD0Gl5I0J46wMy4If2Xlz53fbtdqdx2LM_Gz_iRjSVojNhOohN91zz1cHvoGQhcoOPVE_Stn5Nv5Sr1GcxGRnEj61t7UKcSeGj58ISEt-EmDgVHxDmVgXm7yqpZrHsqtMDq0J1jjZu6je_mMN3PC-RN5fZPW1JF81mo_9qY8IE9KfzMFR1WYTbFaLFqlOeofH4gVy631ejbfJXGTmQVIma-TvSQ5UM",
+                            "https://lh3.googleusercontent.com/aida-public/AB6AXuAfdoum012kwjcFg3dO4HGjCo8ITT6EQ0Ls0ciOoe6AJPbv6hy7NgT3_tlHzAns9mqfo2P-SrBC9PevAEmUg4B5s9GMN7ol4GxMhu3ae8z4Smf4Op3EL8r-1mKxvMk7FF6d10FjOAFejbwSVGvc9JzAks9uE2hATrHFbLOV3D3M56ho_Vzv84NPyuyhBWzY8keQFSYu51kH2KKNQSTkD1157QbSWiXYtD5xZL-PQo_tp1FLd-aZZ1rthWT9bjFu2cblX_tQHOJqAuQ",
+                            "https://lh3.googleusercontent.com/aida-public/AB6AXuDNoEALNGHDd2S-0hYqZTy8UKLRGpZAje0v4vJ4bNIsKn30Q-tg61SL3zHI1wJmzKWJHYZwg9eF7nMmfGxyElWxe3oLs_vJ9w_XubBefriMWhs-aka_s5IhCP8xDBuxbIOV37jSuk40lUivSCtHAaEtWzL7OMex3_V44EAV0TL_JK8lLCL26p9hJrzDz9Q5gayGpS3hgrVtKZ-uvnu5W4XltfMxNt3xBVOk1KZWlcVJ2xALmVzcm7z5NYkHal0hsSmajCG3_xUd1a8",
+                            "https://lh3.googleusercontent.com/aida-public/AB6AXuCBnX-rzYXfb2mFDo4iq-l8kRvFOq5Mf_gjhROGRrNlOI_esKQRJfU5Tb2cMFuTVO3iiYdNuGxp7oMDByBHJ2_m262Cm58vo9M6xBIf6j8FCmrOVfWWh3J_nH3BTOe2JpdHYUkIwT4is0c6Im1x32M91zZMp8Ho0hMML1izXnyIljG1XXbfU-GJ-itKg5TtHLx0uGm4SBuhv8DB3zS5CbivizNCRL8qYpEQcWCE-V2EGXCcknw-FCqFGA-qujS_PF2U_ruIPLkkX_A"
+                        ];
+                        const titles = ["境界線のエコー", "スカイ・ガーデン", "都市の影、光の庭", "クロノ・ドライブ", "静寂のパルス", "次元の羅針盤", "翡翠の迷宮", "サンセット・レクイエム", "ネオン・ヴェール", "黎明の残響"];
+                        
+                        function createItem(rank) {
+                            const imgIdx = rank % mockImages.length;
+                            const titleIdx = rank % titles.length;
+                            const rating = (4.5 - (rank * 0.01)).toFixed(1);
+                            
+                            return `
+                                <div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+                                    <div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+                                        <img class="w-full h-full object-cover" src="${mockImages[imgIdx]}" alt="Work ${rank}">
+                                        <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                                        <div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md">${rank}</div>
+                                    </div>
+                                    <div class="flex-1 min-w-0 pr-12">
+                                        <h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">${titles[titleIdx]} ${rank}</h4>
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <span class="material-symbols-outlined text-primary text-[14px] fill-current">star</span>
+                                            <span class="text-slate-600 dark:text-slate-400 text-xs font-bold">${rating}</span>
+                                        </div>
+                                        <span class="text-[10px] text-slate-400 mt-1 block">詳細へ &rsaquo;</span>
+                                    </div>
+                                    <!-- Interaction icons in bottom right -->
+                                    <div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                        <button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors">
+                                            <span class="material-symbols-outlined text-base">add</span>
+                                        </button>
+                                        <button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                            <span class="material-symbols-outlined text-base">favorite</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        // Initial render of 27 items
+                        document.write(Array.from({length: 27}, (_, i) => createItem(i + 4)).join(''));
+                    </script>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 4" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwlSzpLSFyj40-89dtXnhyfsUdCxAdbmwFK9NPDtVPJe9VzyD0Gl5I0J46wMy4If2Xlz53fbtdqdx2LM_Gz_iRjSVojNhOohN91zz1cHvoGQhcoOPVE_Stn5Nv5Sr1GcxGRnEj61t7UKcSeGj58ISEt-EmDgVHxDmVgXm7yqpZrHsqtMDq0J1jjZu6je_mMN3PC-RN5fZPW1JF81mo_9qY8IE9KfzMFR1WYTbFaLFqlOeofH4gVy631ejbfJXGTmQVIma-TvSQ5UM" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">4</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">静寂のパルス 4</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.5</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 5" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfdoum012kwjcFg3dO4HGjCo8ITT6EQ0Ls0ciOoe6AJPbv6hy7NgT3_tlHzAns9mqfo2P-SrBC9PevAEmUg4B5s9GMN7ol4GxMhu3ae8z4Smf4Op3EL8r-1mKxvMk7FF6d10FjOAFejbwSVGvc9JzAks9uE2hATrHFbLOV3D3M56ho_Vzv84NPyuyhBWzY8keQFSYu51kH2KKNQSTkD1157QbSWiXYtD5xZL-PQo_tp1FLd-aZZ1rthWT9bjFu2cblX_tQHOJqAuQ" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">5</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">次元の羅針盤 5</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.5</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 6" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNoEALNGHDd2S-0hYqZTy8UKLRGpZAje0v4vJ4bNIsKn30Q-tg61SL3zHI1wJmzKWJHYZwg9eF7nMmfGxyElWxe3oLs_vJ9w_XubBefriMWhs-aka_s5IhCP8xDBuxbIOV37jSuk40lUivSCtHAaEtWzL7OMex3_V44EAV0TL_JK8lLCL26p9hJrzDz9Q5gayGpS3hgrVtKZ-uvnu5W4XltfMxNt3xBVOk1KZWlcVJ2xALmVzcm7z5NYkHal0hsSmajCG3_xUd1a8" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">6</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">翡翠の迷宮 6</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.4</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 7" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBnX-rzYXfb2mFDo4iq-l8kRvFOq5Mf_gjhROGRrNlOI_esKQRJfU5Tb2cMFuTVO3iiYdNuGxp7oMDByBHJ2_m262Cm58vo9M6xBIf6j8FCmrOVfWWh3J_nH3BTOe2JpdHYUkIwT4is0c6Im1x32M91zZMp8Ho0hMML1izXnyIljG1XXbfU-GJ-itKg5TtHLx0uGm4SBuhv8DB3zS5CbivizNCRL8qYpEQcWCE-V2EGXCcknw-FCqFGA-qujS_PF2U_ruIPLkkX_A" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">7</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">サンセット・レクイエム 7</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.4</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 8" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwlSzpLSFyj40-89dtXnhyfsUdCxAdbmwFK9NPDtVPJe9VzyD0Gl5I0J46wMy4If2Xlz53fbtdqdx2LM_Gz_iRjSVojNhOohN91zz1cHvoGQhcoOPVE_Stn5Nv5Sr1GcxGRnEj61t7UKcSeGj58ISEt-EmDgVHxDmVgXm7yqpZrHsqtMDq0J1jjZu6je_mMN3PC-RN5fZPW1JF81mo_9qY8IE9KfzMFR1WYTbFaLFqlOeofH4gVy631ejbfJXGTmQVIma-TvSQ5UM" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">8</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">ネオン・ヴェール 8</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.4</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 9" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfdoum012kwjcFg3dO4HGjCo8ITT6EQ0Ls0ciOoe6AJPbv6hy7NgT3_tlHzAns9mqfo2P-SrBC9PevAEmUg4B5s9GMN7ol4GxMhu3ae8z4Smf4Op3EL8r-1mKxvMk7FF6d10FjOAFejbwSVGvc9JzAks9uE2hATrHFbLOV3D3M56ho_Vzv84NPyuyhBWzY8keQFSYu51kH2KKNQSTkD1157QbSWiXYtD5xZL-PQo_tp1FLd-aZZ1rthWT9bjFu2cblX_tQHOJqAuQ" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">9</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">黎明の残響 9</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.4</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 10" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNoEALNGHDd2S-0hYqZTy8UKLRGpZAje0v4vJ4bNIsKn30Q-tg61SL3zHI1wJmzKWJHYZwg9eF7nMmfGxyElWxe3oLs_vJ9w_XubBefriMWhs-aka_s5IhCP8xDBuxbIOV37jSuk40lUivSCtHAaEtWzL7OMex3_V44EAV0TL_JK8lLCL26p9hJrzDz9Q5gayGpS3hgrVtKZ-uvnu5W4XltfMxNt3xBVOk1KZWlcVJ2xALmVzcm7z5NYkHal0hsSmajCG3_xUd1a8" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">10</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">境界線のエコー 10</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.4</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 11" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBnX-rzYXfb2mFDo4iq-l8kRvFOq5Mf_gjhROGRrNlOI_esKQRJfU5Tb2cMFuTVO3iiYdNuGxp7oMDByBHJ2_m262Cm58vo9M6xBIf6j8FCmrOVfWWh3J_nH3BTOe2JpdHYUkIwT4is0c6Im1x32M91zZMp8Ho0hMML1izXnyIljG1XXbfU-GJ-itKg5TtHLx0uGm4SBuhv8DB3zS5CbivizNCRL8qYpEQcWCE-V2EGXCcknw-FCqFGA-qujS_PF2U_ruIPLkkX_A" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">11</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">スカイ・ガーデン 11</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.4</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 12" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwlSzpLSFyj40-89dtXnhyfsUdCxAdbmwFK9NPDtVPJe9VzyD0Gl5I0J46wMy4If2Xlz53fbtdqdx2LM_Gz_iRjSVojNhOohN91zz1cHvoGQhcoOPVE_Stn5Nv5Sr1GcxGRnEj61t7UKcSeGj58ISEt-EmDgVHxDmVgXm7yqpZrHsqtMDq0J1jjZu6je_mMN3PC-RN5fZPW1JF81mo_9qY8IE9KfzMFR1WYTbFaLFqlOeofH4gVy631ejbfJXGTmQVIma-TvSQ5UM" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">12</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">都市の影、光の庭 12</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.4</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 13" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfdoum012kwjcFg3dO4HGjCo8ITT6EQ0Ls0ciOoe6AJPbv6hy7NgT3_tlHzAns9mqfo2P-SrBC9PevAEmUg4B5s9GMN7ol4GxMhu3ae8z4Smf4Op3EL8r-1mKxvMk7FF6d10FjOAFejbwSVGvc9JzAks9uE2hATrHFbLOV3D3M56ho_Vzv84NPyuyhBWzY8keQFSYu51kH2KKNQSTkD1157QbSWiXYtD5xZL-PQo_tp1FLd-aZZ1rthWT9bjFu2cblX_tQHOJqAuQ" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">13</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">クロノ・ドライブ 13</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.4</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 14" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNoEALNGHDd2S-0hYqZTy8UKLRGpZAje0v4vJ4bNIsKn30Q-tg61SL3zHI1wJmzKWJHYZwg9eF7nMmfGxyElWxe3oLs_vJ9w_XubBefriMWhs-aka_s5IhCP8xDBuxbIOV37jSuk40lUivSCtHAaEtWzL7OMex3_V44EAV0TL_JK8lLCL26p9hJrzDz9Q5gayGpS3hgrVtKZ-uvnu5W4XltfMxNt3xBVOk1KZWlcVJ2xALmVzcm7z5NYkHal0hsSmajCG3_xUd1a8" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">14</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">静寂のパルス 14</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.4</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 15" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBnX-rzYXfb2mFDo4iq-l8kRvFOq5Mf_gjhROGRrNlOI_esKQRJfU5Tb2cMFuTVO3iiYdNuGxp7oMDByBHJ2_m262Cm58vo9M6xBIf6j8FCmrOVfWWh3J_nH3BTOe2JpdHYUkIwT4is0c6Im1x32M91zZMp8Ho0hMML1izXnyIljG1XXbfU-GJ-itKg5TtHLx0uGm4SBuhv8DB3zS5CbivizNCRL8qYpEQcWCE-V2EGXCcknw-FCqFGA-qujS_PF2U_ruIPLkkX_A" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">15</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">次元の羅針盤 15</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 16" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwlSzpLSFyj40-89dtXnhyfsUdCxAdbmwFK9NPDtVPJe9VzyD0Gl5I0J46wMy4If2Xlz53fbtdqdx2LM_Gz_iRjSVojNhOohN91zz1cHvoGQhcoOPVE_Stn5Nv5Sr1GcxGRnEj61t7UKcSeGj58ISEt-EmDgVHxDmVgXm7yqpZrHsqtMDq0J1jjZu6je_mMN3PC-RN5fZPW1JF81mo_9qY8IE9KfzMFR1WYTbFaLFqlOeofH4gVy631ejbfJXGTmQVIma-TvSQ5UM" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">16</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">翡翠の迷宮 16</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 17" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfdoum012kwjcFg3dO4HGjCo8ITT6EQ0Ls0ciOoe6AJPbv6hy7NgT3_tlHzAns9mqfo2P-SrBC9PevAEmUg4B5s9GMN7ol4GxMhu3ae8z4Smf4Op3EL8r-1mKxvMk7FF6d10FjOAFejbwSVGvc9JzAks9uE2hATrHFbLOV3D3M56ho_Vzv84NPyuyhBWzY8keQFSYu51kH2KKNQSTkD1157QbSWiXYtD5xZL-PQo_tp1FLd-aZZ1rthWT9bjFu2cblX_tQHOJqAuQ" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">17</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">サンセット・レクイエム 17</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 18" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNoEALNGHDd2S-0hYqZTy8UKLRGpZAje0v4vJ4bNIsKn30Q-tg61SL3zHI1wJmzKWJHYZwg9eF7nMmfGxyElWxe3oLs_vJ9w_XubBefriMWhs-aka_s5IhCP8xDBuxbIOV37jSuk40lUivSCtHAaEtWzL7OMex3_V44EAV0TL_JK8lLCL26p9hJrzDz9Q5gayGpS3hgrVtKZ-uvnu5W4XltfMxNt3xBVOk1KZWlcVJ2xALmVzcm7z5NYkHal0hsSmajCG3_xUd1a8" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">18</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">ネオン・ヴェール 18</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 19" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBnX-rzYXfb2mFDo4iq-l8kRvFOq5Mf_gjhROGRrNlOI_esKQRJfU5Tb2cMFuTVO3iiYdNuGxp7oMDByBHJ2_m262Cm58vo9M6xBIf6j8FCmrOVfWWh3J_nH3BTOe2JpdHYUkIwT4is0c6Im1x32M91zZMp8Ho0hMML1izXnyIljG1XXbfU-GJ-itKg5TtHLx0uGm4SBuhv8DB3zS5CbivizNCRL8qYpEQcWCE-V2EGXCcknw-FCqFGA-qujS_PF2U_ruIPLkkX_A" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">19</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">黎明の残響 19</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 20" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwlSzpLSFyj40-89dtXnhyfsUdCxAdbmwFK9NPDtVPJe9VzyD0Gl5I0J46wMy4If2Xlz53fbtdqdx2LM_Gz_iRjSVojNhOohN91zz1cHvoGQhcoOPVE_Stn5Nv5Sr1GcxGRnEj61t7UKcSeGj58ISEt-EmDgVHxDmVgXm7yqpZrHsqtMDq0J1jjZu6je_mMN3PC-RN5fZPW1JF81mo_9qY8IE9KfzMFR1WYTbFaLFqlOeofH4gVy631ejbfJXGTmQVIma-TvSQ5UM" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">20</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">境界線のエコー 20</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 21" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfdoum012kwjcFg3dO4HGjCo8ITT6EQ0Ls0ciOoe6AJPbv6hy7NgT3_tlHzAns9mqfo2P-SrBC9PevAEmUg4B5s9GMN7ol4GxMhu3ae8z4Smf4Op3EL8r-1mKxvMk7FF6d10FjOAFejbwSVGvc9JzAks9uE2hATrHFbLOV3D3M56ho_Vzv84NPyuyhBWzY8keQFSYu51kH2KKNQSTkD1157QbSWiXYtD5xZL-PQo_tp1FLd-aZZ1rthWT9bjFu2cblX_tQHOJqAuQ" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">21</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">スカイ・ガーデン 21</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 22" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNoEALNGHDd2S-0hYqZTy8UKLRGpZAje0v4vJ4bNIsKn30Q-tg61SL3zHI1wJmzKWJHYZwg9eF7nMmfGxyElWxe3oLs_vJ9w_XubBefriMWhs-aka_s5IhCP8xDBuxbIOV37jSuk40lUivSCtHAaEtWzL7OMex3_V44EAV0TL_JK8lLCL26p9hJrzDz9Q5gayGpS3hgrVtKZ-uvnu5W4XltfMxNt3xBVOk1KZWlcVJ2xALmVzcm7z5NYkHal0hsSmajCG3_xUd1a8" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">22</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">都市の影、光の庭 22</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 23" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBnX-rzYXfb2mFDo4iq-l8kRvFOq5Mf_gjhROGRrNlOI_esKQRJfU5Tb2cMFuTVO3iiYdNuGxp7oMDByBHJ2_m262Cm58vo9M6xBIf6j8FCmrOVfWWh3J_nH3BTOe2JpdHYUkIwT4is0c6Im1x32M91zZMp8Ho0hMML1izXnyIljG1XXbfU-GJ-itKg5TtHLx0uGm4SBuhv8DB3zS5CbivizNCRL8qYpEQcWCE-V2EGXCcknw-FCqFGA-qujS_PF2U_ruIPLkkX_A" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">23</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">クロノ・ドライブ 23</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 24" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwlSzpLSFyj40-89dtXnhyfsUdCxAdbmwFK9NPDtVPJe9VzyD0Gl5I0J46wMy4If2Xlz53fbtdqdx2LM_Gz_iRjSVojNhOohN91zz1cHvoGQhcoOPVE_Stn5Nv5Sr1GcxGRnEj61t7UKcSeGj58ISEt-EmDgVHxDmVgXm7yqpZrHsqtMDq0J1jjZu6je_mMN3PC-RN5fZPW1JF81mo_9qY8IE9KfzMFR1WYTbFaLFqlOeofH4gVy631ejbfJXGTmQVIma-TvSQ5UM" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">24</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">静寂のパルス 24</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 25" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfdoum012kwjcFg3dO4HGjCo8ITT6EQ0Ls0ciOoe6AJPbv6hy7NgT3_tlHzAns9mqfo2P-SrBC9PevAEmUg4B5s9GMN7ol4GxMhu3ae8z4Smf4Op3EL8r-1mKxvMk7FF6d10FjOAFejbwSVGvc9JzAks9uE2hATrHFbLOV3D3M56ho_Vzv84NPyuyhBWzY8keQFSYu51kH2KKNQSTkD1157QbSWiXYtD5xZL-PQo_tp1FLd-aZZ1rthWT9bjFu2cblX_tQHOJqAuQ" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">25</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">次元の羅針盤 25</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.3</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 26" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNoEALNGHDd2S-0hYqZTy8UKLRGpZAje0v4vJ4bNIsKn30Q-tg61SL3zHI1wJmzKWJHYZwg9eF7nMmfGxyElWxe3oLs_vJ9w_XubBefriMWhs-aka_s5IhCP8xDBuxbIOV37jSuk40lUivSCtHAaEtWzL7OMex3_V44EAV0TL_JK8lLCL26p9hJrzDz9Q5gayGpS3hgrVtKZ-uvnu5W4XltfMxNt3xBVOk1KZWlcVJ2xALmVzcm7z5NYkHal0hsSmajCG3_xUd1a8" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">26</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">翡翠の迷宮 26</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.2</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 27" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBnX-rzYXfb2mFDo4iq-l8kRvFOq5Mf_gjhROGRrNlOI_esKQRJfU5Tb2cMFuTVO3iiYdNuGxp7oMDByBHJ2_m262Cm58vo9M6xBIf6j8FCmrOVfWWh3J_nH3BTOe2JpdHYUkIwT4is0c6Im1x32M91zZMp8Ho0hMML1izXnyIljG1XXbfU-GJ-itKg5TtHLx0uGm4SBuhv8DB3zS5CbivizNCRL8qYpEQcWCE-V2EGXCcknw-FCqFGA-qujS_PF2U_ruIPLkkX_A" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">27</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">サンセット・レクイエム 27</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.2</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 28" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwlSzpLSFyj40-89dtXnhyfsUdCxAdbmwFK9NPDtVPJe9VzyD0Gl5I0J46wMy4If2Xlz53fbtdqdx2LM_Gz_iRjSVojNhOohN91zz1cHvoGQhcoOPVE_Stn5Nv5Sr1GcxGRnEj61t7UKcSeGj58ISEt-EmDgVHxDmVgXm7yqpZrHsqtMDq0J1jjZu6je_mMN3PC-RN5fZPW1JF81mo_9qY8IE9KfzMFR1WYTbFaLFqlOeofH4gVy631ejbfJXGTmQVIma-TvSQ5UM" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">28</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">ネオン・ヴェール 28</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.2</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 29" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfdoum012kwjcFg3dO4HGjCo8ITT6EQ0Ls0ciOoe6AJPbv6hy7NgT3_tlHzAns9mqfo2P-SrBC9PevAEmUg4B5s9GMN7ol4GxMhu3ae8z4Smf4Op3EL8r-1mKxvMk7FF6d10FjOAFejbwSVGvc9JzAks9uE2hATrHFbLOV3D3M56ho_Vzv84NPyuyhBWzY8keQFSYu51kH2KKNQSTkD1157QbSWiXYtD5xZL-PQo_tp1FLd-aZZ1rthWT9bjFu2cblX_tQHOJqAuQ" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">29</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">黎明の残響 29</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.2</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+<div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
+<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+<img alt="Work 30" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNoEALNGHDd2S-0hYqZTy8UKLRGpZAje0v4vJ4bNIsKn30Q-tg61SL3zHI1wJmzKWJHYZwg9eF7nMmfGxyElWxe3oLs_vJ9w_XubBefriMWhs-aka_s5IhCP8xDBuxbIOV37jSuk40lUivSCtHAaEtWzL7OMex3_V44EAV0TL_JK8lLCL26p9hJrzDz9Q5gayGpS3hgrVtKZ-uvnu5W4XltfMxNt3xBVOk1KZWlcVJ2xALmVzcm7z5NYkHal0hsSmajCG3_xUd1a8" style=""/>
+<div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md" style="">30</div>
+</div>
+<div class="flex-1 min-w-0 pr-12">
+<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate" style="">境界線のエコー 30</h4>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-primary text-[14px] fill-current" style="">star</span>
+<span class="text-slate-600 dark:text-slate-400 text-xs font-bold" style="">4.2</span>
+</div>
+<span class="text-[10px] text-slate-400 mt-1 block" style="">詳細へ ›</span>
+</div>
+<!-- Interaction icons in bottom right -->
+<div class="absolute bottom-3 right-3 flex gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">add</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700 text-slate-500 hover:text-red-500 hover:bg-red-50 transition-colors" style="">
+<span class="material-symbols-outlined text-base" style="">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Load More Section -->
+<div class="pt-10 text-center">
+<button class="inline-flex items-center gap-2 px-10 py-3.5 bg-white dark:bg-slate-800 border-2 border-primary/20 hover:border-primary text-primary dark:text-primary rounded-full font-black shadow-lg hover:shadow-primary/10 transition-all active:scale-95 group" id="load-more-btn" style="">
+                        もっと読み込む (残り70件)
+                        <span class="material-symbols-outlined transition-transform group-hover:translate-y-0.5" style="">expand_more</span>
+</button>
+<p class="mt-4 text-slate-400 text-xs font-medium" id="counter-info" style="">Showing 30 of 100 works</p>
+</div>
+</div>
+</main>
+<!-- Simple Footer -->
+<footer class="w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-10 px-4 mt-20">
+<div class="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2 text-primary opacity-60">
+<span class="material-symbols-outlined" style="">trophy</span>
+<span class="font-bold" style="">2026作品AWARD Official</span>
+</div>
+<div class="flex gap-8 text-slate-500 dark:text-slate-400 text-sm">
+<a class="hover:text-primary transition-colors" href="#" style="">利用規約</a>
+<a class="hover:text-primary transition-colors" href="#" style="">プライバシーポリシー</a>
+<a class="hover:text-primary transition-colors" href="#" style="">お問い合わせ</a>
+</div>
+<div class="text-slate-400 text-xs" style="">
+                    © 2026 Award Committee All Rights Reserved.
+                </div>
+</div>
+</footer>
+</div>
+<script>
+(function(){
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
+  function purl(id){return '/product/'+encodeURIComponent(id);}
+  function setCard(n,p){
+    var img=document.getElementById('rank-'+n+'-img');
+    var ttl=document.getElementById('rank-'+n+'-title');
+    var card=document.getElementById('rank-'+n+'-card');
+    if(!p)return;
+    var ps=poster(p.main_image_url);
+    if(img&&ps){img.src=ps;img.alt=p.title||'';}
+    if(ttl)ttl.textContent=p.title||'';
+    if(card)card.onclick=function(){location.href=purl(p.product_id);};
+  }
+  function renderItem(p,rank){
+    var ps=poster(p.main_image_url);
+    var imgHtml=ps?'<img class="w-full h-full object-cover" src="'+esc(ps)+'" alt="'+rank+'">'
+      :'<div class="w-full h-full flex items-center justify-center"><span class="material-symbols-outlined text-slate-400">movie</span></div>';
+    var actress=p.actresses?(p.actresses.split(',')[0].trim()):'';
+    return '<a href="'+purl(p.product_id)+'" class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group">'
+      +'<div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">'+imgHtml
+      +'<div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md">'+rank+'</div></div>'
+      +'<div class="flex-1 min-w-0">'
+      +'<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">'+esc(p.title||'')+'</h4>'
+      +(actress?'<p class="text-xs text-slate-500 truncate mt-0.5">'+esc(actress)+'</p>':'')
+      +'<span class="text-[10px] text-slate-400 mt-1 block">詳細へ ›</span>'
+      +'</div></a>';
+  }
+  fetch('/api/ranking?limit=100&fromDate=2026-01-01&toDate=2026-12-31&excludeBest=1')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!Array.isArray(data)||!data.length)return;
+      setCard(1,data[0]);setCard(2,data[1]);setCard(3,data[2]);
+      var grid=document.getElementById('ranking-grid');
+      if(grid&&data.length>3){
+        grid.innerHTML=data.slice(3).map(function(p,i){return renderItem(p,i+4);}).join('');
+      }
+      var btn=document.getElementById('load-more-btn');
+      var info=document.getElementById('counter-info');
+      if(btn)btn.style.display='none';
+      if(info)info.textContent='全'+data.length+'件表示中';
+    })
+    .catch(function(e){console.error('ranking load error',e);});
+})();
+</script>
+</body></html>

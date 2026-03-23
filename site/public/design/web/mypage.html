@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Public Sans', 'Noto Sans JP', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        [data-tab-content] {
+            display: none;
+        }
+        [data-tab-content].active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-background-dark text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Header -->
+<header class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark sticky top-0 z-50">
+<div class="max-w-[1200px] mx-auto flex items-center justify-between px-6 py-4">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-3xl">database</span>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">ProductDB</h1>
+</div>
+<div class="hidden md:flex items-center">
+<label class="relative flex items-center min-w-[300px]">
+<span class="material-symbols-outlined absolute left-3 text-slate-400">search</span>
+<input class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-2 pl-10 pr-4 focus:ring-2 focus:ring-primary/50 text-sm" placeholder="検索..." type="text"/>
+</label>
+</div>
+</div>
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">新着</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">予約</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">ランキング</a>
+<a class="text-sm font-medium text-primary underline underline-offset-4" href="#">マイページ</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">情報追加</a>
+</nav>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden border border-slate-200 dark:border-slate-700">
+<img class="w-full h-full object-cover" data-alt="User profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4JWw7OAt4PQ4elMYrUFgvTmGbHfmr1itES093z5s3lKezKWejzazPld1X5YEnuPY0rh278p4Xau8MgLLvXTkNlIagRFTEy2HAZ_4cCnYdyQXlEXDo63thL4mZf4gzcZqCwK7bw_pBgnh-nyFn9xqKeqCqLZHC-0IaxqwOFPQ_DBs815-FCpc_E23tL5IsOSo7Pec8csW05wiSyfQntxVhCFbZq__m3ZEUvQBTB5fwkPIgxJD6fW6LVakBp-MJpQXyJ_N0fH-G3Nk"/>
+</div>
+<button class="lg:hidden material-symbols-outlined">menu</button>
+</div>
+</div>
+</header>
+<main class="flex-1 max-w-[1100px] mx-auto w-full px-4 py-8">
+<!-- Tabbed Content Area -->
+<section>
+<div class="flex border-b border-slate-200 dark:border-slate-800 mb-8 overflow-x-auto" id="profileTabs">
+<button class="px-6 py-4 text-sm font-bold border-b-2 border-primary text-primary whitespace-nowrap transition-all" data-tab="liked-works">いいねした作品</button>
+<button class="px-6 py-4 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap transition-all" data-tab="reviewed-works">レビューした作品</button>
+<button class="px-6 py-4 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap transition-all" data-tab="liked-performers">いいねした女優</button>
+<button class="px-6 py-4 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border-b-2 border-transparent whitespace-nowrap transition-all" data-tab="recommended-works">おすすめ作品</button>
+</div>
+<!-- Liked Works Tab Content -->
+<div class="active" data-tab-content="" id="liked-works">
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+<!-- 12 Items Grid (4x3) -->
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1avO1mHmLL4JNpusml67wuoXqDgorENfCV8C2tR39xUjuNd4ADB0RUsJkjsPy4fJNEZP-ZJVw5Y_TiEjY_b9u2MPsuagUQSXHJjmwkCy8zr2Pn6G5acxqmL25ovU16uK9Lbjs9rTNgNusXSC2r8BErKKQ2bFCAvt8ATH8WcsKLZCVxDioOfV0iySRFmgREu0OnfbrmCcosWQR1a70LrktMWsUWdb1H9oc0RWktSIk6-hyc8XC90F9TsHgtwnin1Q0S47NkgBhsjs"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">The Minimalist Design</h3>
+<p class="text-xs text-slate-500">2024年リリース</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvPxPv5LsmeRj8ciJ1lILz4vzp3ggOr8W0U-7dJpOJQZeNfrEOTynd7nK8JGbO5KM1ZIsXyl60EZa63F1tvvekNqn6AWI1TVBhTq9Su5BovrCoN5XO0UZ-cFYr5oBiOsfwzo3wVVdTU2sZYtDYRqAeTcrJZZztWan3-BnxznC6slWazNhdbpqLQ85gZbFWa4KaR0VIOshdfi7uNLTwEwyE1D2kl673vXvqEWrWp4-qRn9PThWBSRdL7MMCMJkz1rsKjbp6p0FsUeY"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">Future Echoes</h3>
+<p class="text-xs text-slate-500">コンセプトアート</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAd8RmiKFtHDPL5rRjBeoivoSuHW2JfXFKyv-DiKw3KKjNlLg10GZPT_KqZKEf48e8_MpbPCg3V7-1hTSgsshi8jZoFm8lnwfFvZvIeE7msJHvMn_lNRc5foY7U8ScPOq8h2EqD5GuWgvjTvFaqeD03E6YwHBMlmx-g3p6dc2pE_HKgggek_KsSTZxzAmm_lcSETB-UUhDSSvIvHgMaGqCuIHHAOu1dxmcrEPqrHsQXCmm3eVqsaL45Kkbrw64-aaNuc9aUiq8olY0"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">Dark Matter Vol. 1</h3>
+<p class="text-xs text-slate-500">プレミアムエディション</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC63HDUxlUAfZRasAlQrKurOR5Z2QnuVrLKgRegllMHOsp1M7WHjKzujdbezom5pTGB-rgpb84XMsmjUzjF5Vs7Y-cCln7T1tbnrxJDKOLzOxhKUN3Pws2gcUDfk-spCzybawkF3rhAZ3_PV3CMdRnPIU5EX7EZtLiVtRWMnZ-rDkXSrU5bt_GdfPtFPI5lKNlJgks-hHNl5YhezcQvkqfKf7GehXolfPz4zphrHtosgSvxQzLzExc2d_VHYTbM4gUbbaHEAaBGyGA"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">The Minimalist Design II</h3>
+<p class="text-xs text-slate-500">2024年リリース</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBj_5b6ohY4oBiAt2OC4lCF8vBJof2-Hv2OCTcS0ozk1M37BqVjzHm-fuWyn8fAwQfcvHxo6MdTzT2ufMONCMjI-JxPbs_1owKfILF1JnTizmfP-bSOX4EiE4YksbkAxkM59FPFCvXDXMNOwsxv3WZpoFlpBF2-gb72mcDah00_8FrV2HbX9Cks3WQINtDwco3civE5RuopPE4v3JN8BjQf_7LJsHxSIarhOisirT1s4x5b2euWioI3COAjxA0-rvC-TYoT-Q7Ee3s"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">Future Echoes II</h3>
+<p class="text-xs text-slate-500">コンセプトアート</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD14U2nOaNB2ygwOOphqlMA9O1njqhDwZiDBftp7FLEnf6Qub2FP2zkq9tbae8xCa7RaienVIJdFlpnKzYFNn_OlhT-wo3V5MUtxLA5W6V6pydBaUc5OM12w43YS6EsuLznbcyWk7qjhTSprzMAQI9o9VdwAWJ0Wm-lBrgMWnl-gngyhAmogcgQP9hG1_CwCfwsgeU4OwA_BlDFIcylB37MgOq9-SfT1QrIDoGoOsOtcyuZRbjhG4kbvYgLfdWj_1wmXE__VlZoIMI"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">Dark Matter Vol. 2</h3>
+<p class="text-xs text-slate-500">プレミアムエディション</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDc8Ni1raEuS2yB_oGetE45OXmpF9ENPGEM-EMHZPqJZPD0zI9HFKuoY39yC81maxkfTiCMvP4i96zZ5HRPq2Rm1YrkHZ-jJfZEfbZ8sgxI6jV1TeSQBzom9z97hk2EVLL4qLHA1fjoiSn92KIR2p28UEE-_95uf1lEI1Wplpxk4H-38j1WWHlYfKs16i_dxkYro9Rbn80VXzD4qL1sOg7qR7ezsGwb1NyL9-XozJ98v_Rgh-FFEA9mXZmo_TA79A2Z6ggT5XdhlxM"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">The Minimalist Design III</h3>
+<p class="text-xs text-slate-500">2024年リリース</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGZqwCTlowqTO_JqyojnO-umK0zKFZXZkdCiCo1V_uQ0DStvTbZg0_hLGwGcCTGVC4W9n3kxjlTmqxAxphRwWqx6anR17fxGIIwFrrmAhB6F3kRLx65ozssXb1PBwYHlK3wEd-8ZQtUJE75QqhW06wAN5ojl6MSa4eOeEgk4UMe_DinxzqSNef8pooL4ts7YQIj6vW-7WEQEMPDVk68_GquzkF4Q5qS5hEURrtbCWIZIE8a_hbLAWfJzmbXMbqZkrvRyDvC9HAKR0"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">Future Echoes III</h3>
+<p class="text-xs text-slate-500">コンセプトアート</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZMUVoF5jFzuGssbT3AmQGx6SYuBUjOzyQu5AUaA0-k7OjiP963SB5T6zGTh4fuHJi-SMzkTZ5Yz-Q0Fhvf3Yf3ZRMdTXYUa1ksz1eqYnplymWuz0FuyeZ-_BZ8zSCOhlvYzwNVbUh8mIDKwwNWHL2jLtsb8ahH11hG4i6BEOJwwfvgr1G6DMNnHoc0WOdv-pUMs-XacCgJ6hfD9N7LOwrUOenfAqj3r10jTeHXIlXJrIf5GTLP3kB2NJ-wJjtsz_7YNPZ8xUc7Jc"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">Dark Matter Vol. 3</h3>
+<p class="text-xs text-slate-500">プレミアムエディション</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBViZCzcAXhIIXLuQo3H7qFwGPmzINX5Cq_CRNBEhdqzDfaMYjRjhPEYXPmosscJ87cstnC6o3dhImPD4BCPiaOI82AIAlvmudYuxBV-lzwoRjn1fO2imi8NwziA5K0oKTs-JbSEaYqX55dfiQgSicy-qEk3-wJFJ6gRK5GbfCDTzAqaNniniCtEfSBNeuctkCqYyGuD-emCW26ieNsIFmZnc-Y5kuCSPP95SRykxTuNSpSQq2TPBrNcoTZoqvwCzT5DWgTalnL-yU"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">The Minimalist Design IV</h3>
+<p class="text-xs text-slate-500">2024年リリース</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBg0Mdrp4Dbfa5JadBG-nseoZHRdN22Ofy610TKX2ev6xcOwl533-yJF69zd2OScIZ73_VKSvaBSLlle6w7tibHqFlMdVtmmFin8qqH4yyv1ud_3eIwRLL20CMGYleAOwYRm2k6nCDwy00LZyw8l_xVhEhLJlK_ieKpP_B3wakZsSUAWMOvq7CIk5ILDArRRau4IGLcD_k_6HYbgbLeLClDoZvFB4QZCLiOv-E4DFKPxNsl8pdH43ywa0oosO73E8bkf4_PKDTB28M"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">Future Echoes IV</h3>
+<p class="text-xs text-slate-500">コンセプトアート</p>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJ5Yy4QkJG0L5s9dqqnXBBw0qJfM5IBWBm4K9ph5oclpOSGNHtBNYepx4Tc-ao5QWZ7wvvv5PbYsyFRIk3nTjr8SkpBDza-JiGgqsrxSdKabr2hJiCekyS-6m94jKiAFqDTVsNy2ExFe4ADi-hVZFH7fGMNsPxUNlBExCofDnypz57qhK4-hPKpSxnMeLQ3DX9VHkF3xQddjruoMVV3gkgSG7gbB4nYD3C7UyXP69BvZxhyqfxYSBW-aSthLec6e5wbNcWnYoE05M"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div>
+</div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">Dark Matter Vol. 4</h3>
+<p class="text-xs text-slate-500">プレミアムエディション</p>
+</div>
+</div>
+<!-- Pagination -->
+<div class="flex justify-center mt-12 gap-2">
+<button class="w-10 h-10 rounded-lg bg-primary text-white font-bold shadow-sm">1</button>
+<button class="w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium border border-transparent text-slate-900 dark:text-slate-100">2</button>
+<button class="w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium border border-transparent text-slate-900 dark:text-slate-100">3</button>
+<button class="w-10 h-10 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium border border-transparent text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Reviewed Works Tab Content -->
+<div data-tab-content="" id="reviewed-works">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Review Items -->
+<div class="bg-white dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-md transition-shadow">
+<div class="flex p-4 gap-4">
+<div class="w-24 aspect-[3/4] flex-shrink-0 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwBbj06dKPRCKh8gWF3Sanb90KwZJHG1Vx9wiktBpXpxcJAAm4xRs_7cjDp_IRXBHnjVZ6cRutUZ8H9qGbddUloOqUizdkC2vHGcvnW5Hf3EdBNzmxzruTte6GEvPRzR28enRfLGQjqI8wwaZEW21_17SN1nYX_CY7kAMqVxIQ2XRe2HpWy1UiUrEZms1dcIkHagzhNR0PIcz1XKQDw03RHzDuOOVdl8Tg8n83dhDQ43ZAc2sm930GkPaKmxSbvjDFxGgdR0bUglk"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-bold text-slate-900 dark:text-white truncate">The Minimalist Design</h4>
+<span class="text-[10px] text-slate-400 font-medium">2日前</span>
+</div>
+<div class="flex items-center gap-0.5 text-primary mb-2">
+<span class="material-symbols-outlined text-sm fill-1">star</span>
+<span class="material-symbols-outlined text-sm fill-1">star</span>
+<span class="material-symbols-outlined text-sm fill-1">star</span>
+<span class="material-symbols-outlined text-sm fill-1">star</span>
+<span class="material-symbols-outlined text-sm">star</span>
+<div class="ml-auto flex gap-2">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="text-primary">
+<span class="material-symbols-outlined text-lg fill-1">favorite</span>
+</button>
+</div></div>
+<p class="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
+                                        品質が高く、非常に洗練されたデザインです。モダンなセットアップに完璧にフィットします。
+                                    </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Liked Performers Tab Content -->
+<div data-tab-content="" id="liked-performers">
+<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-6">
+<div class="flex flex-col items-center group cursor-pointer">
+<div class="w-24 h-24 rounded-full overflow-hidden border-2 border-slate-100 dark:border-slate-800 mb-3 group-hover:border-primary/50 transition-colors">
+<img class="w-full h-full object-cover" data-alt="Person portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAySOlQlZ-FvKQCzMsQG93E547kGELfkBKxi5kwWN5rBmqK3Xy3uE9TeCaeMYAGvcnqDFMFq84jtjxFSW-LGKvzGuqe1-ygYteZLsbqhJzi61D_nptZE-uSQY8cugaNbfq24Iq9sJ4NQiFSYGIVDlso4NiXWwqu-UZ_0dGdP0r-ApbTZCBESAIkldHCdVePsMgvybwCwS-FOtHGqB3bNOdn98KuLhnMJHW_vF28zNfjHpk4DaMLABazkh22dptCxFrLDKjuACCgSc"/>
+</div>
+<span class="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-primary transition-colors whitespace-nowrap">Elena Smith</span>
+</div>
+</div>
+</div>
+<!-- Recommended Works Tab Content -->
+<div data-tab-content="" id="recommended-works">
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3"><img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Product image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBviGEY9xzmvBxTTiv9j3_MN27_GxRAwjpj5cka0Fv05sQgeNkc8aI9lsS2EefnoKgiD2jIPpmhsNtNPYIak03GzULgs589-qBliMXIZ1uMZbedhNBgKM7OCGULRucciD1i26svhanlAGvxSvYzo7AybFN4RIqIvIAAO0ogsjzgq47j-Dk0YeqQAPPwCzo3UDzqIRZz-Lel5vLT_mVwzrJEZgQP2iHt5FV-z2xLKqSCiMchmV26lCXRxW4LzBgNiLxHcWBx5yuo4L0"/>
+<div class="absolute bottom-2 right-2 flex gap-1.5">
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="p-1.5 bg-white/90 dark:bg-slate-900/90 rounded-full shadow-sm hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div></div>
+<h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">Future Echoes</h3>
+<p class="text-xs text-slate-500">おすすめの作品</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 mt-20">
+<div class="max-w-[1200px] mx-auto px-6 py-12">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12">
+<div class="col-span-1 md:col-span-2">
+<div class="flex items-center gap-2 text-primary mb-4">
+<span class="material-symbols-outlined text-2xl">database</span>
+<span class="text-lg font-bold text-slate-900 dark:text-white">ProductDB</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
+                            製品の発見、レビュー、ランキングのための総合データベース。
+                        </p>
+</div>
+<div>
+<h5 class="font-bold text-slate-900 dark:text-white mb-4">リンク</h5>
+<ul class="space-y-2 text-sm text-slate-500 dark:text-slate-400">
+<li><a class="hover:text-primary" href="#">新着商品</a></li>
+<li><a class="hover:text-primary" href="#">人気ランキング</a></li>
+<li><a class="hover:text-primary" href="#">最新レビュー</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-bold text-slate-900 dark:text-white mb-4">サポート</h5>
+<ul class="space-y-2 text-sm text-slate-500 dark:text-slate-400">
+<li><a class="hover:text-primary" href="#">ヘルプセンター</a></li>
+<li><a class="hover:text-primary" href="#">利用規約</a></li>
+<li><a class="hover:text-primary" href="#">プライバシーポリシー</a></li>
+</ul>
+</div>
+</div>
+<div class="border-t border-slate-200 dark:border-slate-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-xs text-slate-500">© 2024 ProductDB Inc. 無断複写・転載を禁じます。</p>
+<div class="flex gap-6">
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">public</span>
+</a>
+<a class="text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">share</span>
+</a>
+</div>
+</div>
+</div>
+</footer>
+<!-- Bottom Navigation Bar (Mobile) -->
+<div class="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-6 py-2 flex justify-between items-center z-50">
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px]">ホーム</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="text-[10px]">検索</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">leaderboard</span>
+<span class="text-[10px]">ランキング</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px]">マイページ</span>
+</a>
+</div>
+</div>
+<script>
+        // Tab switching logic
+        const tabButtons = document.querySelectorAll('#profileTabs button');
+        const tabContents = document.querySelectorAll('[data-tab-content]');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+
+                // Reset buttons
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('text-primary', 'font-bold', 'border-primary');
+                    btn.classList.add('text-slate-500', 'dark:text-slate-400', 'font-medium', 'border-transparent');
+                });
+
+                // Set active button
+                button.classList.add('text-primary', 'font-bold', 'border-primary');
+                button.classList.remove('text-slate-500', 'dark:text-slate-400', 'font-medium', 'border-transparent');
+
+                // Show content
+                tabContents.forEach(content => {
+                    if (content.id === tabId) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body></html>

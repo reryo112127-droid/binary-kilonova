@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="max-w-[800px] mx-auto px-4 py-8 md:py-16">
+<!-- Header -->
+<header class="mb-10 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-6">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary text-3xl">edit_note</span>
+</div>
+<div>
+<h1 class="text-2xl font-bold tracking-tight">改名情報を報告する</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm mt-1">パフォーマーの最新情報を正確に反映させるための申請フォームです。</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<!-- Form Content -->
+<form class="space-y-8 bg-white dark:bg-slate-800/50 p-8 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800" onsubmit="event.preventDefault();location.href='/actress/rename-report/complete'">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Old Name -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        旧名 <span class="text-primary">*</span>
+</label>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-900 focus:border-primary focus:ring-primary/20 transition-all px-4 py-3 placeholder:text-slate-400" placeholder="例：以前の芸名・本名" required="" type="text"/>
+</div>
+<!-- New Name -->
+<div class="flex flex-col gap-3">
+<label class="text-sm font-semibold text-slate-700 dark:text-slate-300">
+        新名 <span class="text-primary">*</span>
+</label>
+<div class="space-y-3" id="new-names-container">
+<div class="flex gap-2 group">
+<input class="flex-1 rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-900 focus:border-primary focus:ring-primary/20 transition-all px-4 py-3 placeholder:text-slate-400" placeholder="例：現在の活動名" required="" type="text"/>
+<button class="p-2 text-slate-300 cursor-default opacity-0" disabled="" type="button">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+</div>
+</div>
+<button class="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors w-fit mt-1" type="button">
+<span class="material-symbols-outlined text-lg">add_circle</span>
+        新しい名前を追加
+    </button>
+</div>
+</div>
+<!-- Evidence/Link -->
+<!-- Action Buttons -->
+<div class="flex flex-col sm:flex-row items-center justify-end gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+<button onclick="history.back()" class="w-full sm:w-auto px-8 py-3 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" type="button">
+                    キャンセル
+                </button>
+<button class="w-full sm:w-auto px-8 py-3 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center justify-center gap-2" type="submit">
+<span class="material-symbols-outlined text-xl">send</span>
+                    情報を送信する
+                </button>
+</div>
+</form>
+<!-- Footer Note -->
+<footer class="mt-8 text-center">
+<p class="text-slate-400 text-xs">
+                ご報告いただいた内容は運営チームにて確認後、順次反映されます。<br/>
+                虚偽の報告は固く禁じられています。
+            </p>
+</footer>
+</div>
+</body></html>

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;900&amp;family=Noto+Sans+JP:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#1a110d",
+                        "gold": "#FFD700",
+                        "silver": "#C0C0C0",
+                        "bronze": "#CD7F32",
+                    },
+                    fontFamily: {
+                        "display": ["Noto Sans JP", "Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .podium-gold { 
+            background: linear-gradient(135deg, #f9d423 0%, #ffdb6e 25%, #d4af37 50%, #f9d423 75%, #b8860b 100%);
+            box-shadow: 0 10px 30px -5px rgba(212, 175, 55, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+        .podium-silver { 
+            background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 25%, #bdbdbd 50%, #e0e0e0 75%, #757575 100%);
+            box-shadow: 0 10px 30px -5px rgba(158, 158, 158, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+        .podium-bronze { 
+            background: linear-gradient(135deg, #cd7f32 0%, #e6a57e 25%, #a0522d 50%, #cd7f32 75%, #8b4513 100%);
+            box-shadow: 0 10px 30px -5px rgba(139, 69, 19, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+        }
+        .stage-glow {
+            background: radial-gradient(circle at center, rgba(236, 91, 19, 0.1) 0%, transparent 70%);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="relative flex min-h-screen flex-col overflow-x-hidden">
+<!-- Header Section -->
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+<div class="flex items-center gap-8">
+<!-- Logo -->
+<a class="flex items-center gap-2 text-primary" href="#">
+<span class="material-symbols-outlined text-3xl font-bold">trophy</span>
+<h1 class="text-xl font-black tracking-tight">2026 RANKING</h1>
+</a>
+<!-- Navigation -->
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-sm font-bold hover:text-primary transition-colors" href="#">新作</a>
+<a class="text-sm font-bold hover:text-primary transition-colors" href="#">予約</a>
+<a class="text-sm font-bold text-primary transition-colors border-b-2 border-primary" href="#">ランキング</a>
+<a class="text-sm font-bold hover:text-primary transition-colors" href="#">マイページ</a>
+<a class="text-sm font-bold hover:text-primary transition-colors" href="#">情報</a>
+</nav>
+</div>
+<div class="flex items-center gap-4 flex-1 justify-end">
+<!-- Search Bar -->
+<div class="relative w-full max-w-xs hidden sm:block">
+<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+<span class="material-symbols-outlined text-slate-400 text-lg">search</span>
+</div>
+<input class="block w-full rounded-xl border-0 py-2 pl-10 pr-3 text-sm ring-1 ring-inset ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary dark:placeholder-slate-400" placeholder="作品、出演者を検索" type="text"/>
+</div>
+<button class="flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 p-2 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</div>
+</header>
+<main class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-16">
+<!-- Works Ranking Section -->
+<section>
+<div class="flex flex-wrap items-end justify-between gap-4 mb-8">
+<div>
+<h2 class="text-3xl font-black tracking-tight sm:text-4xl">2026年 作品ランキング</h2>
+<p class="mt-2 text-slate-500 dark:text-slate-400"></p>
+</div>
+<button onclick="location.href='/ranking/custom'" class="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-lg">tune</span>
+<span>ランキングをカスタマイズ</span>
+</button>
+</div>
+<!-- Premium Podium Layout -->
+<div class="relative rounded-3xl py-12 px-4 bg-white/40 dark:bg-white/5 border border-white/20 shadow-2xl overflow-hidden mb-12">
+<div class="stage-glow absolute inset-0 pointer-events-none"></div>
+<div id="works-podium-row" class="relative z-10 flex items-end justify-center gap-2 sm:gap-8 pt-8">
+<!-- 2nd Place -->
+<div class="flex flex-col items-center group w-1/3 max-w-[190px]">
+<div class="relative mb-6">
+<div class="w-24 h-36 sm:w-32 sm:h-48 rounded-lg border-4 border-slate-300 overflow-hidden shadow-2xl relative z-10 ring-8 ring-slate-300/10">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD-21qyVVXM_sM5ssXCN_UA1VJLUHbiFE-Ilbvy8iym-YzoGPS2rFD92qS6DqPjZUSw0V96ipcyeRv5T0ZddspRJgBwHaEA7JIcvR_Cex2SUVSNdjY-tRQxndDOp68GeRvJEeKaN4FwuSUwr_-lE5hnBmlwTvSL2DlKhTfA-4XCg5yXNQleghuCrL0BttBqws7ZSUV_K6L2caJMD-Y-futfcFEl8JqjwU5rikDXlZZGoSE4OMeGf6bpn1yH7SGPAw77BN956Gbu-pQ");'></div>
+</div>
+<div class="absolute -top-4 -right-2 podium-silver text-slate-800 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20">2</div>
+</div>
+<div class="w-full podium-silver h-24 sm:h-28 rounded-t-2xl flex flex-col items-center justify-center p-3 shadow-2xl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent"></div>
+<span class="relative font-bold text-sm sm:text-base text-black text-center line-clamp-1">作品タイトルB</span>
+</div>
+<div class="flex items-center gap-4 mt-6">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-xl text-slate-500">add</span>
+</button>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-xl text-slate-500">favorite</span>
+</button>
+</div>
+</div>
+<!-- 1st Place -->
+<div class="flex flex-col items-center group w-1/3 max-w-[240px] -translate-y-8">
+<div class="relative mb-8 scale-110">
+<div class="w-28 h-44 sm:w-36 sm:h-56 rounded-lg border-[6px] border-yellow-400 overflow-hidden shadow-[0_20px_50px_rgba(234,179,8,0.3)] relative z-10 ring-[12px] ring-yellow-400/10">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAOQLaTq9q0Eo25QoaO9HaONePHyojPAI8kpo54Qa87LQs9pgXjuw2CFP__3RJo-2klIG-dw6jS5AOgoczEzbyTXtq3BCOsWZbF-us9li1O_Iqj30pNIi8lYiQlWiemFFOyf5Hm0xObXS0bUd0JHO2n4H2H8w3v5KyCboprYIs1-UDI51Ka3oWLcQnZ0lvqDS_lYA6WhNNRgH7Mtsh1_Odft-Mm2kGVXwEVQnVQsYDDqp3DgP8olHKpTS1ASFwuXKAXYCgdWNn_8Qc");'></div>
+</div>
+<div class="absolute -top-6 -right-2 podium-gold text-yellow-900 w-14 h-14 rounded-full flex items-center justify-center font-black shadow-xl border-4 border-white z-20 animate-bounce">
+<span class="material-symbols-outlined text-2xl">star</span>
+</div>
+</div>
+<div class="w-full podium-gold h-32 sm:h-40 rounded-t-3xl flex flex-col items-center justify-center p-4 shadow-[0_25px_50px_-12px_rgba(234,179,8,0.5)] relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-t from-yellow-600/20 to-transparent"></div>
+<span class="relative font-black text-base sm:text-xl text-black text-center line-clamp-1">作品タイトルA</span>
+</div>
+<div class="flex items-center gap-5 mt-8">
+<button class="flex items-center justify-center w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-xl border border-yellow-200 dark:border-yellow-900/30 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl text-primary">add</span>
+</button>
+<button class="flex items-center justify-center w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-xl border border-yellow-200 dark:border-yellow-900/30 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl text-primary">favorite</span>
+</button>
+</div>
+</div>
+<!-- 3rd Place -->
+<div class="flex flex-col items-center group w-1/3 max-w-[190px]">
+<div class="relative mb-6">
+<div class="w-24 h-36 sm:w-32 sm:h-48 rounded-lg border-4 border-amber-600 overflow-hidden shadow-2xl relative z-10 ring-8 ring-amber-600/10">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAWbbLQ4zr4VIKW31Okc2IJcdbU8JE3Zl-rwg_Hrr6XSAkMm_fAusFpWWw-iL1vgyLWLEUFZTEq-PgoG2f9bhfPHAt_TEIrky0RZV14plvJ7h2rZn0bF8kR32EZCF77NIz56WIpz-B2YlORvAi5Q6mF7LSVX0MjRw4wyFwNuRS9wg_7O26kqD63g4I4d9oJJTg59NW-Hrhh8YkyAiDt9UmqiYi2uwhiIoenKH3HdgYBZctome4gdAeCXZ5pZl2CZKsHlvsf0Yr8EJE");'></div>
+</div>
+<div class="absolute -top-4 -right-2 podium-bronze text-white w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20">3</div>
+</div>
+<div class="w-full podium-bronze h-20 sm:h-24 rounded-t-2xl flex flex-col items-center justify-center p-3 shadow-2xl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent"></div>
+<span class="relative font-bold text-sm sm:text-base text-black text-center line-clamp-1">作品タイトルC</span>
+</div>
+<div class="flex items-center gap-4 mt-6">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-xl text-slate-500">add</span>
+</button>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-xl text-slate-500">favorite</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- List View (4th - 9th) -->
+<div id="works-list" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+<!-- 4th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">4</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDSINTGKf-aRVNKr6RUk4DS7ok8K7zzyGDYTp6G3k3w0iIUKxp4CG3xvtzCvwBItsIa6egcx_sHIcmDUhaf7ARFvZnUKYYpX9JKtx-_v7YQJ2FX7_400FoVP2YNV_aSCvfPss1UyhGuZzgl7Ur7MJRSy6h1SxYINUWrJOMKpDrUApLRiyQlujAPTF1pcN3pCibAZpftAduUjOI2mEXql-purU5-HIg9yLBPAX-AMkKh9k6XeEVDRxF9kft8j8WToWGbs87hxjNbIG8");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">作品タイトルD</p>
+<p class="text-xs text-slate-500">昨日：4位</p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<!-- 5th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">5</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBwNqlP8zUGcRG9Wc4tQWwCSPdReXUfxE2nAyBi87XDhpAwuOS2pZsqdWWWbCojCSsFOYMnBCUH8Euk9KAhIu74XRoGYXZdVG7K0mPzc8udcdumk0UGWGw6tq6ETcc2Eq9ZBcgaYONo-WSlv64hBfIwpYomCIMGB9QRjIN50RGbsVNgqrkmzD7bODplTKI5-DqZDIFJFa-IEOUrB5NLipPpFLg23Eegt1KdlSel0qgNEwBHjRCE513eShzlWTEETRqeWJfAUApuTGw");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">作品タイトルE</p>
+<p class="text-xs text-slate-500">昨日：6位 <span class="text-emerald-500 font-bold ml-1">▲</span></p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<!-- 6th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">6</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBtfY-wDNXli5HqqruZ42d8uJADHckMsnmxfvN6NnTcWTbatva-rBmdhjNosSj0ZP9MxjmybxCm5PAYlU8ymydU_u_LTdpV-4zG665FHRSnZfb0iDjCVC-ZPSEITCSrXxqjEdCurAIqO175AvvlWZ9TyT5tNEoL0vTIAMdiXmMszUWHLNOvxxZXbDPttGr2QtuIpbtTRQAyIMQsOfnrnG66E5zGrP9nPpBbGiYbWEjn_sQvnFy6ESBj4q8B7c8gBSEn3C5OeGbntcc");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">作品タイトルF</p>
+<p class="text-xs text-slate-500">昨日：5位 <span class="text-rose-500 font-bold ml-1">▼</span></p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<!-- 7th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">7</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAKrzVclXh2JCThn_baRP5v3IzE8QnJUTYSjcwiTd1w3cd9kbIvLQ255ZeDrP_9uprBllQ_lzchk5TE1aHrTjkfEtz5fYCpSywBYmSPdhiqyF9ZAdEDg72z2U6YjacPTl1FVBfZQFaySjmraZ63K92qXs1Kui_nDa8I4Cs3T47U6vaLSMjlJ9htNoaIEwUAu7zitgoLf6YJEUu8MiiTE9ycCh76N4imTqjZSOyj1stgi-mw08GCCMBIo0Eg5rYMf07eivUhZF4PFzw");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">作品タイトルG</p>
+<p class="text-xs text-slate-500">昨日：7位</p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<!-- 8th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">8</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCWcvlh-u5-FA6dpNooUnmIRBNnETkLo-QfEsVgtgZWcQk33gzL-Y75Gcwi920TtAY0Q_yw-Eq8WIIgN6vxXUj7MrI61LIWl5JFqNwB6VigsH8Mu0HmM3cGEb_atXUO79eKBAzLH4LUF5TO3PBnbJMy7JTI2ErOhGaCwwU46SxWOyxTOL6BRhY4csFJmFz9W-eKLFjY9pPlvsfEvhdgcyPExVxS-PXVqayltiie8El003HUdDrT8WIH1Tvf5oLY44MGbzB10BEuL0c");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">作品タイトルH</p>
+<p class="text-xs text-slate-500">昨日：9位 <span class="text-emerald-500 font-bold ml-1">▲</span></p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<!-- 9th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">9</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA6M1-NZ6ZdQy3_3egneQwW1DCIddqu5Ha2iKjLZQJpxsvpKTuHbeWvpnidUmCfMUChJxy0c9nLxjn55RSpXk9mnnxg9mi3SqKt_gjHx9DEtkQjOCq-_W58cD2GwfZABaFKMIs6WwwHMyClUFfvM2F_Hr1G5vEwRL9ktUkF0KB1OarA33U1INYMazjo1Gt89rijMMNlQwCT7QFOY94_Vku5SixGFAaSNxch_Ie1b8voBEj1F0CMsF33yX2AA8vqDgxWqnEA_zgYW4o");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">作品タイトルI</p>
+<p class="text-xs text-slate-500">昨日：8位 <span class="text-rose-500 font-bold ml-1">▼</span></p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<!-- View All Button -->
+<div class="mt-12 flex justify-center">
+<button onclick="location.href='/ranking/2026'" class="px-12 py-3.5 rounded-full bg-primary text-sm font-bold text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+                    すべて見る
+                </button>
+</div>
+</section>
+<hr class="border-slate-200 dark:border-slate-800"/>
+<!-- Cast Ranking Section -->
+<section>
+<div class="flex flex-wrap items-end justify-between gap-4 mb-8">
+<div>
+<h2 class="text-3xl font-black tracking-tight sm:text-4xl">2026年 出演者ランキング</h2>
+<p class="mt-2 text-slate-500 dark:text-slate-400"></p>
+</div>
+</div>
+<!-- Premium Podium Layout for Cast -->
+<div class="relative rounded-3xl py-12 px-4 bg-white/40 dark:bg-white/5 border border-white/20 shadow-2xl overflow-hidden mb-12">
+<div class="stage-glow absolute inset-0 pointer-events-none"></div>
+<div id="cast-podium-row" class="relative z-10 flex items-end justify-center gap-2 sm:gap-8 pt-8">
+<!-- 2nd Place -->
+<div class="flex flex-col items-center group w-1/3 max-w-[190px]">
+<div class="relative mb-6">
+<div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-slate-300 overflow-hidden shadow-2xl relative z-10 ring-8 ring-slate-300/10">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCWcvlh-u5-FA6dpNooUnmIRBNnETkLo-QfEsVgtgZWcQk33gzL-Y75Gcwi920TtAY0Q_yw-Eq8WIIgN6vxXUj7MrI61LIWl5JFqNwB6VigsH8Mu0HmM3cGEb_atXUO79eKBAzLH4LUF5TO3PBnbJMy7JTI2ErOhGaCwwU46SxWOyxTOL6BRhY4csFJmFz9W-eKLFjY9pPlvsfEvhdgcyPExVxS-PXVqayltiie8El003HUdDrT8WIH1Tvf5oLY44MGbzB10BEuL0c");'></div>
+</div>
+<div class="absolute -top-4 -right-2 podium-silver text-slate-800 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20">2</div>
+</div>
+<div class="w-full podium-silver h-32 sm:h-40 rounded-t-2xl flex flex-col items-center justify-center p-3 shadow-2xl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent"></div>
+<span class="relative font-bold text-sm sm:text-lg text-black text-center line-clamp-1">出演者B</span>
+</div>
+<div class="flex items-center gap-4 mt-6">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-xl text-slate-500">add</span>
+</button>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-xl text-slate-500">favorite</span>
+</button>
+</div>
+</div>
+<!-- 1st Place -->
+<div class="flex flex-col items-center group w-1/3 max-w-[240px] -translate-y-8">
+<div class="relative mb-8 scale-110">
+<div class="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-[6px] border-yellow-400 overflow-hidden shadow-[0_20px_50px_rgba(234,179,8,0.3)] relative z-10 ring-[12px] ring-yellow-400/10">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA6M1-NZ6ZdQy3_3egneQwW1DCIddqu5Ha2iKjLZQJpxsvpKTuHbeWvpnidUmCfMUChJxy0c9nLxjn55RSpXk9mnnxg9mi3SqKt_gjHx9DEtkQjOCq-_W58cD2GwfZABaFKMIs6WwwHMyClUFfvM2F_Hr1G5vEwRL9ktUkF0KB1OarA33U1INYMazjo1Gt89rijMMNlQwCT7QFOY94_Vku5SixGFAaSNxch_Ie1b8voBEj1F0CMsF33yX2AA8vqDgxWqnEA_zgYW4o");'></div>
+</div>
+<div class="absolute -top-6 -right-2 podium-gold text-yellow-900 w-14 h-14 rounded-full flex items-center justify-center font-black shadow-xl border-4 border-white z-20 animate-bounce">
+<span class="material-symbols-outlined text-2xl">star</span>
+</div>
+</div>
+<div class="w-full podium-gold h-44 sm:h-56 rounded-t-3xl flex flex-col items-center justify-center p-4 shadow-[0_25px_50px_-12px_rgba(234,179,8,0.5)] relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-t from-yellow-600/20 to-transparent"></div>
+<span class="relative font-black text-base sm:text-2xl text-black text-center line-clamp-1">出演者A</span>
+</div>
+<div class="flex items-center gap-5 mt-8">
+<button class="flex items-center justify-center w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-xl border border-yellow-200 dark:border-yellow-900/30 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl text-primary">add</span>
+</button>
+<button class="flex items-center justify-center w-12 h-12 rounded-full bg-white dark:bg-slate-800 shadow-xl border border-yellow-200 dark:border-yellow-900/30 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl text-primary">favorite</span>
+</button>
+</div>
+</div>
+<!-- 3rd Place -->
+<div class="flex flex-col items-center group w-1/3 max-w-[190px]">
+<div class="relative mb-6">
+<div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-amber-600 overflow-hidden shadow-2xl relative z-10 ring-8 ring-amber-600/10">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBhhgjuochohp0H7jjKK3ysnufKwRPlgADGMBT-D_FR44rCV-qS6A1K_J9c3jvgnKKrkgOgEWffju6LLRYwN9e_rqPi5XE8BXWLfXZTzxbVo325F6GLtsVwBcj6DklFXEEdE8jL7R39-vRgDdd1ir0Y3JfYuaqqS1QTIZGTS5wk5VO1SiPZmv7G0K-KK1jX1bjjnMBZNXaDpOZU8dZE8-HGCruzZofwWvFjCOUBk0KHIU1TKMLmBim3k1r-jZblq1cedHLwXaT-tFc");'></div>
+</div>
+<div class="absolute -top-4 -right-2 podium-bronze text-white w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20">3</div>
+</div>
+<div class="w-full podium-bronze h-28 sm:h-32 rounded-t-2xl flex flex-col items-center justify-center p-3 shadow-2xl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent"></div>
+<span class="relative font-bold text-sm sm:text-lg text-black text-center line-clamp-1">出演者C</span>
+</div>
+<div class="flex items-center gap-4 mt-6">
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-xl text-slate-500">add</span>
+</button>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-xl text-slate-500">favorite</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- List View (Cast 4th - 9th) -->
+<div id="cast-list" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+<!-- 4th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">4</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAKrzVclXh2JCThn_baRP5v3IzE8QnJUTYSjcwiTd1w3cd9kbIvLQ255ZeDrP_9uprBllQ_lzchk5TE1aHrTjkfEtz5fYCpSywBYmSPdhiqyF9ZAdEDg72z2U6YjacPTl1FVBfZQFaySjmraZ63K92qXs1Kui_nDa8I4Cs3T47U6vaLSMjlJ9htNoaIEwUAu7zitgoLf6YJEUu8MiiTE9ycCh76N4imTqjZSOyj1stgi-mw08GCCMBIo0Eg5rYMf07eivUhZF4PFzw");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">出演者D</p>
+<p class="text-xs text-emerald-500 font-bold">STAY</p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<!-- 5th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">5</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDhgnTD6nMPyNRk1eLfIB8S7mSkYPR_q7k8OCZxHCtaV-iyurRbau8H_hGO50ema-CWHYSncP4dWYrlBgO9LeJ_qgswSaOBsrCmjAY0Dpkk_c7zI04AP0IZGfi7ESceAgSHxZj-oCY03ShJ8PxzpjfLMnWemYYa2CYAVQo5kt-1F-MGj8LMduC1GXjDZQ-6Rfe4PHxdx1RU85x0i7YkwiiwyYGijqpKZ_S1JEpEquukMMXGl7On8JRMu6K-2h_Fm_8A0963vc5ifJA");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">出演者E</p>
+<p class="text-xs text-emerald-500 font-bold">UP ▲</p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<!-- 6th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">6</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBtfY-wDNXli5HqqruZ42d8uJADHckMsnmxfvN6NnTcWTbatva-rBmdhjNosSj0ZP9MxjmybxCm5PAYlU8ymydU_u_LTdpV-4zG665FHRSnZfb0iDjCVC-ZPSEITCSrXxqjEdCurAIqO175AvvlWZ9TyT5tNEoL0vTIAMdiXmMszUWHLNOvxxZXbDPttGr2QtuIpbtTRQAyIMQsOfnrnG66E5zGrP9nPpBbGiYbWEjn_sQvnFy6ESBj4q8B7c8gBSEn3C5OeGbntcc");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">出演者F</p>
+<p class="text-xs text-rose-500 font-bold">DOWN ▼</p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<!-- 7th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">7</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD-21qyVVXM_sM5ssXCN_UA1VJLUHbiFE-Ilbvy8iym-YzoGPS2rFD92qS6DqPjZUSw0V96ipcyeRv5T0ZddspRJgBwHaEA7JIcvR_Cex2SUVSNdjY-tRQxndDOp68GeRvJEeKaN4FwuSUwr_-lE5hnBmlwTvSL2DlKhTfA-4XCg5yXNQleghuCrL0BttBqws7ZSUV_K6L2caJMD-Y-futfcFEl8JqjwU5rikDXlZZGoSE4OMeGf6bpn1yH7SGPAw77BN956Gbu-pQ");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">出演者G</p>
+<p class="text-xs text-slate-400 font-bold">NEW</p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<!-- 8th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">8</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAOQLaTq9q0Eo25QoaO9HaONePHyojPAI8kpo54Qa87LQs9pgXjuw2CFP__3RJo-2klIG-dw6jS5AOgoczEzbyTXtq3BCOsWZbF-us9li1O_Iqj30pNIi8lYiQlWiemFFOyf5Hm0xObXS0bUd0JHO2n4H2H8w3v5KyCboprYIs1-UDI51Ka3oWLcQnZ0lvqDS_lYA6WhNNRgH7Mtsh1_Odft-Mm2kGVXwEVQnVQsYDDqp3DgP8olHKpTS1ASFwuXKAXYCgdWNn_8Qc");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">出演者H</p>
+<p class="text-xs text-emerald-500 font-bold">UP ▲</p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<!-- 9th -->
+<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative">
+<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">9</span>
+<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">
+<div class="h-full w-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAida-public-fake-performer-9");'></div>
+</div>
+<div class="flex-1">
+<p class="font-bold">出演者I</p>
+<p class="text-xs text-rose-500 font-bold">DOWN ▼</p>
+</div>
+<div class="flex items-center gap-2 self-end mb-1">
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+<button class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<!-- View All Button for Performers -->
+<div class="mt-12 flex justify-center">
+<button onclick="location.href='/ranking/actress'" class="px-12 py-3.5 rounded-full bg-primary text-sm font-bold text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+                    すべて見る
+                </button>
+</div>
+</section>
+</main>
+</div>
+<script>(function(){
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function workPodItem(p,rank,wrap,imgSz,border,podCls,podH){
+  var img=p.main_image_url||'';
+  var t=esc((p.title||'').substring(0,18));
+  var pid=encodeURIComponent(p.product_id||'');
+  return '<div class="flex flex-col items-center group '+wrap+' cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
+    +'<div class="relative mb-6"><div class="'+imgSz+' '+border+' overflow-hidden shadow-2xl relative z-10">'
+    +(img?'<div class="h-full w-full bg-cover bg-center" style="background-image:url(\''+img+'\')"></div>':'<div class="w-full h-full bg-slate-200"></div>')
+    +'</div><div class="absolute -top-4 -right-2 '+podCls+' w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20">'+rank+'</div></div>'
+    +'<div class="w-full '+podCls+' '+podH+' rounded-t-2xl flex items-center justify-center p-3 shadow-2xl"><span class="font-bold text-sm text-black text-center line-clamp-2">'+t+'</span></div></div>';
+}
+function castPodItem(a,rank,wrap,imgSz,border,podCls,podH){
+  var img=a.sample_image||'';
+  var name=esc(a.name||'');
+  var an=encodeURIComponent(a.name||'');
+  return '<div class="flex flex-col items-center group '+wrap+' cursor-pointer" onclick="location.href=\'/actress/'+an+'\'">'
+    +'<div class="relative mb-6"><div class="'+imgSz+' '+border+' overflow-hidden shadow-2xl relative z-10">'
+    +(img?'<div class="h-full w-full bg-cover bg-center" style="background-image:url(\''+img+'\')"></div>':'<div class="w-full h-full bg-slate-200"></div>')
+    +'</div><div class="absolute -top-4 -right-2 '+podCls+' text-slate-800 w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20">'+rank+'</div></div>'
+    +'<div class="w-full '+podCls+' '+podH+' rounded-t-2xl flex items-center justify-center p-3 shadow-2xl"><span class="font-bold text-sm text-black text-center line-clamp-1">'+name+'</span></div></div>';
+}
+var POD_CFG=[
+  {rank:2,wrap:'w-1/3 max-w-[190px]',imgSz:'w-24 h-36 sm:w-32 sm:h-48 rounded-lg',border:'border-4 border-slate-300',cls:'podium-silver',podH:'h-24 sm:h-28'},
+  {rank:1,wrap:'w-1/3 max-w-[240px] -translate-y-8',imgSz:'w-28 h-44 sm:w-36 sm:h-56 rounded-lg',border:'border-[6px] border-yellow-400',cls:'podium-gold',podH:'h-32 sm:h-40'},
+  {rank:3,wrap:'w-1/3 max-w-[190px]',imgSz:'w-24 h-36 sm:w-32 sm:h-48 rounded-lg',border:'border-4 border-amber-600',cls:'podium-bronze',podH:'h-20 sm:h-24'}
+];
+var CAST_POD_CFG=[
+  {rank:2,wrap:'w-1/3 max-w-[190px]',imgSz:'w-24 h-24 sm:w-32 sm:h-32 rounded-full',border:'border-4 border-slate-300',cls:'podium-silver',podH:'h-32 sm:h-40'},
+  {rank:1,wrap:'w-1/3 max-w-[240px] -translate-y-8',imgSz:'w-28 h-28 sm:w-36 sm:h-36 rounded-full',border:'border-[6px] border-yellow-400',cls:'podium-gold',podH:'h-44 sm:h-56'},
+  {rank:3,wrap:'w-1/3 max-w-[190px]',imgSz:'w-24 h-24 sm:w-32 sm:h-32 rounded-full',border:'border-4 border-amber-600',cls:'podium-bronze',podH:'h-28 sm:h-32'}
+];
+var ORDER=[1,0,2]; // indices: 2nd=1, 1st=0, 3rd=2 in display order
+
+fetch('/api/ranking?limit=9').then(function(r){return r.json();}).then(function(d){
+  var items=d||[];
+  var wp=document.getElementById('works-podium-row');
+  var wl=document.getElementById('works-list');
+  if(wp&&items.length>=3){
+    wp.innerHTML=ORDER.map(function(pi,i){var c=POD_CFG[i];return workPodItem(items[pi],c.rank,c.wrap,c.imgSz,c.border,c.cls,c.podH);}).join('');
+  }
+  if(wl&&items.length>3){
+    wl.innerHTML=items.slice(3,9).map(function(p,i){
+      var rank=i+4;var img=p.main_image_url||'';var t=esc((p.title||'').substring(0,30));var pid=encodeURIComponent(p.product_id||'');
+      return '<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
+        +'<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">'+rank+'</span>'
+        +'<div class="h-20 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">'
+        +(img?'<div class="h-full w-full bg-cover bg-center" style="background-image:url(\''+img+'\')"></div>':'')
+        +'</div><div class="flex-1 min-w-0"><p class="font-bold text-sm line-clamp-2">'+t+'</p></div></div>';
+    }).join('');
+  }
+}).catch(function(){});
+
+fetch('/api/ranking/actress?limit=9').then(function(r){return r.json();}).then(function(d){
+  var items=d||[];
+  var cp=document.getElementById('cast-podium-row');
+  var cl=document.getElementById('cast-list');
+  if(cp&&items.length>=3){
+    cp.innerHTML=ORDER.map(function(pi,i){var c=CAST_POD_CFG[i];return castPodItem(items[pi],c.rank,c.wrap,c.imgSz,c.border,c.cls,c.podH);}).join('');
+  }
+  if(cl&&items.length>3){
+    cl.innerHTML=items.slice(3,9).map(function(a,i){
+      var rank=i+4;var img=a.sample_image||'';var name=esc(a.name||'');var an=encodeURIComponent(a.name||'');
+      return '<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative cursor-pointer" onclick="location.href=\'/actress/'+an+'\'">'
+        +'<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">'+rank+'</span>'
+        +'<div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">'
+        +(img?'<div class="h-full w-full bg-cover bg-center" style="background-image:url(\''+img+'\')"></div>':'')
+        +'</div><div class="flex-1 min-w-0"><p class="font-bold">'+name+'</p></div></div>';
+    }).join('');
+  }
+}).catch(function(){});
+})();
+</script>
+</body></html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation -->
+<header class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4 lg:px-20">
+<div class="flex items-center gap-4 text-primary">
+<div class="size-6">
+<svg fill="currentColor" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M36.7273 44C33.9891 44 31.6043 39.8386 30.3636 33.69C29.123 39.8386 26.7382 44 24 44C21.2618 44 18.877 39.8386 17.6364 33.69C16.3957 39.8386 14.0109 44 11.2727 44C7.25611 44 4 35.0457 4 24C4 12.9543 7.25611 4 11.2727 4C14.0109 4 16.3957 8.16144 17.6364 14.31C18.877 8.16144 21.2618 4 24 4C26.7382 4 29.123 8.16144 30.3636 14.31C31.6043 8.16144 33.9891 4 36.7273 4C40.7439 4 44 12.9543 44 24C44 35.0457 40.7439 44 36.7273 44Z"></path>
+</svg>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-xl font-bold tracking-tight">AVランキング</h2>
+</div>
+<button class="flex items-center justify-center rounded-xl h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<main class="flex-1 flex items-center justify-center p-6 lg:p-12 bg-white dark:bg-background-dark">
+<div class="w-full max-w-[520px] bg-white dark:bg-slate-900/50 rounded-2xl p-2 lg:p-0">
+<div class="mb-8 text-center">
+<h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white mb-2">新規登録</h1>
+<p class="text-slate-500 dark:text-slate-400">情報を入力してアカウントを作成してください</p>
+</div>
+<form class="space-y-6">
+<!-- Favorite Section -->
+<div class="space-y-6">
+<label class="block">
+<span class="text-slate-700 dark:text-slate-200 text-sm font-bold mb-2 block">好きな女優名・作品名</span>
+<input class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-primary focus:border-primary h-14 px-4 placeholder:text-slate-400" placeholder="好きな女優や作品タイトルを入力" type="text"/>
+</label>
+<label class="block">
+<span class="text-slate-700 dark:text-slate-200 text-sm font-bold mb-2 block">選んだ理由</span>
+<textarea class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-primary focus:border-primary min-h-[120px] p-4 placeholder:text-slate-400" placeholder="理由を教えてください"></textarea>
+<p class="text-[10px] text-slate-400 mt-2">※入力した理由がそのままログイン時のパスワードとして設定されます。</p>
+</label>
+</div>
+<!-- Action Button -->
+<div class="pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-colors flex items-center justify-center gap-2" type="submit">
+<span>登録を完了する</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<p class="text-center text-xs text-slate-400 mt-4">
+                        登録することで、当社の利用規約およびプライバシーポリシーに同意したことになります。
+                    </p>
+</form>
+<div class="mt-8 pt-6 text-center border-t border-slate-100 dark:border-slate-800">
+<p class="text-slate-500 dark:text-slate-400 text-sm">
+                        すでにアカウントをお持ちですか？ 
+                        <a class="text-primary font-bold hover:underline" href="#">ログイン</a>
+</p>
+</div>
+</div>
+</main>
+<footer class="py-6 text-center text-slate-400 text-xs">
+            © 2024 Brand Inc. All rights reserved.
+        </footer>
+</div>
+</body></html>

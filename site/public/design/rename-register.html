@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Public Sans', 'Noto Sans JP', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-tab .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<!-- Header -->
+<header class="sticky top-0 z-10 flex items-center bg-background-light dark:bg-background-dark border-b border-primary/10 p-4">
+<button class="flex items-center justify-center p-2 rounded-full hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100">arrow_back</span>
+</button>
+<h1 class="ml-2 text-lg font-bold tracking-tight">改名情報の報告</h1>
+</header>
+<!-- Main Content -->
+<main class="flex-1 px-4 py-6 max-w-md mx-auto w-full">
+<div class="mb-8">
+<h2 class="text-2xl font-bold mb-2">改名情報の報告</h2>
+<p class="text-slate-600 dark:text-slate-400 text-sm">出演者の改名情報を報告します。正確な情報提供にご協力をお願いします。</p>
+</div>
+<form class="space-y-6" onsubmit="event.preventDefault();location.href='/actress/rename-report/complete'">
+<!-- Old Name Input -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    旧名 <span class="text-primary text-xs ml-1">必須</span>
+</label>
+<input class="form-input block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:border-primary focus:ring-primary dark:focus:border-primary dark:focus:ring-primary h-12 px-4 text-base" placeholder="例：田中 太郎" type="text"/>
+</div>
+<!-- New Name Input -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    新名 <span class="text-primary text-xs ml-1">必須</span>
+</label>
+<input class="form-input block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:border-primary focus:ring-primary dark:focus:border-primary dark:focus:ring-primary h-12 px-4 text-base" placeholder="例：佐藤 一郎" type="text"/>
+</div>
+<!-- URL Input -->
+<div class="pt-8">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-full transition-colors shadow-lg shadow-primary/20 flex items-center justify-center gap-2" type="submit">
+<span class="material-symbols-outlined">send</span>
+                    この内容で報告する
+                </button>
+</div>
+</form>
+</main>
+<!-- Spacer for Bottom Nav -->
+<div class="h-20"></div>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-2 pb-safe-area-inset-bottom">
+<div class="flex justify-around items-center h-16">
+<a class="flex flex-col items-center gap-1 text-primary active-tab" href="#">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="text-[10px] font-medium">ホーム</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400" href="#">
+<span class="material-symbols-outlined text-[24px]">search</span>
+<span class="text-[10px] font-medium">検索</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400" href="#">
+<span class="material-symbols-outlined text-[24px]">trending_up</span>
+<span class="text-[10px] font-medium">ランキング</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400" href="#">
+<span class="material-symbols-outlined text-[24px]">play_circle</span>
+<span class="text-[10px] font-medium">動画</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400" href="#">
+<span class="material-symbols-outlined text-[24px]">person</span>
+<span class="text-[10px] font-medium">マイページ</span>
+</a>
+</div>
+</nav>
+</body></html>

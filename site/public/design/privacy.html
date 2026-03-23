@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', 'Noto Sans JP', sans-serif; }
+        .material-symbols-outlined { font-size: 24px; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<!-- Header -->
+<header class="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between px-4 h-16">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-base font-bold tracking-tight">プライバシーポリシー</h2>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</div>
+</header>
+<!-- Main Content -->
+<main class="max-w-md mx-auto px-6 py-8 pb-32">
+<div class="mb-8">
+<h1 class="text-3xl font-bold leading-tight mb-2">プライバシーポリシー</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm">最終更新日: 2023年10月27日</p>
+</div>
+<div class="space-y-8 text-slate-700 dark:text-slate-300 leading-relaxed">
+<section>
+<h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+<span class="w-1 h-6 bg-primary rounded-full"></span>
+                    1. 個人情報の収集について
+                </h3>
+<p class="text-sm">
+                    当社は、本サービスの提供にあたり、以下の個人情報を適正な手段により取得いたします。
+                </p>
+<ul class="list-disc ml-5 mt-3 space-y-2 text-sm">
+<li>氏名、メールアドレス、電話番号等の連絡先情報</li>
+<li>サービス利用履歴、IPアドレス、クッキー情報</li>
+<li>端末の種類、OS、ブラウザ設定などの技術情報</li>
+</ul>
+</section>
+<section>
+<h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+<span class="w-1 h-6 bg-primary rounded-full"></span>
+                    2. 利用目的
+                </h3>
+<p class="text-sm mb-3">取得した個人情報は、以下の目的で利用いたします。</p>
+<div class="bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+<ul class="space-y-2 text-sm">
+<li class="flex gap-2">
+<span class="text-primary font-bold">・</span>
+<span>本サービスの提供および運営のため</span>
+</li>
+<li class="flex gap-2">
+<span class="text-primary font-bold">・</span>
+<span>ユーザーからのお問い合わせに対応するため</span>
+</li>
+<li class="flex gap-2">
+<span class="text-primary font-bold">・</span>
+<span>新機能、更新情報、キャンペーン等の案内のため</span>
+</li>
+</ul>
+</div>
+</section>
+<section>
+<h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+<span class="w-1 h-6 bg-primary rounded-full"></span>
+                    3. 第三者提供
+                </h3>
+<p class="text-sm">
+                    当社は、法令に基づき開示することが必要である場合、またはユーザーの同意を得た場合を除き、個人情報を第三者に提供することはありません。ただし、業務委託先に対して、利用目的の達成に必要な範囲内で個人情報を委託することがあります。
+                </p>
+</section>
+<section>
+<h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+<span class="w-1 h-6 bg-primary rounded-full"></span>
+                    4. セキュリティ
+                </h3>
+<p class="text-sm">
+                    当社は、個人情報の漏洩、滅失または毀損の防止その他の個人情報の安全管理のために必要かつ適切な措置を講じます。SSL通信による暗号化や、アクセス制限の徹底を行っています。
+                </p>
+</section>
+<section class="pt-6 border-t border-slate-200 dark:border-slate-800">
+<p class="text-xs text-slate-400 text-center">
+                    ご不明な点がございましたら、お問い合わせフォームよりご連絡ください。
+                </p>
+</section>
+</div>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 pb-safe">
+<div class="max-w-md mx-auto flex justify-around items-center h-16">
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">ホーム</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="text-[10px] font-medium">検索</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="text-[10px] font-medium">通知</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">settings</span>
+<span class="text-[10px] font-medium">設定</span>
+</a>
+</div>
+</nav>
+</body></html>

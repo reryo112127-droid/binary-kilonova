@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700;900&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>利用規約 - Service Name</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<!-- Header Component -->
+<header class="sticky top-0 z-50 w-full bg-white dark:bg-background-dark border-b border-slate-200 dark:border-slate-800">
+<div class="max-w-[1280px] mx-auto px-4 lg:px-10 h-16 flex items-center justify-between gap-4">
+<!-- Left Side: Logo & Search -->
+<div class="flex items-center gap-6 flex-1">
+<div class="flex items-center gap-2 shrink-0">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<h1 class="text-xl font-black tracking-tight text-slate-900 dark:text-white">LOGO</h1>
+</div>
+<div class="hidden md:flex items-center flex-1 max-w-md relative">
+<span class="material-symbols-outlined absolute left-3 text-slate-400">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-slate-100 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary/50 text-sm" placeholder="キーワードで検索" type="text"/>
+<button class="ml-2 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-slate-500" title="詳細検索">
+<span class="material-symbols-outlined">tune</span>
+</button>
+</div>
+</div>
+<!-- Right Side: Navigation & User -->
+<div class="flex items-center gap-4 lg:gap-8">
+<nav class="hidden xl:flex items-center gap-6">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">予約作品</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">新作</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">ランキング</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">情報を追加</a>
+</nav>
+<div class="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-4 lg:pl-8">
+<button class="hidden sm:flex h-10 px-4 items-center justify-center rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                        新規登録
+                    </button>
+<button class="hidden sm:flex h-10 px-4 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                        ログイン
+                    </button>
+<button class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="マイページ">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<main class="flex-grow max-w-[960px] mx-auto w-full px-4 py-12 lg:py-20">
+<div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+<!-- Page Title -->
+<div class="px-6 py-10 lg:px-16 lg:pt-16 lg:pb-12 border-b border-slate-100 dark:border-slate-800">
+<h1 class="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-4">利用規約</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm">最終更新日：2023年10月27日</p>
+</div>
+<!-- Terms Content -->
+<div class="px-6 py-10 lg:px-16 lg:pb-20 space-y-12 leading-relaxed">
+<section>
+<p class="text-slate-600 dark:text-slate-300">
+                        この利用規約（以下、「本規約」といいます。）は、当社がこのウェブサイト上で提供するサービス（以下、「本サービス」といいます。）の利用条件を定めるものです。登録ユーザーの皆さま（以下、「ユーザー」といいます。）には、本規約に従って、本サービスをご利用いただきます。
+                    </p>
+</section>
+<section>
+<h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+<span class="w-1.5 h-6 bg-primary rounded-full"></span>
+                        第1条（適用）
+                    </h2>
+<div class="space-y-4 text-slate-600 dark:text-slate-300">
+<p>1. 本規約は、ユーザーと当社との間の本サービスの利用に関わる一切の関係に適用されるものとします。</p>
+<p>2. 当社は本サービスに関し、本規約のほか、ご利用にあたってのルール等、各種の定め（以下、「個別規定」といいます。）をすることがあります。これら個別規定はその名称のいかんに関わらず、本規約の一部を構成するものとします。</p>
+<p>3. 本規約の規定が前項の個別規定の規定と矛盾する場合には、個別規定において特段の定めなき限り、個別規定の規定が優先されるものとします。</p>
+</div>
+</section>
+<section>
+<h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+<span class="w-1.5 h-6 bg-primary rounded-full"></span>
+                        第2条（利用登録）
+                    </h2>
+<div class="space-y-4 text-slate-600 dark:text-slate-300">
+<p>1. 本サービスにおいては、登録希望者が本規約に同意の上、当社の定める方法によって利用登録を申請し、当社がこれを承認することによって、利用登録が完了するものとします。</p>
+<p>2. 当社は、利用登録の申請者に以下の事由があると判断した場合、利用登録の申請を承認しないことがあり、その理由については一切の開示義務を負わないものとします。</p>
+<ul class="list-disc list-inside ml-4 space-y-2">
+<li>利用登録の申請に際して虚偽の事項を届け出た場合</li>
+<li>本規約に違反したことがある者からの申請である場合</li>
+<li>その他、当社が利用登録を相当でないと判断した場合</li>
+</ul>
+</div>
+</section>
+<section>
+<h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+<span class="w-1.5 h-6 bg-primary rounded-full"></span>
+                        第3条（禁止事項）
+                    </h2>
+<div class="space-y-4 text-slate-600 dark:text-slate-300">
+<p>ユーザーは、本サービスの利用にあたり、以下の行為をしてはなりません。</p>
+<ul class="list-decimal list-inside ml-4 space-y-2">
+<li>法令または公序良俗に違反する行為</li>
+<li>犯罪行為に関連する行為</li>
+<li>本サービスの内容等、本サービスに含まれる著作権、商標権ほか知的財産権を侵害する行為</li>
+<li>当社、ほかのユーザー、またはその他第三者のサーバーまたはネットワークの機能を破壊したり、妨害したりする行為</li>
+<li>本サービスによって得られた情報を商業的に利用する行為</li>
+</ul>
+</div>
+</section>
+<section>
+<h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+<span class="w-1.5 h-6 bg-primary rounded-full"></span>
+                        第4条（免責事項）
+                    </h2>
+<div class="space-y-4 text-slate-600 dark:text-slate-300">
+<p>1. 当社の債務不履行責任は、当社の故意または重過失によらない場合には免責されるものとします。</p>
+<p>2. 当社は、本サービスに関して、ユーザーと他のユーザーまたは第三者との間において生じた取引、連絡または紛争等について一切責任を負いません。</p>
+</div>
+</section>
+</div>
+</div>
+<!-- Support Box -->
+<div class="mt-12 p-8 bg-primary/5 rounded-xl border border-primary/20 flex flex-col md:flex-row items-center justify-between gap-6">
+<div>
+<h3 class="font-bold text-lg mb-1">規約に関するお問い合わせ</h3>
+<p class="text-sm text-slate-600 dark:text-slate-400">ご不明な点がございましたら、サポートチームまでご連絡ください。</p>
+</div>
+<button class="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold hover:shadow-md transition-shadow">
+<span class="material-symbols-outlined text-primary">mail</span>
+                お問い合わせフォーム
+            </button>
+</div>
+</main>
+<!-- Footer -->
+<footer class="mt-auto bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 py-12">
+<div class="max-w-[1280px] mx-auto px-10">
+<div class="flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-primary rounded flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm">auto_awesome</span>
+</div>
+<span class="font-black text-slate-900 dark:text-white">LOGO</span>
+</div>
+<nav class="flex flex-wrap justify-center gap-6">
+<a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">ホーム</a>
+<a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">プライバシーポリシー</a>
+<a class="text-sm text-slate-900 dark:text-white font-bold" href="#">利用規約</a>
+<a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">特定商取引法に基づく表記</a>
+<a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">運営会社</a>
+</nav>
+</div>
+<div class="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
+<p class="text-xs text-slate-400">© 2023 LOGO Inc. All rights reserved.</p>
+</div>
+</div>
+</footer>
+</body></html>

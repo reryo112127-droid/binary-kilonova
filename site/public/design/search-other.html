@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>映画データベース - 検索結果</title>
+<!-- Tailwind CSS v3 CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style data-purpose="custom-typography">
+    body {
+      font-family: 'Noto Sans JP', 'Public Sans', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .text-xxs {
+      font-size: 0.65rem;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+<script id="tailwind-config">
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#ec5b13",
+                }
+            }
+        }
+    }
+</script>
+</head>
+<body class="bg-white text-gray-900">
+<!-- BEGIN: Header -->
+<header class="sticky top-0 z-50 bg-white border-b border-gray-100 py-3 px-4">
+<div class="flex justify-center items-center">
+<h1 class="text-lg font-bold tracking-tight">メーカー名 / ジャンル名</h1>
+</div>
+</header>
+<!-- END: Header -->
+<main class="pb-[80px]">
+<!-- BEGIN: FilterAndActionArea -->
+<section class="flex flex-col gap-2 py-4" data-purpose="filter-controls">
+<!-- 1. Top row: Type switching (3-way toggle) -->
+<div class="px-4">
+<div class="flex h-10 items-center justify-center rounded-lg bg-gray-100 p-1">
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-1 text-sm font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary shadow-sm has-[:checked]:shadow-none">
+<span>すべて</span>
+<input checked="" class="hidden" name="content-type" type="radio" value="all"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-1 text-sm font-bold text-gray-400 transition-all has-[:checked]:bg-white has-[:checked]:text-primary shadow-sm has-[:checked]:shadow-none">
+<span>予約作品</span>
+<input class="hidden" name="content-type" type="radio" value="pre-order"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-1 text-sm font-bold text-gray-400 transition-all has-[:checked]:bg-white has-[:checked]:text-primary shadow-sm has-[:checked]:shadow-none">
+<span>新作</span>
+<input class="hidden" name="content-type" type="radio" value="new-releases"/>
+</label>
+</div>
+</div>
+<!-- 2. Middle row: Filter toggles -->
+<div class="flex items-center gap-2 overflow-x-auto px-4 no-scrollbar">
+<button class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full bg-gray-100 px-3 py-1">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+<div class="h-4 w-px bg-gray-200 shrink-0"></div>
+<button class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
+<span class="text-[11px] font-medium text-gray-600">BEST/総集編</span>
+<span class="material-symbols-outlined text-[18px] text-primary">toggle_on</span>
+</button>
+<button class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
+<span class="text-[11px] font-medium text-gray-600">VR作品</span>
+<span class="material-symbols-outlined text-[18px] text-gray-300">toggle_off</span>
+</button>
+<button class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</button>
+</div>
+<!-- 3. Bottom row: Sort order -->
+<div class="flex items-center gap-2 px-4">
+<div class="flex h-9 flex-1 items-center justify-center rounded-md bg-gray-100 p-0.5">
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-sm px-1 text-[11px] font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary shadow-sm has-[:checked]:shadow-none">
+<span class="truncate">新着順</span>
+<input checked="" class="hidden" name="sort-order" type="radio" value="new"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-sm px-1 text-[11px] font-bold text-gray-400 transition-all has-[:checked]:bg-white has-[:checked]:text-primary shadow-sm has-[:checked]:shadow-none">
+<span class="truncate">人気順</span>
+<input class="hidden" name="sort-order" type="radio" value="popular"/>
+</label>
+</div>
+<button class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100">
+<span class="material-symbols-outlined text-[18px]">south</span>
+</button>
+</div>
+</section>
+<!-- END: FilterAndActionArea -->
+<!-- BEGIN: ResultsGrid -->
+<section class="px-4">
+<div class="grid grid-cols-3 gap-x-2 gap-y-4">
+<!-- Movie Item 1-12 -->
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 1" class="h-full w-full object-cover"/>
+<div class="absolute top-1 left-1 px-1 py-0.5 bg-primary text-white text-[7px] font-bold rounded-sm">新作</div>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 2" class="h-full w-full object-cover"/>
+<div class="absolute top-1 left-1 px-1 py-0.5 bg-blue-600 text-white text-[7px] font-bold rounded-sm">予約</div>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 3" class="h-full w-full object-cover"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 4" class="h-full w-full object-cover"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 5" class="h-full w-full object-cover"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white text-primary">
+<span class="material-symbols-outlined text-[14px] fill-1" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 6" class="h-full w-full object-cover"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 7" class="h-full w-full object-cover"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 8" class="h-full w-full object-cover"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 9" class="h-full w-full object-cover"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 10" class="h-full w-full object-cover"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 11" class="h-full w-full object-cover"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+<div class="flex flex-col gap-1" data-purpose="movie-card">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
+<img alt="作品名 12" class="h-full w-full object-cover"/>
+<button class="absolute bottom-1 right-7 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">add</span>
+</button><button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">映画のタイトルが入ります。長い場合は省略されます...</p>
+</div>
+</div>
+</section>
+<!-- END: ResultsGrid -->
+</main>
+<!-- BEGIN: BottomNavigation -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-lg border-t border-primary/10 px-4 pb-6 pt-3"><div class="flex items-center justify-between">
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 flex-1" href="home.html"><span class="material-symbols-outlined text-[24px]">home</span><span class="text-[10px] font-medium">ホーム</span></a>
+<a class="flex flex-col items-center gap-1 text-primary flex-1" href="search-actress.html"><span class="material-symbols-outlined active-icon text-[24px]">search</span><span class="text-[10px] font-bold">検索</span></a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 flex-1" href="ranking.html"><span class="material-symbols-outlined text-[24px]">trophy</span><span class="text-[10px] font-medium">ランキング</span></a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 flex-1" href="video.html"><span class="material-symbols-outlined text-[24px]">play_circle</span><span class="text-[10px] font-medium">動画</span></a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500 flex-1" href="mypage.html"><span class="material-symbols-outlined text-[24px]">person</span><span class="text-[10px] font-medium">マイページ</span></a>
+</div></nav>
+<!-- END: BottomNavigation -->
+</body></html>

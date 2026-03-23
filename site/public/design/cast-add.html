@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>出演者の追加</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<!-- Header -->
+<header class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10">
+<div class="flex items-center p-4 justify-between max-w-md mx-auto">
+<button class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center hover:bg-primary/10 rounded-full transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">出演者の追加</h2>
+</div>
+</header>
+<main class="flex-1 max-w-md mx-auto w-full pb-32">
+<!-- Top Section: Movie Image -->
+<div class="w-full @container px-4 py-4">
+<div class="w-full aspect-video rounded-xl overflow-hidden shadow-lg border border-primary/5">
+<div class="w-full h-full bg-center bg-no-repeat bg-cover" data-alt="Cinematic movie production set background" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBsTC7lppiUS-Ml_CWyCLaJLNXQx5WuHq6WkLZbCptsbfX-_Et5NpiFpFb36g54ieNXpZI4j_lDrNxF-NUMispTvKNcEx0k3jNqvXxBqtrI6mWQt74nx9nYkU-N_tN3-eWH4X7qpB8PdjWCh_kF5QhhWL2EM5Ue62WT2xVAsLmlmKs7BfhwaN-wCB7Y7aU44l04dUwMsfjvuo27m2oMtuBr2ZZB2snSRtlawFYmDejsn22E8WYv5ay16CoMdCJav0-MKOiN_q-Fh3U");'>
+</div>
+</div>
+</div>
+<!-- Content Info -->
+<section class="px-4 py-2">
+<p class="text-primary text-sm font-semibold mb-1">作品情報</p>
+<h1 class="text-2xl font-bold leading-tight">蒼き空の果てに</h1>
+</section>
+<!-- Form Section -->
+<section class="px-4 mt-8">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">groups</span>
+<h3 class="text-lg font-bold leading-tight">出演者名</h3>
+</div>
+<div class="space-y-3">
+<!-- Input 1 -->
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none" placeholder="例：山田 太郎" type="text"/>
+</div>
+<!-- Input 2 -->
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none" placeholder="例：山田 太郎" type="text"/>
+</div>
+<!-- Input 3 -->
+<div class="relative">
+<input class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none" placeholder="例：山田 太郎" type="text"/>
+</div>
+</div>
+<!-- Add More Button -->
+<button class="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 font-medium hover:border-primary hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">add_circle</span>
+<span>出演者を追加</span>
+</button>
+</section>
+<!-- Action Button -->
+<section class="px-4 mt-12 mb-8">
+<button class="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all text-lg">
+                この内容で登録する
+            </button>
+</section>
+</main>
+<!-- Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800">
+<div class="max-w-md mx-auto flex gap-1 px-2 pb-6 pt-2">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary" href="#">
+<span class="material-symbols-outlined">home</span>
+<p class="text-[10px] font-medium">ホーム</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">search</span>
+<p class="text-[10px] font-medium">検索</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary" href="#">
+<span class="material-symbols-outlined">leaderboard</span>
+<p class="text-[10px] font-medium">ランキング</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary" href="#">
+<span class="material-symbols-outlined">play_circle</span>
+<p class="text-[10px] font-medium">動画</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary" href="#">
+<span class="material-symbols-outlined">person</span>
+<p class="text-[10px] font-medium">マイページ</p>
+</a>
+</div>
+</nav>
+</body></html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#ffffff",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"],
+                        "body": ["Noto Sans JP", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            min-height: max(884px, 100dvh);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-body">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-xl bg-background-light dark:bg-background-dark">
+<!-- Header -->
+<div class="sticky top-0 z-10 flex items-center bg-white/80 dark:bg-background-dark/80 backdrop-blur-md p-4 justify-between border-b border-slate-100 dark:border-primary/10">
+<div class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight flex-1 text-center">マイページ</h2>
+<div class="flex w-10 items-center justify-end">
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100">search</span>
+</button>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<div class="sticky top-[73px] z-10 bg-white/95 dark:bg-background-dark/95 backdrop-blur-sm">
+<div class="flex border-b border-slate-100 dark:border-primary/10 px-2 overflow-x-hidden">
+<a class="flex flex-1 flex-col items-center justify-center border-b-2 border-primary text-primary pb-3 pt-4 px-1 transition-colors" href="#">
+<p class="text-[11px] font-bold tracking-tight text-center">いいね作品</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors" href="#">
+<p class="text-[11px] font-bold tracking-tight text-center">レビュー</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors" href="#">
+<p class="text-[11px] font-bold tracking-tight text-center">いいね女優</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors" href="#">
+<p class="text-[11px] font-bold tracking-tight text-center">おすすめ</p>
+</a>
+</div>
+</div>
+<!-- Content Section: 3-column Grid -->
+<div class="flex-1 p-3">
+<div class="grid grid-cols-3 gap-3">
+<!-- Grid Item 1 -->
+<div class="flex flex-col gap-2">
+<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
+<img alt="Work 1" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA3JVccAqM_3qMPlH1jn4Ho7w_lYYWyz0RLXbw7IjJ-cOhjzw2OiBBJWCM_c5NW2j_OzEOYMFSgR9MvDUaezqHpLwzpbJEoy66xhjW-Xc8yTxApvAlORIzFl8Pnnee4SDEwZ2hdUBPKjjtvzNfJ68h4AR2WW8WFskaK1sthLinLefMkTVo7xZuRgIAMBQXPnvrpPTGHEDhXQZDVNuRNUr1LKWocQ6S8AlRowys7YmcRUYxwUaS5pXq-NXuIr92WJUggkUI1E89l2Y"/>
+<div class="absolute bottom-2 right-2 flex gap-1">
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
+</div>
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
+</div>
+</div></div>
+<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]">新作ドラマ：愛の誓い（特別版）</p>
+</div>
+<!-- Grid Item 2 -->
+<div class="flex flex-col gap-2">
+<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
+<img alt="Work 2" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAs9_DEqExn4Jlarw3oli5I1fb8K-Iu5r-i9dZciCrTLnif4jq4LotDmEpjP_jX8HxpM3J3tLWVcVRt4aOAi05eZEathDGI-pKz_EYHfbnmstwxOf_Ujfmten3dt862x7xLTQNtUt-yiMAhkcIDwJ4QYGtPjDtm7KifYe10rlVWLqVqwCedDRLRJbTn4Gtu39D63I_W4Zksv8VtCyirKcSGVFn2niEhxs9qsw4XiTvInY_2Atqvd9rRWLJknJC8_xHaMvbZ0AcCLUo"/>
+<div class="absolute bottom-2 right-2 flex gap-1">
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
+</div>
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
+</div>
+</div></div>
+<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]">都会の夜に咲く華やかな恋</p>
+</div>
+<!-- Grid Item 3 -->
+<div class="flex flex-col gap-2">
+<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
+<img alt="Work 3" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyjgrmEFwNMcC5jPiG1WhQRgPgSjH9QW8jgjtkvw9O1L-OS4ut8pafNKoLJXGi4dg2y2fCcD0GkqUaEI89Rq5GvYYWeEP6g4gDhj5uqnF1HLdvH-9Sgoc0rwhbjSlkTBxweakQMd8qCYEPUjYWGN3lvKb1d-ukHNa68BqKCERZnTJCiFWV1mdMCKiJ7TYJFIodqGF95Z0tCeLGgVye3Z5OOTuulpuG_ieAUUt4szrLKUfZefMEKgkNpbMqnipCrfz_Nbpd-WYriEE"/>
+<div class="absolute bottom-2 right-2 flex gap-1">
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
+</div>
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
+</div>
+</div></div>
+<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]">極上の癒やしタイム：温泉編</p>
+</div>
+<!-- Grid Item 4 -->
+<div class="flex flex-col gap-2">
+<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
+<img alt="Work 4" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAY51ycx-Bmc3GjaJN-pgFDh8VKht0i7P0pK5jfq3HhjIt7KVYO7dlndffDEqgi5PS5z6KC00V-F9r8M_dl2P6Q6MNvYCCaHiJF8TeH3vTrliZMxB18de1UtcAQNhxRpBPlNMF8nJDRBSa7aLz2xB0-l-6sMeFwdnNVlO3mexhV-rbnImLNojXOjWyYBXmv4kr8HpdH9qTmqp8Fd6m3ggh_YESSGpjRQDbVPFTvYloFhc2VCMlBgmSNWb7GmqrtVKUo65RnZIOzQEo"/>
+<div class="absolute bottom-2 right-2 flex gap-1">
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
+</div>
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
+</div>
+</div></div>
+<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]">放課後の秘め事：秘密の図書室</p>
+</div>
+<!-- Grid Item 5 -->
+<div class="flex flex-col gap-2">
+<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
+<img alt="Work 5" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDs0gz8ByZVtCMXUQQSHU2S2E391VQmU7JeTrTSG9tycyPn_jfbgqXkOzS-LeiKPC_kktuf1OO71IOJoAy49672ygilDhyZ-XnlzpeRzq_aGt7LMwxfilxAUjCqUojMQulUip41gaR0AquflonTgcb1wb3bbrP_v9pMONlNIIEKYZiViR_15F6FWGGjIY78ZxLqHPUmIGEsQOQ1uKpJoHbfHTZit-RsDersKVpx7bWQYyDjVod2-vYwksr_iiEh-GhO56Yjp6_gy7g"/>
+<div class="absolute bottom-2 right-2 flex gap-1">
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
+</div>
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
+</div>
+</div></div>
+<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]">OLの日常：オフィスで二人きり</p>
+</div>
+<!-- Grid Item 6 -->
+<div class="flex flex-col gap-2">
+<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
+<img alt="Work 6" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdghFMx-7nkSte0a9eU-wEG38_pv6wZmtTAJlsZmHryf5eY1mkHRjoVOQDZVdGFZ4cxb0riV7Fvc7riqcgsEingwo7OAYTV0Ys3kiwW_SHuNlUB5mKecWS0X7IbfDMFDd1eqvIf4wIZ9eQQyOOdr2xTs8MA7Umorif755PfcgkhqO85XtL3SjMIkw5_2VTuOYZdO3hT4LCUMYYTai11wyx1SZYGXMaJ93DhSAoTJVGTHbAp6nC8vofmJaPm6AopJmD7pu-kwGy79w"/>
+<div class="absolute bottom-2 right-2 flex gap-1">
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
+</div>
+<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
+</div>
+</div></div>
+<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]">真夏のキャンプ：星空の誘惑</p>
+</div>
+</div>
+</div>
+<div class="h-24"></div> <!-- Spacer for Bottom Nav -->
+<!-- Bottom Navigation Bar -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-20">
+<div class="flex gap-2 border-t border-slate-100 dark:border-primary/10 bg-white dark:bg-background-dark px-4 pb-6 pt-2 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">home</span>
+</div>
+<p class="text-[10px] font-bold">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">search</span>
+</div>
+<p class="text-[10px] font-bold">Search</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">bar_chart</span>
+</div>
+<p class="text-[10px] font-bold">Ranking</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:text-primary transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">movie</span>
+</div>
+<p class="text-[10px] font-bold">Video</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-[24px] fill-1">person</span>
+</div>
+<p class="text-[10px] font-bold">My Page</p>
+</a>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>情報の追加・管理</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden pb-24">
+<!-- Header -->
+<header class="sticky top-0 z-10 flex items-center bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md p-4 justify-between border-b border-slate-200 dark:border-slate-800">
+<a href="/" class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100">chevron_left</span>
+</a>
+<h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center">情報の追加・管理</h2>
+<div class="flex size-10 items-center justify-end">
+<button onclick="location.href='/search'" class="flex items-center justify-center rounded-xl h-10 w-10 transition-opacity hover:opacity-90 text-slate-900 dark:text-slate-100"><span class="material-symbols-outlined">search</span></button>
+</div>
+</header>
+<div class="max-w-md mx-auto w-full px-4">
+<!-- Section: Basic Info -->
+<!-- Section: Large Action Buttons -->
+<section class="mt-8">
+<h3 class="text-lg font-bold leading-tight tracking-tight mb-4">情報追加の選択</h3>
+<div class="grid grid-cols-1 gap-4">
+<!-- SNS Link Update Button -->
+<button onclick="location.href='/actress/sns-register'" class="flex items-center gap-4 p-5 rounded-xl border-2 border-primary/20 bg-primary/5 dark:bg-primary/10 hover:border-primary transition-all text-left group">
+<div class="flex size-14 items-center justify-center rounded-full bg-primary text-white shrink-0 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-3xl">share</span>
+</div>
+<div class="flex-1">
+<p class="text-base font-bold text-slate-900 dark:text-white">SNS情報の追加・修正</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-1">X(Twitter), Instagram, YouTubeなど</p>
+</div>
+<span class="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<!-- Name Change Report Button -->
+<button onclick="location.href='/actress/rename-report'" class="flex items-center gap-4 p-5 rounded-xl border-2 border-primary/20 bg-primary/5 dark:bg-primary/10 hover:border-primary transition-all text-left group">
+<div class="flex size-14 items-center justify-center rounded-full bg-primary text-white shrink-0 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-3xl">badge</span>
+</div>
+<div class="flex-1">
+<p class="text-base font-bold text-slate-900 dark:text-white">改名・名義変更の報告</p>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-1">新しい活動名や所属の変更</p>
+</div>
+<span class="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<!-- Other Report Button -->
+</div>
+</section>
+<!-- Section: Recent History -->
+</div>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 z-20 flex border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg px-4 pb-6 pt-2">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="/">
+<span class="material-symbols-outlined">home</span>
+<p class="text-[10px] font-medium leading-normal tracking-tight">ホーム</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="/search">
+<span class="material-symbols-outlined">search</span>
+<p class="text-[10px] font-medium leading-normal tracking-tight">検索</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="/ranking">
+<span class="material-symbols-outlined">trophy</span>
+<p class="text-[10px] font-medium leading-normal tracking-tight">ランキング</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="/info/add">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">add_circle</span>
+<p class="text-[10px] font-medium leading-normal tracking-tight">情報追加</p>
+</a>
+</nav>
+</div>
+</body></html>

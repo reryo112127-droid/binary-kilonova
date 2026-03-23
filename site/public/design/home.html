@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .active-icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="relative flex min-h-screen flex-col overflow-x-hidden">
+<!-- Header -->
+<header class="sticky top-0 z-50 flex items-center justify-between bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-2 py-2 border-b border-primary/10">
+<div class="flex items-center gap-1.5 w-full">
+<!-- Site Logo -->
+<div class="flex items-center gap-1 shrink-0">
+<div class="size-6 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-[12px]" style="">play_circle</span>
+</div>
+<h1 class="text-[10px] font-bold tracking-tight text-primary hidden min-[360px]:block" style="">AVランキング</h1>
+</div>
+<!-- Search Bar -->
+<div class="relative flex-1 group min-w-0 mx-1">
+<div class="relative">
+<input class="w-full h-7 bg-slate-100 dark:bg-slate-800 border-none rounded-full py-1 pl-7 pr-2 text-[10px] focus:ring-1 focus:ring-primary/50 transition-all outline-none text-slate-900 dark:text-white" onblur="setTimeout(() =&gt; document.getElementById('search-suggestions').classList.add('hidden'), 200)" onfocus="document.getElementById('search-suggestions').classList.remove('hidden')" placeholder="検索" type="text"/>
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-[14px] text-slate-400" style="">search</span>
+</div>
+<div class="hidden absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-50" id="search-suggestions">
+<div class="p-2 border-b border-slate-100 dark:border-slate-700">
+<p class="text-[9px] text-slate-400 font-bold px-2 uppercase tracking-wider" style="">おすすめの作品</p>
+</div>
+<ul class="py-1">
+<li class="px-3 py-1.5 text-[10px] hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer flex items-center gap-2" style="">
+<span class="material-symbols-outlined text-[14px] text-slate-400" style="">trending_up</span>
+<span class="" style="">作品タイトルA</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Action Icons/Buttons -->
+<div class="flex items-center gap-1 shrink-0">
+<button class="flex items-center justify-center p-0.5 text-slate-600 dark:text-slate-400" style="" title="情報を追加">
+<span class="material-symbols-outlined text-[18px]" style="">add_circle</span>
+</button>
+<button class="px-1.5 py-1 text-[9px] font-bold text-primary border border-primary/20 rounded-md whitespace-nowrap" style="">新規登録</button>
+<button class="px-1.5 py-1 text-[9px] font-bold bg-primary text-white rounded-md whitespace-nowrap" style="">ログイン</button>
+</div>
+</div>
+</header>
+<main class="flex-1 pb-24">
+<!-- Reservation Section -->
+<section class="mt-4">
+<div class="flex items-center justify-between px-4 mb-3">
+<h2 class="text-lg font-bold" style="">予約作品</h2>
+<a class="text-xs text-primary font-medium" href="/pre-order" style="">すべて見る</a>
+</div>
+<div id="home-preorder-list" class="flex gap-3 overflow-x-auto px-4 no-scrollbar">
+<div class="min-w-[110px] w-[110px] relative group">
+<div class="aspect-[2/3] rounded-lg bg-slate-200 dark:bg-slate-800 mb-2 overflow-hidden shadow-sm">
+<img alt="Space Frontier" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGYgeACHaR5aOWNdmUCaAt9z6_CrFqcOTj-2YM506ivHJnNQ5jHskp3GEKO-Ofux3uN4O-efSv6P09t5mLk9jBVMXumW6iGfaZtPB93BSCrYskHNczaUNs9FT1PSr2cJoC307LAfVfMVQHlFSHUZqNJyu2OLgSapDFfWHzOhIOMJWJ0CDHSwJh-ZkAn5UbtJ8itr5XUCIpfX4mwHs_SKFlKC9uiZMvzO_vilQ8m57n7y_Hh6JL-NUi9mFXA_gPLN8QdHA0eW2qYXY" style=""/>
+</div>
+<p class="text-[11px] font-bold leading-tight line-clamp-1" style="">スペース・フロンティア</p>
+<p class="text-[9px] text-primary mt-0.5 font-medium" style="">12.15 配信</p>
+<div class="absolute bottom-8 right-0 flex gap-1 p-1 bg-white/80 dark:bg-slate-800/80 rounded-tl-lg backdrop-blur-sm shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-primary cursor-pointer hover:scale-110 transition-transform">add</span>
+<span class="material-symbols-outlined text-[16px] text-primary cursor-pointer hover:scale-110 transition-transform">favorite</span>
+</div></div>
+<div class="min-w-[110px] w-[110px] relative group">
+<div class="aspect-[2/3] rounded-lg bg-slate-200 dark:bg-slate-800 mb-2 overflow-hidden shadow-sm">
+<img alt="Old Days" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCV1qTyaIqB2u706UTV9f6cdZneM_1z6b0b_AlLAfp6ketZhMNTNdHoZwhc_yeGLOsYVZdw_zypcYsveZr5k7VbV2l_sd3ZkCthWX2F16z3O0JevnOM-qkeU_uCynVavzJVd5Bp_mwOmDpH-SFrryo2nfrvVk5eOyexBFcH07KewJ3cjmqHvh6xaBTQh03zzPeS6gpEvfCBTb8ihopT-Yar2Jcn3bJ8P6iSfFPbmYujI1N1FokGXBbp4qz_fzDpPxI-abteNGRT8AM" style=""/>
+</div>
+<p class="text-[11px] font-bold leading-tight line-clamp-1" style="">オールド・デイズ</p>
+<p class="text-[9px] text-primary mt-0.5 font-medium" style="">01.05 配信</p>
+<div class="absolute bottom-8 right-0 flex gap-1 p-1 bg-white/80 dark:bg-slate-800/80 rounded-tl-lg backdrop-blur-sm shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-primary cursor-pointer hover:scale-110 transition-transform">add</span>
+<span class="material-symbols-outlined text-[16px] text-primary cursor-pointer hover:scale-110 transition-transform">favorite</span>
+</div></div>
+<div class="min-w-[110px] w-[110px] relative group">
+<div class="aspect-[2/3] rounded-lg bg-slate-200 dark:bg-slate-800 mb-2 overflow-hidden shadow-sm">
+<img alt="Next Dimension" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDD9YwNALEXO0n2ro92rB2KafQ-IeENbJh-62OB1lCcNz5IZmdblJeNQWRmuOg47pplOZrGkOCwqoyG3ZGwxbOSUr7H_pVRCVNwOXnuaULvlpKTnWCi3IF1tUfiSJdwZuqOcWE6IGUXfUNX1XV8QuS8BYzuWK79X9Ia4Y8TsQpxLUwNGjMdZEPd4p-4QybXq5OAWX6sNBLG1IH-b4LMR3SfjON8FFPs3_9mFEVeZbF6mT7U-rJJ6dyBgyK9m0xCiih1s95CKzoX7ik" style=""/>
+</div>
+<p class="text-[11px] font-bold leading-tight line-clamp-1" style="">ネクスト・ディメンション</p>
+<p class="text-[9px] text-primary mt-0.5 font-medium" style="">01.12 配信</p>
+<div class="absolute bottom-8 right-0 flex gap-1 p-1 bg-white/80 dark:bg-slate-800/80 rounded-tl-lg backdrop-blur-sm shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-primary cursor-pointer hover:scale-110 transition-transform">add</span>
+<span class="material-symbols-outlined text-[16px] text-primary cursor-pointer hover:scale-110 transition-transform">favorite</span>
+</div></div>
+</div>
+</section>
+<!-- New Arrivals -->
+<section class="mt-8">
+<div class="flex items-center justify-between px-4 mb-3">
+<h2 class="text-lg font-bold" style="">新作</h2>
+<span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold" style="">New Arrival</span>
+</div>
+<div id="home-new-list" class="flex gap-3 overflow-x-auto px-4 no-scrollbar">
+<div class="min-w-[260px] p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-primary/10 shadow-sm flex gap-3 relative">
+<div class="w-16 aspect-square rounded-lg overflow-hidden shrink-0">
+<img alt="Comedy" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_XpUlvagJ6VenYGbX3wKi37RjUYtOntfHrS1XELRTefRv4nhkUHhul6qoNQPPbTMeq7ZV6GDXKMKydG5y9Ryh-ZF-Bf6oK5Jt2ZKkPFgZjVxggigspN89QnS4Q1tMBPkpU-HahSMKFumGEW7Mz_Du3j3yYRg0KRF3yrvg6Dc3I2PMcMBphRCR_zsca_39QCIjt8NcvVHw2se05X5ceA6z608QBAjNUhe26dA1Fp47G6j711YZb9rcvIvJ19kbucCQ3sY7Tw8CBOc" style=""/>
+</div>
+<div class="flex flex-col justify-center min-w-0">
+<span class="text-[9px] text-primary font-bold" style=""><br/></span>
+<h3 class="font-bold text-[13px] truncate" style="">笑いの殿堂 2026</h3>
+<p class="text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed" style=""><br/></p>
+</div>
+<div class="absolute bottom-2 right-2 flex gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary cursor-pointer">add</span>
+<span class="material-symbols-outlined text-[16px] text-primary cursor-pointer">favorite</span>
+</div></div>
+<div class="min-w-[260px] p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-primary/10 shadow-sm flex gap-3 relative">
+<div class="w-16 aspect-square rounded-lg overflow-hidden shrink-0">
+<img alt="Documentary" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAp3aqr8zIc38Wh6zGAk4ogSt5a0fuSF8winpY6XUrKbsEzm9luxlYexV-kh-d9cd6SXe8qvZYS2mwcRlB5khZAjUBBCuxHZN7lXxs_-Rop_YxcmPb6LTMf4-ITn-0DZfrkEAEroWzdKKCoM1PmquUzn7lt6Di4SxmaB7pyYL7DFcj0YSrJmhDaznw0xXWf8sk3lO7_mZUvC--UzyVlKYGR3fX5wswGJeeyeYEDHCNcnLErGhVAfKT2BKkwt7DFay1BsbjISJqK8_k" style=""/>
+</div>
+<div class="flex flex-col justify-center min-w-0">
+<span class="text-[9px] text-primary font-bold" style="">ドキュメンタリー</span>
+<h3 class="font-bold text-[13px] truncate" style="">ラスト・フォレスト</h3>
+<p class="text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed" style="">失われゆく自然を美しい映像で記録した衝撃のドキュメント。</p>
+</div>
+<div class="absolute bottom-2 right-2 flex gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary cursor-pointer">add</span>
+<span class="material-symbols-outlined text-[16px] text-primary cursor-pointer">favorite</span>
+</div></div>
+</div>
+</section>
+<!-- 2026 Ranking Section: Top 5 Items Horizontal Scroll -->
+<section class="mt-8 mb-8">
+<div class="flex items-center justify-between px-4 mb-3">
+<h2 class="text-lg font-bold" style="">2026年ランキング</h2>
+<a class="text-xs text-primary font-medium" href="/ranking" style="">すべて見る</a>
+</div>
+<div id="home-ranking-list" class="flex gap-3 overflow-x-auto px-4 no-scrollbar pb-2">
+<!-- Rank 1 -->
+<div class="relative min-w-[160px] aspect-[3/4] rounded-xl overflow-hidden shadow-md">
+<div class="absolute inset-0 bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC1rxTIlyDwC2ydLfpzx7HDnlSGhxL9NY5qWdLt560tAIYXT_T1auJ7HaJoJygxFhop6VkLOxhn60ZmM9IHoUtMfguZC4qut2HwVVrnipghXsYTpBiPd6-HwSq9SPejc_7Fi_qhptBHEW6el-bfcjJl79yotX5vYnJrXDWk2tt8Zyu5LAH86m7WK3zw1wCsHixCJxXBjlijhEpiONTeEnGsb4jcm-BCasfz-NLc6IsJKAqnoGoNyqNSCNpBkWNM_FcH0kOnD253FHQ");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+<div class="absolute top-2 left-2 size-7 bg-primary rounded flex items-center justify-center text-white text-xs font-bold border border-white/20" style="">1</div>
+<div class="absolute bottom-0 p-2.5 w-full">
+<p class="text-white text-[13px] font-bold line-clamp-2" style="">注目の話題作</p>
+</div>
+<div class="absolute bottom-2 right-2 flex gap-1 bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-1">
+<span class="material-symbols-outlined text-[16px] text-white cursor-pointer hover:text-primary transition-colors">add</span>
+<span class="material-symbols-outlined text-[16px] text-white cursor-pointer hover:text-primary transition-colors">favorite</span>
+</div></div>
+<!-- Rank 2 -->
+<div class="relative min-w-[160px] aspect-[3/4] rounded-xl overflow-hidden shadow-md">
+<div class="absolute inset-0 bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDfTq8TQdWQa4HV7xVS5XYPsQqFzxKVAFCU13sCvPn2rJLyQWDX9hwVL3SP_0UimPvhDmhG5Uj57FEXoJi2oKvqUJNtvo_ih4TO1OpWZZiHw6-O8memucgefYKd8Vhp76fQ5RhRKGc2uL8BZbdothLTHIlTVHqeKGNfCfq_Jx8V_NkcvUHSYC7TsStJWEA4E6c4yOke4b72pUBT-xm6xEZEZHaeBEMB535pgsSSmz1bkLPMwT1o3-FjMWpozuPUCzh2MpU9calRkpg");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+<div class="absolute top-2 left-2 size-7 bg-black/60 backdrop-blur-md rounded flex items-center justify-center text-white text-xs font-bold border border-white/20" style="">2</div>
+<div class="absolute bottom-0 p-2.5 w-full">
+<p class="text-white text-[13px] font-bold line-clamp-2" style="">サイバーパンク2026</p>
+</div>
+<div class="absolute bottom-2 right-2 flex gap-1 bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-1">
+<span class="material-symbols-outlined text-[16px] text-white cursor-pointer hover:text-primary transition-colors">add</span>
+<span class="material-symbols-outlined text-[16px] text-white cursor-pointer hover:text-primary transition-colors">favorite</span>
+</div></div>
+<!-- Rank 3 -->
+<div class="relative min-w-[160px] aspect-[3/4] rounded-xl overflow-hidden shadow-md">
+<div class="absolute inset-0 bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDD9YwNALEXO0n2ro92rB2KafQ-IeENbJh-62OB1lCcNz5IZmdblJeNQWRmuOg47pplOZrGkOCwqoyG3ZGwxbOSUr7H_pVRCVNwOXnuaULvlpKTnWCi3IF1tUfiSJdwZuqOcWE6IGUXfUNX1XV8QuS8BYzuWK79X9Ia4Y8TsQpxLUwNGjMdZEPd4p-4QybXq5OAWX6sNBLG1IH-b4LMR3SfjON8FFPs3_9mFEVeZbF6mT7U-rJJ6dyBgyK9m0xCiih1s95CKzoX7ik");'></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+<div class="absolute top-2 left-2 size-7 bg-black/60 backdrop-blur-md rounded flex items-center justify-center text-white text-xs font-bold border border-white/20" style="">3</div>
+<div class="absolute bottom-0 p-2.5 w-full">
+<p class="text-white text-[13px] font-bold line-clamp-2" style="">東京サバイバル</p>
+</div>
+<div class="absolute bottom-2 right-2 flex gap-1 bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-1">
+<span class="material-symbols-outlined text-[16px] text-white cursor-pointer hover:text-primary transition-colors">add</span>
+<span class="material-symbols-outlined text-[16px] text-white cursor-pointer hover:text-primary transition-colors">favorite</span>
+</div></div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="bg-slate-100 dark:bg-slate-900 px-5 pt-8 pb-10 border-t border-slate-200 dark:border-slate-800">
+<div class="max-w-md mx-auto space-y-6">
+<!-- Links -->
+<div class="flex justify-center gap-6">
+<a class="text-[11px] font-medium text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" href="/terms" style="">利用規約</a>
+<a class="text-[11px] font-medium text-slate-600 dark:text-slate-400 hover:text-primary transition-colors" href="/privacy" style="">プライバシーポリシー</a>
+</div>
+<!-- Disclaimer -->
+<div class="space-y-2">
+<p class="text-[10px] leading-relaxed text-slate-500 dark:text-slate-500 text-justify" style="">
+                    本サイトに掲載されている豊胸情報、素人作品の出演者予想、および別名義情報は、インターネット上の推測やユーザー提供情報を含む独自の調査に基づくものであり、公式な事実を断定・保証するものではありません。
+                </p>
+</div>
+<!-- Earnings -->
+<div>
+<p class="text-[10px] text-center font-medium text-slate-500 dark:text-slate-500" style="">
+                    当サイトはアフィリエイトプログラムにより収益を得ています
+                </p>
+</div>
+<!-- Credits -->
+<div class="flex flex-col items-center gap-1">
+<p class="text-[9px] text-slate-400 dark:text-slate-600" style="">Powered by DMM.com Webサービス</p>
+<p class="text-[9px] text-slate-400 dark:text-slate-600" style="">Powered by MGS動画</p>
+</div>
+<!-- Copyright -->
+<div class="pt-2">
+<p class="text-[9px] text-center text-slate-400" style="">© 2026 AVランキング</p>
+</div>
+</div>
+</footer>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-lg border-t border-primary/10 px-4 pb-6 pt-3">
+<div class="flex items-center justify-between">
+<a class="flex flex-col items-center gap-1 text-primary flex-1" href="#" style="">
+<span class="material-symbols-outlined active-icon" style="">home</span>
+<span class="text-[10px] font-bold" style="">ホーム</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 flex-1" href="#" style="">
+<span class="material-symbols-outlined" style="">search</span>
+<span class="text-[10px] font-medium" style="">検索</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 flex-1" href="#" style="">
+<span class="material-symbols-outlined" style="">trophy</span>
+<span class="text-[10px] font-medium" style="">ランキング</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 flex-1" href="#" style="">
+<span class="material-symbols-outlined" style="">play_circle</span>
+<span class="text-[10px] font-medium" style="">動画</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 flex-1" href="#" style="">
+<span class="material-symbols-outlined" style="">person</span>
+<span class="text-[10px] font-medium" style="">マイページ</span>
+</a>
+</div>
+</nav>
+</div>
+<script>
+(function(){
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
+  function purl(id){return '/product/'+encodeURIComponent(id);}
+
+  // 予約・新作セクション
+  fetch('/api/products?sort=new&limit=10&excludeBest=1')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!Array.isArray(data)||!data.length)return;
+      var preList=document.getElementById('home-preorder-list');
+      var newList=document.getElementById('home-new-list');
+      if(preList){
+        preList.innerHTML=data.slice(0,5).map(function(p){
+          var ps=poster(p.main_image_url);
+          return '<a href="'+purl(p.product_id)+'" class="min-w-[110px] w-[110px] relative group block">'
+            +'<div class="aspect-[2/3] rounded-lg bg-slate-200 dark:bg-slate-800 mb-2 overflow-hidden shadow-sm">'
+            +(ps?'<img class="w-full h-full object-cover" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
+            +'</div>'
+            +'<p class="text-[11px] font-bold leading-tight line-clamp-2">'+esc(p.title||'')+'</p></a>';
+        }).join('');
+      }
+      if(newList){
+        newList.innerHTML=data.slice(0,6).map(function(p){
+          var actress=p.actresses?(p.actresses.split(',')[0].trim()):'';
+          return '<a href="'+purl(p.product_id)+'" class="min-w-[260px] p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-primary/10 shadow-sm flex gap-3 relative block">'
+            +'<div class="w-16 aspect-square rounded-lg overflow-hidden shrink-0 bg-slate-200">'
+            +(p.main_image_url?'<img class="w-full h-full object-cover" src="'+esc(p.main_image_url)+'" alt="" loading="lazy"/>':'')
+            +'</div>'
+            +'<div class="flex flex-col justify-center min-w-0">'
+            +(actress?'<span class="text-[9px] text-primary font-bold">'+esc(actress)+'</span>':'')
+            +'<h3 class="font-bold text-[13px] truncate">'+esc(p.title||'')+'</h3>'
+            +'</div></a>';
+        }).join('');
+      }
+    }).catch(function(){});
+
+  // ランキングセクション
+  fetch('/api/ranking?limit=5&excludeBest=1')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!Array.isArray(data)||!data.length)return;
+      var list=document.getElementById('home-ranking-list');
+      if(!list)return;
+      list.innerHTML=data.map(function(p,i){
+        var ps=poster(p.main_image_url);
+        var rank=i+1;
+        var badge=rank===1?'bg-primary':'bg-black/60 backdrop-blur-md';
+        return '<a href="'+purl(p.product_id)+'" class="relative min-w-[160px] aspect-[3/4] rounded-xl overflow-hidden shadow-md block">'
+          +(ps?'<div class="absolute inset-0 bg-cover bg-center" style="background-image:url(\''+esc(ps)+'\')"></div>':'')
+          +'<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>'
+          +'<div class="absolute top-2 left-2 size-7 '+badge+' rounded flex items-center justify-center text-white text-xs font-bold border border-white/20">'+rank+'</div>'
+          +'<div class="absolute bottom-0 p-2.5 w-full"><p class="text-white text-[13px] font-bold line-clamp-2">'+esc(p.title||'')+'</p></div>'
+          +'</a>';
+      }).join('');
+    }).catch(function(){});
+})();
+</script>
+</body></html>

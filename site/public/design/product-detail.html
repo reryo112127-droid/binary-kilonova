@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ec5b13",
+              "background-light": "#f8f6f6",
+              "background-dark": "#221610",
+            },
+            fontFamily: {
+              "display": ["Public Sans"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<title>作品詳細</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col max-w-md mx-auto bg-white dark:bg-background-dark shadow-xl">
+<!-- Header -->
+<header class="sticky top-0 z-50 flex items-center bg-white/90 dark:bg-background-dark/90 backdrop-blur-md p-4 border-b border-slate-200 dark:border-slate-800 justify-between">
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-700 dark:text-slate-200">arrow_back_ios_new</span>
+</button>
+<h1 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center">作品詳細</h1>
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-700 dark:text-slate-200">search</span>
+</button>
+</header>
+<main class="flex-1 pb-24">
+<!-- 1. Hero Package Image -->
+<div class="@container">
+<div class="w-full aspect-[16/9] bg-slate-200 dark:bg-slate-800 overflow-hidden relative">
+<img alt="Main movie package artwork" class="w-full h-full object-cover" data-alt="Modern abstract artistic movie cover background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCthU2mVH9eDkrEt5Rk4Asnunc0gurg2Az21PutDkaoUMYjlMjwKWb_jRbEN3ZbDuKt7m1WpafWMMc61Znq5ZydtqJxr3zrBos6dmVfyjQgG4rlVF89LDc0s4N5IoZqmsrmMLIJeZ2tBDsk1bA7e3_d843Fh1D_J7yHKplcT6Yn9rMBtF5muB9BwBhKNsD4kCvkL7Au6qwlTGeYCGsfG_xKTtde6641yiuPMbGPl0mJ7Bgc9c0N2uLpbseX6oe84ML0x1GmpsoElcc"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+</div>
+</div>
+<!-- 2. Sample Carousel & Play Button -->
+<div class="py-4">
+<div class="flex overflow-x-auto gap-3 px-4 no-scrollbar">
+<div class="flex-none w-40 aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Sample scene thumbnail 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDP2QgHV6a4W6cuE6HsxudwlJBEprGSoOgAvLHVVGJLE6HaRVhVY3QMIzznl9LkYTWpP-S_c67O2vVUowMFCeEGpsxPoNPPgnn_Lxk4iGrgd-K2KZIWMbwWPWImsJ7O3eZ6FvFmcaxFWwtq8f51dDZsxYWk9Kih1d8lXTwpWq3ADRQciyx6O0w6YN-s57VgEDgT39n25dRDUF9a43DNYra1xGgjtqqbq8tFfO-Naube655UHCAsJaqyWrweKDtYgGCQkXFG3ZJF_IQ"/>
+</div>
+<div class="flex-none w-40 aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Sample scene thumbnail 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDA5zgkdLXFZi1yAAq-bx6m2SNu684PKEmx01g6kDLFfU3sUt0RQ0wBQQNxiSRgPIdFHpPxZitxUZjH8zkq94hhtR1QhVML6k0GigKtu3N48worni2AxDkLfBLXlWNJAUEOO1lzrS_AUCAbujL_Qi4PV0bwn-ssQSsaXWvTgRUwYt1EYmmx4nRWhS_Lx1colZoDRGve-wKdjfgBWzN92hufd4lAwaz_psRCr6ApWInvEhPQ_wX_oGfgWZlNLpyjFd5yRPDOyQ1HBHw"/>
+</div>
+<div class="flex-none w-40 aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Sample scene thumbnail 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApgBPZoypy0p8SZt-bnkaBBIUkFNnfpXYqiejohdjZGRd0sza9PEErTOf3gvHZBauD-tlCZwUemprLxi-hBzIPPudhOjKcRC-GnsX2gSnK31jYMlXM-Zxl9ec0Ybw8gOv0Qmit3OHeYwmNs54kUnk7HMcWHIzQbTiCcmCcEpN3RbEENTSUtBO_OmV6Eg8xAn9XJWvhUemG6TS0Df5tvAMhmCZIq7bAya7szIpIM8vp6FiSBloz2WzjJe_dallbumo0geiI4reDEVc"/>
+</div>
+</div>
+<div class="px-4 mt-4">
+<button class="w-full flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined">play_circle</span>
+<span>サンプル動画を再生</span>
+</button>
+</div>
+</div>
+<!-- 3. Title Section -->
+<div class="px-4 py-2">
+<div class="inline-block bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded mb-2">RANKING NO.1</div>
+<h2 class="text-xl font-extrabold leading-tight">究極の美少女と過ごす密室シチュエーション：AVランキング特別編集版</h2>
+</div>
+<!-- 4. Action Buttons -->
+<div class="flex gap-3 px-4 py-2">
+<button class="flex-1 flex items-center justify-center gap-2 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-pink-500">favorite</span>
+<span class="text-sm font-semibold">いいね</span>
+</button>
+<button class="flex-1 flex items-center justify-center gap-2 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-primary">person_add</span>
+<span class="text-sm font-semibold">出演者を追加</span>
+</button>
+</div>
+<!-- 5. Info List & Sale Info -->
+<div class="px-4 py-4 space-y-3">
+<div class="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">campaign</span>
+<span class="text-sm font-bold text-primary">期間限定セール中！</span>
+</div>
+<div class="text-sm font-bold text-primary">3月17日まで30%オフ</div>
+</div>
+<dl class="grid grid-cols-3 gap-y-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-4">
+<dt class="text-slate-500 dark:text-slate-400">出演者</dt>
+<dd class="col-span-2 font-medium text-primary">美咲結衣, 桜庭あかり</dd>
+<dt class="text-slate-500 dark:text-slate-400">メーカー</dt>
+<dd class="col-span-2 font-medium">PRESTIGE</dd>
+<dt class="text-slate-500 dark:text-slate-400">レーベル</dt>
+<dd class="col-span-2 font-medium">ABSOLUTE</dd>
+<dt class="text-slate-500 dark:text-slate-400">ジャンル</dt>
+<dd class="col-span-2 font-medium">美少女, 独占配信, シチュエーション</dd>
+<dt class="text-slate-500 dark:text-slate-400">品番</dt>
+<dd class="col-span-2 font-medium uppercase">abp-123</dd>
+<dt class="text-slate-500 dark:text-slate-400">収録時間</dt>
+<dd class="col-span-2 font-medium">180分</dd>
+</dl>
+</div>
+<!-- 6. Affiliate Buttons -->
+<div class="px-4 py-4 space-y-3">
+<a class="block bg-[#ff3333] text-white text-center py-4 rounded-xl font-bold shadow-md relative overflow-hidden group" href="#">
+<div class="absolute top-0 right-0 bg-black/20 px-2 py-0.5 text-[10px] rounded-bl-lg">PR</div>
+<span class="text-lg">FANZA動画で今すぐ見る</span>
+</a>
+<a class="block bg-[#00a0e9] text-white text-center py-4 rounded-xl font-bold shadow-md relative overflow-hidden group" href="#">
+<div class="absolute top-0 right-0 bg-black/20 px-2 py-0.5 text-[10px] rounded-bl-lg">PR</div>
+<span class="text-lg">MGS動画で今すぐ見る</span>
+</a>
+</div>
+<!-- 7. Review Stats -->
+<div class="px-4 py-6">
+<h3 class="text-lg font-bold mb-4">レビュー統計</h3>
+<div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-6 mb-6">
+<div class="text-center">
+<div class="text-4xl font-extrabold text-slate-900 dark:text-white">4.2</div>
+<div class="flex text-yellow-400 justify-center">
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined">star_half</span>
+</div>
+<div class="text-xs text-slate-500 mt-1">128件の評価</div>
+</div>
+<div class="flex-1 space-y-2">
+<div class="flex items-center gap-2">
+<span class="text-xs w-4">5</span>
+<div class="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 60%"></div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs w-4">4</span>
+<div class="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 25%"></div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs w-4">3</span>
+<div class="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 10%"></div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs w-4">2</span>
+<div class="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 3%"></div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs w-4">1</span>
+<div class="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 2%"></div>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full py-3 bg-white dark:bg-slate-800 border-2 border-primary text-primary rounded-xl font-bold hover:bg-primary hover:text-white transition-all">
+                        レビューを書く
+                    </button>
+</div>
+</div>
+<!-- 8. User Reviews -->
+<div class="px-4 py-4 space-y-6">
+<div class="border-b border-slate-100 dark:border-slate-800 pb-4">
+<div class="flex items-center justify-between mb-2">
+<div class="font-bold">ユーザー1234</div>
+<div class="text-xs text-slate-400">2024/03/10</div>
+</div>
+<div class="flex text-yellow-400 mb-2 scale-75 origin-left">
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined fill-1">star</span>
+</div>
+<p class="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                        最高傑作です。映像美はもちろん、ストーリー構成も素晴らしく、最後まで飽きることなく楽しめました。
+                    </p>
+</div>
+<div class="border-b border-slate-100 dark:border-slate-800 pb-4">
+<div class="flex items-center justify-between mb-2">
+<div class="font-bold">シネマ愛好家</div>
+<div class="text-xs text-slate-400">2024/03/05</div>
+</div>
+<div class="flex text-yellow-400 mb-2 scale-75 origin-left">
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined fill-1">star</span>
+<span class="material-symbols-outlined">star</span>
+</div>
+<p class="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                        出演者の表情がとても豊かで、没入感がありました。次回作も期待しています。
+                    </p>
+</div>
+</div>
+<!-- 9. Recommended Section (2-Column Grid) -->
+<div class="px-4 py-8">
+<h3 class="text-lg font-bold mb-4">おすすめの作品</h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="group">
+<div class="aspect-[3/4] rounded-xl overflow-hidden mb-2 shadow-sm border border-slate-100 dark:border-slate-800">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Recommendation 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5P1OHa-DSNfUsHVAmFUIomx5xKfSzMu8yKp0hoc1PGcJIWPu8__cVdzldDLVZTMs4W20sB8TavS2hu1FT8BR-X1TZ8STaoS-kftMv6iYAg5--NLZNvGc1VrRnhi8SVbNjEIdIMMVyROT7yh0NobDdpJLDgNW3PRDWiSj5yEHGmLuReyT_MPZ1KkFOz2E-buS02tsR4GcTTZ7q4roE5W2HpySP8xyiHq1gUjUM390mwV75e3o-djbDRo63l0wFUQUabqh_Xhxt8IM"/>
+</div>
+<p class="text-sm font-bold line-clamp-2">最新のトレンドを凝縮した特別編集版 vol.4</p>
+<p class="text-xs text-slate-500 mt-1">PRESTIGE</p>
+</div>
+<div class="group">
+<div class="aspect-[3/4] rounded-xl overflow-hidden mb-2 shadow-sm border border-slate-100 dark:border-slate-800">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Recommendation 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1cuFDWdLfLFmzhShDT71vsOeY445G6TMKWIssKhsqCtjVCON7M_mzIRuzejKQ-Az5MuQD5j3Mkebp4BX5LJKFZbi5iQn_YslfNp9f_Z5GkhEoTlurbqaDKjTLjrkRnqk2P06T6T__DcByrYoaHTGiZoPrZ4mcWdbCL1IkHLz4Ach_EiCE5lkPLVHZUMmWYyzcQdc3NxGFQuRVARHwLD0uWruoJZeFUYp-5tRahM7SPFI_ccY-YdJmOggx0SgvSZ6jrxGF-t_ljxM"/>
+</div>
+<p class="text-sm font-bold line-clamp-2">美咲結衣 ベストセレクション 2024</p>
+<p class="text-xs text-slate-500 mt-1">ABSOLUTE</p>
+</div>
+<div class="group">
+<div class="aspect-[3/4] rounded-xl overflow-hidden mb-2 shadow-sm border border-slate-100 dark:border-slate-800">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Recommendation 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMfT1DY1Bs5SIxnGTFaM0r7rs1jrx13xKhYcAOIcKZSLoM2yp8ytjkbZi1KTLEdsdIq_HZAPr7HhDRTnEh1aKhAxTuW9ATlGothQLFMWHCwuau4b5ZIMOknuRroiCHqMnfGuZjAEPubOGEGywhqlsJuOYdBpchQPsc59pKFiVcuciNfcd6LfzCVGeGKaBcbfaOF8WrAAktJu0qpSDvNslQtDm-5Nz596BzGV2zPi-oUY7kuv1tCt7-XLkJxgwEYtjjZjDgIZVZ6JA"/>
+</div>
+<p class="text-sm font-bold line-clamp-2">完全独占：究極のシチュエーション 120分</p>
+<p class="text-xs text-slate-500 mt-1">IDEA POCKET</p>
+</div>
+<div class="group">
+<div class="aspect-[3/4] rounded-xl overflow-hidden mb-2 shadow-sm border border-slate-100 dark:border-slate-800">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Recommendation 4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQpGzxP7Jl7XXTRgY_3EyX9ROgLIl1v_jd8lwfQeuEVc_rAmVW13VFjQ_-3n_M6_bj9g8T8bIEDGRKRF8C-iwF6nhofzmBKg70FewHcqbE7e7lSpzKdIxj4uttFDFSmnbrYtayh990u73XOLa1An8bGv_6-G34LWPo5aCiJARkJxkMS7EllmV97heCNjzdEiRkxI9nK3LEKPeGROuZDTVezsEfS-Xd7OUMOOqUvbzwQiQ7XR-7rLHcmHV8HFFZt4lZonWj0xcBFPw"/>
+</div>
+<p class="text-sm font-bold line-clamp-2">新人デビュー記念：超高画質ドキュメンタリー</p>
+<p class="text-xs text-slate-500 mt-1">S1 NO.1 STYLE</p>
+</div>
+</div>
+</div>
+</main>
+<!-- 10. Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 pb-6 pt-2 flex justify-between items-center z-50">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined text-[24px] fill-1">home</span>
+<span class="text-[10px] font-bold">ホーム</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined text-[24px]">search</span>
+<span class="text-[10px] font-bold">検索</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined text-[24px]">bar_chart</span>
+<span class="text-[10px] font-bold">ランキング</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined text-[24px]">play_circle</span>
+<span class="text-[10px] font-bold">動画</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined text-[24px]">person</span>
+<span class="text-[10px] font-bold">マイページ</span>
+</a>
+</nav>
+</div>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .fill-1 {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</body></html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#ffffff",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Noto Sans JP", "Public Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<header class="sticky top-0 z-50 flex items-center bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+<div class="flex w-10 items-center justify-start">
+<button class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined">arrow_back_ios</span>
+</button>
+</div> <!-- Spacer for centering -->
+<h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-tight">作品一覧</h1>
+<div class="flex w-10 items-center justify-end">
+<button class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+</header>
+<main class="flex-1">
+<div class="flex flex-col gap-3 py-3">
+<!-- 1. 最上部: 予約作品/新作 セグメントコントロール -->
+<div class="px-4">
+<div class="flex h-11 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+<span>新作</span>
+<input checked="" class="hidden" name="content-type" type="radio" value="new-releases"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold text-slate-500 transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+<span>予約作品</span>
+<input class="hidden" name="content-type" type="radio" value="pre-order"/>
+</label>
+</div>
+</div>
+<!-- 2. その下: フィルタとトグルボタン -->
+<div class="flex items-center gap-2 overflow-x-auto px-4 no-scrollbar">
+<button class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+<div class="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0"></div>
+<button class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
+<span class="text-xs font-medium">BEST/総集編</span>
+<span class="material-symbols-outlined text-[18px] text-primary">toggle_on</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
+<span class="text-xs font-medium">VR作品</span>
+<span class="material-symbols-outlined text-[18px] text-slate-400">toggle_off</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 px-3">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</button>
+</div>
+<!-- 3. その下: 新着/人気順と昇順/降順 -->
+<div class="flex items-center gap-2 px-4">
+<div class="flex h-9 flex-1 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-2 text-xs font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+<span class="truncate">新着順</span>
+<input checked="" class="hidden" name="sort-order" type="radio" value="new"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-2 text-xs font-bold text-slate-500 transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+<span class="truncate">人気順</span>
+<input class="hidden" name="sort-order" type="radio" value="popular"/>
+</label>
+</div>
+<button class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+<span class="material-symbols-outlined text-[20px]">south</span>
+</button>
+</div>
+</div>
+<!-- 5. 下部の作品グリッド (3列維持) -->
+<div class="grid grid-cols-3 gap-x-2 gap-y-4 px-4 pb-24"><!-- 1 -->
+<div class="flex flex-col gap-1.5">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">
+<img class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBVlYwZG7GYXJUW_PytA3_blssREmC8AQPtuOUgIX6YBqgy0wxFl-eP1zYU_O18xx2zraeQqA5Tg6K_NJtmqWwF7kkuw3Mp0Ciye0ov3EhgjtUNUjcsbtErpnUEL7CM1lmoGe-_91Uw9xRFpjGFuQLRqun2WiD7jIPT_jsFjM-XekH98oV7m8T486-fK_MNzP_nP6xPM8-xTNFuTTEtryEUJGJs5xDjllw8k3G2j5u1R6mvY7H3yxq7WJGHJDJ8tc7UdElnyI613U"/>
+<div class="absolute bottom-1.5 right-1.5 flex gap-1">
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">favorite</span>
+</button>
+</div>
+</div>
+<p class="line-clamp-2 text-[11px] font-bold leading-tight">真夏の幻想：エメラルドの記憶</p>
+</div>
+<!-- 2 -->
+<div class="flex flex-col gap-1.5">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">
+<img class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAN0Fd-6DVwnkeSR__5Zrn65L7DD795qNb_0vVTOHe34hTvsbC5p2oPTdYT6bv2J77ssNZmD1W3HScq2HjlgcC3xSwayIn2kj71D0EoTI5Pz9OI3GbEm0EMsyWTmN5bKds-fDsv1b2z19abLU0brPNeV0AmDBEOtptm4slbe3m8P1hwgs8KcdKs7N4_E-PRtFWP9NG9CI4uRF5lyhf5qlbBlVtSIedjxPPJzQCdeqrd9r7iynPd30qyrVINbVZXS1bB-B2ghbFC0_Q"/>
+<div class="absolute bottom-1.5 right-1.5 flex gap-1">
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">favorite</span>
+</button>
+</div>
+</div>
+<p class="line-clamp-2 text-[11px] font-bold leading-tight">ネオン・シティアイト</p>
+</div>
+<!-- 3 -->
+<div class="flex flex-col gap-1.5">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">
+<img class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkFKdyJtTbyYKUu9-c_GB1kXGO7nEJnp-GrEhBpwV9-bbs1xUvoykXVmnE9QSVJDRDL0XG3yL6JsyHp5FjkoxCSkjTd9sw4FILbnb9ZxCE8CHr-hI2oZubdjpwNKTKhsdPB5yw-QJPYojebW86iHOCM40JnADp52HQ5WWuILcpGEtK-rLGiGQK1INJcwA-52O69kTaSHO08qlk8veUmLEFFQI9nVd79zvbqWWviWAmQLbOL11f_Znj5AnJraqbaz26wcgkMMdLAj4"/>
+<div class="absolute bottom-1.5 right-1.5 flex gap-1">
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">favorite</span>
+</button>
+</div>
+</div>
+<p class="line-clamp-2 text-[11px] font-bold leading-tight">終末のプレリュード：序章</p>
+</div>
+<!-- 4 -->
+<div class="flex flex-col gap-1.5">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">
+<img class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBOgtVwGRHhDhA6Vc__RVIV7Qg9Cjt5nPkKrV0tJMdnY1NUHn90T3vJV9ySsMW5TubF5n6TejzldDKzF4FKJ0PZRfz3Ci0nO1ZvEa28dzhS2BYAdhijOzTPTfxt8Whst4PDsFOHdyzS9XVFDi2qri8z2_bWA0BiQacQg3Wnur_nCP3itE-gTTQDx4rQ03sO-w46lMe5Oyo3yxIqu64sP7vivuA0bQvO69sZzn9ldPWRQlfdvuVYJGPTSR1sheK3ehJZ6sXOwOELew"/>
+<div class="absolute bottom-1.5 right-1.5 flex gap-1">
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">favorite</span>
+</button>
+</div>
+</div>
+<p class="line-clamp-2 text-[11px] font-bold leading-tight">光の境界線 - Limited Edition</p>
+</div>
+<!-- 5 -->
+<div class="flex flex-col gap-1.5">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">
+<img class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRSm29PuU8qlNAhvA_s0_P9J8dBKnPHzWEvUE160vfQwf3lszI10rU6NqTD_lFq1k1on5N_2d40JwWtPXjLvvU9PKebi4bInnAFo7UGRS90cspc4GW8CGH4io9Ca00jLjFN2eS3_SDrv2iKCNhAXqPanfbYjFBvQNXkRWor840ARMcEhoG-qIO8Oxr2NHBj4LtJHf4YVJFxYNFHSzGFUFxFKyKRNvyDoyFoXakwcChPzF3s5_I95wCRbHm_7TZDq4LefswKNuIGeY"/>
+<div class="absolute bottom-1.5 right-1.5 flex gap-1">
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-primary">
+<span class="material-symbols-outlined text-[16px] fill-1" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+</div>
+<p class="line-clamp-2 text-[11px] font-bold leading-tight">影の舞踏会</p>
+</div>
+<!-- 6 -->
+<div class="flex flex-col gap-1.5">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">
+<img class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlo9M1USgF8e1zyc7HdfahMlt5K6yhs_JT1VrwlvgQnYfXDRh2_dsI9VWua29sdVa8MkRp6hKU3MFx4F-ZSUCFc1t9odOCoGO_ZDXmkv4SefcMDDkOwi4IfOnIIFRJEJJq0TNwFnirX3hnU5BlkFLWgQbQCmEIO5MJH5HiCIeOlWCPXtNlmBNqORLmQcWooZur2F4hp_z0TZwuTbFHP6OoTMlDc0cKq-GUn8RMqrWoC2KZN_ZMAfrP7ZeXRAuvAlP52q_eBhW2pJg"/>
+<div class="absolute bottom-1.5 right-1.5 flex gap-1">
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">favorite</span>
+</button>
+</div>
+</div>
+<p class="line-clamp-2 text-[11px] font-bold leading-tight">ポップ・フューチャー</p>
+</div>
+<!-- 7 -->
+<div class="flex flex-col gap-1.5">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">
+<img class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA25dpSZLHdfx5uq9QLRgwYuHT7LpDK905Yf42wJek1mWkhQfyV5BouQI6mUL4siiEuWPnTq4mZbZCh7IRAOYWnLnj8vLUSGGoUVxzjwqI2V130pNHflew0CbCxZPeP7VyVyYBh0xuTQYZaNRaSD9YBILt7RunmHbkS1_KJqIRTETzZJZBZgcw_ki5DaQXwvoTBwKTq6PUoWuSyFGraJ8OgDtSvgBFz8-F6WogSYNfRgeq61LyCqJEEqmI0D81Iz6_kGavgvrDZeLw"/>
+<div class="absolute bottom-1.5 right-1.5 flex gap-1">
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">favorite</span>
+</button>
+</div>
+</div>
+<p class="line-clamp-2 text-[11px] font-bold leading-tight">霧の彼方へ</p>
+</div>
+<!-- 8 -->
+<div class="flex flex-col gap-1.5">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">
+<img class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0-Kf2FLwXFGPJuf4O_i6edEt_HoqPmiK3P8EWU7ZwsKaJQ4TCAdvyYBd_v7o1BX9X94YQvZNjF7_-VlDcp3UGOQNBcsQvhMzEvfOWwEfN_5sI8dve4DgMb3A9iOFahQTXTZSj5XYPH7w5EOuSNR59lIQ-jzf6nmtlh8Y3td3zXxxN2W3huT8khGbzJwGHfkPt8PBSWRUTIjCdcx2tehXwCuQALV8l5jgLSHcnf0WZsdKUSWb3I8wxhCSkTPtHJ0U0I9lnmdNfa8c"/>
+<div class="absolute bottom-1.5 right-1.5 flex gap-1">
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">favorite</span>
+</button>
+</div>
+</div>
+<p class="line-clamp-2 text-[11px] font-bold leading-tight">イエロー・コード</p>
+</div>
+<!-- 9 -->
+<div class="flex flex-col gap-1.5">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">
+<img class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkBs6S4SijIV5auoH7PP6NtadCDQq_9iZXRAEje8i0kCt8jZ86z8xW5jPBU1CldSTMzbdywcwgJbv22jYp1-mAQmkIKGQxiYZFleq-w88hbSqQzPcX0hDfqyBBw-U9iVXaor6B5owo2Vl6apoqxe_ooFP68MYBjMIvndAddO8Lri4ChCeQVZGUVXEKpGbBcgHTI0LFtV279Lo8lU7dc-3OCr_a15L0kmJQjm8vIZvGu7NdqJahr5ipvPB5Ll4-_PlOhkGtFWK43aQ"/>
+<div class="absolute bottom-1.5 right-1.5 flex gap-1">
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+<button class="flex h-6 w-6 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[16px]">favorite</span>
+</button>
+</div>
+</div>
+<p class="line-clamp-2 text-[11px] font-bold leading-tight">電子の迷宮</p>
+</div></div>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 z-50 flex border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md px-2 pb-6 pt-2">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">ホーム</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="text-[10px] font-medium">検索</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-[10px] font-medium">ランキング</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">play_circle</span>
+<span class="text-[10px] font-medium">動画</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">マイページ</span>
+</a>
+</nav>
+</div>
+</body></html>

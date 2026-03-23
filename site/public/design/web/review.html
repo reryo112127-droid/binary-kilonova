@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Public Sans', 'Noto Sans JP', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-4 sm:p-8">
+<div class="max-w-2xl w-full bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+<!-- Header -->
+<header class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-2xl">rate_review</span>
+<h2 class="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight">レビューを投稿</h2>
+</div>
+<button class="flex items-center justify-center rounded-full w-10 h-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<form action="#" class="p-6 space-y-6">
+<!-- Artwork Info Section -->
+<div class="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+<div class="w-24 h-32 flex-shrink-0 bg-slate-200 dark:bg-slate-700 rounded-lg bg-cover bg-center" data-alt="Abstract colorful oil painting on canvas" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAdNsJU3JZK0Q_uDNkjLSvTQGbcrLLskwby6tEhTvQrmwBOGEmKVBwu7WrSGWUH23gDrsLvg2nbk0wyLqU1dz1VryYd2-BofqS1J4yMxelJXFFepCdXLIIEkqi305v44TygovNuYD3MlFZLF5gGBmfcbONLISdWJnkRUficqYLn5HhWDrlvEkFVhjqru69rG8vz5xO9l93DXlw7yKqB2YwWCcmjd2v3kIHZe2wtQukcX-seHRCdj8CI3F7wTQHVi1CgkzYsiNJ-0zM')">
+</div>
+<div class="flex flex-col">
+<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">悠久の地平線</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm mt-1">現代美術館 コレクション · 2024年</p>
+<div class="flex items-center gap-1 mt-2 text-primary">
+<span class="material-symbols-outlined text-sm">palette</span>
+<span class="text-xs font-medium uppercase tracking-wider">Oil Painting</span>
+</div>
+</div>
+</div>
+<!-- Rating Selector -->
+<div class="space-y-3">
+<p class="text-slate-900 dark:text-slate-100 text-base font-bold">評価を選択してください <span class="text-red-500 text-sm">*</span></p>
+<div class="flex gap-2">
+<button class="text-primary hover:scale-110 transition-transform" type="button"><span class="material-symbols-outlined !text-4xl" style="font-variation-settings: 'FILL' 1">star</span></button>
+<button class="text-primary hover:scale-110 transition-transform" type="button"><span class="material-symbols-outlined !text-4xl" style="font-variation-settings: 'FILL' 1">star</span></button>
+<button class="text-primary hover:scale-110 transition-transform" type="button"><span class="material-symbols-outlined !text-4xl" style="font-variation-settings: 'FILL' 1">star</span></button>
+<button class="text-primary hover:scale-110 transition-transform" type="button"><span class="material-symbols-outlined !text-4xl" style="font-variation-settings: 'FILL' 1">star</span></button>
+<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button"><span class="material-symbols-outlined !text-4xl">star</span></button>
+</div>
+</div>
+<!-- Review Title Input -->
+<div class="space-y-2">
+<label class="text-slate-900 dark:text-slate-100 text-base font-bold" for="review-title">レビューのタイトル</label>
+<input class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-primary focus:ring-primary h-12 px-4 text-base" id="review-title" placeholder="最も伝えたいことを一言で入力してください" type="text"/>
+</div>
+<!-- Review Body Textarea -->
+<div class="space-y-2">
+<label class="text-slate-900 dark:text-slate-100 text-base font-bold" for="review-body">レビュー本文 <span class="text-red-500 text-sm">*</span></label>
+<textarea class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-primary focus:ring-primary p-4 text-base resize-none" id="review-body" placeholder="作品の感想や、あなたのお気に入りのポイントを自由に書いてください" rows="6"></textarea>
+</div>
+<!-- Photo Upload Section -->
+<!-- Action Buttons -->
+<div class="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+<button class="flex-1 px-6 py-3 rounded-xl text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" type="button">
+                    キャンセル
+                </button>
+<button class="flex-[2] px-6 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20" type="submit">
+                    レビューを投稿する
+                </button>
+</div>
+</form>
+</div>
+</body></html>

@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /signup
+Disallow: /mypage
+Disallow: /age-verification
+Disallow: /api/
+Disallow: /cast/register/
+Disallow: /review/add/
+Disallow: /info/add
+Disallow: /actress/sns-register
+Disallow: /actress/rename-report
+
+Sitemap: https://lunar-zodiac.vercel.app/sitemap.xml

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#ffffff",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Noto Sans JP", "Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<title>女優名 検索結果 - 出演作品一覧</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<!-- Top Header -->
+<header class="sticky top-0 z-50 flex items-center bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-2 border-b border-slate-100 dark:border-slate-800">
+<div class="w-10">
+<button class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-xl">chevron_left</span>
+</button>
+</div>
+<h1 class="flex-1 text-center text-base font-bold leading-tight tracking-tight">女優名</h1>
+<div class="flex w-10 items-center justify-end">
+<button class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined text-xl">search</span>
+</button>
+</div>
+</header>
+<main class="pb-20">
+<!-- Compact Profile Section -->
+<section class="bg-white dark:bg-slate-900 px-4 py-2 border-b border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-3">
+<div class="relative flex-shrink-0">
+<div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/10 shadow-sm">
+<img id="actress-photo" class="w-full h-full object-cover" alt="" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBo30NlJJML4cqfxedZYvUwFWC4EXYbcrNnslA1PGA3LT59RVhzBzeMB66_w3vQgzPyOn-QM8yP44zYBTHfvKm0H-bQNwoWsWaYXqns7wTW_G4-VMjCjxPZ-2Xy40NR8Z0d8A5pGzjDpFo4xxOA9A7JycDO-5dYY9zW7SQC1go-Hi15704rWDPa6iTUt3ICIi4KHtNAGpVPED8DK9NN1Ua5aOjIKF610e2Z36Oi2vU4cptfdm_f5yMwtrcl8rAaQVSkaVkQyiOomqk"/>
+</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-1.5 mb-0.5">
+<h2 id="actress-name" class="text-base font-bold">女優名</h2>
+<div class="flex items-center gap-1">
+<button onclick="location.href='/info/add'" class="flex items-center justify-center text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">add_circle</span>
+</button>
+<button id="actress-like-btn" class="flex items-center justify-center text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg">favorite</span>
+</button>
+</div>
+</div>
+<div id="actress-info-text" class="text-[10px] text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5"></div>
+<div id="actress-sns" class="flex flex-wrap gap-1.5 mt-1.5"></div>
+<div id="actress-extra" class="flex flex-wrap gap-1 mt-1"></div>
+</div>
+</div>
+</section>
+<!-- Controls (Smaller buttons, 3-way toggle) -->
+<div class="flex flex-col gap-2 py-2">
+<!-- 1. Top row: Type switching (3 buttons) -->
+<div class="px-4">
+<div class="flex h-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-1 text-xs font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+<span>すべて</span>
+<input checked="" class="hidden" name="content-type" type="radio" value="all"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-1 text-xs font-bold text-slate-500 transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+<span>予約作品</span>
+<input class="hidden" name="content-type" type="radio" value="pre-order"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-1 text-xs font-bold text-slate-500 transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+<span>新作</span>
+<input class="hidden" name="content-type" type="radio" value="new-releases"/>
+</label>
+</div>
+</div>
+<!-- 2. Middle row: Filter toggles (Smaller) -->
+<div class="flex items-center gap-2 overflow-x-auto px-4 no-scrollbar">
+<button class="flex h-7 shrink-0 items-center justify-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1">
+<span class="material-symbols-outlined text-[14px]">filter_list</span>
+<span class="material-symbols-outlined text-[14px]">expand_more</span>
+</button>
+<div class="h-4 w-px bg-slate-200 dark:bg-slate-700 shrink-0"></div>
+<button class="flex h-7 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-2.5 py-1">
+<span class="text-[10px] font-medium text-slate-600 dark:text-slate-400">BEST/総集編</span>
+<span class="material-symbols-outlined text-[16px] text-primary">toggle_on</span>
+</button>
+<button class="flex h-7 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-2.5 py-1">
+<span class="text-[10px] font-medium text-slate-600 dark:text-slate-400">VR作品</span>
+<span class="material-symbols-outlined text-[16px] text-slate-300">toggle_off</span>
+</button>
+<button class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+</button>
+</div>
+<!-- 3. Bottom row: Sort order (Smaller) -->
+<div class="flex items-center gap-2 px-4">
+<div class="flex h-8 flex-1 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 p-0.5">
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-sm px-1 text-[10px] font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+<span class="truncate">新着順</span>
+<input checked="" class="hidden" name="sort-order" type="radio" value="new"/>
+</label>
+<label class="flex h-full grow cursor-pointer items-center justify-center rounded-sm px-1 text-[10px] font-bold text-slate-500 transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+<span class="truncate">人気順</span>
+<input class="hidden" name="sort-order" type="radio" value="popular"/>
+</label>
+</div>
+<button class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800">
+<span class="material-symbols-outlined text-[16px]">south</span>
+</button>
+</div>
+</div>
+<!-- High-Density Grid (3 Columns, 9+ items) -->
+<div id="products-grid" class="grid grid-cols-3 gap-x-2 gap-y-3 px-4 mt-2">
+<!-- Item 1 -->
+<div class="flex flex-col gap-1">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-slate-200">
+<img class="h-full w-full object-cover" data-alt="Cover image 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWRPPC6kwsTpEIauAwF3Av8LDMFFSR__E4VhJuijU8DD5jVyxXq3Q84t6dRq395KwQmyIKrq6P9Oz1fifszkG5Nf2zCj3QwCelADgx_Fsuq2YyRD5rHCPiE-Q5IGuoShesyfqZXRBTpvA-GN7VqOBAtrKwr3dSigxUct_LAa396X5oWvpqHK8ucBAqljt1ZxvZzpopTE9tR6pwCuE5Vk2KsyxKND_YeL7y6lrh37023yn7b2D-NnZi0SZnfjHOhfxBg_y_buifAOo"/>
+<div class="absolute top-1 left-1 px-1 py-0.5 bg-primary text-white text-[7px] font-bold rounded-sm">新作</div>
+<button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">作品タイトル1</p>
+</div>
+<!-- Item 2 -->
+<div class="flex flex-col gap-1">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-slate-200">
+<img class="h-full w-full object-cover" data-alt="Cover image 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-SkzLE3jQALVsHoGhkr6Agb0uuXNraIqFNAK9E4QLWp0VSks1blQeIisF3Xb1b9-Udm0C3Wf4mK72HMUUse-_4FA8ZPnncx7biDKcIUNl6ny6zrL5LIs7LyeTmqvrohsfQRPDD3n82cySvIzxq5XND0jPrrpkFk0Fdpd5cbYbBDwFxoE1WZ3c8YL5-xjV2fPh-zqojQj81KWsIyC_TwGDwvmG7p0YT6XM84mP3sxco0LfIxkIt3L53VVgLlT5z7uZyi6_4_EybPc"/>
+<div class="absolute top-1 left-1 px-1 py-0.5 bg-blue-600 text-white text-[7px] font-bold rounded-sm">予約</div>
+<button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">作品タイトル2</p>
+</div>
+<!-- Item 3 -->
+<div class="flex flex-col gap-1">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-slate-200">
+<img class="h-full w-full object-cover" data-alt="Cover image 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtpsgdgSPVdkRntwzZffwBYrmtLhbkCznNzsnbK2QweS2EhqMyTzSp0V0rX4SliCdT7wXeOJ3l01gX8Hp5qCpgzT_korVXpifT3Po_q9xCh2ANO36RYqJBVlJ_6VptAwr89ewf31MfW1sy4a9SLLG1xAWra4zbz41Yuyi_AyuLmr49yNNkxLAcBJimPq9saSuoJynBZ2rTfVeFPJBlJBLPXztfrSmTgl1Lhph0lGg4EoCDE1K8kxI2z0yEbqAIyNJpEOxek56s8Go"/>
+<button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">作品タイトル3</p>
+</div>
+<!-- Item 4 -->
+<div class="flex flex-col gap-1">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-slate-200">
+<img class="h-full w-full object-cover" data-alt="Cover image 4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJIMcwvBA08jX7zhDO9eUEib8AogDiZiE6OsvBp054kHMTAB0dRh158Avayx3mJIadngSjqUjJ7xQIk9ncfJyaXyR3nY_uqxml3pxJlCAkOiJERYewBJlEBzFKN0sZXDwgorqCdLIPwAxuMyraZwt0bSgtNo9gKMIAOxBPA0SizCq6NwPVDNCB47VBrzG1HZ-ZvzZtQBKQl3foBGhVUdPxL7gErzxLsCqRdjgBrJcmsxqkgcsyMUr_AA5eVbFu9nuHTLOpRwimMgA"/>
+<button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">作品タイトル4</p>
+</div>
+<!-- Item 5 -->
+<div class="flex flex-col gap-1">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-slate-200">
+<img class="h-full w-full object-cover" data-alt="Cover image 5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTxLAL-F6Nnoo7i4XZHjgCBA0C6wapO5hcaJrELb-rxzMODGtlNSmWlJBivhFvo3hb_Yw5Spt7gvdkvH_o3R84P5z9hRv_TTxS0FkLBL_jrJPTGgVqL_p3a37GlfAJRSoRJKUUHBEDz8jMszrwe5_gV4wYriniLVmjVgz64s9fjxRrJuBgmYqFxpKwTHjBywXuvj5XELAKwxB0TcVBPjRsLWNtttm0I_351_XQcwe8yydFKxuX-ZvqGW9XJJo2-yQEDnOT96x7x-o"/>
+<button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white text-primary">
+<span class="material-symbols-outlined text-[14px] fill-1" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">作品タイトル5</p>
+</div>
+<!-- Item 6 -->
+<div class="flex flex-col gap-1">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-slate-200">
+<img class="h-full w-full object-cover" data-alt="Cover image 6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAe5eDD7KEXAMPKbSlxdraQTb9afZ0tpkr1w4uG7yGsqjdhGUlg9uijZOLR3tKR3XLNiA1IFehGuh8gP9dPNgu7d9oJGEH7t6vVLkxeFpwL44o3FKl5MBJkinMJIvWvFg0Bl29vrmenxQzWTL5-ACCzXbKrxx2FHFpDgksfH8172lfJpFYn_fUpjN8r6UwFd8grSPDRB5b68v8B4IJXBCybYk-6aAy5hdgePtRp7Ogi6MX4-7Vv4xop2dXmir-bA8lmAeoIRIXd7co"/>
+<button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">作品タイトル6</p>
+</div>
+<!-- Item 7 -->
+<div class="flex flex-col gap-1">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-slate-200">
+<img class="h-full w-full object-cover" data-alt="Cover image 7" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWRPPC6kwsTpEIauAwF3Av8LDMFFSR__E4VhJuijU8DD5jVyxXq3Q84t6dRq395KwQmyIKrq6P9Oz1fifszkG5Nf2zCj3QwCelADgx_Fsuq2YyRD5rHCPiE-Q5IGuoShesyfqZXRBTpvA-GN7VqOBAtrKwr3dSigxUct_LAa396X5oWvpqHK8ucBAqljt1ZxvZzpopTE9tR6pwCuE5Vk2KsyxKND_YeL7y6lrh37023yn7b2D-NnZi0SZnfjHOhfxBg_y_buifAOo"/>
+<button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">作品タイトル7</p>
+</div>
+<!-- Item 8 -->
+<div class="flex flex-col gap-1">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-slate-200">
+<img class="h-full w-full object-cover" data-alt="Cover image 8" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-SkzLE3jQALVsHoGhkr6Agb0uuXNraIqFNAK9E4QLWp0VSks1blQeIisF3Xb1b9-Udm0C3Wf4mK72HMUUse-_4FA8ZPnncx7biDKcIUNl6ny6zrL5LIs7LyeTmqvrohsfQRPDD3n82cySvIzxq5XND0jPrrpkFk0Fdpd5cbYbBDwFxoE1WZ3c8YL5-xjV2fPh-zqojQj81KWsIyC_TwGDwvmG7p0YT6XM84mP3sxco0LfIxkIt3L53VVgLlT5z7uZyi6_4_EybPc"/>
+<button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">作品タイトル8</p>
+</div>
+<!-- Item 9 -->
+<div class="flex flex-col gap-1">
+<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-slate-200">
+<img class="h-full w-full object-cover" data-alt="Cover image 9" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtpsgdgSPVdkRntwzZffwBYrmtLhbkCznNzsnbK2QweS2EhqMyTzSp0V0rX4SliCdT7wXeOJ3l01gX8Hp5qCpgzT_korVXpifT3Po_q9xCh2ANO36RYqJBVlJ_6VptAwr89ewf31MfW1sy4a9SLLG1xAWra4zbz41Yuyi_AyuLmr49yNNkxLAcBJimPq9saSuoJynBZ2rTfVeFPJBlJBLPXztfrSmTgl1Lhph0lGg4EoCDE1K8kxI2z0yEbqAIyNJpEOxek56s8Go"/>
+<button class="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white">
+<span class="material-symbols-outlined text-[14px]">favorite</span>
+</button>
+</div>
+<p class="line-clamp-2 text-[10px] font-bold leading-tight">作品タイトル9</p>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 flex border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md px-2 pb-6 pt-2">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">ホーム</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="text-[10px] font-medium">検索</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-[10px] font-medium">ランキング</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">play_circle</span>
+<span class="text-[10px] font-medium">動画</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">マイページ</span>
+</a>
+</nav>
+<script>(function(){
+var actressName=decodeURIComponent(window.location.pathname.replace(/^\/actress\//,''));
+if(!actressName)return;
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function calcAge(b){if(!b)return null;var d=new Date(b),t=new Date(),a=t.getFullYear()-d.getFullYear();if(t.getMonth()<d.getMonth()||(t.getMonth()===d.getMonth()&&t.getDate()<d.getDate()))a--;return a;}
+function fmtBday(b){if(!b)return'';var p=b.split('-');return p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日';}
+
+// セッションID（いいね用）
+var sid=localStorage.getItem('avr_sid');
+if(!sid){sid=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('avr_sid',sid);}
+
+var nameEl=document.getElementById('actress-name');
+var infoEl=document.getElementById('actress-info-text');
+var snsEl=document.getElementById('actress-sns');
+var extraEl=document.getElementById('actress-extra');
+var photoEl=document.getElementById('actress-photo');
+var likeBtn=document.getElementById('actress-like-btn');
+
+if(nameEl)nameEl.textContent=actressName;
+
+// プロフィール取得
+fetch('/api/actress/'+encodeURIComponent(actressName)).then(function(r){return r.json();}).then(function(p){
+  if(nameEl)nameEl.textContent=p.name||actressName;
+
+  // 写真
+  if(photoEl&&p.image_url){photoEl.src=p.image_url;photoEl.alt=p.name||actressName;}
+
+  // 基本情報
+  if(infoEl){
+    var parts=[];
+    if(p.birthday){var age=calcAge(p.birthday);parts.push((age?age+'歳 ':'')+'('+fmtBday(p.birthday)+')');}
+    var sz=[];
+    if(p.height)sz.push('T'+p.height);
+    if(p.bust)sz.push('B'+p.bust+(p.cup?'('+p.cup+'カップ)':''));
+    if(p.waist)sz.push('W'+p.waist);
+    if(p.hip)sz.push('H'+p.hip);
+    if(sz.length)parts.push(sz.join(' '));
+    if(p.blood_type)parts.push(p.blood_type+'型');
+    if(p.prefectures)parts.push(p.prefectures);
+    infoEl.innerHTML=parts.map(function(s){return'<span>'+esc(s)+'</span>';}).join('');
+  }
+
+  // SNS
+  if(snsEl){
+    var html='';
+    if(p.twitter)html+='<a href="https://x.com/'+esc(p.twitter)+'" target="_blank" rel="noopener" class="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900 text-white rounded text-[9px] font-bold"><span class="material-symbols-outlined text-[10px]">crossword</span><span>X</span></a>';
+    if(p.instagram)html+='<a href="https://www.instagram.com/'+esc(p.instagram)+'" target="_blank" rel="noopener" class="flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-purple-500 to-orange-500 text-white rounded text-[9px] font-bold"><span class="material-symbols-outlined text-[10px]">camera_alt</span><span>IG</span></a>';
+    if(p.tiktok)html+='<a href="https://www.tiktok.com/@'+esc(p.tiktok)+'" target="_blank" rel="noopener" class="flex items-center gap-1 px-1.5 py-0.5 bg-black text-white rounded text-[9px] font-bold"><span class="text-[9px] font-bold">TikTok</span></a>';
+    snsEl.innerHTML=html;
+  }
+
+  // 別名義・豊胸バッジ・趣味
+  if(extraEl){
+    var html='';
+    if(p.augmented)html+='<span class="px-1.5 py-0.5 bg-pink-100 text-pink-600 text-[8px] font-bold rounded-full border border-pink-200">豊胸</span>';
+    if(p.aliases&&p.aliases.length)html+='<span class="text-[9px] text-slate-400 leading-tight">旧名：'+p.aliases.map(function(a){return'<span class="underline cursor-pointer" onclick="location.href=\'/actress/'+encodeURIComponent(a)+'\'">'+esc(a)+'</span>';}).join('・')+'</span>';
+    if(p.hobby)html+='<span class="text-[9px] text-slate-400 leading-tight">趣味：'+esc(p.hobby)+'</span>';
+    extraEl.innerHTML=html;
+  }
+
+  // いいね
+  if(likeBtn){
+    var likeIcon=likeBtn.querySelector('.material-symbols-outlined');
+    fetch('/api/like/actress/'+encodeURIComponent(p.name||actressName)).then(function(r){return r.json();}).then(function(ld){
+      if(ld.liked&&likeIcon){likeIcon.style.fontVariationSettings="'FILL' 1";likeBtn.classList.add('text-primary');}
+      if(ld.count!=null){
+        var cntEl=document.createElement('span');cntEl.className='text-[8px] ml-0.5';cntEl.textContent=ld.count>0?ld.count:'';
+        likeBtn.appendChild(cntEl);
+      }
+    }).catch(function(){});
+    likeBtn.onclick=function(){
+      var name=p.name||actressName;
+      fetch('/api/like/actress/'+encodeURIComponent(name),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sid})}).then(function(r){return r.json();}).then(function(ld){
+        var icon=likeBtn.querySelector('.material-symbols-outlined');
+        if(icon)icon.style.fontVariationSettings=ld.liked?"'FILL' 1":"'FILL' 0";
+        if(ld.liked)likeBtn.classList.add('text-primary'); else likeBtn.classList.remove('text-primary');
+        var cntEl=likeBtn.querySelector('span.text-\\[8px\\]');
+        if(cntEl&&ld.count!=null)cntEl.textContent=ld.count>0?ld.count:'';
+      }).catch(function(){});
+    };
+  }
+}).catch(function(){});
+
+// 作品一覧取得
+var grid=document.getElementById('products-grid');
+if(grid){
+  grid.innerHTML='';
+  fetch('/api/products?actress='+encodeURIComponent(actressName)+'&sort=new&limit=30').then(function(r){return r.json();}).then(function(items){
+    if(!items||!items.length){grid.innerHTML='<p class="col-span-3 text-center text-slate-400 py-8 text-xs">作品がありません</p>';return;}
+    grid.innerHTML=items.map(function(p){
+      var img=p.main_image_url||'';
+      var t=esc((p.title||'').substring(0,30));
+      var pid=encodeURIComponent(p.product_id||'');
+      var genres=p.genres||'';
+      var isAmateur=genres.includes('素人')||genres.includes('ハメ撮り');
+      var isNew=p.sale_start_date&&(Date.now()-new Date(p.sale_start_date).getTime())<30*24*3600*1000;
+      var badge=isAmateur?'<div class="absolute top-1 left-1 px-1 py-0.5 bg-orange-500 text-white text-[7px] font-bold rounded-sm">素人</div>'
+               :isNew?'<div class="absolute top-1 left-1 px-1 py-0.5 bg-primary text-white text-[7px] font-bold rounded-sm">新作</div>':'';
+      return '<div class="flex flex-col gap-1 cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
+        +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-slate-200">'
+        +(img?'<img class="h-full w-full object-cover" src="'+img+'"/>':'')
+        +badge+'</div>'
+        +'<p class="line-clamp-2 text-[10px] font-bold leading-tight">'+t+'</p></div>';
+    }).join('');
+  }).catch(function(){grid.innerHTML='<p class="col-span-3 text-center text-slate-400 py-8 text-xs">エラーが発生しました</p>';});
+}
+})();
+</script>
+</body></html>
