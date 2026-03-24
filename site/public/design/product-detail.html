@@ -322,27 +322,41 @@
           }
         }).catch(function(){});
 
-      // おすすめ作品（ジャンル類似）
+      // おすすめ作品（ジャンル類似スコアリング）
       var gnsArr = (p.genres||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
       var recEl = document.getElementById('pd-recommend');
       if (recEl && gnsArr.length) {
-        fetch('/api/products?genre='+encodeURIComponent(gnsArr[0])+'&limit=10')
-          .then(function(r){ return r.json(); })
-          .then(function(data){
-            var items = (data.products||data||[]).filter(function(q){ return q.product_id !== p.product_id; }).slice(0,6);
-            if (!items.length) return;
-            recEl.innerHTML = items.map(function(q){
-              var noAct = !(q.actresses&&q.actresses.trim());
-              return '<div class="relative rounded-xl overflow-hidden bg-slate-100 shadow-sm cursor-pointer" onclick="location.href=\'/product/'+esc(q.product_id)+'\'">'
-                +'<img class="w-full aspect-[3/4] object-cover" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
-                +'<div class="absolute bottom-1 right-1 flex gap-1">'
-                +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-xs">add_circle</span></button>':'')
-                +'<button class="w-6 h-6 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-xs">favorite</span></button>'
-                +'</div>'
-                +'<div class="p-2"><p class="text-xs font-bold line-clamp-2">'+esc(q.title||'')+'</p></div>'
-                +'</div>';
-            }).join('');
-          }).catch(function(){});
+        var topGenres = gnsArr.slice(0, 3);
+        Promise.all(topGenres.map(function(g){
+          return fetch('/api/products?genre='+encodeURIComponent(g)+'&limit=20')
+            .then(function(r){ return r.json(); }).catch(function(){ return []; });
+        })).then(function(results){
+          var seen = {};
+          var scored = [];
+          results.forEach(function(data){
+            (data.products||data||[]).forEach(function(q){
+              if (q.product_id === p.product_id || seen[q.product_id]) return;
+              seen[q.product_id] = true;
+              var qGns = (q.genres||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+              q._score = qGns.filter(function(g){ return gnsArr.indexOf(g) !== -1; }).length;
+              scored.push(q);
+            });
+          });
+          scored.sort(function(a,b){ return b._score - a._score; });
+          var items = scored.slice(0, 6);
+          if (!items.length) return;
+          recEl.innerHTML = items.map(function(q){
+            var noAct = !(q.actresses&&q.actresses.trim());
+            return '<div class="relative rounded-xl overflow-hidden bg-slate-100 shadow-sm cursor-pointer" onclick="location.href=\'/product/'+esc(q.product_id)+'\'">'
+              +'<img class="w-full aspect-[3/4] object-cover" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
+              +'<div class="absolute bottom-1 right-1 flex gap-1">'
+              +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-xs">add_circle</span></button>':'')
+              +'<button class="w-6 h-6 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-xs">favorite</span></button>'
+              +'</div>'
+              +'<div class="p-2"><p class="text-xs font-bold line-clamp-2">'+esc(q.title||'')+'</p></div>'
+              +'</div>';
+          }).join('');
+        }).catch(function(){});
       }
     })
     .catch(function(){});

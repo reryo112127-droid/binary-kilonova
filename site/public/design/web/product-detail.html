@@ -268,51 +268,6 @@
 <div id="pd-recommend" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6"></div>
 </section>
 </main>
-<!-- Footer -->
-<footer class="bg-slate-950 text-slate-400 py-16 mt-20">
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-<div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-<div class="col-span-1 md:col-span-2 space-y-6">
-<div class="flex items-center gap-2 text-white">
-<span class="material-symbols-outlined text-3xl" style="">filter_hdr</span>
-<h2 class="text-xl font-black tracking-tight" style="">ArtPortal</h2>
-</div>
-<p class="max-w-xs leading-relaxed text-sm" style="">
-                        次世代のアーティストとコレクターを繋ぐ、日本最大級のデジタルアートプラットフォーム。
-                    </p>
-<div class="flex gap-4">
-<a class="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center hover:bg-primary transition-colors" href="#" style="">
-<span class="material-symbols-outlined text-xl" style="">public</span>
-</a>
-<a class="h-10 w-10 rounded-full bg-slate-900 flex items-center justify-center hover:bg-primary transition-colors" href="#" style="">
-<span class="material-symbols-outlined text-xl" style="">alternate_email</span>
-</a>
-</div>
-</div>
-<div>
-<h3 class="text-white font-bold mb-6 text-sm" style="">サービス</h3>
-<ul class="space-y-4 text-xs">
-<li class="" style=""><a class="hover:text-primary transition-colors" href="#" style="">作品を探す</a></li>
-<li class="" style=""><a class="hover:text-primary transition-colors" href="#" style="">アーティスト登録</a></li>
-</ul>
-</div>
-<div>
-<h3 class="text-white font-bold mb-6 text-sm" style="">会社情報</h3>
-<ul class="space-y-4 text-xs">
-<li class="" style=""><a class="hover:text-primary transition-colors" href="#" style="">運営会社</a></li>
-<li class="" style=""><a class="hover:text-primary transition-colors" href="#" style="">プライバシーポリシー</a></li>
-</ul>
-</div>
-</div>
-<div class="pt-8 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px]">
-<p class="" style="">© 2024 ArtPortal Inc. All Rights Reserved.</p>
-<div class="flex gap-6">
-<a class="hover:text-white" href="#" style="">利用規約</a>
-<a class="hover:text-white" href="#" style="">特定商取引法に基づく表記</a>
-</div>
-</div>
-</div>
-</footer>
 <script>
 (function(){
   var id = decodeURIComponent((location.pathname.match(/\/product\/(.+)/) || [])[1] || '');
@@ -452,28 +407,42 @@
           }
         }).catch(function(){});
 
-      // おすすめ作品（ジャンル類似）
+      // おすすめ作品（ジャンル類似スコアリング）
       var gnsArr = (p.genres||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
       var recEl = document.getElementById('pd-recommend');
       if (recEl && gnsArr.length) {
-        fetch('/api/products?genre='+encodeURIComponent(gnsArr[0])+'&limit=10')
-          .then(function(r){ return r.json(); })
-          .then(function(data){
-            var items = (data.products||data||[]).filter(function(q){ return q.product_id !== p.product_id; }).slice(0,5);
-            if (!items.length) return;
-            recEl.innerHTML = items.map(function(q){
-              var noAct = !(q.actresses&&q.actresses.trim());
-              return '<div class="group cursor-pointer" onclick="location.href=\'/product/'+esc(q.product_id)+'\'">'
-                +'<div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-100 mb-3 shadow-sm group-hover:shadow-md transition-all relative">'
-                +'<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
-                +'<div class="absolute bottom-2 right-2 flex gap-1.5">'
-                +(noAct?'<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary transition-colors" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-sm">add_circle</span></button>':'')
-                +'<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500 transition-colors" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-sm">favorite</span></button>'
-                +'</div></div>'
-                +'<h4 class="text-sm font-bold text-slate-900 mb-1 line-clamp-2">'+esc(q.title||'')+'</h4>'
-                +'</div>';
-            }).join('');
-          }).catch(function(){});
+        var topGenres = gnsArr.slice(0, 3);
+        Promise.all(topGenres.map(function(g){
+          return fetch('/api/products?genre='+encodeURIComponent(g)+'&limit=20')
+            .then(function(r){ return r.json(); }).catch(function(){ return []; });
+        })).then(function(results){
+          var seen = {};
+          var scored = [];
+          results.forEach(function(data){
+            (data.products||data||[]).forEach(function(q){
+              if (q.product_id === p.product_id || seen[q.product_id]) return;
+              seen[q.product_id] = true;
+              var qGns = (q.genres||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+              q._score = qGns.filter(function(g){ return gnsArr.indexOf(g) !== -1; }).length;
+              scored.push(q);
+            });
+          });
+          scored.sort(function(a,b){ return b._score - a._score; });
+          var items = scored.slice(0, 5);
+          if (!items.length) return;
+          recEl.innerHTML = items.map(function(q){
+            var noAct = !(q.actresses&&q.actresses.trim());
+            return '<div class="group cursor-pointer" onclick="location.href=\'/product/'+esc(q.product_id)+'\'">'
+              +'<div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-100 mb-3 shadow-sm group-hover:shadow-md transition-all relative">'
+              +'<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
+              +'<div class="absolute bottom-2 right-2 flex gap-1.5">'
+              +(noAct?'<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary transition-colors" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-sm">add_circle</span></button>':'')
+              +'<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500 transition-colors" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-sm">favorite</span></button>'
+              +'</div></div>'
+              +'<h4 class="text-sm font-bold text-slate-900 mb-1 line-clamp-2">'+esc(q.title||'')+'</h4>'
+              +'</div>';
+          }).join('');
+        }).catch(function(){});
       }
     })
     .catch(function(){});
