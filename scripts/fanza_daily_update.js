@@ -469,9 +469,70 @@ async function main() {
         turso.close();
     }
 
+    // ---- 新出演女優のプロフィール自動取得 ----
+    if (newItems.length > 0 && DMM_API_ID && DMM_AFFILIATE_ID) {
+        console.log('\n[STEP 5] 新出演女優プロフィール更新...');
+        try {
+            const PROFILES_FILE = path.join(__dirname, '..', 'data', 'actress_profiles.json');
+            const fs = require('fs');
+            let profiles = {};
+            if (fs.existsSync(PROFILES_FILE)) {
+                try { profiles = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf-8')); } catch {}
+            }
+
+            // 新作から女優名を収集
+            const newNames = new Set();
+            for (const item of newItems) {
+                if (item.actresses) {
+                    item.actresses.split(',').map(n => n.trim()).filter(Boolean).forEach(n => newNames.add(n));
+                }
+            }
+
+            // 未取得の女優のみ対象
+            const missing = [...newNames].filter(n => !profiles[n] && !profiles[`NOT_FOUND_${n}`]);
+            console.log(`  新出演女優: ${newNames.size}名 / 未取得: ${missing.length}名`);
+
+            let fetched = 0;
+            for (const name of missing) {
+                const url = `https://api.dmm.com/affiliate/v3/ActressSearch?api_id=${DMM_API_ID}&affiliate_id=${DMM_AFFILIATE_ID}&keyword=${encodeURIComponent(name)}&output=json`;
+                try {
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (data.result?.status == 200 && data.result.actress?.length > 0) {
+                        const hit = data.result.actress.find(a => a.name === name) || data.result.actress[0];
+                        profiles[name] = {
+                            id: hit.id, name: hit.name, ruby: hit.ruby || '',
+                            bust: hit.bust || null, waist: hit.waist || null, hip: hit.hip || null,
+                            height: hit.height || null, cup: hit.cup || null,
+                            birthday: hit.birthday || null, blood_type: hit.blood_type || null,
+                            hobby: hit.hobby || null, prefectures: hit.prefectures || null,
+                            image_url: hit.imageURL?.large || null,
+                            updated_at: new Date().toISOString(),
+                        };
+                        fetched++;
+                    } else {
+                        profiles[`NOT_FOUND_${name}`] = true;
+                    }
+                } catch (e) {
+                    console.warn(`  [プロフィール取得失敗] ${name}: ${e.message}`);
+                }
+                await sleep(1000);
+            }
+
+            if (fetched > 0) {
+                fs.writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2), 'utf-8');
+                console.log(`  ${fetched}名のプロフィールを取得・保存`);
+            } else {
+                console.log('  新規プロフィールなし');
+            }
+        } catch (e) {
+            console.warn('  ⚠️ プロフィール更新失敗:', e.message);
+        }
+    }
+
     // ---- サジェストキャッシュ再生成 ----
     if (newCount > 0) {
-        console.log('\n[STEP 5] サジェストキャッシュ更新...');
+        console.log('\n[STEP 6] サジェストキャッシュ更新...');
         try {
             execSync(`node ${path.join(__dirname, 'build_suggest_cache.js')}`, { stdio: 'inherit' });
         } catch (e) {
