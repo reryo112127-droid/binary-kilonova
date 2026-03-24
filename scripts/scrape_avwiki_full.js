@@ -407,13 +407,15 @@ async function main() {
     const progress = loadProgressFromFile();
     console.log(`[進捗] 完了: ${progress.completed.size.toLocaleString()} / ${urls.length.toLocaleString()}`);
 
-    // Ctrl+C で安全に中断
-    process.on('SIGINT', () => {
-        console.log('\n\n[中断] 進捗を保存して終了...');
+    // Ctrl+C / timeout(SIGTERM) で安全に中断
+    const handleExit = (signal) => {
+        console.log(`\n\n[${signal}] 進捗を保存して終了...`);
         saveProgress(progress);
         console.log(`  完了: ${progress.completed.size.toLocaleString()}ページ / 発見: ${progress.found}名`);
         process.exit(0);
-    });
+    };
+    process.on('SIGINT',  () => handleExit('SIGINT'));
+    process.on('SIGTERM', () => handleExit('SIGTERM'));
 
     await scrapeAll(urls, progress);
 }

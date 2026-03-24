@@ -58,6 +58,8 @@ jobs:
             data/avwiki_url_list.json \
             data/avwiki_product_urls.json \
             || true
-          git diff --staged --quiet || \
-            git commit -m "avwiki: scraper progress [skip ci]" && \
+          if ! git diff --staged --quiet; then
+            git commit -m "avwiki: scraper progress [skip ci]"
+            git pull --rebase origin main || true
             git push
+          fi

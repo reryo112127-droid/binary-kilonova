@@ -289,13 +289,15 @@ async function main() {
 
     const outputStream = fs.createWriteStream(OUTPUT_JSONL, { flags: 'a' });
 
-    // Ctrl+C で安全終了
-    process.on('SIGINT', () => {
-        console.log('\n\n[中断] 進捗を保存...');
+    // Ctrl+C / timeout(SIGTERM) で安全終了
+    const handleExit = (signal) => {
+        console.log(`\n\n[${signal}] 進捗を保存...`);
         saveProgress(progress);
         outputStream.end();
         process.exit(0);
-    });
+    };
+    process.on('SIGINT',  () => handleExit('SIGINT'));
+    process.on('SIGTERM', () => handleExit('SIGTERM'));
 
     let pendingBatch = [];
     const limit = DRY_RUN ? 5 : Infinity;
@@ -354,8 +356,12 @@ async function main() {
 
         // 50件ごとにDB更新と進捗保存
         if (progress.scraped % 50 === 0) {
-            await flushBatch();
-            saveProgress(progress);
+            saveProgress(progress); // DB更新の前に保存（エラーでも進捗は守る）
+            try {
+                await flushBatch();
+            } catch (e) {
+                console.warn(`  [DB更新エラー] ${e.message} — スクレイプは継続`);
+            }
             console.log(
                 `\n  📊 MGS累計: ${progress.mgs_updated} / FANZA累計: ${progress.fanza_updated}` +
                 ` | 女優あり: ${progress.with_actress} / エラー: ${progress.errors}\n`
