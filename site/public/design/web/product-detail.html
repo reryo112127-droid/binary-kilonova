@@ -175,7 +175,7 @@
 <span class="material-symbols-outlined text-rose-500 text-xl group-hover:fill-1" style="">favorite</span>
 <span class="text-sm font-bold text-slate-700 whitespace-nowrap" style="">いいね</span>
 </button>
-<button class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="">
+<button id="pd-cast-btn" class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="">
 <span class="material-symbols-outlined text-slate-500 text-xl" style="">person_add</span>
 <span class="text-sm font-bold text-slate-700" style="">出演者を追加</span>
 </button>
@@ -462,6 +462,7 @@
 
       // 作品情報
       set('pd-actresses', p.actresses || '-');
+      if (p.actresses) { var cb=document.getElementById('pd-cast-btn'); if(cb) cb.style.display='none'; }
       set('pd-maker', p.maker || '-');
       set('pd-label', p.label || '-');
       set('pd-genres-row', (p.genres||'').split(',').slice(0,6).map(function(s){return s.trim();}).filter(Boolean).join('、') || '-');
