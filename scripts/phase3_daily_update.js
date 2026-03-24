@@ -9,13 +9,29 @@
  * 使い方:
  *   node scripts/phase3_daily_update.js
  */
-const path = require('path');
-const fs   = require('fs');
+const path  = require('path');
+const fs    = require('fs');
+const https = require('https');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const { createClient } = require('@libsql/client');
 const db = require('../db/database');
 const { fetchPage, politeWait, buildSearchUrl, buildDetailUrl } = require('../lib/fetcher');
 const { parseSearchPage, parseDetailPage } = require('../lib/parser');
+
+const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
+async function sendDiscord(content) {
+    return new Promise((resolve) => {
+        const url     = new URL(DISCORD_WEBHOOK);
+        const payload = JSON.stringify({ content });
+        const req = https.request({
+            hostname: url.hostname, path: url.pathname,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+        }, (res) => { res.resume(); res.on('end', resolve); });
+        req.on('error', (e) => { console.warn('[Discord] 送信失敗:', e.message); resolve(); });
+        req.write(payload); req.end();
+    });
+}
 
 const ACTRESS_INDEX_FILE = path.join(__dirname, '..', 'data', 'mgs_actress_index.json');
 
@@ -368,10 +384,20 @@ async function main() {
         if (tursoShared) { tursoShared.close(); tursoShared = null; }
         if (!IS_CI) db.close();
 
+        const now = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
         console.log('\n========================================');
-        console.log(`  ✅ 完了 (${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })})`);
+        console.log(`  ✅ 完了 (${now})`);
         if (saleCount > 0) console.log(`  🏷️ セール中: ${saleCount}件`);
         console.log('========================================\n');
+
+        // Discord通知
+        const lines = [
+            `🎬 **MGS動画 日次更新** (${now})`,
+            `新作: **${newProducts.length}件** / 価格更新: **${priceMap.size.toLocaleString()}件**`,
+        ];
+        if (saleCount > 0) lines.push(`🏷️ セール中: **${saleCount.toLocaleString()}件**`);
+        if (newProducts.length === 0) lines.push('ℹ️ 本日の新作なし');
+        await sendDiscord(lines.join('\n'));
     }
 }
 

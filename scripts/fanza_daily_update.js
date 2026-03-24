@@ -545,13 +545,16 @@ async function main() {
     console.log(`  ✅ 完了 (${now})`);
     console.log('========================================\n');
 
-    if (newCount > 0 || saleStats.cnt > 0) {
+    {
         const lines = [
             `📦 **FANZA日次更新** (${now})`,
             `新作: **${newCount}件** / 価格更新: **${priceUpdated.toLocaleString()}件**`,
         ];
         if (saleStats.cnt > 0) {
             lines.push(`🏷️ セール中: **${saleStats.cnt.toLocaleString()}件** (最大 ${saleStats.max_disc}%OFF)`);
+        }
+        if (newCount === 0 && saleStats.cnt === 0) {
+            lines.push('ℹ️ 本日の新作・セールなし');
         }
         await sendDiscord(lines.join('\n'));
     }
