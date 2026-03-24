@@ -19,6 +19,7 @@
 const { spawn, execSync } = require('child_process');
 const path   = require('path');
 const fs     = require('fs');
+const https  = require('https');
 
 // .env 読み込み
 try { require('dotenv').config({ path: path.join(__dirname, '..', '.env') }); } catch (_) {}
@@ -32,11 +33,115 @@ const ACTRESS_INTERVAL_SEC = 30;  // 女優1件あたり待機秒
 const PRODUCT_INTERVAL_SEC = 15;  // 品番1件あたり待機秒
 
 // 定期タスク間隔
-const GIT_COMMIT_INTERVAL_MS   =  60 * 60 * 1000;  // 1時間ごとにコミット
+const GIT_COMMIT_INTERVAL_MS    =  60 * 60 * 1000;  // 1時間ごとにコミット
 const BUILD_PROFILES_INTERVAL_MS = 2 * 60 * 60 * 1000;  // 2時間ごとにTurso反映
+const DISCORD_CHECK_INTERVAL_MS  =  60 * 1000;       // 1分ごとに奇数時間チェック
+
+// Discord Webhook
+const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
+
+// スクレイピング総件数 (完了判定・ETA計算用)
+const ACTRESS_TOTAL = 9447;
+const PRODUCT_TOTAL = 15000;
 
 // 安全タイムアウト (スクリプトが終了しない場合の保険)
 const SAFETY_TIMEOUT_MS = 9 * 24 * 60 * 60 * 1000; // 9日
+
+// ── Discord 通知 ──────────────────────────────────────────────────────
+function sendDiscord(content) {
+    return new Promise((resolve) => {
+        const url     = new URL(DISCORD_WEBHOOK);
+        const payload = JSON.stringify({ content });
+        const req = https.request({
+            hostname: url.hostname,
+            path:     url.pathname + url.search,
+            method:   'POST',
+            headers:  { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+        }, (res) => { res.resume(); res.on('end', resolve); });
+        req.on('error', (e) => { log(`Discord送信エラー: ${e.message}`); resolve(); });
+        req.write(payload);
+        req.end();
+    });
+}
+
+function readProgress() {
+    function load(file) {
+        try { return JSON.parse(fs.readFileSync(path.join(ROOT, file), 'utf-8')); }
+        catch (_) { return {}; }
+    }
+    const a = load('data/avwiki_full_progress.json');
+    const p = load('data/avwiki_products_progress.json');
+    return {
+        actressDone:   (a.completed || []).length,
+        actressErrors: a.errors || 0,
+        productDone:   (p.completed || []).length,
+        productErrors: p.errors || 0,
+        mgsUpdated:    p.mgs_updated || 0,
+        fanzaUpdated:  p.fanza_updated || 0,
+    };
+}
+
+function makeBar(done, total, len = 20) {
+    const filled = Math.min(len, Math.round(done / total * len));
+    return '█'.repeat(filled) + '░'.repeat(len - filled);
+}
+
+function etaStr(done, total, intervalSec) {
+    const remain = Math.max(0, total - done);
+    if (remain === 0) return '完了';
+    const sec = remain * (intervalSec + 3);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    return h > 0 ? `約${h}時間${m}分` : `約${m}分`;
+}
+
+async function notifyDiscord(label = '') {
+    const pr  = readProgress();
+    const now = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+    const aPct = (pr.actressDone  / ACTRESS_TOTAL * 100).toFixed(1);
+    const pPct = (pr.productDone  / PRODUCT_TOTAL * 100).toFixed(1);
+    const aBar = makeBar(pr.actressDone,  ACTRESS_TOTAL);
+    const pBar = makeBar(pr.productDone,  PRODUCT_TOTAL);
+    const aEta = etaStr(pr.actressDone,  ACTRESS_TOTAL, ACTRESS_INTERVAL_SEC);
+    const pEta = etaStr(pr.productDone,  PRODUCT_TOTAL, PRODUCT_INTERVAL_SEC);
+
+    const allDone = pr.actressDone >= ACTRESS_TOTAL && pr.productDone >= PRODUCT_TOTAL;
+    const header  = allDone
+        ? '🎉 **AVWiki スクレイピング 完了！**'
+        : `📊 **AVWiki 経過報告** ${label}(${now})`;
+
+    const msg = [
+        header,
+        '',
+        '**👩 女優プロフィール**',
+        `\`${aBar}\` **${aPct}%** (${pr.actressDone.toLocaleString()} / ${ACTRESS_TOTAL.toLocaleString()}件)`,
+        `⏳ 残り ${(ACTRESS_TOTAL - pr.actressDone).toLocaleString()}件 — ${aEta}`,
+        pr.actressErrors ? `❌ エラー ${pr.actressErrors}件` : '',
+        '',
+        '**📦 品番→女優マッピング**',
+        `\`${pBar}\` **${pPct}%** (${pr.productDone.toLocaleString()} / ${PRODUCT_TOTAL.toLocaleString()}件)`,
+        `⏳ 残り ${(PRODUCT_TOTAL - pr.productDone).toLocaleString()}件 — ${pEta}`,
+        `💾 DB反映 MGS:${pr.mgsUpdated.toLocaleString()} / FANZA:${pr.fanzaUpdated.toLocaleString()}`,
+        pr.productErrors ? `❌ エラー ${pr.productErrors}件` : '',
+    ].filter(l => l !== null).join('\n');
+
+    await sendDiscord(msg);
+    log(`Discord通知送信完了 (女優${aPct}% / 品番${pPct}%)`);
+}
+
+// 奇数時間（1,3,5,...,23時）チェック用
+let _lastNotifiedHour = -1;
+function startDiscordScheduler() {
+    return setInterval(async () => {
+        const now = new Date();
+        // JSTに変換
+        const jstHour = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getHours();
+        if (jstHour % 2 === 1 && jstHour !== _lastNotifiedHour) {
+            _lastNotifiedHour = jstHour;
+            await notifyDiscord();
+        }
+    }, DISCORD_CHECK_INTERVAL_MS);
+}
 
 // ── ユーティリティ ────────────────────────────────────────────────────
 function log(msg) {
@@ -141,7 +246,7 @@ async function main() {
     log('');
 
     // ── 定期タスク ────────────────────────────────────────────────
-    const commitTimer = setInterval(() => {
+    const commitTimer  = setInterval(() => {
         log('⏰ 定期 Git コミット');
         gitCommit();
     }, GIT_COMMIT_INTERVAL_MS);
@@ -154,6 +259,11 @@ async function main() {
         await buildProfiles();
         buildRunning = false;
     }, BUILD_PROFILES_INTERVAL_MS);
+
+    // Discord 奇数時間通知
+    log('🔔 Discord奇数時間通知スケジューラー起動 (JST 1,3,5,...,23時)');
+    await notifyDiscord('🚀 スクレイピング開始 ');  // 起動時にまず1回送信
+    const discordTimer = startDiscordScheduler();
 
     // ── 女優 + 品番 を並列実行 ────────────────────────────────────
     log('🚀 女優スクレイプ & 品番スクレイプ を同時開始');
@@ -180,11 +290,15 @@ async function main() {
     // ── 完了後処理 ────────────────────────────────────────────────
     clearInterval(commitTimer);
     clearInterval(buildTimer);
+    clearInterval(discordTimer);
 
     log('');
     log('✅ 全スクレイピング完了 — 最終 Turso 反映中...');
     await buildProfiles();
     gitCommit();
+
+    // 完了通知
+    await notifyDiscord();
 
     log('');
     log('🎉 AVWiki スクレイピング 全完了');
@@ -192,14 +306,16 @@ async function main() {
 }
 
 // ── 割り込みハンドラ ───────────────────────────────────────────────────
-process.on('SIGINT', () => {
-    log('\n⛔ 中断 (Ctrl+C) — 進捗をコミット中...');
+process.on('SIGINT', async () => {
+    log('\n⛔ 中断 (Ctrl+C) — 進捗をコミット・Discord通知中...');
     gitCommit();
+    await notifyDiscord('⛔ 中断 ').catch(() => {});
     process.exit(0);
 });
-process.on('SIGTERM', () => {
-    log('\n⛔ SIGTERM — 進捗をコミット中...');
+process.on('SIGTERM', async () => {
+    log('\n⛔ SIGTERM — 進捗をコミット・Discord通知中...');
     gitCommit();
+    await notifyDiscord('⛔ 停止 ').catch(() => {});
     process.exit(0);
 });
 process.on('unhandledRejection', (err) => log(`[UnhandledRejection] ${err}`));
