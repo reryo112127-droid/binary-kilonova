@@ -240,6 +240,28 @@
 </section>
 </div>
 </div>
+<!-- Review Section -->
+<section class="mt-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-2xl font-black">レビュー</h3>
+<a id="pd-review-btn" href="#" class="flex items-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-full font-bold hover:bg-black transition-colors text-sm">
+<span class="material-symbols-outlined text-base">edit</span>レビューを書く
+</a>
+</div>
+<!-- 統計（レビューがある場合のみ表示） -->
+<div id="pd-review-stats" style="display:none" class="bg-white border border-slate-100 rounded-2xl p-8 mb-8">
+<div class="flex flex-col md:flex-row items-center gap-10">
+<div class="text-center">
+<div id="pd-review-avg" class="text-5xl font-black text-slate-900 mb-2"></div>
+<div id="pd-review-stars-disp" class="flex text-amber-400 justify-center mb-1"></div>
+<div id="pd-review-count" class="text-xs text-slate-400"></div>
+</div>
+<div id="pd-review-bars" class="flex-1 w-full space-y-2"></div>
+</div>
+</div>
+<!-- レビュー一覧 -->
+<div id="pd-review-list" class="space-y-8 mb-10"></div>
+</section>
 <!-- Recommended Section -->
 <section class="mt-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
 <h3 class="text-2xl font-black mb-8">おすすめ作品</h3>
@@ -369,6 +391,66 @@
         var mb = document.getElementById('pd-mgs-btn');
         if (mb) { mb.href = p.mgs_affiliate_url; mb.style.display=''; }
       }
+
+      // レビューボタンリンク設定
+      var rvBtn = document.getElementById('pd-review-btn');
+      if (rvBtn) rvBtn.href = '/review/add/' + encodeURIComponent(id);
+
+      // レビュー取得・表示
+      fetch('/api/review/' + encodeURIComponent(id))
+        .then(function(r){ return r.json(); })
+        .then(function(reviews){
+          if (!reviews || !reviews.length) return;
+          var total = reviews.length;
+          var sum = reviews.reduce(function(a,r){ return a + Number(r.stars); }, 0);
+          var avg = Math.round(sum / total * 10) / 10;
+          var counts = {1:0,2:0,3:0,4:0,5:0};
+          reviews.forEach(function(r){ counts[Number(r.stars)] = (counts[Number(r.stars)]||0)+1; });
+
+          var statsEl = document.getElementById('pd-review-stats');
+          if (statsEl) statsEl.style.display = '';
+          var avgEl = document.getElementById('pd-review-avg');
+          if (avgEl) avgEl.textContent = avg.toFixed(1);
+          var cntEl = document.getElementById('pd-review-count');
+          if (cntEl) cntEl.textContent = total + '件の評価';
+          var starsDisp = document.getElementById('pd-review-stars-disp');
+          if (starsDisp) {
+            starsDisp.innerHTML = [1,2,3,4,5].map(function(i){
+              return '<span class="material-symbols-outlined '+(i<=Math.round(avg)?'fill-1':'')+'">star</span>';
+            }).join('');
+          }
+          var barsEl = document.getElementById('pd-review-bars');
+          if (barsEl) {
+            barsEl.innerHTML = [5,4,3,2,1].map(function(s){
+              var pct = total ? Math.round((counts[s]||0)/total*100) : 0;
+              return '<div class="flex items-center gap-3">'
+                +'<span class="text-xs w-4">'+s+'</span>'
+                +'<div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">'
+                +'<div class="h-full bg-amber-400 rounded-full" style="width:'+pct+'%"></div></div>'
+                +'<span class="text-xs w-8 text-right text-slate-400">'+pct+'%</span>'
+                +'</div>';
+            }).join('');
+          }
+
+          var listEl = document.getElementById('pd-review-list');
+          if (listEl) {
+            listEl.innerHTML = reviews.slice(0,10).map(function(r){
+              var d = new Date(r.created_at||'');
+              var ds = isNaN(d) ? '' : (d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate());
+              var filled = [1,2,3,4,5].map(function(i){
+                return '<span class="material-symbols-outlined text-sm '+(i<=Number(r.stars)?'fill-1 text-amber-400':'text-slate-300')+'">star</span>';
+              }).join('');
+              return '<div class="border-b border-slate-100 pb-8">'
+                +'<div class="flex items-center gap-3 mb-2">'
+                +'<div class="flex">'+filled+'</div>'
+                +(ds?'<span class="ml-auto text-xs text-slate-400">'+ds+'</span>':'')
+                +'</div>'
+                +(r.title?'<div class="text-sm font-bold mb-1">'+esc(r.title)+'</div>':'')
+                +(r.comment?'<p class="text-slate-600 text-sm leading-relaxed">'+esc(r.comment)+'</p>':'')
+                +'</div>';
+            }).join('');
+          }
+        }).catch(function(){});
 
       // おすすめ作品（ジャンル類似）
       var gnsArr = (p.genres||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
