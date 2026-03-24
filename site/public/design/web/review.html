@@ -44,34 +44,30 @@
 <span class="material-symbols-outlined text-primary text-2xl">rate_review</span>
 <h2 class="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight">レビューを投稿</h2>
 </div>
-<button class="flex items-center justify-center rounded-full w-10 h-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400">
+<button class="flex items-center justify-center rounded-full w-10 h-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400" onclick="history.back()">
 <span class="material-symbols-outlined">close</span>
 </button>
 </header>
-<form action="#" class="p-6 space-y-6">
+<form id="rv-form" class="p-6 space-y-6">
 <!-- Artwork Info Section -->
 <div class="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-<div class="w-24 h-32 flex-shrink-0 bg-slate-200 dark:bg-slate-700 rounded-lg bg-cover bg-center" data-alt="Abstract colorful oil painting on canvas" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAdNsJU3JZK0Q_uDNkjLSvTQGbcrLLskwby6tEhTvQrmwBOGEmKVBwu7WrSGWUH23gDrsLvg2nbk0wyLqU1dz1VryYd2-BofqS1J4yMxelJXFFepCdXLIIEkqi305v44TygovNuYD3MlFZLF5gGBmfcbONLISdWJnkRUficqYLn5HhWDrlvEkFVhjqru69rG8vz5xO9l93DXlw7yKqB2YwWCcmjd2v3kIHZe2wtQukcX-seHRCdj8CI3F7wTQHVi1CgkzYsiNJ-0zM')">
-</div>
-<div class="flex flex-col">
-<h3 class="text-slate-900 dark:text-slate-100 text-lg font-bold">悠久の地平線</h3>
-<p class="text-slate-500 dark:text-slate-400 text-sm mt-1">現代美術館 コレクション · 2024年</p>
-<div class="flex items-center gap-1 mt-2 text-primary">
-<span class="material-symbols-outlined text-sm">palette</span>
-<span class="text-xs font-medium uppercase tracking-wider">Oil Painting</span>
-</div>
+<img id="rv-img" class="w-24 h-32 flex-shrink-0 rounded-lg object-cover bg-slate-200 dark:bg-slate-700" src="" alt=""/>
+<div class="flex flex-col justify-center">
+<h3 id="rv-title" class="text-slate-900 dark:text-slate-100 text-lg font-bold"></h3>
+<p id="rv-meta" class="text-slate-500 dark:text-slate-400 text-sm mt-1"></p>
 </div>
 </div>
 <!-- Rating Selector -->
 <div class="space-y-3">
 <p class="text-slate-900 dark:text-slate-100 text-base font-bold">評価を選択してください <span class="text-red-500 text-sm">*</span></p>
-<div class="flex gap-2">
-<button class="text-primary hover:scale-110 transition-transform" type="button"><span class="material-symbols-outlined !text-4xl" style="font-variation-settings: 'FILL' 1">star</span></button>
-<button class="text-primary hover:scale-110 transition-transform" type="button"><span class="material-symbols-outlined !text-4xl" style="font-variation-settings: 'FILL' 1">star</span></button>
-<button class="text-primary hover:scale-110 transition-transform" type="button"><span class="material-symbols-outlined !text-4xl" style="font-variation-settings: 'FILL' 1">star</span></button>
-<button class="text-primary hover:scale-110 transition-transform" type="button"><span class="material-symbols-outlined !text-4xl" style="font-variation-settings: 'FILL' 1">star</span></button>
-<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button"><span class="material-symbols-outlined !text-4xl">star</span></button>
+<div class="flex gap-2" id="rv-stars">
+<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button" data-star="1"><span class="material-symbols-outlined !text-4xl">star</span></button>
+<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button" data-star="2"><span class="material-symbols-outlined !text-4xl">star</span></button>
+<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button" data-star="3"><span class="material-symbols-outlined !text-4xl">star</span></button>
+<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button" data-star="4"><span class="material-symbols-outlined !text-4xl">star</span></button>
+<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button" data-star="5"><span class="material-symbols-outlined !text-4xl">star</span></button>
 </div>
+<p id="rv-label" class="text-sm text-slate-400">タップして評価</p>
 </div>
 <!-- Review Title Input -->
 <div class="space-y-2">
@@ -83,16 +79,85 @@
 <label class="text-slate-900 dark:text-slate-100 text-base font-bold" for="review-body">レビュー本文 <span class="text-red-500 text-sm">*</span></label>
 <textarea class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-primary focus:ring-primary p-4 text-base resize-none" id="review-body" placeholder="作品の感想や、あなたのお気に入りのポイントを自由に書いてください" rows="6"></textarea>
 </div>
-<!-- Photo Upload Section -->
+<p id="rv-error" class="text-xs text-red-500 font-bold hidden"></p>
 <!-- Action Buttons -->
 <div class="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-<button class="flex-1 px-6 py-3 rounded-xl text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" type="button">
+<button class="flex-1 px-6 py-3 rounded-xl text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" type="button" onclick="history.back()">
                     キャンセル
                 </button>
-<button class="flex-[2] px-6 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20" type="submit">
+<button id="rv-submit" class="flex-[2] px-6 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20" type="button">
                     レビューを投稿する
                 </button>
 </div>
 </form>
 </div>
+<script>
+(function(){
+  var id = decodeURIComponent((location.pathname.match(/\/review\/add\/(.+)/) || [])[1] || '');
+  if (!id) return;
+
+  fetch('/api/product/' + encodeURIComponent(id))
+    .then(function(r){ return r.json(); })
+    .then(function(p){
+      var img = document.getElementById('rv-img');
+      if (img && p.main_image_url) img.src = p.main_image_url;
+      var ttl = document.getElementById('rv-title');
+      if (ttl) ttl.textContent = p.title || '';
+      var meta = document.getElementById('rv-meta');
+      if (meta) {
+        var parts = [];
+        if (p.actresses) parts.push(p.actresses.split(',')[0].trim());
+        if (p.sale_start_date) parts.push(p.sale_start_date.slice(0,4) + '年');
+        meta.textContent = parts.join(' · ');
+      }
+    }).catch(function(){});
+
+  var rating = 0;
+  var labels = ['','残念','いまいち','ふつう','満足','感動した！'];
+  var starBtns = document.querySelectorAll('#rv-stars [data-star]');
+  function updateStars(n) {
+    starBtns.forEach(function(btn) {
+      var v = Number(btn.getAttribute('data-star'));
+      var icon = btn.querySelector('.material-symbols-outlined');
+      if (v <= n) {
+        btn.className = btn.className.replace(/text-slate-\d+/g, '').trim() + ' text-primary';
+        if (icon) icon.style.fontVariationSettings = "'FILL' 1";
+      } else {
+        btn.className = btn.className.replace('text-primary', '').trim() + ' text-slate-300';
+        if (icon) icon.style.fontVariationSettings = "'FILL' 0";
+      }
+    });
+    document.getElementById('rv-label').textContent = labels[n] || 'タップして評価';
+  }
+  starBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      rating = Number(btn.getAttribute('data-star'));
+      updateStars(rating);
+    });
+  });
+
+  document.getElementById('rv-submit').addEventListener('click', function() {
+    var comment = document.getElementById('review-body').value.trim();
+    var errEl = document.getElementById('rv-error');
+    if (!rating) { errEl.textContent = '評価を選択してください'; errEl.classList.remove('hidden'); return; }
+    if (!comment) { errEl.textContent = 'レビュー本文を入力してください'; errEl.classList.remove('hidden'); return; }
+    errEl.classList.add('hidden');
+
+    var btn = document.getElementById('rv-submit');
+    btn.disabled = true; btn.textContent = '送信中...';
+
+    var sid = localStorage.getItem('session_id') || '';
+    if (!sid) { sid = crypto.randomUUID(); localStorage.setItem('session_id', sid); }
+
+    fetch('/api/review/' + encodeURIComponent(id), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-session-id': sid },
+      body: JSON.stringify({ stars: rating, title: document.getElementById('review-title').value.trim() || undefined, comment: comment })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(){ location.href = '/review/success?from=' + encodeURIComponent(id); })
+    .catch(function(){ btn.disabled = false; btn.textContent = 'レビューを投稿する'; errEl.textContent = 'エラーが発生しました'; errEl.classList.remove('hidden'); });
+  });
+})();
+</script>
 </body></html>

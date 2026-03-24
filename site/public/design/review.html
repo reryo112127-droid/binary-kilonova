@@ -45,7 +45,7 @@
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-display">
 <!-- Header -->
 <header class="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800"><div class="relative flex items-center justify-center px-4 h-14 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-<button class="absolute left-4 p-1 text-slate-600 dark:text-slate-400">
+<button class="absolute left-4 p-1 text-slate-600 dark:text-slate-400" onclick="history.back()">
 <span class="material-symbols-outlined">arrow_back_ios</span>
 </button>
 <h1 class="text-base font-bold text-slate-900 dark:text-slate-100">レビュー投稿</h1>
@@ -54,13 +54,13 @@
 <!-- Title & Back Button -->
 <!-- Media Info Card -->
 <div class="px-4 mb-6">
-<div class="flex gap-4 p-4 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+<div id="rv-product-card" class="flex gap-4 p-4 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
 <div class="w-32 aspect-video rounded-lg overflow-hidden flex-shrink-0 bg-slate-200 dark:bg-slate-800">
-<div class="w-full h-full bg-cover bg-center" data-alt="横長の映画パッケージ画像" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBnqvzfyWKbo4fxzl4vU4eZTPCZOtQTzbGD2VDS5jpmKT-tppmJ_urJwWtcwcxzVMzCsvG6Hwu7PARrK1tLK1OA-GnYW5u8p29Ay52A2iGpJ8g-KbU0QrSAnaZ_FCqJvuMRwFD5GK-LBp9c57k9fmHvaqHYOan08W4uyR7OUIjSx3lgX5tHaiMpU75ErB-KRBwMN0lnUM2aDNTX5fJoQb3XMZz13jlFvS3MBrLIMx4TRM0c5KoEl6RsfHDz411RYtwEV64wke1MroA");'></div>
+<img id="rv-img" class="w-full h-full object-cover" src="" alt=""/>
 </div>
 <div class="flex flex-col justify-center">
-<h2 class="text-base font-bold leading-tight line-clamp-2">エターナル・ジャーニー：始まりの場所</h2>
-<p class="text-xs text-slate-500 dark:text-slate-400 mt-1">SF / アドベンチャー (2024)</p>
+<h2 id="rv-title" class="text-base font-bold leading-tight line-clamp-2"></h2>
+<p id="rv-meta" class="text-xs text-slate-500 dark:text-slate-400 mt-1"></p>
 </div>
 </div>
 </div>
@@ -68,15 +68,15 @@
 <div class="px-4 mb-6">
 <label class="block text-sm font-bold mb-3 text-slate-700 dark:text-slate-300">評価を選択</label>
 <div class="flex flex-col items-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
-<div class="flex gap-2 mb-2">
-<span class="material-symbols-outlined text-primary !text-4xl filled">star</span>
-<span class="material-symbols-outlined text-primary !text-4xl filled">star</span>
-<span class="material-symbols-outlined text-primary !text-4xl filled">star</span>
-<span class="material-symbols-outlined text-primary !text-4xl filled">star</span>
-<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl">star</span>
+<div class="flex gap-2 mb-2" id="rv-stars">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl cursor-pointer" data-star="1">star</span>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl cursor-pointer" data-star="2">star</span>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl cursor-pointer" data-star="3">star</span>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl cursor-pointer" data-star="4">star</span>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl cursor-pointer" data-star="5">star</span>
 </div>
-<p class="text-2xl font-black text-slate-900 dark:text-slate-100">4.0</p>
-<p class="text-xs text-slate-500 dark:text-slate-400">満足</p>
+<p id="rv-score" class="text-2xl font-black text-slate-900 dark:text-slate-100">-</p>
+<p id="rv-label" class="text-xs text-slate-500 dark:text-slate-400">タップして評価</p>
 </div>
 </div>
 <!-- Input Form -->
@@ -87,9 +87,10 @@
 </div>
 <div>
 <label class="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300" for="review-content">レビュー本文</label>
-<textarea class="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none" id="review-content" placeholder="作品の感想を自由に書いてください（ネタバレは控えめに！）" rows="6"></textarea>
+<textarea class="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none" id="review-content" placeholder="作品の感想を自由に書いてください" rows="6"></textarea>
 </div>
-<button class="w-full py-4 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all">
+<p id="rv-error" class="text-xs text-red-500 font-bold hidden"></p>
+<button id="rv-submit" class="w-full py-4 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all">
                 投稿する
             </button>
 </div>
@@ -123,4 +124,78 @@
 <div class="w-32 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
 </div>
 </nav>
+<script>
+(function(){
+  var id = decodeURIComponent((location.pathname.match(/\/review\/add\/(.+)/) || [])[1] || '');
+  if (!id) return;
+
+  // 作品情報取得
+  fetch('/api/product/' + encodeURIComponent(id))
+    .then(function(r){ return r.json(); })
+    .then(function(p){
+      var img = document.getElementById('rv-img');
+      if (img && p.main_image_url) img.src = p.main_image_url;
+      var ttl = document.getElementById('rv-title');
+      if (ttl) ttl.textContent = p.title || '';
+      var meta = document.getElementById('rv-meta');
+      if (meta) {
+        var parts = [];
+        if (p.actresses) parts.push(p.actresses.split(',')[0].trim());
+        if (p.sale_start_date) parts.push(p.sale_start_date.slice(0,4) + '年');
+        meta.textContent = parts.join(' · ');
+      }
+    }).catch(function(){});
+
+  // 星評価
+  var rating = 0;
+  var labels = ['','残念','いまいち','ふつう','満足','感動した！'];
+  var stars = document.querySelectorAll('#rv-stars [data-star]');
+  function updateStars(n) {
+    stars.forEach(function(s) {
+      var v = Number(s.getAttribute('data-star'));
+      if (v <= n) {
+        s.classList.remove('text-slate-300','dark:text-slate-700');
+        s.classList.add('text-primary','filled');
+        s.style.fontVariationSettings = "'FILL' 1";
+      } else {
+        s.classList.remove('text-primary','filled');
+        s.classList.add('text-slate-300');
+        s.style.fontVariationSettings = "'FILL' 0";
+      }
+    });
+    document.getElementById('rv-score').textContent = n > 0 ? n + '.0' : '-';
+    document.getElementById('rv-label').textContent = labels[n] || 'タップして評価';
+  }
+  stars.forEach(function(s) {
+    s.addEventListener('click', function() {
+      rating = Number(s.getAttribute('data-star'));
+      updateStars(rating);
+    });
+  });
+
+  // フォーム送信
+  document.getElementById('rv-submit').addEventListener('click', function() {
+    var comment = document.getElementById('review-content').value.trim();
+    var errEl = document.getElementById('rv-error');
+    if (!rating) { errEl.textContent = '評価を選択してください'; errEl.classList.remove('hidden'); return; }
+    if (!comment) { errEl.textContent = 'レビュー本文を入力してください'; errEl.classList.remove('hidden'); return; }
+    errEl.classList.add('hidden');
+
+    var btn = document.getElementById('rv-submit');
+    btn.disabled = true; btn.textContent = '送信中...';
+
+    var sid = localStorage.getItem('session_id') || '';
+    if (!sid) { sid = crypto.randomUUID(); localStorage.setItem('session_id', sid); }
+
+    fetch('/api/review/' + encodeURIComponent(id), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-session-id': sid },
+      body: JSON.stringify({ stars: rating, title: document.getElementById('review-title').value.trim() || undefined, comment: comment })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(){ location.href = '/review/success?from=' + encodeURIComponent(id); })
+    .catch(function(){ btn.disabled = false; btn.textContent = '投稿する'; errEl.textContent = 'エラーが発生しました'; errEl.classList.remove('hidden'); });
+  });
+})();
+</script>
 </body></html>
