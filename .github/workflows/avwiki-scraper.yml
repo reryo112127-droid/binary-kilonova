@@ -45,6 +45,10 @@ jobs:
           TURSO_FANZA_URL:  ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
 
+      # avwiki_full.jsonl → avwiki_profiles.json に変換（APIが読む形式）
+      - name: Build avwiki_profiles.json
+        run: node scripts/build_avwiki_profiles.js
+
       # 進捗ファイルをコミットしてpush（次回の続き再開に使う）
       - name: Commit progress
         run: |
@@ -58,8 +62,17 @@ jobs:
             data/avwiki_url_list.json \
             data/avwiki_product_urls.json \
             || true
+          # avwiki_profiles.json の変化は Vercel 再デプロイが必要なので [vercel skip] を付けない
+          git add data/avwiki_profiles.json || true
+          PROFILES_CHANGED=false
+          git diff --staged --name-only | grep -q avwiki_profiles.json && PROFILES_CHANGED=true
+          # 進捗ファイルのみの変更は Vercel ビルド不要なので [vercel skip] を付ける
           if ! git diff --staged --quiet; then
-            git commit -m "avwiki: scraper progress [skip ci]"
+            if [ "$PROFILES_CHANGED" = "true" ]; then
+              git commit -m "avwiki: update profiles [skip ci]"
+            else
+              git commit -m "avwiki: scraper progress [skip ci] [vercel skip]"
+            fi
             git pull --rebase origin main || true
             git push
           fi
