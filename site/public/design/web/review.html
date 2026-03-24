@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 
-<html class="light" lang="ja"><head>
+<html lang="ja"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -18,69 +17,77 @@
                         "background-dark": "#221610",
                     },
                     fontFamily: {
-                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
+                        "display": ["Public Sans", "sans-serif"]
                     },
-                    borderRadius: {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "full": "9999px"
-                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
                 },
             },
         }
     </script>
 <style>
-        body {
-            font-family: 'Public Sans', 'Noto Sans JP', sans-serif;
+        body { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
         }
     </style>
 </head>
-<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-start justify-center p-4 sm:p-8">
-<div class="max-w-2xl w-full bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
-<form id="rv-form" class="p-6 space-y-6">
-<!-- Artwork Info Section -->
-<div class="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-<img id="rv-img" class="w-24 h-32 flex-shrink-0 rounded-lg object-cover bg-slate-200 dark:bg-slate-700" src="" alt=""/>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-display">
+<!-- Header -->
+<header class="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+<div class="relative flex items-center justify-center px-4 h-14">
+<button class="absolute left-4 p-1 text-slate-600 dark:text-slate-400" onclick="history.back()">
+<span class="material-symbols-outlined">arrow_back_ios</span>
+</button>
+<h1 class="text-base font-bold text-slate-900 dark:text-slate-100">レビュー投稿</h1>
+</div>
+</header>
+<main class="flex-1 pb-16">
+<div class="max-w-2xl mx-auto px-4 pt-6 space-y-6">
+<!-- Media Info Card -->
+<div id="rv-product-card" class="flex gap-4 p-4 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="w-32 aspect-video rounded-lg overflow-hidden flex-shrink-0 bg-slate-200 dark:bg-slate-800">
+<img id="rv-img" class="w-full h-full object-cover" src="" alt=""/>
+</div>
 <div class="flex flex-col justify-center">
-<h3 id="rv-title" class="text-slate-900 dark:text-slate-100 text-lg font-bold"></h3>
-<p id="rv-meta" class="text-slate-500 dark:text-slate-400 text-sm mt-1"></p>
+<h2 id="rv-title" class="text-base font-bold leading-tight line-clamp-2"></h2>
+<p id="rv-meta" class="text-xs text-slate-500 dark:text-slate-400 mt-1"></p>
 </div>
 </div>
-<!-- Rating Selector -->
-<div class="space-y-3">
-<p class="text-slate-900 dark:text-slate-100 text-base font-bold">評価を選択してください <span class="text-red-500 text-sm">*</span></p>
-<div class="flex gap-2" id="rv-stars">
-<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button" data-star="1"><span class="material-symbols-outlined !text-4xl">star</span></button>
-<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button" data-star="2"><span class="material-symbols-outlined !text-4xl">star</span></button>
-<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button" data-star="3"><span class="material-symbols-outlined !text-4xl">star</span></button>
-<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button" data-star="4"><span class="material-symbols-outlined !text-4xl">star</span></button>
-<button class="text-slate-300 dark:text-slate-600 hover:scale-110 transition-transform" type="button" data-star="5"><span class="material-symbols-outlined !text-4xl">star</span></button>
+<!-- Rating Section -->
+<div>
+<label class="block text-sm font-bold mb-3 text-slate-700 dark:text-slate-300">評価を選択</label>
+<div class="flex flex-col items-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+<div class="flex gap-2 mb-2" id="rv-stars">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl cursor-pointer" data-star="1">star</span>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl cursor-pointer" data-star="2">star</span>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl cursor-pointer" data-star="3">star</span>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl cursor-pointer" data-star="4">star</span>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700 !text-4xl cursor-pointer" data-star="5">star</span>
 </div>
-<p id="rv-label" class="text-sm text-slate-400">タップして評価</p>
+<p id="rv-score" class="text-2xl font-black text-slate-900 dark:text-slate-100">-</p>
+<p id="rv-label" class="text-xs text-slate-500 dark:text-slate-400">タップして評価</p>
 </div>
-<!-- Review Title Input -->
-<div class="space-y-2">
-<label class="text-slate-900 dark:text-slate-100 text-base font-bold" for="review-title">レビューのタイトル</label>
-<input class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-primary focus:ring-primary h-12 px-4 text-base" id="review-title" placeholder="最も伝えたいことを一言で入力してください" type="text"/>
 </div>
-<!-- Review Body Textarea -->
-<div class="space-y-2">
-<label class="text-slate-900 dark:text-slate-100 text-base font-bold" for="review-body">レビュー本文 <span class="text-red-500 text-sm">*</span></label>
-<textarea class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-primary focus:ring-primary p-4 text-base resize-none" id="review-body" placeholder="作品の感想や、あなたのお気に入りのポイントを自由に書いてください" rows="6"></textarea>
+<!-- Input Form -->
+<div class="space-y-6">
+<div>
+<label class="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300" for="review-title">レビュータイトル</label>
+<input class="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" id="review-title" placeholder="一言で表すと？" type="text"/>
+</div>
+<div>
+<label class="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300" for="review-content">レビュー本文</label>
+<textarea class="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none" id="review-content" placeholder="作品の感想を自由に書いてください" rows="6"></textarea>
 </div>
 <p id="rv-error" class="text-xs text-red-500 font-bold hidden"></p>
-<!-- Action Buttons -->
-<div class="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-<button class="flex-1 px-6 py-3 rounded-xl text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" type="button" onclick="history.back()">
-                    キャンセル
-                </button>
-<button id="rv-submit" class="flex-[2] px-6 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20" type="button">
-                    レビューを投稿する
-                </button>
+<button id="rv-submit" class="w-full py-4 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all">
+投稿する
+</button>
 </div>
-</form>
 </div>
+</main>
 <script>
 (function(){
   var id = decodeURIComponent((location.pathname.match(/\/review\/add\/(.+)/) || [])[1] || '');
@@ -104,30 +111,32 @@
 
   var rating = 0;
   var labels = ['','残念','いまいち','ふつう','満足','感動した！'];
-  var starBtns = document.querySelectorAll('#rv-stars [data-star]');
+  var stars = document.querySelectorAll('#rv-stars [data-star]');
   function updateStars(n) {
-    starBtns.forEach(function(btn) {
-      var v = Number(btn.getAttribute('data-star'));
-      var icon = btn.querySelector('.material-symbols-outlined');
+    stars.forEach(function(s) {
+      var v = Number(s.getAttribute('data-star'));
       if (v <= n) {
-        btn.className = btn.className.replace(/text-slate-\d+/g, '').trim() + ' text-primary';
-        if (icon) icon.style.fontVariationSettings = "'FILL' 1";
+        s.classList.remove('text-slate-300','dark:text-slate-700');
+        s.classList.add('text-primary','filled');
+        s.style.fontVariationSettings = "'FILL' 1";
       } else {
-        btn.className = btn.className.replace('text-primary', '').trim() + ' text-slate-300';
-        if (icon) icon.style.fontVariationSettings = "'FILL' 0";
+        s.classList.remove('text-primary','filled');
+        s.classList.add('text-slate-300');
+        s.style.fontVariationSettings = "'FILL' 0";
       }
     });
+    document.getElementById('rv-score').textContent = n > 0 ? n + '.0' : '-';
     document.getElementById('rv-label').textContent = labels[n] || 'タップして評価';
   }
-  starBtns.forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      rating = Number(btn.getAttribute('data-star'));
+  stars.forEach(function(s) {
+    s.addEventListener('click', function() {
+      rating = Number(s.getAttribute('data-star'));
       updateStars(rating);
     });
   });
 
   document.getElementById('rv-submit').addEventListener('click', function() {
-    var comment = document.getElementById('review-body').value.trim();
+    var comment = document.getElementById('review-content').value.trim();
     var errEl = document.getElementById('rv-error');
     if (!rating) { errEl.textContent = '評価を選択してください'; errEl.classList.remove('hidden'); return; }
     if (!comment) { errEl.textContent = 'レビュー本文を入力してください'; errEl.classList.remove('hidden'); return; }
@@ -146,7 +155,7 @@
     })
     .then(function(r){ return r.json(); })
     .then(function(){ location.href = '/review/success?from=' + encodeURIComponent(id); })
-    .catch(function(){ btn.disabled = false; btn.textContent = 'レビューを投稿する'; errEl.textContent = 'エラーが発生しました'; errEl.classList.remove('hidden'); });
+    .catch(function(){ btn.disabled = false; btn.textContent = '投稿する'; errEl.textContent = 'エラーが発生しました'; errEl.classList.remove('hidden'); });
   });
 })();
 </script>
