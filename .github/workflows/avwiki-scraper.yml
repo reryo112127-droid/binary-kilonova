@@ -40,18 +40,19 @@ jobs:
         run: timeout 50m node scripts/scrape_avwiki_products.js --interval 15 || true
         env:
           CI: ''
-          TURSO_MGS_URL:    ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN:  ${{ secrets.TURSO_MGS_TOKEN }}
-          TURSO_FANZA_URL:  ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
 
-      # avwiki_full.jsonl → avwiki_profiles.json に変換（APIが読む形式）
-      # 失敗してもスクレイプ進捗は保存する
-      - name: Build avwiki_profiles.json
+      # avwiki_full.jsonl → Turso actress_profiles に反映
+      - name: Build avwiki profiles (Turso)
         run: node scripts/build_avwiki_profiles.js || echo "build_avwiki_profiles failed (non-fatal)"
+        env:
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
 
       # 進捗ファイルをコミットしてpush（次回の続き再開に使う）
-      # avwiki_profiles.json はTursoに直接書き込むためコミット不要
       - name: Commit progress
         run: |
           git config user.name  "github-actions[bot]"
@@ -66,6 +67,6 @@ jobs:
             || true
           if ! git diff --staged --quiet; then
             git commit -m "avwiki: scraper progress [skip ci] [vercel skip]"
-            git pull --rebase origin main || true
-            git push
+            git pull --rebase origin main || git rebase --abort || true
+            git push || echo "Push failed (non-fatal, will retry next run)"
           fi
