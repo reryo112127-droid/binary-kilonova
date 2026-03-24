@@ -98,7 +98,7 @@
 <!-- END: FilterAndActionArea -->
 <!-- BEGIN: ResultsGrid -->
 <section class="px-4">
-<div class="grid grid-cols-3 gap-x-2 gap-y-4">
+<div id="search-results-grid" class="grid grid-cols-3 gap-x-2 gap-y-4">
 <!-- Movie Item 1-12 -->
 <div class="flex flex-col gap-1" data-purpose="movie-card">
 <div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">
@@ -238,6 +238,43 @@
 </section>
 <!-- END: ResultsGrid -->
 </main>
+<script>
+(function(){
+  var ps = new URLSearchParams(location.search);
+  var actress = ps.get('actress')||'', maker = ps.get('maker')||'', label = ps.get('label')||'', genre = ps.get('genre')||'', q = ps.get('q')||'';
+  var term = actress||maker||label||genre||q;
+  if (!term) return;
+
+  // ヘッダータイトルを更新
+  var h1 = document.querySelector('header h1');
+  if (h1) h1.textContent = term;
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
+
+  var apiUrl = '/api/products?limit=60&sort=new';
+  if (actress) apiUrl += '&actress='+encodeURIComponent(actress);
+  else if (maker) apiUrl += '&maker='+encodeURIComponent(maker);
+  else if (label) apiUrl += '&label='+encodeURIComponent(label);
+  else if (genre) apiUrl += '&genre='+encodeURIComponent(genre);
+  else if (q) apiUrl += '&q='+encodeURIComponent(q);
+
+  fetch(apiUrl).then(function(r){return r.json();}).then(function(data){
+    var grid = document.getElementById('search-results-grid');
+    if (!grid || !data || !data.length) return;
+    grid.innerHTML = data.map(function(p){
+      var img = poster(p.main_image_url);
+      return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="flex flex-col gap-1 block">'
+        +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">'
+        +(img?'<img class="h-full w-full object-cover" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
+        +'</div>'
+        +'<p class="line-clamp-2 text-[10px] font-bold leading-tight">'+esc(p.title||'')+'</p>'
+        +(p.actresses?'<p class="text-[9px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
+        +'</a>';
+    }).join('');
+  }).catch(function(){});
+})();
+</script>
 <!-- BEGIN: BottomNavigation -->
 <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 pb-6 pt-2 flex items-center justify-around z-50">
 <a class="flex flex-col items-center gap-1 group" href="#">

@@ -309,12 +309,27 @@
         if (vBtn) { vBtn.style.display=''; vBtn.onclick=function(){ window.open(p.sample_video_url,'_blank'); }; }
       }
 
-      // 作品情報
-      set('pd-actresses', p.actresses || '-');
+      // 作品情報（リンク付き）
+      function linkedItems(items, param) {
+        return items.length
+          ? items.map(function(v){ return '<a href="/search?'+param+'='+encodeURIComponent(v)+'" class="hover:underline">'+esc(v)+'</a>'; }).join('、')
+          : '-';
+      }
+      var actEl = document.getElementById('pd-actresses');
+      if (actEl) {
+        var acts = p.actresses ? p.actresses.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+        actEl.innerHTML = acts.length ? linkedItems(acts,'actress') : '-';
+      }
       if (p.actresses) hide('pd-cast-btn');
-      set('pd-maker', p.maker || '-');
-      set('pd-label', p.label || '-');
-      set('pd-genres', (p.genres||'').split(',').slice(0,6).map(function(s){return s.trim();}).filter(Boolean).join('、') || '-');
+      var mkEl = document.getElementById('pd-maker');
+      if (mkEl) mkEl.innerHTML = p.maker ? '<a href="/search?maker='+encodeURIComponent(p.maker)+'" class="hover:underline">'+esc(p.maker)+'</a>' : '-';
+      var lbEl = document.getElementById('pd-label');
+      if (lbEl) lbEl.innerHTML = p.label ? '<a href="/search?label='+encodeURIComponent(p.label)+'" class="hover:underline">'+esc(p.label)+'</a>' : '-';
+      var gnEl = document.getElementById('pd-genres');
+      if (gnEl) {
+        var gns = (p.genres||'').split(',').slice(0,6).map(function(s){return s.trim();}).filter(Boolean);
+        gnEl.innerHTML = gns.length ? linkedItems(gns,'genre') : '-';
+      }
       set('pd-code', (p.product_id||'').toUpperCase());
       set('pd-duration', p.duration_min ? p.duration_min+'分' : '-');
       set('pd-date', p.sale_start_date || '-');
