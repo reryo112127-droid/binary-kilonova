@@ -66,17 +66,30 @@
 <span class="material-symbols-outlined text-[16px]">expand_more</span>
 </button>
 <div class="h-4 w-px bg-gray-200 shrink-0"></div>
-<button class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
+<button id="sf-best-btn" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
 <span class="text-[11px] font-medium text-gray-600">BEST/総集編</span>
-<span class="material-symbols-outlined text-[18px] text-primary">toggle_on</span>
+<span id="sf-best-icon" class="material-symbols-outlined text-[18px] text-primary">toggle_on</span>
 </button>
-<button class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
+<button id="sf-vr-btn" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
 <span class="text-[11px] font-medium text-gray-600">VR作品</span>
-<span class="material-symbols-outlined text-[18px] text-gray-300">toggle_off</span>
+<span id="sf-vr-icon" class="material-symbols-outlined text-[18px] text-gray-300">toggle_off</span>
 </button>
-<button class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100">
+<button id="sf-cal-btn" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100">
 <span class="material-symbols-outlined text-[18px]">calendar_today</span>
 </button>
+<div class="h-4 w-px bg-gray-200 shrink-0"></div>
+<button id="sf-mgs-btn" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
+  <span class="text-[11px] font-medium text-gray-600">MGS</span>
+</button>
+<button id="sf-fanza-btn" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
+  <span class="text-[11px] font-medium text-gray-600">FANZA</span>
+</button>
+</div>
+<div id="sf-cal-panel" class="hidden px-4 pb-1 flex gap-2 items-center">
+  <input type="date" id="sf-from" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 flex-1 outline-none"/>
+  <span class="text-xs text-gray-400">〜</span>
+  <input type="date" id="sf-to" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 flex-1 outline-none"/>
+  <button id="sf-cal-clear" class="text-[11px] text-gray-400 hover:text-primary shrink-0">クリア</button>
 </div>
 <!-- 3. Bottom row: Sort order -->
 <div class="flex items-center gap-2 px-4">
@@ -241,38 +254,101 @@
 <script>
 (function(){
   var ps = new URLSearchParams(location.search);
-  var actress = ps.get('actress')||'', maker = ps.get('maker')||'', label = ps.get('label')||'', genre = ps.get('genre')||'', q = ps.get('q')||'';
+  var actress=ps.get('actress')||'', maker=ps.get('maker')||'', label=ps.get('label')||'', genre=ps.get('genre')||'', q=ps.get('q')||'';
   var term = actress||maker||label||genre||q;
-  if (!term) return;
 
-  // ヘッダータイトルを更新
   var h1 = document.querySelector('header h1');
-  if (h1) h1.textContent = term;
+  if (h1 && term) h1.textContent = term;
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
 
-  var apiUrl = '/api/products?limit=60&sort=new';
-  if (actress) apiUrl += '&actress='+encodeURIComponent(actress);
-  else if (maker) apiUrl += '&maker='+encodeURIComponent(maker);
-  else if (label) apiUrl += '&label='+encodeURIComponent(label);
-  else if (genre) apiUrl += '&genre='+encodeURIComponent(genre);
-  else if (q) apiUrl += '&q='+encodeURIComponent(q);
+  var filters = { contentType:'all', sortOrder:'new', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'' };
 
-  fetch(apiUrl).then(function(r){return r.json();}).then(function(data){
-    var grid = document.getElementById('search-results-grid');
-    if (!grid || !data || !data.length) return;
-    grid.innerHTML = data.map(function(p){
-      var img = poster(p.main_image_url);
-      return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="flex flex-col gap-1 block">'
-        +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">'
-        +(img?'<img class="h-full w-full object-cover" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
-        +'</div>'
-        +'<p class="line-clamp-2 text-[10px] font-bold leading-tight">'+esc(p.title||'')+'</p>'
-        +(p.actresses?'<p class="text-[9px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
-        +'</a>';
-    }).join('');
-  }).catch(function(){});
+  function buildUrl(){
+    var p = new URLSearchParams();
+    p.set('limit','60');
+    if (filters.vrOnly) p.set('genre','VR');
+    else if (actress) p.set('actress',actress);
+    else if (maker) p.set('maker',maker);
+    else if (label) p.set('label',label);
+    else if (genre) p.set('genre',genre);
+    else if (q) p.set('q',q);
+
+    if (filters.contentType==='pre-order') p.set('sort','pre-order');
+    else if (filters.contentType==='new') p.set('sort','new');
+    else p.set('sort', filters.sortOrder==='popular' ? 'wish_count' : 'new');
+
+    if (filters.source) p.set('source',filters.source);
+    if (!filters.showBest) p.set('excludeBest','1');
+    if (filters.fromDate) p.set('fromDate',filters.fromDate);
+    if (filters.toDate) p.set('toDate',filters.toDate);
+    return '/api/products?'+p.toString();
+  }
+
+  var grid = document.getElementById('search-results-grid');
+  function fetchAndRender(){
+    if (!grid) return;
+    grid.innerHTML = '<div class="col-span-3 py-8 text-center text-xs text-gray-400">読み込み中...</div>';
+    fetch(buildUrl()).then(function(r){return r.json();}).then(function(data){
+      if (!data||!data.length){ grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-gray-400">作品が見つかりませんでした</div>'; return; }
+      grid.innerHTML = data.map(function(p){
+        var img = poster(p.main_image_url);
+        var noAct = !(p.actresses&&p.actresses.trim());
+        return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="flex flex-col gap-1 block">'
+          +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">'
+          +(img?'<img class="h-full w-full object-cover" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
+          +'<div class="absolute bottom-1 right-1 flex gap-1">'
+          +(noAct?'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">add</span></button>':'')
+          +'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">favorite</span></button>'
+          +'</div></div>'
+          +'<p class="line-clamp-2 text-[10px] font-bold leading-tight">'+esc(p.title||'')+'</p>'
+          +(p.actresses?'<p class="text-[9px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
+          +'</a>';
+      }).join('');
+    }).catch(function(){ grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-gray-400">エラーが発生しました</div>'; });
+  }
+
+  // Content type radios
+  document.querySelectorAll('input[name="content-type"]').forEach(function(r){
+    r.addEventListener('change',function(){ filters.contentType=r.value==='all'?'all':r.value==='pre-order'?'pre-order':'new'; fetchAndRender(); });
+  });
+  // Sort order radios
+  document.querySelectorAll('input[name="sort-order"]').forEach(function(r){
+    r.addEventListener('change',function(){ filters.sortOrder=r.value==='popular'?'popular':'new'; fetchAndRender(); });
+  });
+  // BEST toggle
+  var bestBtn=document.getElementById('sf-best-btn'), bestIcon=document.getElementById('sf-best-icon');
+  if(bestBtn) bestBtn.addEventListener('click',function(){
+    filters.showBest=!filters.showBest;
+    if(bestIcon){ bestIcon.textContent=filters.showBest?'toggle_on':'toggle_off'; bestIcon.className='material-symbols-outlined text-[18px] '+(filters.showBest?'text-primary':'text-gray-300'); }
+    fetchAndRender();
+  });
+  // VR toggle
+  var vrBtn=document.getElementById('sf-vr-btn'), vrIcon=document.getElementById('sf-vr-icon');
+  if(vrBtn) vrBtn.addEventListener('click',function(){
+    filters.vrOnly=!filters.vrOnly;
+    if(vrIcon){ vrIcon.textContent=filters.vrOnly?'toggle_on':'toggle_off'; vrIcon.className='material-symbols-outlined text-[18px] '+(filters.vrOnly?'text-primary':'text-gray-300'); }
+    fetchAndRender();
+  });
+  // Calendar
+  var calBtn=document.getElementById('sf-cal-btn'), calPanel=document.getElementById('sf-cal-panel');
+  if(calBtn&&calPanel) calBtn.addEventListener('click',function(){ calPanel.classList.toggle('hidden'); });
+  var fromInput=document.getElementById('sf-from'), toInput=document.getElementById('sf-to');
+  if(fromInput) fromInput.addEventListener('change',function(){ filters.fromDate=fromInput.value; fetchAndRender(); });
+  if(toInput) toInput.addEventListener('change',function(){ filters.toDate=toInput.value; fetchAndRender(); });
+  var calClear=document.getElementById('sf-cal-clear');
+  if(calClear) calClear.addEventListener('click',function(){ filters.fromDate=''; filters.toDate=''; if(fromInput)fromInput.value=''; if(toInput)toInput.value=''; fetchAndRender(); });
+  // MGS/FANZA source
+  var mgsBtn=document.getElementById('sf-mgs-btn'), fanzaBtn=document.getElementById('sf-fanza-btn');
+  function updateSourceBtns(){
+    if(mgsBtn){ mgsBtn.className=mgsBtn.className.replace(/bg-primary text-white|bg-gray-100/g,'').trim(); mgsBtn.classList.add(filters.source==='mgs'?'bg-primary':'bg-gray-100'); var s=mgsBtn.querySelector('span'); if(s) s.className='text-[11px] font-medium '+(filters.source==='mgs'?'text-white':'text-gray-600'); }
+    if(fanzaBtn){ fanzaBtn.className=fanzaBtn.className.replace(/bg-primary text-white|bg-gray-100/g,'').trim(); fanzaBtn.classList.add(filters.source==='fanza'?'bg-primary':'bg-gray-100'); var s=fanzaBtn.querySelector('span'); if(s) s.className='text-[11px] font-medium '+(filters.source==='fanza'?'text-white':'text-gray-600'); }
+  }
+  if(mgsBtn) mgsBtn.addEventListener('click',function(){ filters.source=filters.source==='mgs'?'':'mgs'; updateSourceBtns(); fetchAndRender(); });
+  if(fanzaBtn) fanzaBtn.addEventListener('click',function(){ filters.source=filters.source==='fanza'?'':'fanza'; updateSourceBtns(); fetchAndRender(); });
+
+  if (term) fetchAndRender();
 })();
 </script>
 <!-- BEGIN: BottomNavigation -->

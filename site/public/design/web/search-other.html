@@ -95,33 +95,26 @@
 <aside class="w-full lg:w-64 flex-shrink-0 space-y-6" data-purpose="sidebar-filter">
 <!-- サービス切替 -->
 <div class="bg-gray-100 p-1 rounded-lg flex">
-<button class="flex-1 text-[11px] font-bold py-1.5 rounded-md bg-white shadow-sm text-blue-600">MGS動画</button>
-<button class="flex-1 text-[11px] font-medium py-1.5 rounded-md text-gray-500 hover:text-gray-700">FANZA</button>
+<button id="sf-mgs-btn" class="flex-1 text-[11px] font-bold py-1.5 rounded-md bg-white shadow-sm text-blue-600">MGS動画</button>
+<button id="sf-fanza-btn" class="flex-1 text-[11px] font-medium py-1.5 rounded-md text-gray-500 hover:text-gray-700">FANZA</button>
 </div>
 <!-- 発売日カレンダー -->
 <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
 <h2 class="font-bold text-sm mb-4 text-gray-800">発売日で探す</h2>
-<div class="mb-4">
-<div class="flex items-center justify-between mb-3 px-1">
-<span class="text-[12px] font-bold">2024年 5月</span>
-<div class="flex space-x-1">
-<button class="p-1 hover:bg-gray-100 rounded text-gray-400"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="2"></path></svg></button>
-<button class="p-1 hover:bg-gray-100 rounded text-gray-400"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2"></path></svg></button>
+<div class="space-y-3">
+<div>
+  <label class="text-[11px] text-gray-500 mb-1 block">開始日</label>
+  <input type="date" id="sf-from" class="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:border-primary"/>
 </div>
+<div>
+  <label class="text-[11px] text-gray-500 mb-1 block">終了日</label>
+  <input type="date" id="sf-to" class="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:border-primary"/>
 </div>
-<div class="grid grid-cols-7 text-center text-[10px] text-gray-400 mb-2">
-<div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+<div class="flex gap-2 pt-1">
+  <button id="sf-cal-today" class="flex-1 px-2 py-1.5 text-[11px] bg-gray-50 hover:bg-primary/10 hover:text-primary text-gray-600 rounded-md transition border border-transparent">本日</button>
+  <button id="sf-cal-week" class="flex-1 px-2 py-1.5 text-[11px] bg-gray-50 hover:bg-primary/10 hover:text-primary text-gray-600 rounded-md transition border border-transparent">今週</button>
+  <button id="sf-cal-clear" class="flex-1 px-2 py-1.5 text-[11px] bg-gray-50 hover:bg-primary/10 hover:text-primary text-gray-600 rounded-md transition border border-transparent">クリア</button>
 </div>
-<div class="grid grid-cols-7 gap-1 text-center text-[11px]">
-<div class="py-1 text-gray-300">28</div><div class="py-1 text-gray-300">29</div><div class="py-1 text-gray-300">30</div><button class="py-1 hover:bg-blue-50 rounded transition">1</button><button class="py-1 hover:bg-blue-50 rounded transition">2</button><button class="py-1 hover:bg-blue-50 rounded transition">3</button><button class="py-1 hover:bg-blue-50 rounded transition">4</button>
-<button class="py-1 hover:bg-blue-50 rounded transition">5</button><button class="py-1 hover:bg-blue-50 rounded transition">6</button><button class="py-1 hover:bg-blue-50 rounded transition">7</button><button class="py-1 bg-blue-600 text-white rounded font-bold">8</button><button class="py-1 hover:bg-blue-50 rounded transition">9</button><button class="py-1 hover:bg-blue-50 rounded transition">10</button><button class="py-1 hover:bg-blue-50 rounded transition">11</button>
-<button class="py-1 hover:bg-blue-50 rounded transition">12</button><button class="py-1 hover:bg-blue-50 rounded transition">13</button><button class="py-1 hover:bg-blue-50 rounded transition">14</button><button class="py-1 hover:bg-blue-50 rounded transition">15</button><button class="py-1 hover:bg-blue-50 rounded transition">16</button><button class="py-1 hover:bg-blue-50 rounded transition">17</button><button class="py-1 hover:bg-blue-50 rounded transition">18</button>
-</div>
-</div>
-<div class="flex flex-wrap gap-2 pt-2 border-t border-gray-50">
-<button class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100">本日</button>
-<button class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100">昨日</button>
-<button class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100">今週</button>
 </div>
 </div>
 <!-- 各種フィルター -->
@@ -155,14 +148,14 @@
 <div class="flex items-center justify-between">
 <span class="text-[11px] text-gray-600">BEST/総集編非表示</span>
 <label class="inline-flex relative items-center cursor-pointer">
-<input class="sr-only peer" type="checkbox"/>
+<input id="sf-best-chk" class="sr-only peer" type="checkbox"/>
 <div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
 </label>
 </div>
 <div class="flex items-center justify-between">
 <span class="text-[11px] text-gray-600">VR作品非表示</span>
 <label class="inline-flex relative items-center cursor-pointer">
-<input class="sr-only peer" type="checkbox"/>
+<input id="sf-vr-chk" class="sr-only peer" type="checkbox"/>
 <div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
 </label>
 </div>
@@ -182,7 +175,7 @@
 <!-- 並び替え -->
 <div class="flex items-center space-x-2">
 <span class="text-[11px] text-gray-400 whitespace-nowrap">並び替え:</span>
-<select class="text-[11px] border-none bg-white px-2 py-1 rounded border border-gray-100 focus:ring-0 font-medium cursor-pointer shadow-sm">
+<select id="sf-sort-sel" class="text-[11px] border-none bg-white px-2 py-1 rounded border border-gray-100 focus:ring-0 font-medium cursor-pointer shadow-sm">
 <option>人気順</option>
 <option>新着順</option>
 <option>評価順</option>
@@ -198,9 +191,9 @@
 <div class="flex items-center space-x-4">
 <!-- Segmented Control -->
 <div class="flex p-1 bg-gray-100 rounded-lg">
-<button class="px-4 py-1.5 text-[11px] font-bold rounded-md bg-white shadow-sm text-primary">すべて</button>
-<button class="px-4 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700">予約作品</button>
-<button class="px-4 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700">新作</button>
+<button id="sf-all-btn" class="px-4 py-1.5 text-[11px] font-bold rounded-md bg-white shadow-sm text-primary">すべて</button>
+<button id="sf-preorder-btn" class="px-4 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700">予約作品</button>
+<button id="sf-new-btn" class="px-4 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700">新作</button>
 </div>
 <p class="text-[11px] text-gray-400 hidden sm:block">15 / 128 作品</p>
 </div>
@@ -364,40 +357,110 @@
 <script>
 (function(){
   var ps = new URLSearchParams(location.search);
-  var actress = ps.get('actress')||'', maker = ps.get('maker')||'', label = ps.get('label')||'', genre = ps.get('genre')||'', q = ps.get('q')||'';
+  var actress=ps.get('actress')||'', maker=ps.get('maker')||'', label=ps.get('label')||'', genre=ps.get('genre')||'', q=ps.get('q')||'';
   var term = actress||maker||label||genre||q;
-  if (!term) return;
 
   var titleEl = document.getElementById('search-title');
-  if (titleEl) titleEl.textContent = term;
-  document.title = term + ' - 検索結果';
+  if (titleEl && term) { titleEl.textContent = term; document.title = term + ' - 検索結果'; }
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
 
-  var apiUrl = '/api/products?limit=60&sort=new';
-  if (actress) apiUrl += '&actress='+encodeURIComponent(actress);
-  else if (maker) apiUrl += '&maker='+encodeURIComponent(maker);
-  else if (label) apiUrl += '&label='+encodeURIComponent(label);
-  else if (genre) apiUrl += '&genre='+encodeURIComponent(genre);
-  else if (q) apiUrl += '&q='+encodeURIComponent(q);
+  var filters = { contentType:'all', sortOrder:'popular', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'' };
 
-  fetch(apiUrl).then(function(r){return r.json();}).then(function(data){
-    var grid = document.getElementById('search-results-grid');
-    if (!grid || !data || !data.length) return;
-    grid.innerHTML = data.map(function(p){
-      var img = poster(p.main_image_url);
-      return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group block">'
-        +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
-        +(img?'<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
-        +'</div>'
-        +'<div class="p-3 flex flex-col flex-1">'
-        +'<p class="text-xs font-bold line-clamp-2 mb-1">'+esc(p.title||'')+'</p>'
-        +(p.actresses?'<p class="text-[10px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
-        +'</div>'
-        +'</a>';
-    }).join('');
-  }).catch(function(){});
+  function buildUrl(){
+    var p = new URLSearchParams();
+    p.set('limit','60');
+    if (filters.vrOnly) p.set('genre','VR');
+    else if (actress) p.set('actress',actress);
+    else if (maker) p.set('maker',maker);
+    else if (label) p.set('label',label);
+    else if (genre) p.set('genre',genre);
+    else if (q) p.set('q',q);
+
+    if (filters.contentType==='pre-order') p.set('sort','pre-order');
+    else if (filters.contentType==='new') p.set('sort','new');
+    else p.set('sort', filters.sortOrder==='new' ? 'new' : 'wish_count');
+
+    if (filters.source) p.set('source',filters.source);
+    if (!filters.showBest) p.set('excludeBest','1');
+    if (filters.fromDate) p.set('fromDate',filters.fromDate);
+    if (filters.toDate) p.set('toDate',filters.toDate);
+    return '/api/products?'+p.toString();
+  }
+
+  var grid = document.getElementById('search-results-grid');
+  function fetchAndRender(){
+    if (!grid) return;
+    grid.innerHTML = '<div class="col-span-5 py-12 text-center text-sm text-gray-400">読み込み中...</div>';
+    fetch(buildUrl()).then(function(r){return r.json();}).then(function(data){
+      if (!data||!data.length){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">作品が見つかりませんでした</div>'; return; }
+      grid.innerHTML = data.map(function(p){
+        var img = poster(p.main_image_url);
+        var noAct = !(p.actresses&&p.actresses.trim());
+        return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group block">'
+          +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
+          +(img?'<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
+          +'<div class="absolute bottom-2 right-2 flex gap-1">'
+          +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
+          +'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
+          +'</div></div>'
+          +'<div class="p-3 flex flex-col flex-1">'
+          +'<p class="text-xs font-bold line-clamp-2 mb-1">'+esc(p.title||'')+'</p>'
+          +(p.actresses?'<p class="text-[10px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
+          +'</div>'
+          +'</a>';
+      }).join('');
+    }).catch(function(){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">エラーが発生しました</div>'; });
+  }
+
+  // Source toggle (MGS/FANZA)
+  var mgsBtn=document.getElementById('sf-mgs-btn'), fanzaBtn=document.getElementById('sf-fanza-btn');
+  function updateSourceBtns(){
+    if(mgsBtn){ mgsBtn.className='flex-1 text-[11px] font-bold py-1.5 rounded-md '+(filters.source==='mgs'?'bg-primary text-white shadow-sm':'text-gray-500 hover:text-gray-700'); }
+    if(fanzaBtn){ fanzaBtn.className='flex-1 text-[11px] font-medium py-1.5 rounded-md '+(filters.source==='fanza'?'bg-primary text-white shadow-sm':'text-gray-500 hover:text-gray-700'); }
+  }
+  if(mgsBtn) mgsBtn.addEventListener('click',function(){ filters.source=filters.source==='mgs'?'':'mgs'; updateSourceBtns(); fetchAndRender(); });
+  if(fanzaBtn) fanzaBtn.addEventListener('click',function(){ filters.source=filters.source==='fanza'?'':'fanza'; updateSourceBtns(); fetchAndRender(); });
+
+  // Date range
+  var fromInput=document.getElementById('sf-from'), toInput=document.getElementById('sf-to');
+  if(fromInput) fromInput.addEventListener('change',function(){ filters.fromDate=fromInput.value; fetchAndRender(); });
+  if(toInput) toInput.addEventListener('change',function(){ filters.toDate=toInput.value; fetchAndRender(); });
+  var calToday=document.getElementById('sf-cal-today'), calWeek=document.getElementById('sf-cal-week'), calClear=document.getElementById('sf-cal-clear');
+  if(calToday) calToday.addEventListener('click',function(){
+    var d=new Date(); var s=d.toISOString().slice(0,10);
+    filters.fromDate=s; filters.toDate=s;
+    if(fromInput)fromInput.value=s; if(toInput)toInput.value=s; fetchAndRender();
+  });
+  if(calWeek) calWeek.addEventListener('click',function(){
+    var d=new Date(); var mon=new Date(d); mon.setDate(d.getDate()-d.getDay()+1);
+    var sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    filters.fromDate=mon.toISOString().slice(0,10); filters.toDate=sun.toISOString().slice(0,10);
+    if(fromInput)fromInput.value=filters.fromDate; if(toInput)toInput.value=filters.toDate; fetchAndRender();
+  });
+  if(calClear) calClear.addEventListener('click',function(){ filters.fromDate=''; filters.toDate=''; if(fromInput)fromInput.value=''; if(toInput)toInput.value=''; fetchAndRender(); });
+
+  // BEST/VR toggles
+  var bestChk=document.getElementById('sf-best-chk'), vrChk=document.getElementById('sf-vr-chk');
+  if(bestChk) bestChk.addEventListener('change',function(){ filters.showBest=!bestChk.checked; fetchAndRender(); });
+  if(vrChk) vrChk.addEventListener('change',function(){ filters.vrOnly=vrChk.checked; fetchAndRender(); });
+
+  // Segmented control
+  var allBtn=document.getElementById('sf-all-btn'), preBtn=document.getElementById('sf-preorder-btn'), newBtn=document.getElementById('sf-new-btn');
+  function updateSegmented(){
+    var btns=[allBtn,preBtn,newBtn], vals=['all','pre-order','new'];
+    btns.forEach(function(b,i){ if(!b)return; b.className='px-4 py-1.5 text-[11px] rounded-md font-medium transition '+(filters.contentType===vals[i]?'bg-white shadow-sm text-primary font-bold':'text-gray-500 hover:text-gray-700'); });
+  }
+  if(allBtn) allBtn.addEventListener('click',function(){ filters.contentType='all'; updateSegmented(); fetchAndRender(); });
+  if(preBtn) preBtn.addEventListener('click',function(){ filters.contentType='pre-order'; updateSegmented(); fetchAndRender(); });
+  if(newBtn) newBtn.addEventListener('click',function(){ filters.contentType='new'; updateSegmented(); fetchAndRender(); });
+
+  // Sort select
+  var sortSel=document.getElementById('sf-sort-sel');
+  if(sortSel) sortSel.addEventListener('change',function(){ filters.sortOrder=sortSel.value==='新着順'?'new':'popular'; fetchAndRender(); });
+
+  if (term) fetchAndRender();
 })();
 </script>
 </body></html>
