@@ -34,14 +34,7 @@ jobs:
           DMM_AFFILIATE_IDS: ${{ secrets.DMM_AFFILIATE_IDS }}
           TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
-
-      # Turso更新後にVercelを再デプロイしてサイトに反映
-      - name: Trigger Vercel redeploy
-        if: ${{ secrets.VERCEL_DEPLOY_HOOK != '' }}
-        run: |
-          curl -s -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}" \
-            -H "Content-Type: application/json" \
-            --fail || echo "Deploy hook failed (non-fatal)"
+      # APIルートはforce-dynamicのため再デプロイ不要。Turso更新後すぐサイトに反映される。
 
   mgs-update:
     name: MGS 日次更新
@@ -63,11 +56,4 @@ jobs:
         env:
           TURSO_MGS_URL:   ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN: ${{ secrets.TURSO_MGS_TOKEN }}
-
-      # Turso更新後にVercelを再デプロイしてサイトに反映
-      - name: Trigger Vercel redeploy
-        if: ${{ secrets.VERCEL_DEPLOY_HOOK != '' }}
-        run: |
-          curl -s -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}" \
-            -H "Content-Type: application/json" \
-            --fail || echo "Deploy hook failed (non-fatal)"
+      # APIルートはforce-dynamicのため再デプロイ不要。Turso更新後すぐサイトに反映される。

@@ -4,6 +4,8 @@ import path from 'path';
 import { filterActresses } from '../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const sort = searchParams.get('sort') || 'wish_count';

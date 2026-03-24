@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { filterActresses } from '../../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../../lib/turso';
 
+export const dynamic = 'force-dynamic';
+
 const MGS_AFF_ID = 'C45KQ3NS85OYDAQRUA5YQUD8RH';
 
 const AMATEUR_MAKER_PATTERNS = ['シロウト', 'ナンパ', '素人', 'ドキュメン', 'アマTV', 'ガチなま', 'ハメ撮り'];
