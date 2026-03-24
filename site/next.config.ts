@@ -6,23 +6,10 @@ const nextConfig: NextConfig = {
     root: path.resolve(__dirname),
   },
   // サーバーレス関数のバンドルに必要なファイルのみ含める
+  // 女優プロフィールはTursoに移行済みのためファイルバンドル不要
   outputFileTracingIncludes: {
-    '/api/actress/[name]': [
-      './data/actress_profiles.json',
-      './data/avwiki_profiles.json',
-      './data/agency_profiles.json',
-      './data/actress_aliases.json',
-      './data/augmented_actresses.json',
-    ],
-    '/api/products': [
-      './data/actress_aliases.json',
-    ],
-    '/api/suggest': [
-      './data/suggest_cache.json',
-    ],
-    '/api/ranking': [
-      './data/suggest_cache.json',
-    ],
+    '/api/suggest': ['./data/suggest_cache.json'],
+    '/api/ranking': ['./data/suggest_cache.json'],
     '/':             ['./public/design/**/*'],
     '/product/[id]': ['./public/design/**/*'],
     '/ranking':      ['./public/design/**/*'],

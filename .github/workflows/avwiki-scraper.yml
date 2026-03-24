@@ -51,6 +51,7 @@ jobs:
         run: node scripts/build_avwiki_profiles.js || echo "build_avwiki_profiles failed (non-fatal)"
 
       # 進捗ファイルをコミットしてpush（次回の続き再開に使う）
+      # avwiki_profiles.json はTursoに直接書き込むためコミット不要
       - name: Commit progress
         run: |
           git config user.name  "github-actions[bot]"
@@ -63,19 +64,8 @@ jobs:
             data/avwiki_url_list.json \
             data/avwiki_product_urls.json \
             || true
-
-          # avwiki_profiles.json: 10件以上増えた場合のみ Vercel 再デプロイ（毎時は不要）
-          BEFORE=$(git show HEAD:data/avwiki_profiles.json 2>/dev/null | grep -c '"url"' || echo 0)
-          git add data/avwiki_profiles.json || true
-          AFTER=$(grep -c '"url"' data/avwiki_profiles.json 2>/dev/null || echo 0)
-          DIFF=$(( AFTER - BEFORE ))
-
           if ! git diff --staged --quiet; then
-            if [ "$DIFF" -ge 10 ]; then
-              git commit -m "avwiki: update profiles +${DIFF} entries [skip ci] [vercel skip]"
-            else
-              git commit -m "avwiki: scraper progress [skip ci] [vercel skip]"
-            fi
+            git commit -m "avwiki: scraper progress [skip ci] [vercel skip]"
             git pull --rebase origin main || true
             git push
           fi

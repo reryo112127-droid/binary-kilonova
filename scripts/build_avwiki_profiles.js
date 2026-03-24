@@ -1,67 +1,98 @@
 #!/usr/bin/env node
 /**
- * avwiki_full.jsonl → avwiki_profiles.json 変換
- * スクレイプ結果をAPIが読める形式に変換してコミット対象ファイルを更新する
+ * avwiki_full.jsonl → Turso actress_profiles テーブルに反映
+ * スクレイプ結果をTursoに保存することでVercel再デプロイ不要で即時反映される
  */
 
 const fs   = require('fs');
 const path = require('path');
+const { createClient } = require('@libsql/client');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
-const JSONL_FILE    = path.join(__dirname, '../data/avwiki_full.jsonl');
-const PROFILES_FILE = path.join(__dirname, '../data/avwiki_profiles.json');
+const JSONL_FILE = path.join(__dirname, '../data/avwiki_full.jsonl');
+const BATCH = 100;
 
-if (!fs.existsSync(JSONL_FILE)) {
-    console.error('avwiki_full.jsonl が見つかりません');
-    process.exit(1);
-}
-
-const lines = fs.readFileSync(JSONL_FILE, 'utf-8').trim().split('\n').filter(Boolean);
-console.log(`avwiki_full.jsonl: ${lines.length} 件読み込み`);
-
-// 既存の profiles を読み込んでベースにする（過去のデータを保持）
-let profiles = {};
-if (fs.existsSync(PROFILES_FILE)) {
-    try {
-        profiles = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf-8'));
-        console.log(`avwiki_profiles.json: 既存 ${Object.keys(profiles).length} 件`);
-    } catch {
-        console.warn('avwiki_profiles.json の読み込みに失敗。新規作成します。');
+async function main() {
+    if (!fs.existsSync(JSONL_FILE)) {
+        console.error('avwiki_full.jsonl が見つかりません');
+        process.exit(1);
     }
-}
 
-let updated = 0;
-for (const line of lines) {
-    let entry;
-    try { entry = JSON.parse(line); } catch { continue; }
+    const url   = process.env.TURSO_FANZA_URL;
+    const token = process.env.TURSO_FANZA_TOKEN;
+    if (!url || !token) {
+        console.error('TURSO_FANZA_URL/TOKEN が未設定');
+        process.exit(1);
+    }
 
-    const name = entry.name;
-    if (!name) continue;
+    const db = createClient({ url, authToken: token });
 
-    profiles[name] = {
-        url:          entry.url          ?? null,
-        scraped_at:   entry.scraped_at   ?? null,
-        height:       entry.height       ?? null,
-        bust:         entry.bust         ?? null,
-        waist:        entry.waist        ?? null,
-        hip:          entry.hip          ?? null,
-        cup:          entry.cup          ?? null,
-        birthday_raw: entry.birthday_raw ?? (entry.birthday ? entry.birthday.replace(/-/g, '/') : null),
-        twitter:      entry.twitter      ?? null,
-        instagram:    entry.instagram    ?? null,
-        tiktok:       entry.tiktok       ?? null,
-        aliases:      entry.aliases      ?? [],
-    };
+    const lines = fs.readFileSync(JSONL_FILE, 'utf-8').trim().split('\n').filter(Boolean);
+    console.log(`avwiki_full.jsonl: ${lines.length} 件読み込み`);
 
-    // 別名義でも同じプロフィールを登録（名寄せのため）
-    if (Array.isArray(entry.aliases)) {
-        for (const alias of entry.aliases) {
-            if (!profiles[alias]) {
-                profiles[alias] = { ...profiles[name], name_canonical: name };
+    const entries = [];
+    for (const line of lines) {
+        let entry;
+        try { entry = JSON.parse(line); } catch { continue; }
+        if (entry.name) entries.push(entry);
+    }
+
+    let updated = 0;
+    for (let i = 0; i < entries.length; i += BATCH) {
+        const batch = entries.slice(i, i + BATCH);
+        await db.batch(batch.map(entry => ({
+            sql: `INSERT INTO actress_profiles (name,avwiki_url,height,bust,waist,hip,cup,twitter,instagram,tiktok,aliases,updated_at)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                  ON CONFLICT(name) DO UPDATE SET
+                    avwiki_url = excluded.avwiki_url,
+                    height     = COALESCE(actress_profiles.height,     excluded.height),
+                    bust       = COALESCE(actress_profiles.bust,       excluded.bust),
+                    waist      = COALESCE(actress_profiles.waist,      excluded.waist),
+                    hip        = COALESCE(actress_profiles.hip,        excluded.hip),
+                    cup        = COALESCE(actress_profiles.cup,        excluded.cup),
+                    twitter    = COALESCE(actress_profiles.twitter,    excluded.twitter),
+                    instagram  = COALESCE(actress_profiles.instagram,  excluded.instagram),
+                    tiktok     = COALESCE(actress_profiles.tiktok,     excluded.tiktok),
+                    aliases    = COALESCE(actress_profiles.aliases,    excluded.aliases),
+                    updated_at = excluded.updated_at`,
+            args: [
+                entry.name,
+                entry.url       ?? null,
+                parseInt(entry.height) || null,
+                parseInt(entry.bust)   || null,
+                parseInt(entry.waist)  || null,
+                parseInt(entry.hip)    || null,
+                entry.cup       ?? null,
+                entry.twitter   ?? null,
+                entry.instagram ?? null,
+                entry.tiktok    ?? null,
+                entry.aliases?.length > 0 ? JSON.stringify(entry.aliases) : null,
+                new Date().toISOString(),
+            ],
+        })), 'write');
+        updated += batch.length;
+        process.stdout.write(`  Turso更新: ${updated}/${entries.length}\r`);
+    }
+
+    // 別名義も actress_aliases に登録
+    const aliasPairs = [];
+    for (const entry of entries) {
+        if (Array.isArray(entry.aliases)) {
+            for (const alias of entry.aliases) {
+                if (alias !== entry.name) aliasPairs.push([alias, entry.name]);
             }
         }
     }
-    updated++;
+    for (let i = 0; i < aliasPairs.length; i += BATCH) {
+        const batch = aliasPairs.slice(i, i + BATCH);
+        await db.batch(batch.map(([alias, canon]) => ({
+            sql: `INSERT OR IGNORE INTO actress_aliases (alias, canonical_name) VALUES (?,?)`,
+            args: [alias, canon],
+        })), 'write');
+    }
+
+    db.close();
+    console.log(`\nTurso更新完了: ${updated}件 / 別名義: ${aliasPairs.length}件`);
 }
 
-fs.writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2), 'utf-8');
-console.log(`avwiki_profiles.json: ${Object.keys(profiles).length} 件に更新 (${updated} 件を反映)`);
+main().catch(e => { console.error(e); process.exit(1); });

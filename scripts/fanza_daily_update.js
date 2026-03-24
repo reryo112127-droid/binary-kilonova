@@ -469,16 +469,11 @@ async function main() {
         turso.close();
     }
 
-    // ---- 新出演女優のプロフィール自動取得 ----
-    if (newItems.length > 0 && DMM_API_ID && DMM_AFFILIATE_ID) {
+    // ---- 新出演女優のプロフィール自動取得 → Turso ----
+    if (newItems.length > 0 && DMM_API_ID && DMM_AFFILIATE_ID && tursoUrl && tursoToken) {
         console.log('\n[STEP 5] 新出演女優プロフィール更新...');
         try {
-            const PROFILES_FILE = path.join(__dirname, '..', 'data', 'actress_profiles.json');
-            const fs = require('fs');
-            let profiles = {};
-            if (fs.existsSync(PROFILES_FILE)) {
-                try { profiles = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf-8')); } catch {}
-            }
+            const profilesDb = createClient({ url: tursoUrl, authToken: tursoToken });
 
             // 新作から女優名を収集
             const newNames = new Set();
@@ -488,8 +483,13 @@ async function main() {
                 }
             }
 
-            // 未取得の女優のみ対象
-            const missing = [...newNames].filter(n => !profiles[n] && !profiles[`NOT_FOUND_${n}`]);
+            // Tursoに存在しない女優のみ対象
+            const existing = await profilesDb.execute({
+                sql: `SELECT name FROM actress_profiles WHERE name IN (${[...newNames].map(() => '?').join(',')})`,
+                args: [...newNames],
+            }).then(r => new Set(r.rows.map(row => row.name))).catch(() => new Set());
+
+            const missing = [...newNames].filter(n => !existing.has(n));
             console.log(`  新出演女優: ${newNames.size}名 / 未取得: ${missing.length}名`);
 
             let fetched = 0;
@@ -500,18 +500,21 @@ async function main() {
                     const data = await res.json();
                     if (data.result?.status == 200 && data.result.actress?.length > 0) {
                         const hit = data.result.actress.find(a => a.name === name) || data.result.actress[0];
-                        profiles[name] = {
-                            id: hit.id, name: hit.name, ruby: hit.ruby || '',
-                            bust: hit.bust || null, waist: hit.waist || null, hip: hit.hip || null,
-                            height: hit.height || null, cup: hit.cup || null,
-                            birthday: hit.birthday || null, blood_type: hit.blood_type || null,
-                            hobby: hit.hobby || null, prefectures: hit.prefectures || null,
-                            image_url: hit.imageURL?.large || null,
-                            updated_at: new Date().toISOString(),
-                        };
+                        await profilesDb.execute({
+                            sql: `INSERT OR REPLACE INTO actress_profiles
+                                (name,fanza_id,ruby,height,bust,waist,hip,cup,birthday,blood_type,
+                                 hobby,prefectures,image_url,updated_at)
+                                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+                            args: [
+                                name, hit.id, hit.ruby || null,
+                                parseInt(hit.height) || null, parseInt(hit.bust) || null,
+                                parseInt(hit.waist) || null, parseInt(hit.hip) || null,
+                                hit.cup || null, hit.birthday || null, hit.blood_type || null,
+                                hit.hobby || null, hit.prefectures || null,
+                                hit.imageURL?.large || null, new Date().toISOString(),
+                            ],
+                        });
                         fetched++;
-                    } else {
-                        profiles[`NOT_FOUND_${name}`] = true;
                     }
                 } catch (e) {
                     console.warn(`  [プロフィール取得失敗] ${name}: ${e.message}`);
@@ -519,12 +522,8 @@ async function main() {
                 await sleep(1000);
             }
 
-            if (fetched > 0) {
-                fs.writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2), 'utf-8');
-                console.log(`  ${fetched}名のプロフィールを取得・保存`);
-            } else {
-                console.log('  新規プロフィールなし');
-            }
+            profilesDb.close();
+            console.log(`  ${fetched}名のプロフィールをTursoに保存`);
         } catch (e) {
             console.warn('  ⚠️ プロフィール更新失敗:', e.message);
         }
