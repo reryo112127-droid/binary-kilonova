@@ -35,14 +35,15 @@ jobs:
           TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
 
-      # actress_profiles.json が更新されたらコミット → Vercel 自動再デプロイ
+      # actress_profiles.json が更新されたらコミット
+      # Vercel Hobby はボットコミットをブロックするため [vercel skip] を付ける
       - name: Commit updated actress profiles
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/actress_profiles.json || true
           if ! git diff --staged --quiet; then
-            git commit -m "fanza: update actress profiles"
+            git commit -m "fanza: update actress profiles [skip ci] [vercel skip]"
             git pull --rebase origin main || true
             git push
           fi

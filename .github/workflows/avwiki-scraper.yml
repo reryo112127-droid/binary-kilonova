@@ -72,10 +72,8 @@ jobs:
 
           if ! git diff --staged --quiet; then
             if [ "$DIFF" -ge 10 ]; then
-              # 10件以上増えた → Vercel 再デプロイあり
-              git commit -m "avwiki: update profiles +${DIFF} entries [skip ci]"
+              git commit -m "avwiki: update profiles +${DIFF} entries [skip ci] [vercel skip]"
             else
-              # 進捗のみ or 微増 → Vercel ビルドスキップ
               git commit -m "avwiki: scraper progress [skip ci] [vercel skip]"
             fi
             git pull --rebase origin main || true
