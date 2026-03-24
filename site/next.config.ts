@@ -5,15 +5,27 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
-  // サーバーレス関数のバンドルに data/ ディレクトリを含める
+  // サーバーレス関数のバンドルに必要なファイルのみ含める
   outputFileTracingIncludes: {
-    '/api/actress/[name]': ['./data/**/*'],
-    '/api/products':       ['./data/**/*'],
-    '/api/suggest':        ['./data/**/*'],
-    '/api/ranking':        ['./data/**/*'],
-    '/':                   ['./public/design/**/*'],
-    '/product/[id]':       ['./public/design/**/*'],
-    '/ranking':            ['./public/design/**/*'],
+    '/api/actress/[name]': [
+      './data/actress_profiles.json',
+      './data/avwiki_profiles.json',
+      './data/agency_profiles.json',
+      './data/actress_aliases.json',
+      './data/augmented_actresses.json',
+    ],
+    '/api/products': [
+      './data/actress_aliases.json',
+    ],
+    '/api/suggest': [
+      './data/suggest_cache.json',
+    ],
+    '/api/ranking': [
+      './data/suggest_cache.json',
+    ],
+    '/':             ['./public/design/**/*'],
+    '/product/[id]': ['./public/design/**/*'],
+    '/ranking':      ['./public/design/**/*'],
   },
   images: {
     remotePatterns: [
