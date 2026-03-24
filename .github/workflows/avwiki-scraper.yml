@@ -1,9 +1,7 @@
 name: AVWiki Scraper
 
 on:
-  schedule:
-    - cron: '0 * * * *'   # 毎時0分
-  workflow_dispatch:        # 手動実行
+  workflow_dispatch:        # 手動実行のみ（スケジュール実行はローカルで行う）
 
 concurrency:
   group: avwiki-scraper

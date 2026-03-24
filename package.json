@@ -13,7 +13,9 @@
         "phase3": "node scripts/phase3_daily_update.js",
         "stats": "node scripts/stats.js",
         "export": "node scripts/export_csv.js",
-        "test:parser": "node scripts/test_parser.js"
+        "test:parser": "node scripts/test_parser.js",
+        "avwiki": "node scripts/avwiki_local_runner.js",
+        "avwiki:bg": "start /B node scripts/avwiki_local_runner.js >> logs/avwiki.log 2>&1"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.80.0",
