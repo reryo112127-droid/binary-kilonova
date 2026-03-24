@@ -2,8 +2,8 @@ name: Daily Update (FANZA + MGS)
 
 on:
   schedule:
-    - cron: '0 15 * * *'   # FANZA: 深夜 0:00 JST (= 15:00 UTC)
-    - cron: '0 1 * * *'    # MGS:  午前 10:00 JST (=  01:00 UTC)
+    - cron: '5 15 * * *'   # FANZA: 深夜 0:05 JST (= 15:05 UTC)
+    - cron: '5 1 * * *'    # MGS:  午前 10:05 JST (=  01:05 UTC)
   workflow_dispatch:         # 手動実行（両方実行）
 
 concurrency:
@@ -13,7 +13,7 @@ concurrency:
 jobs:
   fanza-update:
     name: FANZA 日次更新
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 15 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 15 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,9 +35,17 @@ jobs:
           TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
 
+      # Turso更新後にVercelを再デプロイしてサイトに反映
+      - name: Trigger Vercel redeploy
+        if: ${{ secrets.VERCEL_DEPLOY_HOOK != '' }}
+        run: |
+          curl -s -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}" \
+            -H "Content-Type: application/json" \
+            --fail || echo "Deploy hook failed (non-fatal)"
+
   mgs-update:
     name: MGS 日次更新
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 1 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 1 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,3 +63,11 @@ jobs:
         env:
           TURSO_MGS_URL:   ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN: ${{ secrets.TURSO_MGS_TOKEN }}
+
+      # Turso更新後にVercelを再デプロイしてサイトに反映
+      - name: Trigger Vercel redeploy
+        if: ${{ secrets.VERCEL_DEPLOY_HOOK != '' }}
+        run: |
+          curl -s -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}" \
+            -H "Content-Type: application/json" \
+            --fail || echo "Deploy hook failed (non-fatal)"
