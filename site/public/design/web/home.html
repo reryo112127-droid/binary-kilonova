@@ -603,6 +603,10 @@
       +'<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">'
       +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover transition-transform group-hover:scale-105"/>'
       +'<span class="absolute top-2 left-2 '+labelClass+' text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">'+label+'</span>'
+      +'<div class="absolute bottom-2 right-2 flex gap-1">'
+      +(!(p.actresses&&p.actresses.trim())?'<button onclick="event.preventDefault()" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">add</span></button>':'')
+      +'<button onclick="event.preventDefault()" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-red-500 hover:bg-red-500 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">favorite</span></button>'
+      +'</div>'
       +'</div>'
       +'<h5 class="text-xs font-bold truncate">'+esc(p.title)+'</h5>'
       +'<p class="text-[10px] text-gray-400">'+esc(p.actresses||p.maker||'')+'</p>'
@@ -617,7 +621,7 @@
       +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
       +'<span class="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>'
       +'<div class="absolute bottom-2 right-2 flex gap-1">'
-      +'<button onclick="event.preventDefault()" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">add</span></button>'
+      +(!(p.actresses&&p.actresses.trim())?'<button onclick="event.preventDefault()" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">add</span></button>':'')
       +'<button onclick="event.preventDefault()" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-red-500 hover:bg-red-500 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">favorite</span></button>'
       +'</div>'
       +'</div>'
@@ -640,6 +644,10 @@
       +'<div class="flex-1 min-w-0">'
       +'<p class="text-xs font-bold truncate">'+esc(p.title)+'</p>'
       +'<p class="text-[10px] text-gray-400 truncate">'+esc(p.actresses||p.maker||'')+'</p>'
+      +'</div>'
+      +'<div class="flex gap-1 shrink-0">'
+      +(!(p.actresses&&p.actresses.trim())?'<button onclick="event.preventDefault()" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-800 transition-colors"><span class="material-symbols-outlined text-[18px]">add_circle</span></button>':'')
+      +'<button onclick="event.preventDefault()" class="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors"><span class="material-symbols-outlined text-[18px]">favorite</span></button>'
       +'</div>'
       +'</a>';
   }
