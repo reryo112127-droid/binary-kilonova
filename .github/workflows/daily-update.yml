@@ -35,7 +35,15 @@ jobs:
           TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
 
-      # 女優プロフィールはTursoに直接書き込むためコミット不要
+      - name: Build suggest cache (Turso)
+        run: node scripts/build_suggest_cache.js
+        env:
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+
+      # 女優プロフィール・サジェストキャッシュはTursoに直接書き込むためコミット不要
 
   mgs-update:
     name: MGS 日次更新

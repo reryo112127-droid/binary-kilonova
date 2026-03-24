@@ -8,8 +8,6 @@ const nextConfig: NextConfig = {
   // サーバーレス関数のバンドルに必要なファイルのみ含める
   // 女優プロフィールはTursoに移行済みのためファイルバンドル不要
   outputFileTracingIncludes: {
-    '/api/suggest': ['./data/suggest_cache.json'],
-    '/api/ranking': ['./data/suggest_cache.json'],
     '/':             ['./public/design/**/*'],
     '/product/[id]': ['./public/design/**/*'],
     '/ranking':      ['./public/design/**/*'],
