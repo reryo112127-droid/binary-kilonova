@@ -1,6 +1,6 @@
 # AVコンシェルジュ — 進捗記録
 
-> 最終更新: 2026-03-24
+> 最終更新: 2026-03-25
 
 ---
 
@@ -141,12 +141,30 @@
   - `api/products` / `api/product/[id]` に `export const dynamic = 'force-dynamic'` 追加
   - Turso更新後の次リクエストから最新データを即時配信
 - **FANZA女優プロフィール自動更新**
-  - `fanza_daily_update.js` — 新出演女優を DMM ActressSearch API で自動取得
-  - 取得結果を `actress_profiles.json` に保存、commitで Vercel 自動再デプロイ
+  - `fanza_daily_update.js` — 新出演女優を DMM ActressSearch API で自動取得しTursoに保存
 - **AVWIKIスクレイプ結果のサイト自動反映**
-  - `scripts/build_avwiki_profiles.js` — `avwiki_full.jsonl` → `avwiki_profiles.json` 変換
-  - スクレイプ毎時実行後に変換・コミット → Vercel 自動再デプロイ
-  - 進捗のみのコミットは `[vercel skip]` でVercelビルドをスキップ
+  - `scripts/build_avwiki_profiles.js` — `avwiki_full.jsonl` → Turso UPSERT
+  - スクレイプ毎時実行後にTursoへ直接書き込み（ファイルコミット不要）
+
+### Phase 12 — 女優プロフィールTurso移行・Vercelエラー解消（2026-03-25）
+- **女優プロフィールをFANZA TursoへフルマイグレーションA**
+  - `scripts/migrate_actress_profiles_to_turso.js` — 一回限りの移行スクリプト
+  - `actress_profiles` テーブル: 59,558件（FANZA+AVWIKIマージ）
+  - `actress_aliases` テーブル: 249件（別名義マッピング）
+- **女優プロフィールAPIをTurso直接クエリに変更**
+  - `api/actress/[name]/route.ts` — `fs.readFileSync` → Tursoクエリ
+  - エイリアス解決・プロフィール取得を1〜2クエリで完結
+  - `force-dynamic` 追加 → スクレイプ後すぐサイトに反映（デプロイ不要）
+- **`build_avwiki_profiles.js` をTurso書き込みに変更**
+  - JSONファイル出力廃止 → Turso UPSERT（COALESCE で既存データを保護）
+  - 別名義も `actress_aliases` テーブルに登録
+- **Vercel Hobbyプランのボットコミットエラーを解消**
+  - 原因: `github-actions[bot]` コミットがVercel Hobbyでブロックされエラーメール
+  - 解決: 全ボットコミットに `[vercel skip]` を追加
+  - 根本解決: 女優プロフィールをTursoへ移行しファイルコミット自体が不要に
+- **`next.config.ts` のバンドル設定を簡素化**
+  - 女優プロフィールファイル（計13MB）のバンドルを削除
+  - Vercelデプロイサイズが大幅縮小
 
 ---
 
@@ -154,8 +172,8 @@
 
 | タスク | 状況 | 完了見込み |
 |---|---|---|
-| avwiki女優スクレイプ | 396/9,447 URL完了（毎時~100件） | 約90時間 |
-| avwiki品番マッピング | 5/15,000 URL完了（毎時~200件） | 約75時間 |
+| avwiki女優スクレイプ | 100/9,447 URL完了（毎時~100件） | 約94時間 |
+| avwiki品番マッピング | 100/15,000 URL完了（毎時~200件） | 約75時間 |
 
 ---
 
@@ -170,24 +188,24 @@ binary-kilonova/
 │   ├── mgs.db                    # MGS SQLite（114,563件）※gitignore
 │   ├── fanza.db                  # FANZA SQLite（384,000件+）※gitignore
 │   ├── suggest_cache.json        # サジェスト用キャッシュ
-│   ├── actress_aliases.json      # 女優名寄せ辞書
-│   ├── actress_profiles.json     # 女優プロフィール（59,535件 / FANZA）自動更新
-│   ├── avwiki_profiles.json      # avwikiプロフィール（変換済）自動更新
 │   ├── avwiki_full.jsonl         # avwiki新スクレイプ出力（稼働中）
 │   ├── avwiki_product_map.jsonl  # avwiki品番→女優マッピング（稼働中）
 │   └── avwiki_product_urls.json  # 品番ページURLリスト（15,000件）
+│   ※ actress_profiles.json / avwiki_profiles.json → Turso移行済み（ファイル不要）
 ├── scripts/
-│   ├── fanza_daily_update.js     # ★ FANZA日次更新（女優プロフィール自動取得含む）
-│   ├── phase3_daily_update.js    # ★ MGS日次更新（価格・セール・女優インデックス）
-│   ├── scrape_avwiki_full.js     # avwiki全女優スクレイパー（稼働中）
-│   ├── scrape_avwiki_products.js # avwiki品番スクレイパー（稼働中）
-│   ├── build_avwiki_profiles.js  # ★ avwiki_full.jsonl→avwiki_profiles.json変換
-│   ├── build_suggest_cache.js    # サジェストキャッシュ生成
+│   ├── fanza_daily_update.js               # ★ FANZA日次更新（女優プロフィールTurso保存）
+│   ├── phase3_daily_update.js              # ★ MGS日次更新
+│   ├── scrape_avwiki_full.js               # avwiki全女優スクレイパー（稼働中）
+│   ├── scrape_avwiki_products.js           # avwiki品番スクレイパー（稼働中）
+│   ├── build_avwiki_profiles.js            # ★ avwiki_full.jsonl → Turso UPSERT
+│   ├── migrate_actress_profiles_to_turso.js # 移行済み（一回限り）
+│   ├── build_suggest_cache.js              # サジェストキャッシュ生成
 │   └── ...
 └── site/                         # Next.jsアプリ（lunar-zodiac.vercel.app）
     └── app/api/
-        ├── products/route.ts     # force-dynamic — 即時反映
-        └── product/[id]/route.ts # force-dynamic — 即時反映
+        ├── products/route.ts        # force-dynamic — 即時反映
+        ├── product/[id]/route.ts    # force-dynamic — 即時反映
+        └── actress/[name]/route.ts  # force-dynamic — Turso直接クエリ
 ```
 
 ---
@@ -201,7 +219,7 @@ node scripts/fanza_daily_update.js
 # MGS日次更新
 node scripts/phase3_daily_update.js
 
-# avwikiスクレイプ→profiles変換
+# avwikiスクレイプ結果をTursoに反映
 node scripts/build_avwiki_profiles.js
 
 # サジェストキャッシュのみ再生成
