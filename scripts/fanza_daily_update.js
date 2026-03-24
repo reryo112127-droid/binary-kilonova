@@ -1,12 +1,12 @@
 /**
  * FANZA 日次アップデートスクリプト
  *
- * 1. 新作取得: 直近N日の新作を DMM API から取得しローカルDB + Turso に追加
+ * 1. 予約商品取得: 明日以降にリリース予定の作品を DMM API から取得しローカルDB + Turso に追加
  * 2. 価格更新: 直近12ヶ月の既存作品の価格情報（セール検出）を更新
  *
  * 実行:
- *   node scripts/fanza_daily_update.js              # デフォルト: 過去7日
- *   node scripts/fanza_daily_update.js --days 14    # 過去14日
+ *   node scripts/fanza_daily_update.js              # デフォルト: 明日〜2ヶ月先
+ *   node scripts/fanza_daily_update.js --ahead 3    # 3ヶ月先まで
  *   node scripts/fanza_daily_update.js --no-price   # 価格更新スキップ
  *   node scripts/fanza_daily_update.js --dry-run    # 件数確認のみ（DB書き込みなし）
  */
@@ -27,12 +27,16 @@ const HITS_PER_REQUEST = 100;
 const RATE_LIMIT_MS    = 1200;
 const PRICE_REFRESH_MONTHS = 12; // 直近何ヶ月分の価格を更新するか
 
+// FANZAデジタル動画のfloor一覧
+// videoa: ビデオ（一般AV）, videoc: 素人
+const FLOORS = ['videoa', 'videoc'];
+
 // ---- 引数パース ----
-const args    = process.argv.slice(2);
-const daysArg = args.indexOf('--days');
-const DAYS_BACK  = daysArg !== -1 ? parseInt(args[daysArg + 1], 10) : 7;
-const DRY_RUN    = args.includes('--dry-run');
-const NO_PRICE   = args.includes('--no-price');
+const args      = process.argv.slice(2);
+const aheadArg  = args.indexOf('--ahead');
+const MONTHS_AHEAD = aheadArg !== -1 ? parseInt(args[aheadArg + 1], 10) : 2; // 予約商品は約1ヶ月前に登録されるため2ヶ月先まで
+const DRY_RUN   = args.includes('--dry-run');
+const NO_PRICE  = args.includes('--no-price');
 
 // ---- ユーティリティ ----
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -94,13 +98,13 @@ function parsePrice(item) {
 }
 
 // ---- DMM API 呼び出し ----
-async function fetchPage(gteDate, lteDate, offset = 1) {
+async function fetchPage(gteDate, lteDate, offset = 1, floor = 'videoa') {
     const params = new URLSearchParams({
         api_id:       DMM_API_ID,
         affiliate_id: DMM_AFFILIATE_ID,
         site:         'FANZA',
         service:      'digital',
-        floor:        'videoa',
+        floor,
         hits:         HITS_PER_REQUEST.toString(),
         offset:       offset.toString(),
         sort:         'date',
@@ -209,77 +213,91 @@ async function tursoUpsertBatch(turso, rows, columns) {
 }
 
 // ============================================================
-//  STEP 1: 新作取得
+//  STEP 1: 予約商品取得（明日以降のリリース予定作品）— 全floor対応
 // ============================================================
-async function fetchNewProducts(gteDateStr, lteDateStr) {
+async function fetchPreorders(gteDateStr, lteDateStr) {
     const gteDateTime = toApiDatetime(gteDateStr);
     const lteDateTime = toApiDatetime(lteDateStr, true);
 
-    console.log(`\n[STEP 1] 新作取得: ${gteDateStr} 〜 ${lteDateStr}`);
+    console.log(`\n[STEP 1] 予約商品取得: ${gteDateStr} 〜 ${lteDateStr} (floor: ${FLOORS.join(', ')})`);
 
-    let offset = 1, totalInApi = null;
     const fetched = [];
 
-    while (true) {
-        const { total, items } = await fetchPage(gteDateTime, lteDateTime, offset);
-        if (totalInApi === null) {
-            totalInApi = total;
-            console.log(`  DMM API 件数: ${total.toLocaleString()} 件`);
-        }
-        if (items.length === 0) break;
-        for (const item of items) fetched.push(convertItem(item));
-        process.stdout.write(`  取得中: ${fetched.length} / ${totalInApi}\r`);
-        if (items.length < HITS_PER_REQUEST) break;
-        offset += HITS_PER_REQUEST;
-        await sleep(RATE_LIMIT_MS);
-    }
-
-    console.log(`\n  取得完了: ${fetched.length} 件`);
-    return fetched;
-}
-
-// ============================================================
-//  STEP 2: 価格更新（直近12ヶ月の既存作品）
-// ============================================================
-async function refreshPrices() {
-    const months = getPastMonths(PRICE_REFRESH_MONTHS);
-    console.log(`\n[STEP 2] 価格更新: 直近${PRICE_REFRESH_MONTHS}ヶ月 (${months[0]} 〜 ${months[months.length - 1]})`);
-
-    // product_id → 価格情報 のマップ
-    const priceMap = new Map(); // product_id -> { listPrice, currentPrice, discountPct }
-
-    for (let mi = 0; mi < months.length; mi++) {
-        const ym = months[mi];
-        const { gte, lte } = getMonthRange(ym);
-        let offset = 1, monthTotal = null;
+    for (const floor of FLOORS) {
+        let offset = 1, totalInApi = null;
+        console.log(`  [${floor}] 取得開始...`);
 
         while (true) {
             try {
-                const { total, items } = await fetchPage(gte, lte, offset);
-                if (monthTotal === null) monthTotal = total;
-                if (items.length === 0) break;
-
-                for (const item of items) {
-                    const { listPrice, currentPrice, discountPct, saleEndDate } = parsePrice(item);
-                    priceMap.set(item.content_id, {
-                        listPrice, currentPrice, discountPct, saleEndDate,
-                        price_updated_at: new Date().toISOString(),
-                    });
+                const { total, items } = await fetchPage(gteDateTime, lteDateTime, offset, floor);
+                if (totalInApi === null) {
+                    totalInApi = total;
+                    console.log(`  [${floor}] DMM API 件数: ${total.toLocaleString()} 件`);
                 }
-
+                if (items.length === 0) break;
+                for (const item of items) fetched.push(convertItem(item));
+                process.stdout.write(`  [${floor}] 取得中: ${fetched.length} 件\r`);
                 if (items.length < HITS_PER_REQUEST) break;
                 offset += HITS_PER_REQUEST;
                 await sleep(RATE_LIMIT_MS);
             } catch (e) {
-                console.warn(`\n  [警告] ${ym} 取得エラー: ${e.message}`);
+                console.warn(`\n  [警告] ${floor} 予約商品取得エラー: ${e.message}`);
                 break;
             }
         }
-
-        process.stdout.write(`  ${mi + 1}/${months.length} ${ym}: ${monthTotal ?? 0}件  \r`);
+        console.log(`\n  [${floor}] 完了`);
     }
 
-    console.log(`\n  価格取得完了: ${priceMap.size.toLocaleString()} 件`);
+    console.log(`  全floor取得完了: ${fetched.length} 件`);
+    return fetched;
+}
+
+// ============================================================
+//  STEP 2: 価格更新（直近12ヶ月の既存作品）— 全floor対応
+// ============================================================
+async function refreshPrices() {
+    const months = getPastMonths(PRICE_REFRESH_MONTHS);
+    console.log(`\n[STEP 2] 価格更新: 直近${PRICE_REFRESH_MONTHS}ヶ月 (${months[0]} 〜 ${months[months.length - 1]}) floor: ${FLOORS.join(', ')}`);
+
+    // product_id → 価格情報 のマップ
+    const priceMap = new Map(); // product_id -> { listPrice, currentPrice, discountPct }
+
+    for (const floor of FLOORS) {
+        console.log(`  [${floor}] 価格更新中...`);
+        for (let mi = 0; mi < months.length; mi++) {
+            const ym = months[mi];
+            const { gte, lte } = getMonthRange(ym);
+            let offset = 1, monthTotal = null;
+
+            while (true) {
+                try {
+                    const { total, items } = await fetchPage(gte, lte, offset, floor);
+                    if (monthTotal === null) monthTotal = total;
+                    if (items.length === 0) break;
+
+                    for (const item of items) {
+                        const { listPrice, currentPrice, discountPct, saleEndDate } = parsePrice(item);
+                        priceMap.set(item.content_id, {
+                            listPrice, currentPrice, discountPct, saleEndDate,
+                            price_updated_at: new Date().toISOString(),
+                        });
+                    }
+
+                    if (items.length < HITS_PER_REQUEST) break;
+                    offset += HITS_PER_REQUEST;
+                    await sleep(RATE_LIMIT_MS);
+                } catch (e) {
+                    console.warn(`\n  [警告] ${floor}/${ym} 取得エラー: ${e.message}`);
+                    break;
+                }
+            }
+
+            process.stdout.write(`  [${floor}] ${mi + 1}/${months.length} ${ym}: ${monthTotal ?? 0}件  \r`);
+        }
+        console.log('');
+    }
+
+    console.log(`  価格取得完了: ${priceMap.size.toLocaleString()} 件`);
 
     // セール中の件数を集計
     let saleCount = 0;
@@ -317,21 +335,23 @@ async function main() {
         }
     }
 
-    const today    = new Date();
-    const fromDate = new Date(today);
-    fromDate.setDate(today.getDate() - DAYS_BACK);
-    const gteDateStr = formatDate(fromDate);
-    const lteDateStr = formatDate(today);
+    const today     = new Date();
+    const tomorrow  = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const futureEnd = new Date(today);
+    futureEnd.setMonth(today.getMonth() + MONTHS_AHEAD);
+    const gteDateStr = formatDate(tomorrow);
+    const lteDateStr = formatDate(futureEnd);
 
     console.log('========================================');
     console.log('  FANZA 日次アップデート');
     console.log('========================================');
-    console.log(`  新作期間: ${gteDateStr} 〜 ${lteDateStr} (${DAYS_BACK}日間)`);
+    console.log(`  予約商品期間: ${gteDateStr} 〜 ${lteDateStr} (${MONTHS_AHEAD}ヶ月先まで)`);
     console.log(`  価格更新: 直近${PRICE_REFRESH_MONTHS}ヶ月${NO_PRICE ? ' [スキップ]' : ''}`);
     if (DRY_RUN) console.log('  [DRY RUN] DB書き込みなし');
 
-    // ---- STEP 1: 新作取得 ----
-    const newItems = await fetchNewProducts(gteDateStr, lteDateStr);
+    // ---- STEP 1: 予約商品取得 ----
+    const newItems = await fetchPreorders(gteDateStr, lteDateStr);
 
     // ---- STEP 2: 価格更新 ----
     const priceMap = NO_PRICE ? new Map() : await refreshPrices();
@@ -415,7 +435,7 @@ async function main() {
         console.log('\n[STEP 3] CI環境 — ローカルDB スキップ');
     }
 
-    console.log(`  新規追加: ${newCount}件 / 価格更新: ${priceUpdated.toLocaleString()}件`);
+    console.log(`  予約商品追加: ${newCount}件 / 価格更新: ${priceUpdated.toLocaleString()}件`);
     console.log(`  セール中: ${saleStats.cnt.toLocaleString()}件 (最大割引率: ${saleStats.max_disc ?? 0}%)`);
 
     // ---- Turso 書き込み ----
@@ -548,23 +568,23 @@ async function main() {
     {
         const lines = [
             `📦 **FANZA日次更新** (${now})`,
-            `新作: **${newCount}件** / 価格更新: **${priceUpdated.toLocaleString()}件**`,
+            `予約商品: **${newCount}件** / 価格更新: **${priceUpdated.toLocaleString()}件**`,
         ];
         if (saleStats.cnt > 0) {
             lines.push(`🏷️ セール中: **${saleStats.cnt.toLocaleString()}件** (最大 ${saleStats.max_disc}%OFF)`);
         }
         if (newCount === 0 && saleStats.cnt === 0) {
-            lines.push('ℹ️ 本日の新作・セールなし');
+            lines.push('ℹ️ 本日の予約商品・セールなし');
         }
         await sendDiscord(lines.join('\n'));
     }
 
-    // ---- Telegram通知（新作・セール） ----
+    // ---- Telegram通知（予約商品・セール） ----
     if (process.env.TELEGRAM_BOT_TOKEN) {
         try {
             if (newCount > 0) {
                 execSync(
-                    `node ${path.join(__dirname, 'telegram_bot.js')} --mode=notify --genre=new --count=3`,
+                    `node ${path.join(__dirname, 'telegram_bot.js')} --mode=notify --genre=preorder --count=3`,
                     { stdio: 'inherit' }
                 );
             }

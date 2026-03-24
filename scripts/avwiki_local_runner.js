@@ -28,9 +28,10 @@ const ROOT    = path.join(__dirname, '..');
 const LOG_DIR = path.join(ROOT, 'logs');
 if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 
-// ── インターバル設定 (GitHub Actions と同値) ──────────────────────────
-const ACTRESS_INTERVAL_SEC = 30;  // 女優1件あたり待機秒
-const PRODUCT_INTERVAL_SEC = 15;  // 品番1件あたり待機秒
+// ── インターバル設定 ────────────────────────────────────────────────────
+// 5日完了ペース: 432,000秒 ÷ 女優9,447件 ≈ 46秒 / 品番15,000件 ≈ 29秒
+const ACTRESS_INTERVAL_SEC = 46;  // 女優1件あたり待機秒
+const PRODUCT_INTERVAL_SEC = 29;  // 品番1件あたり待機秒
 
 // 定期タスク間隔
 const GIT_COMMIT_INTERVAL_MS    =  60 * 60 * 1000;  // 1時間ごとにコミット
@@ -239,7 +240,7 @@ async function main() {
     log('╠══════════════════════════════════════════════════════╣');
     log(`║  女優スクレイプ  ${actressRemain}件 × ${ACTRESS_INTERVAL_SEC}秒 → ETA: ${eta(actressRemain, ACTRESS_INTERVAL_SEC)}`);
     log(`║  品番スクレイプ  ${productRemain}件 × ${PRODUCT_INTERVAL_SEC}秒 → ETA: ${eta(productRemain, PRODUCT_INTERVAL_SEC)}`);
-    log('║  実行方式: 並列 (同時実行) → 最大3.2日で完了予定     ║');
+    log('║  実行方式: 並列 (同時実行) → 最大5日で完了予定       ║');
     log('║  Git進捗コミット: 1時間ごと                          ║');
     log('║  Turso反映:       2時間ごと                          ║');
     log('╚══════════════════════════════════════════════════════╝');

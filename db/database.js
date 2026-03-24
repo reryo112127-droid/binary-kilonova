@@ -22,27 +22,28 @@ async function init() {
 
     const SQL = await initSqlJs();
 
-    if (fs.existsSync(DB_PATH)) {
-        const buffer = fs.readFileSync(DB_PATH);
-        db = new SQL.Database(buffer);
-    } else {
-        db = new SQL.Database();
-    }
-
-    // スキーマ適用
-    const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
-    db.run(schema);
-
-    // カラム追加マイグレーション（既存DBへの対応）
-    for (const sql of [
+    const migrations = [
         'ALTER TABLE products ADD COLUMN list_price INTEGER',
         'ALTER TABLE products ADD COLUMN current_price INTEGER',
         'ALTER TABLE products ADD COLUMN discount_pct INTEGER DEFAULT 0',
         'ALTER TABLE products ADD COLUMN sale_end_date TEXT',
         'ALTER TABLE products ADD COLUMN price_updated_at TEXT',
-    ]) {
-        try { db.run(sql); } catch {} // 既存カラムはエラーを無視
+    ];
+
+    if (fs.existsSync(DB_PATH)) {
+        const buffer = fs.readFileSync(DB_PATH);
+        db = new SQL.Database(buffer);
+        // 既存DBにはスキーマ適用前にカラム追加（INDEXが新カラムを参照するため先に追加が必要）
+        for (const sql of migrations) {
+            try { db.run(sql); } catch {} // 既存カラムはエラーを無視
+        }
+    } else {
+        db = new SQL.Database();
     }
+
+    // スキーマ適用（CREATE TABLE IF NOT EXISTS + CREATE INDEX IF NOT EXISTS）
+    const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
+    db.run(schema);
 
     console.log(`[DB] 初期化完了: ${DB_PATH}`);
     return db;
