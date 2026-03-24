@@ -20,7 +20,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const DMM_API_ID      = process.env.DMM_API_ID;
 const DMM_AFFILIATE_ID = process.env.DMM_AFFILIATE_ID;
-const DISCORD_WEBHOOK  = 'https://discord.com/api/webhooks/1479858556726546523/fZSbfjBuRJN1fvRLWUkGu8wnZGPvx49hImkayKNol84ZOZqyvKzsf9K9ONCWhE0quKkJ';
+const DISCORD_WEBHOOK  = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
 
 const DB_PATH          = path.join(__dirname, '..', 'data', 'fanza.db');
 const HITS_PER_REQUEST = 100;
@@ -77,7 +77,7 @@ function parsePrice(item) {
                 || deliveries.find(d => d.type === 'hd')
                 || deliveries[0];
 
-    if (!target) return { listPrice: null, currentPrice: null, discountPct: 0 };
+    if (!target) return { listPrice: null, currentPrice: null, discountPct: 0, saleEndDate: null };
 
     // "~" サフィックスや カンマを除去して数値化
     const listPrice    = parseInt(String(target.list_price).replace(/[^0-9]/g, '')) || null;
@@ -87,7 +87,10 @@ function parsePrice(item) {
         ? Math.round((listPrice - currentPrice) / listPrice * 100)
         : 0;
 
-    return { listPrice, currentPrice, discountPct };
+    // セール終了日時 (DMM API: campaign.date_end)
+    const saleEndDate = target.campaign?.date_end || null;
+
+    return { listPrice, currentPrice, discountPct, saleEndDate };
 }
 
 // ---- DMM API 呼び出し ----
@@ -141,7 +144,7 @@ function convertItem(item) {
     let saleDate = item.date || null;
     if (saleDate) saleDate = saleDate.replace(' 00:00:00', '').trim();
 
-    const { listPrice, currentPrice, discountPct } = parsePrice(item);
+    const { listPrice, currentPrice, discountPct, saleEndDate } = parsePrice(item);
     const now = new Date().toISOString();
 
     return {
@@ -161,6 +164,7 @@ function convertItem(item) {
         list_price:         listPrice,
         current_price:      currentPrice,
         discount_pct:       discountPct,
+        sale_end_date:      saleEndDate,
         price_updated_at:   now,
         scraped_at:         now,
         updated_at:         now,
@@ -256,9 +260,9 @@ async function refreshPrices() {
                 if (items.length === 0) break;
 
                 for (const item of items) {
-                    const { listPrice, currentPrice, discountPct } = parsePrice(item);
+                    const { listPrice, currentPrice, discountPct, saleEndDate } = parsePrice(item);
                     priceMap.set(item.content_id, {
-                        listPrice, currentPrice, discountPct,
+                        listPrice, currentPrice, discountPct, saleEndDate,
                         price_updated_at: new Date().toISOString(),
                     });
                 }
@@ -296,6 +300,23 @@ async function main() {
         process.exit(1);
     }
 
+    // ---- Turso スキーママイグレーション（sale_end_date カラム追加、冪等） ----
+    {
+        const _url   = process.env.TURSO_FANZA_URL;
+        const _token = process.env.TURSO_FANZA_TOKEN;
+        if (_url && _token) {
+            const _turso = createClient({ url: _url, authToken: _token });
+            try { await _turso.execute('ALTER TABLE products ADD COLUMN sale_end_date TEXT'); } catch {}
+            _turso.close();
+        }
+        // ローカルDB マイグレーション
+        if (!process.env.CI && require('fs').existsSync(DB_PATH)) {
+            const _db = new Database(DB_PATH);
+            try { _db.prepare('ALTER TABLE products ADD COLUMN sale_end_date TEXT').run(); } catch {}
+            _db.close();
+        }
+    }
+
     const today    = new Date();
     const fromDate = new Date(today);
     fromDate.setDate(today.getDate() - DAYS_BACK);
@@ -329,7 +350,7 @@ async function main() {
         'product_id','title','actresses','maker','label','duration_min',
         'genres','sale_start_date','main_image_url','sample_images_json',
         'sample_video_url','affiliate_url','detail_url',
-        'list_price','current_price','discount_pct','price_updated_at',
+        'list_price','current_price','discount_pct','sale_end_date','price_updated_at',
         'scraped_at','updated_at',
     ];
 
@@ -361,6 +382,7 @@ async function main() {
                     list_price       = @listPrice,
                     current_price    = @currentPrice,
                     discount_pct     = @discountPct,
+                    sale_end_date    = @saleEndDate,
                     price_updated_at = @price_updated_at,
                     updated_at       = @price_updated_at
                 WHERE product_id = @product_id
@@ -369,9 +391,10 @@ async function main() {
                 for (const [product_id, v] of entries) {
                     const r = updateStmt.run({
                         product_id,
-                        listPrice:   v.listPrice,
+                        listPrice:    v.listPrice,
                         currentPrice: v.currentPrice,
-                        discountPct: v.discountPct,
+                        discountPct:  v.discountPct,
+                        saleEndDate:  v.saleEndDate ?? null,
                         price_updated_at: v.price_updated_at,
                     });
                     if (r.changes > 0) priceUpdated++;
@@ -414,7 +437,7 @@ async function main() {
         // 価格 update (バッチ UPDATE)
         if (priceMap.size > 0) {
             const updateSql = `UPDATE products SET
-                list_price=?, current_price=?, discount_pct=?, price_updated_at=?, updated_at=?
+                list_price=?, current_price=?, discount_pct=?, sale_end_date=?, price_updated_at=?, updated_at=?
                 WHERE product_id=?`;
             const entries = Array.from(priceMap.entries());
             const BATCH = 50;
@@ -425,7 +448,7 @@ async function main() {
                     await turso.batch(
                         batch.map(([pid, v]) => ({
                             sql: updateSql,
-                            args: [v.listPrice, v.currentPrice, v.discountPct, v.price_updated_at, v.price_updated_at, pid],
+                            args: [v.listPrice, v.currentPrice, v.discountPct, v.saleEndDate ?? null, v.price_updated_at, v.price_updated_at, pid],
                         })),
                         'write'
                     );
@@ -433,7 +456,7 @@ async function main() {
                 } catch {
                     for (const [pid, v] of batch) {
                         try {
-                            await turso.execute({ sql: updateSql, args: [v.listPrice, v.currentPrice, v.discountPct, v.price_updated_at, v.price_updated_at, pid] });
+                            await turso.execute({ sql: updateSql, args: [v.listPrice, v.currentPrice, v.discountPct, v.saleEndDate ?? null, v.price_updated_at, v.price_updated_at, pid] });
                             tUpdated++;
                         } catch (e2) { /* skip */ }
                     }

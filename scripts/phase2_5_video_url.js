@@ -36,7 +36,7 @@ const SAMPLE_API_URL = 'https://www.mgstage.com/sampleplayer/sampleRespons.php?p
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1479858556726546523/fZSbfjBuRJN1fvRLWUkGu8wnZGPvx49hImkayKNol84ZOZqyvKzsf9K9ONCWhE0quKkJ';
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
 
 /**
  * Discordにメッセージを送信する

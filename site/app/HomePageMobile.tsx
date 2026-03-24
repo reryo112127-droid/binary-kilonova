@@ -10,6 +10,7 @@ interface Product {
     main_image_url?: string;
     actresses?: string;
     wish_count?: number;
+    sale_start_date?: string;
 }
 
 function SmallCard({ p }: { p: Product }) {
@@ -18,7 +19,7 @@ function SmallCard({ p }: { p: Product }) {
         <Link href={`/product/${encodeURIComponent(p.product_id)}`} className="min-w-[110px] w-[110px] shrink-0 block group">
             <div className="aspect-[2/3] rounded-lg bg-slate-200 mb-2 overflow-hidden shadow-sm">
                 {poster && (
-                    <img alt="" className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform" src={poster} loading="lazy"
+                    <img alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" src={poster} loading="lazy"
                         onError={e => { if (p.main_image_url && e.currentTarget.src !== p.main_image_url) e.currentTarget.src = p.main_image_url!; }} />
                 )}
             </div>
@@ -44,6 +45,33 @@ function NewCard({ p }: { p: Product }) {
     );
 }
 
+function PreorderCard({ p }: { p: Product }) {
+    const poster = getPosterImageUrl(p.main_image_url);
+    const date = p.sale_start_date ? p.sale_start_date.slice(0, 10) : '';
+    return (
+        <Link href={`/product/${encodeURIComponent(p.product_id)}`} className="min-w-[120px] w-[120px] shrink-0 block group">
+            <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-md relative bg-slate-200">
+                {poster && (
+                    <img alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" src={poster} loading="lazy"
+                        onError={e => { if (p.main_image_url && e.currentTarget.src !== p.main_image_url) e.currentTarget.src = p.main_image_url!; }} />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
+                <span className="absolute top-1.5 left-1.5 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>
+                <div className="absolute bottom-1.5 right-1.5 flex gap-1">
+                    <button onClick={e => e.preventDefault()} className="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-slate-700 hover:bg-primary hover:text-white transition-colors">
+                        <span className="material-symbols-outlined text-[14px]">add</span>
+                    </button>
+                    <button onClick={e => e.preventDefault()} className="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-primary hover:bg-primary hover:text-white transition-colors">
+                        <span className="material-symbols-outlined text-[14px]">favorite</span>
+                    </button>
+                </div>
+            </div>
+            <p className="text-[10px] font-bold leading-tight line-clamp-2 mt-1.5 text-gray-800">{p.title}</p>
+            {date && <p className="text-[9px] text-primary font-medium mt-0.5">{date}</p>}
+        </Link>
+    );
+}
+
 function RankCard({ p, rank }: { p: Product; rank: number }) {
     const poster = getPosterImageUrl(p.main_image_url);
     return (
@@ -65,13 +93,21 @@ function RankCard({ p, rank }: { p: Product; rank: number }) {
 export default function HomePageMobile() {
     const [popular, setPopular] = useState<Product[]>([]);
     const [newArrivals, setNewArrivals] = useState<Product[]>([]);
+    const [preorder, setPreorder] = useState<Product[]>([]);
+
+    const HOME_MAKERS = 'S1,MOODYZ,アイデアポケット,E-BODY,OPPAI,Fitch,Madonna,痴女ヘブン,kawaii,million,本中,ダスッ,Hunter,ワンズファクトリー,TAMEIKE,プレミアム,SOD,FALENO,DAHLIA,プレステージ,Jackson,シロウトTV,ナンパTV,ラグジュTV,DOC,ARA,KANBi,黒船,NTR.net,ドキュメンTV';
+    const mkParam = '&excludeBest=1&makers=' + encodeURIComponent(HOME_MAKERS);
 
     useEffect(() => {
-        fetch('/api/products?sort=wish_count&limit=8')
+        fetch('/api/products?sort=pre-order&limit=6' + mkParam)
+            .then(r => r.json())
+            .then(setPreorder)
+            .catch(() => {});
+        fetch('/api/products?sort=wish_count&limit=8' + mkParam)
             .then(r => r.json())
             .then(setPopular)
             .catch(() => {});
-        fetch('/api/products?sort=new&limit=6')
+        fetch('/api/products?sort=new&limit=10' + mkParam)
             .then(r => r.json())
             .then(setNewArrivals)
             .catch(() => {});
@@ -88,8 +124,26 @@ export default function HomePageMobile() {
 
     return (
         <div className="pb-4">
-            {/* 注目作品 */}
+            {/* 予約作品 */}
             <section className="mt-4">
+                <div className="flex items-center justify-between px-4 mb-3">
+                    <h2 className="text-base font-black tracking-tight">予約作品</h2>
+                    <Link href="/pre-order" className="text-xs text-primary font-bold">すべて見る</Link>
+                </div>
+                <div className="flex gap-3 overflow-x-auto px-4 no-scrollbar">
+                    {preorder.length > 0 ? preorder.map(p => <PreorderCard key={p.product_id} p={p} />) : (
+                        Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="min-w-[120px] w-[120px] shrink-0 animate-pulse">
+                                <div className="aspect-[2/3] rounded-xl bg-slate-100 mb-1.5" />
+                                <div className="h-2 bg-slate-100 rounded w-3/4" />
+                            </div>
+                        ))
+                    )}
+                </div>
+            </section>
+
+            {/* 注目作品 */}
+            <section className="mt-8">
                 <div className="flex items-center justify-between px-4 mb-3">
                     <h2 className="text-base font-black tracking-tight">注目作品</h2>
                     <Link href="/search?sort=wish_count" className="text-xs text-primary font-bold">すべて見る</Link>

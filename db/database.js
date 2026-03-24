@@ -33,6 +33,17 @@ async function init() {
     const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
     db.run(schema);
 
+    // カラム追加マイグレーション（既存DBへの対応）
+    for (const sql of [
+        'ALTER TABLE products ADD COLUMN list_price INTEGER',
+        'ALTER TABLE products ADD COLUMN current_price INTEGER',
+        'ALTER TABLE products ADD COLUMN discount_pct INTEGER DEFAULT 0',
+        'ALTER TABLE products ADD COLUMN sale_end_date TEXT',
+        'ALTER TABLE products ADD COLUMN price_updated_at TEXT',
+    ]) {
+        try { db.run(sql); } catch {} // 既存カラムはエラーを無視
+    }
+
     console.log(`[DB] 初期化完了: ${DB_PATH}`);
     return db;
 }
@@ -103,6 +114,28 @@ function updateProductDetail(product_id, detail) {
         detail.maker || null,
         detail.label || null,
         detail.duration_min || null,
+        product_id,
+    ]);
+}
+
+/**
+ * 作品の価格情報を更新
+ */
+function updateProductPrice(product_id, price) {
+    db.run(`
+        UPDATE products SET
+            list_price       = ?,
+            current_price    = ?,
+            discount_pct     = ?,
+            sale_end_date    = ?,
+            price_updated_at = datetime('now','localtime'),
+            updated_at       = datetime('now','localtime')
+        WHERE product_id = ?
+    `, [
+        price.list_price ?? null,
+        price.current_price ?? null,
+        price.discount_pct ?? 0,
+        price.sale_end_date ?? null,
         product_id,
     ]);
 }
@@ -219,6 +252,7 @@ module.exports = {
     upsertProductFromList,
     upsertProductsFromList,
     updateProductDetail,
+    updateProductPrice,
     getUnscrapedDetailIds,
     productExists,
     getProgress,

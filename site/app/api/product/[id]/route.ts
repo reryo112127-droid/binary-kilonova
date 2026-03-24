@@ -68,16 +68,14 @@ export async function GET(
         ? (fanzaProduct.affiliate_url as string | null) ?? null
         : null;
 
-    // セール情報: FANZAにのみ discount_pct がある
-    const discountPct = fanzaProduct
-        ? Number((fanzaProduct as Record<string, unknown>).discount_pct ?? 0)
-        : 0;
-    const listPrice = fanzaProduct
-        ? ((fanzaProduct as Record<string, unknown>).list_price as number | null) ?? null
-        : null;
-    const currentPrice = fanzaProduct
-        ? ((fanzaProduct as Record<string, unknown>).current_price as number | null) ?? null
-        : null;
+    // セール情報: FANZA優先、なければMGSから取得
+    const fanzaSale = fanzaProduct as Record<string, unknown> | null;
+    const mgsSale   = mgsProduct   as Record<string, unknown> | null;
+
+    const discountPct = Number(fanzaSale?.discount_pct ?? mgsSale?.discount_pct ?? 0);
+    const listPrice   = (fanzaSale?.list_price    ?? mgsSale?.list_price    ?? null) as number | null;
+    const currentPrice= (fanzaSale?.current_price ?? mgsSale?.current_price ?? null) as number | null;
+    const saleEndDate = (fanzaSale?.sale_end_date ?? mgsSale?.sale_end_date ?? null) as string | null;
 
     return NextResponse.json({
         ...primary,
@@ -91,6 +89,7 @@ export async function GET(
         discount_pct: discountPct,
         list_price: listPrice,
         current_price: currentPrice,
+        sale_end_date: saleEndDate,
         actresses: filterActresses(
             (primary.actresses as string | null) || null,
             (primary.genres as string | null) || null,

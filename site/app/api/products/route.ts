@@ -108,6 +108,20 @@ export async function GET(request: NextRequest) {
             conditions.push(`(${profConditions})`);
             profileActresses.forEach(a => args.push(`%${a}%`));
         }
+        const today = new Date().toISOString().slice(0, 10);
+        if (sort === 'pre-order') {
+            // 未配信作品のみ（今日より後）
+            // MGS: YYYY/MM/DD（スラッシュ） → REPLACE で正規化してから比較
+            // FANZA: YYYY-MM-DD（ハイフン） → そのまま比較可能
+            conditions.push("REPLACE(sale_start_date, '/', '-') > ?");
+            args.push(today);
+        }
+        if (sort === 'new') {
+            // 配信済み作品のみ（今日以前）
+            conditions.push("sale_start_date IS NOT NULL");
+            conditions.push("REPLACE(sale_start_date, '/', '-') <= ?");
+            args.push(today);
+        }
         if (fromDate) {
             conditions.push('sale_start_date >= ?');
             args.push(fromDate);
@@ -119,9 +133,17 @@ export async function GET(request: NextRequest) {
         if (makers) {
             const makerList = makers.split(',').map(s => s.trim()).filter(Boolean);
             if (makerList.length > 0) {
-                const makerConds = makerList.map(() => 'maker LIKE ?').join(' OR ');
-                conditions.push(`(${makerConds})`);
-                makerList.forEach(m => args.push(`%${m}%`));
+                if (isMgs) {
+                    // MGS: maker列にブランド名が入っている
+                    const makerConds = makerList.map(() => 'maker LIKE ?').join(' OR ');
+                    conditions.push(`(${makerConds})`);
+                    makerList.forEach(m => args.push(`%${m}%`));
+                } else {
+                    // FANZA: label列にブランド名、maker列に会社名が入っているため両方チェック
+                    const makerConds = makerList.map(() => '(label LIKE ? OR maker LIKE ?)').join(' OR ');
+                    conditions.push(`(${makerConds})`);
+                    makerList.forEach(m => args.push(`%${m}%`, `%${m}%`));
+                }
             }
         }
         if (excludeBest) {
@@ -139,7 +161,8 @@ export async function GET(request: NextRequest) {
     }
 
     function buildOrderBy(isMgs: boolean) {
-        if (sort === 'new') return 'ORDER BY sale_start_date DESC';
+        if (sort === 'new') return 'ORDER BY sale_start_date DESC';          // 配信日が新しい順
+        if (sort === 'pre-order') return 'ORDER BY scraped_at DESC';          // 新たに追加された順
         if (sort === 'random') return 'ORDER BY RANDOM()';
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';
     }

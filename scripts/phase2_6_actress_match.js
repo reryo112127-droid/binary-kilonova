@@ -21,7 +21,7 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 const ACTRESSES_PATH = path.join(DATA_DIR, 'actresses_all.json');
 const MATCH_JSONL = path.join(DATA_DIR, 'mgs_actress_matches.jsonl');
 const PROGRESS_PATH = path.join(DATA_DIR, 'phase2_6_progress.json');
-const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1479858556726546523/fZSbfjBuRJN1fvRLWUkGu8wnZGPvx49hImkayKNol84ZOZqyvKzsf9K9ONCWhE0quKkJ';
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 

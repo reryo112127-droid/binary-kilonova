@@ -254,39 +254,57 @@
 <script>
 (function(){
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
+  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');if(url.includes('pics.dmm.co.jp')&&url.endsWith('pl.jpg'))return url;return url;}
   function purl(id){return '/product/'+encodeURIComponent(id);}
 
   // 予約・新作セクション
-  fetch('/api/products?sort=new&limit=10&excludeBest=1')
+  var HOME_MAKERS='S1,MOODYZ,アイデアポケット,E-BODY,OPPAI,Fitch,Madonna,痴女ヘブン,kawaii,million,本中,ダスッ,Hunter,ワンズファクトリー,TAMEIKE,プレミアム,SOD,FALENO,DAHLIA,プレステージ,Jackson,シロウトTV,ナンパTV,ラグジュTV,DOC,ARA,KANBi,黒船,NTR.net,ドキュメンTV';
+  var mkq='&excludeBest=1&makers='+encodeURIComponent(HOME_MAKERS);
+
+  // 予約セクション（未配信・配信日が遠い順）
+  fetch('/api/products?sort=pre-order&limit=6'+mkq)
     .then(function(r){return r.json();})
     .then(function(data){
       if(!Array.isArray(data)||!data.length)return;
       var preList=document.getElementById('home-preorder-list');
+      if(!preList)return;
+      preList.innerHTML=data.map(function(p){
+        var ps=poster(p.main_image_url);
+        var date=p.sale_start_date?(p.sale_start_date.slice(0,10)):'';
+        return '<a href="'+purl(p.product_id)+'" class="min-w-[120px] w-[120px] relative group block shrink-0">'
+          +'<div class="aspect-[2/3] rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
+          +(ps?'<img class="w-full h-full object-cover" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
+          +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
+          +'<span class="absolute top-1.5 left-1.5 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>'
+          +'<div class="absolute bottom-1.5 right-1.5 flex gap-1">'
+          +'<button onclick="event.preventDefault()" class="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-slate-700 hover:bg-primary hover:text-white transition-colors"><span class="material-symbols-outlined text-[14px]">add</span></button>'
+          +'<button onclick="event.preventDefault()" class="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-primary hover:bg-primary hover:text-white transition-colors"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
+          +'</div>'
+          +'</div>'
+          +'<p class="text-[10px] font-bold leading-tight line-clamp-2 mt-1.5">'+esc(p.title||'')+'</p>'
+          +(date?'<p class="text-[9px] text-primary font-medium mt-0.5">'+date+'</p>':'')
+          +'</a>';
+      }).join('');
+    }).catch(function(){});
+
+  // 新作セクション
+  fetch('/api/products?sort=new&limit=10'+mkq)
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!Array.isArray(data)||!data.length)return;
       var newList=document.getElementById('home-new-list');
-      if(preList){
-        preList.innerHTML=data.slice(0,5).map(function(p){
-          var ps=poster(p.main_image_url);
-          return '<a href="'+purl(p.product_id)+'" class="min-w-[110px] w-[110px] relative group block">'
-            +'<div class="aspect-[2/3] rounded-lg bg-slate-200 dark:bg-slate-800 mb-2 overflow-hidden shadow-sm">'
-            +(ps?'<img class="w-full h-full object-cover" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
-            +'</div>'
-            +'<p class="text-[11px] font-bold leading-tight line-clamp-2">'+esc(p.title||'')+'</p></a>';
-        }).join('');
-      }
-      if(newList){
-        newList.innerHTML=data.slice(0,6).map(function(p){
-          var actress=p.actresses?(p.actresses.split(',')[0].trim()):'';
-          return '<a href="'+purl(p.product_id)+'" class="min-w-[260px] p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-primary/10 shadow-sm flex gap-3 relative block">'
-            +'<div class="w-16 aspect-square rounded-lg overflow-hidden shrink-0 bg-slate-200">'
-            +(p.main_image_url?'<img class="w-full h-full object-cover" src="'+esc(p.main_image_url)+'" alt="" loading="lazy"/>':'')
-            +'</div>'
-            +'<div class="flex flex-col justify-center min-w-0">'
-            +(actress?'<span class="text-[9px] text-primary font-bold">'+esc(actress)+'</span>':'')
-            +'<h3 class="font-bold text-[13px] truncate">'+esc(p.title||'')+'</h3>'
-            +'</div></a>';
-        }).join('');
-      }
+      if(!newList)return;
+      newList.innerHTML=data.map(function(p){
+        var actress=p.actresses?(p.actresses.split(',')[0].trim()):'';
+        return '<a href="'+purl(p.product_id)+'" class="min-w-[260px] p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-primary/10 shadow-sm flex gap-3 relative block">'
+          +'<div class="w-16 aspect-square rounded-lg overflow-hidden shrink-0 bg-slate-200">'
+          +(p.main_image_url?'<img class="w-full h-full object-cover" src="'+esc(p.main_image_url)+'" alt="" loading="lazy"/>':'')
+          +'</div>'
+          +'<div class="flex flex-col justify-center min-w-0">'
+          +(actress?'<span class="text-[9px] text-primary font-bold">'+esc(actress)+'</span>':'')
+          +'<h3 class="font-bold text-[13px] truncate">'+esc(p.title||'')+'</h3>'
+          +'</div></a>';
+      }).join('');
     }).catch(function(){});
 
   // ランキングセクション

@@ -47,26 +47,16 @@
 <main class="flex-1 pb-24">
 <!-- 1. Hero Package Image -->
 <div class="@container">
-<div class="w-full aspect-[16/9] bg-slate-200 dark:bg-slate-800 overflow-hidden relative">
-<img alt="Main movie package artwork" class="w-full h-full object-cover" data-alt="Modern abstract artistic movie cover background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCthU2mVH9eDkrEt5Rk4Asnunc0gurg2Az21PutDkaoUMYjlMjwKWb_jRbEN3ZbDuKt7m1WpafWMMc61Znq5ZydtqJxr3zrBos6dmVfyjQgG4rlVF89LDc0s4N5IoZqmsrmMLIJeZ2tBDsk1bA7e3_d843Fh1D_J7yHKplcT6Yn9rMBtF5muB9BwBhKNsD4kCvkL7Au6qwlTGeYCGsfG_xKTtde6641yiuPMbGPl0mJ7Bgc9c0N2uLpbseX6oe84ML0x1GmpsoElcc"/>
+<div id="pd-hero" class="w-full bg-slate-200 dark:bg-slate-800 overflow-hidden relative">
+<img id="pd-hero-img" alt="" class="w-full h-auto block"/>
 <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
 </div>
 </div>
 <!-- 2. Sample Carousel & Play Button -->
 <div class="py-4">
-<div class="flex overflow-x-auto gap-3 px-4 no-scrollbar">
-<div class="flex-none w-40 aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
-<img class="w-full h-full object-cover" data-alt="Sample scene thumbnail 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDP2QgHV6a4W6cuE6HsxudwlJBEprGSoOgAvLHVVGJLE6HaRVhVY3QMIzznl9LkYTWpP-S_c67O2vVUowMFCeEGpsxPoNPPgnn_Lxk4iGrgd-K2KZIWMbwWPWImsJ7O3eZ6FvFmcaxFWwtq8f51dDZsxYWk9Kih1d8lXTwpWq3ADRQciyx6O0w6YN-s57VgEDgT39n25dRDUF9a43DNYra1xGgjtqqbq8tFfO-Naube655UHCAsJaqyWrweKDtYgGCQkXFG3ZJF_IQ"/>
-</div>
-<div class="flex-none w-40 aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
-<img class="w-full h-full object-cover" data-alt="Sample scene thumbnail 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDA5zgkdLXFZi1yAAq-bx6m2SNu684PKEmx01g6kDLFfU3sUt0RQ0wBQQNxiSRgPIdFHpPxZitxUZjH8zkq94hhtR1QhVML6k0GigKtu3N48worni2AxDkLfBLXlWNJAUEOO1lzrS_AUCAbujL_Qi4PV0bwn-ssQSsaXWvTgRUwYt1EYmmx4nRWhS_Lx1colZoDRGve-wKdjfgBWzN92hufd4lAwaz_psRCr6ApWInvEhPQ_wX_oGfgWZlNLpyjFd5yRPDOyQ1HBHw"/>
-</div>
-<div class="flex-none w-40 aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
-<img class="w-full h-full object-cover" data-alt="Sample scene thumbnail 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApgBPZoypy0p8SZt-bnkaBBIUkFNnfpXYqiejohdjZGRd0sza9PEErTOf3gvHZBauD-tlCZwUemprLxi-hBzIPPudhOjKcRC-GnsX2gSnK31jYMlXM-Zxl9ec0Ybw8gOv0Qmit3OHeYwmNs54kUnk7HMcWHIzQbTiCcmCcEpN3RbEENTSUtBO_OmV6Eg8xAn9XJWvhUemG6TS0Df5tvAMhmCZIq7bAya7szIpIM8vp6FiSBloz2WzjJe_dallbumo0geiI4reDEVc"/>
-</div>
-</div>
+<div id="pd-samples" class="flex overflow-x-auto gap-3 px-4 no-scrollbar"></div>
 <div class="px-4 mt-4">
-<button class="w-full flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all">
+<button id="pd-video-btn" class="w-full flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all" style="display:none">
 <span class="material-symbols-outlined">play_circle</span>
 <span>サンプル動画を再生</span>
 </button>
@@ -74,8 +64,7 @@
 </div>
 <!-- 3. Title Section -->
 <div class="px-4 py-2">
-<div class="inline-block bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded mb-2">RANKING NO.1</div>
-<h2 class="text-xl font-extrabold leading-tight">究極の美少女と過ごす密室シチュエーション：AVランキング特別編集版</h2>
+<h2 id="pd-title" class="text-xl font-extrabold leading-tight"></h2>
 </div>
 <!-- 4. Action Buttons -->
 <div class="flex gap-3 px-4 py-2">
@@ -90,35 +79,37 @@
 </div>
 <!-- 5. Info List & Sale Info -->
 <div class="px-4 py-4 space-y-3">
-<div class="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center justify-between">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-primary">campaign</span>
-<span class="text-sm font-bold text-primary">期間限定セール中！</span>
+<div id="pd-sale" class="bg-rose-50 border border-rose-200 rounded-xl p-3 flex items-center gap-3" style="display:none">
+<span id="pd-sale-pct" class="bg-rose-600 text-white font-black text-base px-3 py-1 rounded-lg shrink-0"></span>
+<div>
+<div class="text-sm font-bold text-rose-600">期間限定セール中</div>
+<div id="pd-sale-end" class="text-xs text-slate-500 mt-0.5" style="display:none"></div>
 </div>
-<div class="text-sm font-bold text-primary">3月17日まで30%オフ</div>
 </div>
 <dl class="grid grid-cols-3 gap-y-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-4">
 <dt class="text-slate-500 dark:text-slate-400">出演者</dt>
-<dd class="col-span-2 font-medium text-primary">美咲結衣, 桜庭あかり</dd>
+<dd id="pd-actresses" class="col-span-2 font-medium text-primary"></dd>
 <dt class="text-slate-500 dark:text-slate-400">メーカー</dt>
-<dd class="col-span-2 font-medium">PRESTIGE</dd>
+<dd id="pd-maker" class="col-span-2 font-medium"></dd>
 <dt class="text-slate-500 dark:text-slate-400">レーベル</dt>
-<dd class="col-span-2 font-medium">ABSOLUTE</dd>
+<dd id="pd-label" class="col-span-2 font-medium"></dd>
 <dt class="text-slate-500 dark:text-slate-400">ジャンル</dt>
-<dd class="col-span-2 font-medium">美少女, 独占配信, シチュエーション</dd>
+<dd id="pd-genres" class="col-span-2 font-medium"></dd>
 <dt class="text-slate-500 dark:text-slate-400">品番</dt>
-<dd class="col-span-2 font-medium uppercase">abp-123</dd>
+<dd id="pd-code" class="col-span-2 font-medium uppercase"></dd>
 <dt class="text-slate-500 dark:text-slate-400">収録時間</dt>
-<dd class="col-span-2 font-medium">180分</dd>
+<dd id="pd-duration" class="col-span-2 font-medium"></dd>
+<dt class="text-slate-500 dark:text-slate-400">配信日</dt>
+<dd id="pd-date" class="col-span-2 font-medium"></dd>
 </dl>
 </div>
 <!-- 6. Affiliate Buttons -->
 <div class="px-4 py-4 space-y-3">
-<a class="block bg-[#ff3333] text-white text-center py-4 rounded-xl font-bold shadow-md relative overflow-hidden group" href="#">
+<a id="pd-fanza-btn" class="block bg-[#ff3333] text-white text-center py-4 rounded-xl font-bold shadow-md relative overflow-hidden group" href="#" style="display:none" target="_blank" rel="noopener">
 <div class="absolute top-0 right-0 bg-black/20 px-2 py-0.5 text-[10px] rounded-bl-lg">PR</div>
 <span class="text-lg">FANZA動画で今すぐ見る</span>
 </a>
-<a class="block bg-[#00a0e9] text-white text-center py-4 rounded-xl font-bold shadow-md relative overflow-hidden group" href="#">
+<a id="pd-mgs-btn" class="block bg-[#00a0e9] text-white text-center py-4 rounded-xl font-bold shadow-md relative overflow-hidden group" href="#" style="display:none" target="_blank" rel="noopener">
 <div class="absolute top-0 right-0 bg-black/20 px-2 py-0.5 text-[10px] rounded-bl-lg">PR</div>
 <span class="text-lg">MGS動画で今すぐ見る</span>
 </a>
@@ -283,4 +274,74 @@
             font-variation-settings: 'FILL' 1;
         }
     </style>
+<script>
+(function(){
+  var id = decodeURIComponent((location.pathname.match(/\/product\/(.+)/) || [])[1] || '');
+  if (!id) return;
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function set(elId, val){ var el=document.getElementById(elId); if(el) el.textContent=val||'-'; }
+  function show(elId){ var el=document.getElementById(elId); if(el) el.style.display=''; }
+  function hide(elId){ var el=document.getElementById(elId); if(el) el.style.display='none'; }
+
+  fetch('/api/product/'+encodeURIComponent(id))
+    .then(function(r){ return r.json(); })
+    .then(function(p){
+      // ヒーロー画像（横長のまま使用）
+      var heroImg = document.getElementById('pd-hero-img');
+      if (heroImg && p.main_image_url) heroImg.src = p.main_image_url;
+
+      // タイトル
+      set('pd-title', p.title);
+      document.title = (p.title||'作品詳細') + ' - AVコンシェルジュ';
+
+      // サンプル画像
+      var samples = document.getElementById('pd-samples');
+      if (samples && p.sample_images && p.sample_images.length) {
+        samples.innerHTML = p.sample_images.slice(0,6).map(function(img){
+          return '<div class="flex-none w-40 aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">'
+            +'<img class="w-full h-full object-cover" src="'+esc(img)+'" loading="lazy"/></div>';
+        }).join('');
+      }
+
+      // サンプル動画
+      if (p.sample_video_url) {
+        var vBtn = document.getElementById('pd-video-btn');
+        if (vBtn) { vBtn.style.display=''; vBtn.onclick=function(){ window.open(p.sample_video_url,'_blank'); }; }
+      }
+
+      // 作品情報
+      set('pd-actresses', p.actresses || '-');
+      set('pd-maker', p.maker || '-');
+      set('pd-label', p.label || '-');
+      set('pd-genres', (p.genres||'').split(',').slice(0,6).map(function(s){return s.trim();}).filter(Boolean).join('、') || '-');
+      set('pd-code', (p.product_id||'').toUpperCase());
+      set('pd-duration', p.duration_min ? p.duration_min+'分' : '-');
+      set('pd-date', p.sale_start_date || '-');
+
+      // セール
+      if (p.discount_pct > 0) {
+        show('pd-sale');
+        set('pd-sale-pct', p.discount_pct + '%OFF');
+        if (p.sale_end_date) {
+          var ed = new Date(p.sale_end_date.replace(/\//g,'-'));
+          if (!isNaN(ed)) {
+            var endEl = document.getElementById('pd-sale-end');
+            if (endEl) { endEl.textContent = '〜' + (ed.getMonth()+1) + '/' + ed.getDate() + ' まで'; endEl.style.display=''; }
+          }
+        }
+      }
+
+      // アフィリエイトボタン
+      if (p.fanza_affiliate_url) {
+        var fb = document.getElementById('pd-fanza-btn');
+        if (fb) { fb.href = p.fanza_affiliate_url; fb.style.display=''; }
+      }
+      if (p.mgs_affiliate_url) {
+        var mb = document.getElementById('pd-mgs-btn');
+        if (mb) { mb.href = p.mgs_affiliate_url; mb.style.display=''; }
+      }
+    })
+    .catch(function(){});
+})();
+</script>
 </body></html>

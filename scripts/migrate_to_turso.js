@@ -38,6 +38,11 @@ const CONFIGS = {
             sample_images_json TEXT,
             sample_video_url TEXT,
             detail_scraped INTEGER DEFAULT 0,
+            list_price INTEGER,
+            current_price INTEGER,
+            discount_pct INTEGER DEFAULT 0,
+            sale_end_date TEXT,
+            price_updated_at TEXT,
             scraped_at TEXT,
             updated_at TEXT,
             x_posted_at TEXT,
@@ -45,7 +50,8 @@ const CONFIGS = {
         );
         CREATE INDEX IF NOT EXISTS idx_sale_date ON products(sale_start_date);
         CREATE INDEX IF NOT EXISTS idx_wish ON products(wish_count);
-        CREATE INDEX IF NOT EXISTS idx_maker ON products(maker);`,
+        CREATE INDEX IF NOT EXISTS idx_maker ON products(maker);
+        CREATE INDEX IF NOT EXISTS idx_discount ON products(discount_pct);`,
         // detail_scraped=1 のみ移行（サイト表示対象）
         query: 'SELECT * FROM products WHERE detail_scraped = 1',
     },

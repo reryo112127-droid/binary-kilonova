@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS products (
     list_price    INTEGER,                             -- 定価 (円)
     current_price INTEGER,                             -- 現在価格 (円、セール時は定価より低い)
     discount_pct  INTEGER DEFAULT 0,                   -- 割引率 (0-100%)
+    sale_end_date TEXT,                                -- セール終了日時
     price_updated_at TEXT,                             -- 価格最終更新日時
     scraped_at    TEXT DEFAULT (datetime('now','localtime')),
     updated_at    TEXT DEFAULT (datetime('now','localtime'))

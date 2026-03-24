@@ -25,7 +25,7 @@ const HITS_PER_REQUEST = 100;
 const RATE_LIMIT_MS = 1000;
 const START_YEAR_MONTH = '2010-01';
 
-const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1479858556726546523/fZSbfjBuRJN1fvRLWUkGu8wnZGPvx49hImkayKNol84ZOZqyvKzsf9K9ONCWhE0quKkJ';
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));

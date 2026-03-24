@@ -2,8 +2,9 @@ name: Daily Update (FANZA + MGS)
 
 on:
   schedule:
-    - cron: '10 1 * * *'   # 毎日 10:10 JST (= 01:10 UTC)
-  workflow_dispatch:         # 手動実行
+    - cron: '0 15 * * *'   # FANZA: 深夜 0:00 JST (= 15:00 UTC)
+    - cron: '0 1 * * *'    # MGS:  午前 10:00 JST (=  01:00 UTC)
+  workflow_dispatch:         # 手動実行（両方実行）
 
 concurrency:
   group: daily-update
@@ -12,6 +13,7 @@ concurrency:
 jobs:
   fanza-update:
     name: FANZA 日次更新
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 15 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +37,7 @@ jobs:
 
   mgs-update:
     name: MGS 日次更新
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 1 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -15,7 +15,7 @@ const DATA_DIR = path.join(__dirname, '..', 'data');
 const DETAIL_JSONL = path.join(DATA_DIR, 'mgs_details.jsonl');
 const PROGRESS_PATH = path.join(DATA_DIR, 'phase2_progress.json');
 
-const WEBHOOK_URL = 'https://discord.com/api/webhooks/1477561981408907275/GHoyB8EeV3cpR5OWEndcvSAlX8OHjC1wVfZizmnNzjSNOE--oLHKEO_rfoCW6KSA0MFf';
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
 const TOTAL_PRODUCTS = 114563;
 
 function sendDiscord(content) {

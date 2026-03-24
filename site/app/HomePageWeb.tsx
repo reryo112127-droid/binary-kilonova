@@ -10,6 +10,34 @@ interface Product {
     main_image_url?: string;
     actresses?: string;
     wish_count?: number;
+    sale_start_date?: string;
+}
+
+function PreorderCard({ p }: { p: Product }) {
+    const poster = getPosterImageUrl(p.main_image_url);
+    const date = p.sale_start_date ? p.sale_start_date.slice(0, 10) : '';
+    return (
+        <Link href={`/product/${encodeURIComponent(p.product_id)}`} className="flex-none w-[150px] group block">
+            <div className="aspect-[2/3] overflow-hidden rounded-xl bg-gray-100 relative shadow-md">
+                {poster && (
+                    <img alt="" className="w-full h-full object-cover transition-transform group-hover:scale-105" src={poster} loading="lazy"
+                        onError={e => { if (p.main_image_url && e.currentTarget.src !== p.main_image_url) e.currentTarget.src = p.main_image_url!; }} />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
+                <span className="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>
+                <div className="absolute bottom-2 right-2 flex gap-1">
+                    <button onClick={e => e.preventDefault()} className="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors">
+                        <span className="material-symbols-outlined text-[16px]">add</span>
+                    </button>
+                    <button onClick={e => e.preventDefault()} className="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-red-500 hover:bg-red-500 hover:text-white transition-colors">
+                        <span className="material-symbols-outlined text-[16px]">favorite</span>
+                    </button>
+                </div>
+            </div>
+            <h5 className="text-[11px] font-bold line-clamp-2 mt-2 leading-snug text-gray-900">{p.title}</h5>
+            {date && <p className="text-[10px] text-red-500 font-medium mt-0.5">{date}</p>}
+        </Link>
+    );
 }
 
 function PosterCard({ p }: { p: Product }) {
@@ -74,13 +102,21 @@ function SkeletonRow() {
 export default function HomePageWeb() {
     const [popular, setPopular] = useState<Product[]>([]);
     const [newArrivals, setNewArrivals] = useState<Product[]>([]);
+    const [preorder, setPreorder] = useState<Product[]>([]);
+
+    const HOME_MAKERS = 'S1,MOODYZ,アイデアポケット,E-BODY,OPPAI,Fitch,Madonna,痴女ヘブン,kawaii,million,本中,ダスッ,Hunter,ワンズファクトリー,TAMEIKE,プレミアム,SOD,FALENO,DAHLIA,プレステージ,Jackson,シロウトTV,ナンパTV,ラグジュTV,DOC,ARA,KANBi,黒船,NTR.net,ドキュメンTV';
+    const mkParam = '&excludeBest=1&makers=' + encodeURIComponent(HOME_MAKERS);
 
     useEffect(() => {
-        fetch('/api/products?sort=wish_count&limit=20')
+        fetch('/api/products?sort=pre-order&limit=8' + mkParam)
+            .then(r => r.json())
+            .then(setPreorder)
+            .catch(() => {});
+        fetch('/api/products?sort=wish_count&limit=20' + mkParam)
             .then(r => r.json())
             .then(setPopular)
             .catch(() => {});
-        fetch('/api/products?sort=new&limit=12')
+        fetch('/api/products?sort=new&limit=12' + mkParam)
             .then(r => r.json())
             .then(setNewArrivals)
             .catch(() => {});
@@ -92,6 +128,28 @@ export default function HomePageWeb() {
 
                 {/* Left: New Arrivals + Featured */}
                 <div className="lg:col-span-2 space-y-10">
+                    {/* 予約作品 */}
+                    <section>
+                        <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
+                            <h2 className="text-base font-black tracking-tight flex items-center gap-2">
+                                予約作品
+                                <span className="text-[10px] font-normal text-gray-400 uppercase tracking-widest">Pre-order</span>
+                            </h2>
+                            <Link href="/pre-order" className="text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-primary transition-colors">もっと見る</Link>
+                        </div>
+                        <div className="flex overflow-x-auto gap-4 no-scrollbar pb-2">
+                            {preorder.length > 0
+                                ? preorder.map(p => <PreorderCard key={p.product_id} p={p} />)
+                                : Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={i} className="flex-none w-[150px] animate-pulse">
+                                        <div className="aspect-[2/3] rounded-xl bg-gray-100 mb-2" />
+                                        <div className="h-3 bg-gray-100 rounded w-3/4" />
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    </section>
+
                     {/* 新作 */}
                     <section>
                         <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
