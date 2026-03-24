@@ -1,196 +1,391 @@
 <!DOCTYPE html>
-
-<html class="light" lang="ja"><head>
+<html lang="ja">
+<head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>詳細検索 | MEDIASHOP</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700;900&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#ec5b13",
-                        "background-light": "#f8f6f6",
-                        "background-dark": "#221610",
-                    },
-                    fontFamily: {
-                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
-                    },
-                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
-                },
-            },
-        }
-    </script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>
-        body { font-family: 'Public Sans', 'Noto Sans JP', sans-serif; }
-        .slider-thumb::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            background: #ec5b13;
-            cursor: pointer;
-            border-radius: 50%;
-        }
-    </style>
+  body { font-family: 'Noto Sans JP', sans-serif; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  /* dual range track fill */
+  .range-wrap { position: relative; height: 2rem; }
+  .range-wrap input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    position: absolute; left: 0; width: 100%; height: 4px;
+    background: transparent; pointer-events: none; outline: none;
+  }
+  .range-wrap input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #ec5b13; cursor: pointer;
+    pointer-events: all; border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  }
+  .range-wrap input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #ec5b13; cursor: pointer;
+    pointer-events: all; border: 2px solid white;
+  }
+  .range-track {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    left: 0; right: 0; height: 4px;
+    background: #e2e8f0; border-radius: 2px; pointer-events: none;
+  }
+  .range-fill {
+    position: absolute; height: 100%;
+    background: #ec5b13; border-radius: 2px;
+  }
+</style>
 </head>
-<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
-<div class="relative flex flex-col min-h-screen w-full overflow-x-hidden">
-<!-- Top Navigation -->
-<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-3 lg:px-20">
-<div class="flex items-center gap-4">
-<div class="size-8 text-primary">
-<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-<path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"></path>
-</svg>
-</div>
-<h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight" style="">詳細検索</h2>
-</div>
-<div class="flex items-center gap-8">
-<nav class="hidden md:flex items-center gap-6">
-<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#" style="">ホーム</a>
-<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#" style="">人気ランキング</a>
-<a class="text-slate-600 dark:text-slate-300 text-sm font-medium hover:text-primary transition-colors" href="#" style="">マイリスト</a>
-</nav>
-<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border border-slate-200 dark:border-slate-700" data-alt="User profile avatar icon placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAh1shzY0k0lYEL0MqnQEDP1sJ1LFyRHinQiHAnLIOvPXZFDKFWGmnFFJcpTBfAU48N6_znHyDl2iIBecXXkj4JQbG1EJOuB9zg3hpuvwcOQdWkw3GsEvU72nSIu-ew57r_cHkFtTPSEaaOw834iZoQrzppumyS-4txCXhfKQbXVtqBPSYTxADPRONlaTDDZg7myireriDmI5U0zGW8DssDs3etkMWsxOQH6QiISQTrSVEedp2rTHlDvGbKci7VERrVrQaBxFBSKzU");'></div>
-</div>
+<body class="bg-[#f8f9fa] text-gray-900 leading-relaxed">
+<!-- Header -->
+<header class="bg-white border-b border-gray-100 sticky top-0 z-50">
+  <div class="container mx-auto px-4">
+    <div class="flex items-center justify-between h-16">
+      <div class="flex items-center gap-3">
+        <a href="/search" class="p-1 text-gray-500 hover:text-primary transition">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+        <h1 class="text-base font-bold text-gray-900">詳細検索</h1>
+      </div>
+      <button id="as-reset" class="text-[12px] text-gray-400 hover:text-primary transition flex items-center gap-1">
+        <span class="material-symbols-outlined text-[16px]">refresh</span>リセット
+      </button>
+    </div>
+  </div>
 </header>
-<main class="flex-1 max-w-4xl mx-auto w-full px-4 py-8 lg:py-12">
-<div class="mb-10 text-center">
-<h1 class="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white mb-4" style="">詳細検索</h1>
-<p class="text-slate-500 dark:text-slate-400 text-lg" style="">詳細な条件を指定して、あなただけのベストランキングを作成しましょう。</p>
-</div>
-<div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 lg:p-10 space-y-8">
-<!-- Platform Selection -->
-<section>
-<h3 class="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2" style="">
-<span class="material-symbols-outlined text-base" style="">podcasts</span>
-                        配信プラットフォーム
-                    </h3>
-<div class="flex flex-wrap gap-4">
-<label class="flex-1 min-w-[120px] cursor-pointer group" style="">
-<input checked="" class="hidden peer" name="platform" type="radio"/>
-<div class="flex items-center justify-center p-4 rounded-lg border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
-<span class="text-slate-600 dark:text-slate-300 peer-checked:text-primary font-bold" style="">MGS動画</span>
-</div>
-</label>
-<label class="flex-1 min-w-[120px] cursor-pointer group" style="">
-<input class="hidden peer" name="platform" type="radio"/>
-<div class="flex items-center justify-center p-4 rounded-lg border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
-<span class="text-slate-600 dark:text-slate-300 peer-checked:text-primary font-bold" style="">FANZA</span>
-</div>
-</label>
-<label class="flex-1 min-w-[120px] cursor-pointer group" style="">
-<input class="hidden peer" name="platform" type="radio"/>
-<div class="flex items-center justify-center p-4 rounded-lg border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
-<span class="text-slate-600 dark:text-slate-300 peer-checked:text-primary font-bold" style="">両方</span>
-</div>
-</label>
-</div>
-</section>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-<!-- Manufacturer Select -->
-<section>
-<label class="block text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4" style="">
-                            メーカー選択
-                        </label>
-<div class="relative">
-<select class="w-full rounded-lg border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-primary focus:border-primary h-32" multiple="">
-<option>SOD Create</option>
-<option>S1 NO.1 STYLE</option>
-<option>MOODYZ</option>
-<option>Idea Pocket</option>
-<option>Prestige</option>
-<option>Faleno</option>
-</select>
-<p class="mt-2 text-xs text-slate-400 italic" style="">複数選択可能です</p>
-</div>
-</section>
-<!-- Performer Search -->
-<section>
-<label class="block text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4" style="">
-                            出演者検索
-                        </label>
-<div class="space-y-3">
-<div class="relative">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" style="">search</span>
-<input class="w-full pl-10 rounded-lg border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-primary focus:border-primary" placeholder="名前を入力して検索" type="text"/>
-</div>
-<div class="flex flex-wrap gap-2">
-<span class="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium" style="">
-                                    指定なし
-                                    <button class="ml-1 material-symbols-outlined text-xs" style="">close</button>
-</span>
-</div>
-</div>
-</section>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-100 dark:border-slate-800 pt-8">
-<!-- Release Year -->
-<section>
-<label class="block text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4" style="">
-                            年代・公開時期
-                        </label>
-<select class="w-full rounded-lg border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-primary focus:border-primary">
-<option>歴代すべて</option>
-<option>2026年</option>
-<option>2025年</option>
-<option>2024年</option>
-<option>2020年代</option>
-<option>2010年代</option>
-</select>
-</section>
-<!-- Genre Select -->
-<section>
-<label class="block text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4" style="">
-                            ジャンル
-                        </label>
-<select class="w-full rounded-lg border-slate-200 dark:border-slate-800 dark:bg-slate-800 focus:ring-primary focus:border-primary h-20" multiple="">
-<option>ドラマ</option>
-<option>バラエティ</option>
-<option>美少女</option>
-<option>人妻</option>
-<option>単体作品</option>
-</select>
-</section>
-</div>
-<!-- Physical Filters -->
-<section class="border-t border-slate-100 dark:border-slate-800 pt-8">
-<h3 class="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6" style="">身体的特徴フィルタ</h3>
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-<div class="space-y-4">
-<div class="flex justify-between items-center">
-<label class="text-sm font-medium" style="">身長</label>
-<span class="text-sm font-bold text-primary" style="">140cm - 180cm+</span>
-</div>
-<input class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary slider-thumb" max="190" min="140" type="range" value="160"/>
-</div>
-<div class="space-y-4">
-<div class="flex justify-between items-center">
-<label class="text-sm font-medium" style="">カップ数</label>
-<span class="text-sm font-bold text-primary" style="">Aカップ - Qカップ+</span>
-</div>
-<input class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary slider-thumb" max="17" min="0" type="range" value="5"/>
-</div>
-<div class="space-y-4">
-<div class="flex justify-between items-center">
-<label class="text-sm font-medium" style="">年齢</label>
-<span class="text-sm font-bold text-primary" style="">18歳 - 60歳+</span>
-</div>
-<input class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary slider-thumb" max="70" min="18" type="range" value="25"/>
-</div>
-</div>
-</section>
-<!-- Action Button -->
-<div class="pt-10 flex justify-center">
-<button class="bg-primary hover:bg-primary/90 text-white text-lg font-bold py-5 px-12 rounded-full shadow-lg shadow-primary/20 transition-all transform hover:scale-[1.02] flex items-center gap-3" style=""><span class="material-symbols-outlined">auto_awesome</span>この条件で検索する</button>
-</div>
-</div>
-<!-- Footer Small -->
+
+<main class="container mx-auto px-4 py-8 max-w-3xl">
+  <div class="space-y-6">
+
+    <!-- ① サービス -->
+    <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">配信サービス</h2>
+      <div class="flex gap-3">
+        <label class="flex-1 cursor-pointer">
+          <input type="radio" name="source" value="" class="hidden peer" checked/>
+          <div class="text-center py-3 rounded-lg border-2 border-gray-100 bg-gray-50 text-sm font-bold text-gray-500 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition">
+            すべて
+          </div>
+        </label>
+        <label class="flex-1 cursor-pointer">
+          <input type="radio" name="source" value="mgs" class="hidden peer"/>
+          <div class="text-center py-3 rounded-lg border-2 border-gray-100 bg-gray-50 text-sm font-bold text-gray-500 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition">
+            MGS動画
+          </div>
+        </label>
+        <label class="flex-1 cursor-pointer">
+          <input type="radio" name="source" value="fanza" class="hidden peer"/>
+          <div class="text-center py-3 rounded-lg border-2 border-gray-100 bg-gray-50 text-sm font-bold text-gray-500 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition">
+            FANZA
+          </div>
+        </label>
+      </div>
+    </section>
+
+    <!-- ② キーワード・女優・メーカー -->
+    <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+      <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">キーワード</h2>
+      <div>
+        <label class="text-[11px] text-gray-500 mb-1 block">キーワード（タイトル・品番）</label>
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">search</span>
+          <input id="as-q" type="text" placeholder="例：単体" class="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"/>
+        </div>
+      </div>
+      <div>
+        <label class="text-[11px] text-gray-500 mb-1 block">女優名</label>
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">person</span>
+          <input id="as-actress" type="text" placeholder="例：葵つかさ" class="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"/>
+        </div>
+      </div>
+      <div>
+        <label class="text-[11px] text-gray-500 mb-1 block">メーカー・ブランド名</label>
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">business</span>
+          <input id="as-maker" type="text" placeholder="例：S1 NO.1 STYLE" class="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"/>
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ ジャンル -->
+    <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">ジャンル <span class="normal-case font-normal text-gray-400">（複数選択可）</span></h2>
+      <div id="as-genre-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+        <!-- JS で生成 -->
+      </div>
+    </section>
+
+    <!-- ④ 発売日 -->
+    <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">発売日</h2>
+      <div class="flex gap-3 items-center">
+        <input id="as-from" type="date" class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-primary"/>
+        <span class="text-gray-400 text-sm">〜</span>
+        <input id="as-to" type="date" class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-primary"/>
+      </div>
+      <div class="flex gap-2 mt-2">
+        <button data-quick="today" class="px-3 py-1 text-[11px] bg-gray-50 hover:bg-primary/10 hover:text-primary text-gray-600 rounded-md transition border border-transparent">本日</button>
+        <button data-quick="week" class="px-3 py-1 text-[11px] bg-gray-50 hover:bg-primary/10 hover:text-primary text-gray-600 rounded-md transition border border-transparent">今週</button>
+        <button data-quick="month" class="px-3 py-1 text-[11px] bg-gray-50 hover:bg-primary/10 hover:text-primary text-gray-600 rounded-md transition border border-transparent">今月</button>
+        <button data-quick="year" class="px-3 py-1 text-[11px] bg-gray-50 hover:bg-primary/10 hover:text-primary text-gray-600 rounded-md transition border border-transparent">今年</button>
+        <button data-quick="clear" class="px-3 py-1 text-[11px] bg-gray-50 hover:bg-red-50 hover:text-red-500 text-gray-400 rounded-md transition border border-transparent ml-auto">クリア</button>
+      </div>
+    </section>
+
+    <!-- ⑤ 身体的特徴 -->
+    <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-6">
+      <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest">身体的特徴</h2>
+
+      <!-- 身長 -->
+      <div>
+        <div class="flex justify-between items-center mb-3">
+          <label class="text-sm font-medium text-gray-700">身長</label>
+          <span id="as-height-label" class="text-sm font-bold text-primary">指定なし</span>
+        </div>
+        <div class="range-wrap mt-6">
+          <div class="range-track"><div id="as-height-fill" class="range-fill" style="left:0%;right:0%"></div></div>
+          <input id="as-height-min" type="range" min="140" max="185" value="140" step="5"/>
+          <input id="as-height-max" type="range" min="140" max="185" value="185" step="5"/>
+        </div>
+        <div class="flex justify-between text-[10px] text-gray-400 mt-1">
+          <span>140cm</span><span>155cm</span><span>165cm</span><span>175cm</span><span>185cm+</span>
+        </div>
+      </div>
+
+      <!-- カップ数 -->
+      <div>
+        <div class="flex justify-between items-center mb-3">
+          <label class="text-sm font-medium text-gray-700">カップ数</label>
+          <span id="as-cup-label" class="text-sm font-bold text-primary">指定なし</span>
+        </div>
+        <div id="as-cup-grid" class="flex flex-wrap gap-1.5">
+          <!-- JS で生成 -->
+        </div>
+      </div>
+
+      <!-- 年齢 -->
+      <div>
+        <div class="flex justify-between items-center mb-3">
+          <label class="text-sm font-medium text-gray-700">年齢</label>
+          <span id="as-age-label" class="text-sm font-bold text-primary">指定なし</span>
+        </div>
+        <div class="range-wrap mt-6">
+          <div class="range-track"><div id="as-age-fill" class="range-fill" style="left:0%;right:0%"></div></div>
+          <input id="as-age-min" type="range" min="18" max="60" value="18" step="1"/>
+          <input id="as-age-max" type="range" min="18" max="60" value="60" step="1"/>
+        </div>
+        <div class="flex justify-between text-[10px] text-gray-400 mt-1">
+          <span>18歳</span><span>25歳</span><span>35歳</span><span>45歳</span><span>60歳+</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑥ その他 -->
+    <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">その他</h2>
+      <div class="space-y-3">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input id="as-exclude-best" type="checkbox" class="w-4 h-4 rounded border-gray-300 accent-primary"/>
+          <span class="text-sm text-gray-700">BEST版・総集編を除外</span>
+        </label>
+        <div>
+          <label class="text-[11px] text-gray-500 mb-2 block">並び替え</label>
+          <select id="as-sort" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-primary">
+            <option value="wish_count">人気順</option>
+            <option value="new">新着順</option>
+            <option value="pre-order">予約順</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- 検索ボタン -->
+    <button id="as-submit" class="w-full py-4 bg-primary text-white font-bold text-base rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+      <span class="material-symbols-outlined">search</span>
+      この条件で検索する
+    </button>
+  </div>
 </main>
-</div>
-</body></html>
+
+<script>
+(function(){
+  var GENRES = [
+    '単体作品','素人','人妻','巨乳','美乳','貧乳','熟女','ギャル','美少女','痴女',
+    'OL','制服','ナース','秘書','家庭教師','お姉さん','ロリ系','中出し','顔射','ごっくん',
+    'フェラ','パイズリ','手コキ','潮吹き','アナル','SM','縛り','凌辱','レイプ','催眠',
+    '3P・4P・乱交','レズビアン','オナニー','電マ','クンニ','ハメ撮り','企画','ドキュメント',
+    'VR','4K','独占配信'
+  ];
+  var CUPS = ['A','B','C','D','E','F','G','H','I','J','K'];
+
+  // ジャンルチェックボックス
+  var genreGrid = document.getElementById('as-genre-grid');
+  if (genreGrid) {
+    genreGrid.innerHTML = GENRES.map(function(g){
+      return '<label class="cursor-pointer">'
+        +'<input type="checkbox" value="'+g+'" class="hidden peer genre-chk"/>'
+        +'<span class="block text-center text-[11px] px-2 py-1.5 rounded-lg border border-gray-200 text-gray-600 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary peer-checked:font-bold transition select-none">'+g+'</span>'
+        +'</label>';
+    }).join('');
+  }
+
+  // カップチェックボックス
+  var cupGrid = document.getElementById('as-cup-grid');
+  if (cupGrid) {
+    cupGrid.innerHTML = CUPS.map(function(c){
+      return '<label class="cursor-pointer">'
+        +'<input type="checkbox" value="'+c+'" class="hidden peer cup-chk"/>'
+        +'<span class="block w-10 text-center text-[11px] py-1.5 rounded-lg border border-gray-200 text-gray-600 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary peer-checked:font-bold transition select-none">'+c+'</span>'
+        +'</label>';
+    }).join('');
+  }
+
+  // カップラベル更新
+  function updateCupLabel(){
+    var checked = Array.from(document.querySelectorAll('.cup-chk:checked')).map(function(el){return el.value;});
+    document.getElementById('as-cup-label').textContent = checked.length ? checked.join('・')+'カップ' : '指定なし';
+  }
+  document.addEventListener('change', function(e){
+    if (e.target && e.target.classList.contains('cup-chk')) updateCupLabel();
+  });
+
+  // 身長スライダー
+  var hMin = document.getElementById('as-height-min');
+  var hMax = document.getElementById('as-height-max');
+  var hFill = document.getElementById('as-height-fill');
+  var hLabel = document.getElementById('as-height-label');
+  function updateHeight(){
+    var mn = parseInt(hMin.value), mx = parseInt(hMax.value);
+    if (mn > mx){ var t=mn; mn=mx; mx=t; hMin.value=mn; hMax.value=mx; }
+    var range = 185-140;
+    var lPct = (mn-140)/range*100;
+    var rPct = 100-(mx-140)/range*100;
+    hFill.style.left = lPct+'%';
+    hFill.style.right = rPct+'%';
+    var isMin = mn===140, isMax = mx===185;
+    if (isMin && isMax) hLabel.textContent='指定なし';
+    else if (isMin) hLabel.textContent = '〜'+mx+'cm';
+    else if (isMax) hLabel.textContent = mn+'cm〜';
+    else hLabel.textContent = mn+'cm〜'+mx+'cm';
+  }
+  hMin.addEventListener('input', updateHeight);
+  hMax.addEventListener('input', updateHeight);
+  updateHeight();
+
+  // 年齢スライダー
+  var aMin = document.getElementById('as-age-min');
+  var aMax = document.getElementById('as-age-max');
+  var aFill = document.getElementById('as-age-fill');
+  var aLabel = document.getElementById('as-age-label');
+  function updateAge(){
+    var mn = parseInt(aMin.value), mx = parseInt(aMax.value);
+    if (mn > mx){ var t=mn; mn=mx; mx=t; aMin.value=mn; aMax.value=mx; }
+    var range = 60-18;
+    var lPct = (mn-18)/range*100;
+    var rPct = 100-(mx-18)/range*100;
+    aFill.style.left = lPct+'%';
+    aFill.style.right = rPct+'%';
+    var isMin = mn===18, isMax = mx===60;
+    if (isMin && isMax) aLabel.textContent='指定なし';
+    else if (isMin) aLabel.textContent = '〜'+mx+'歳';
+    else if (isMax) aLabel.textContent = mn+'歳〜';
+    else aLabel.textContent = mn+'歳〜'+mx+'歳';
+  }
+  aMin.addEventListener('input', updateAge);
+  aMax.addEventListener('input', updateAge);
+  updateAge();
+
+  // 発売日クイックボタン
+  document.querySelectorAll('[data-quick]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var q = btn.getAttribute('data-quick');
+      var from = document.getElementById('as-from'), to = document.getElementById('as-to');
+      var d = new Date(), fmt = function(dt){ return dt.toISOString().slice(0,10); };
+      if (q === 'today'){ from.value = to.value = fmt(d); }
+      else if (q === 'week'){
+        var mon = new Date(d); mon.setDate(d.getDate()-d.getDay()+1);
+        var sun = new Date(mon); sun.setDate(mon.getDate()+6);
+        from.value = fmt(mon); to.value = fmt(sun);
+      } else if (q === 'month'){
+        from.value = fmt(new Date(d.getFullYear(), d.getMonth(), 1));
+        to.value = fmt(new Date(d.getFullYear(), d.getMonth()+1, 0));
+      } else if (q === 'year'){
+        from.value = d.getFullYear()+'-01-01';
+        to.value = d.getFullYear()+'-12-31';
+      } else { from.value = to.value = ''; }
+    });
+  });
+
+  // リセット
+  document.getElementById('as-reset').addEventListener('click', function(){
+    document.querySelectorAll('input[name=source]')[0].checked = true;
+    document.getElementById('as-q').value = '';
+    document.getElementById('as-actress').value = '';
+    document.getElementById('as-maker').value = '';
+    document.querySelectorAll('.genre-chk').forEach(function(c){c.checked=false;});
+    document.querySelectorAll('.cup-chk').forEach(function(c){c.checked=false;});
+    document.getElementById('as-from').value = '';
+    document.getElementById('as-to').value = '';
+    hMin.value = 140; hMax.value = 185; updateHeight();
+    aMin.value = 18; aMax.value = 60; updateAge();
+    updateCupLabel();
+    document.getElementById('as-exclude-best').checked = false;
+    document.getElementById('as-sort').value = 'wish_count';
+  });
+
+  // 検索実行
+  document.getElementById('as-submit').addEventListener('click', function(){
+    var p = new URLSearchParams();
+
+    var source = document.querySelector('input[name=source]:checked');
+    if (source && source.value) p.set('source', source.value);
+
+    var q = document.getElementById('as-q').value.trim();
+    if (q) p.set('q', q);
+
+    var actress = document.getElementById('as-actress').value.trim();
+    if (actress) p.set('actress', actress);
+
+    var maker = document.getElementById('as-maker').value.trim();
+    if (maker) p.set('maker', maker);
+
+    var genres = Array.from(document.querySelectorAll('.genre-chk:checked')).map(function(el){return el.value;});
+    if (genres.length === 1) p.set('genre', genres[0]);
+    else if (genres.length > 1) p.set('genre', genres[0]); // 最初の1つをAPIに渡す
+
+    var from = document.getElementById('as-from').value;
+    var to = document.getElementById('as-to').value;
+    if (from) p.set('fromDate', from);
+    if (to) p.set('toDate', to);
+
+    // 身長
+    var hn = parseInt(hMin.value), hx = parseInt(hMax.value);
+    if (hn !== 140 || hx !== 185) p.set('height', hn+'-'+hx);
+
+    // カップ
+    var cups = Array.from(document.querySelectorAll('.cup-chk:checked')).map(function(el){return el.value;});
+    if (cups.length === 1) p.set('cup', cups[0]);
+    else if (cups.length > 1) p.set('cups', cups.join(','));
+
+    // 年齢
+    var an = parseInt(aMin.value), ax = parseInt(aMax.value);
+    if (an !== 18) p.set('ageMin', String(an));
+    if (ax !== 60) p.set('ageMax', String(ax));
+
+    if (document.getElementById('as-exclude-best').checked) p.set('excludeBest', '1');
+
+    var sort = document.getElementById('as-sort').value;
+    if (sort) p.set('sort', sort);
+
+    var url = '/search?' + p.toString();
+    location.href = url;
+  });
+})();
+</script>
+</body>
+</html>

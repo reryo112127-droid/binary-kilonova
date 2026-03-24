@@ -95,7 +95,8 @@
 <aside class="w-full lg:w-64 flex-shrink-0 space-y-6" data-purpose="sidebar-filter">
 <!-- サービス切替 -->
 <div class="bg-gray-100 p-1 rounded-lg flex">
-<button id="sf-mgs-btn" class="flex-1 text-[11px] font-bold py-1.5 rounded-md bg-white shadow-sm text-blue-600">MGS動画</button>
+<button id="sf-all-src-btn" class="flex-1 text-[11px] font-bold py-1.5 rounded-md bg-white shadow-sm text-primary">すべて</button>
+<button id="sf-mgs-btn" class="flex-1 text-[11px] font-medium py-1.5 rounded-md text-gray-500 hover:text-gray-700">MGS動画</button>
 <button id="sf-fanza-btn" class="flex-1 text-[11px] font-medium py-1.5 rounded-md text-gray-500 hover:text-gray-700">FANZA</button>
 </div>
 <!-- 発売日カレンダー -->
@@ -118,30 +119,17 @@
 </div>
 </div>
 <!-- 各種フィルター -->
-<div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-6">
+<div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-5">
 <div>
-<h3 class="font-bold text-xs mb-3 text-gray-700">メーカー</h3>
-<select class="w-full text-[12px] border-gray-200 rounded-lg focus:ring-blue-500/20 focus:border-blue-500">
-<option>すべてのメーカー</option>
-<option>メーカー A</option>
-<option>メーカー B</option>
-</select>
+<h3 class="font-bold text-xs mb-2 text-gray-700">メーカー</h3>
+<div id="sf-maker-list" class="space-y-0.5 max-h-44 overflow-y-auto custom-scrollbar">
+  <span class="text-[11px] text-gray-400 px-1">―</span>
+</div>
 </div>
 <div>
-<h3 class="font-bold text-xs mb-3 text-gray-700">ジャンル</h3>
-<div class="grid grid-cols-1 gap-2">
-<label class="flex items-center text-[12px] text-gray-600 cursor-pointer">
-<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
-                                アクション
-                            </label>
-<label class="flex items-center text-[12px] text-gray-600 cursor-pointer">
-<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
-                                RPG
-                            </label>
-<label class="flex items-center text-[12px] text-gray-600 cursor-pointer">
-<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
-                                アドベンチャー
-                            </label>
+<h3 class="font-bold text-xs mb-2 text-gray-700">ジャンル</h3>
+<div id="sf-genre-list" class="space-y-0.5 max-h-56 overflow-y-auto custom-scrollbar">
+  <span class="text-[11px] text-gray-400 px-1">―</span>
 </div>
 </div>
 <div class="pt-4 border-t border-gray-50 space-y-3">
@@ -160,14 +148,15 @@
 </label>
 </div>
 </div>
-<button class="w-full bg-gray-900 text-white text-[12px] font-bold py-2.5 rounded-lg hover:bg-gray-800 transition shadow-sm">
-                        検索条件をクリア
+<button id="sf-clear-btn" class="w-full bg-gray-900 text-white text-[12px] font-bold py-2.5 rounded-lg hover:bg-gray-800 transition shadow-sm">
+                        絞り込みをリセット
                     </button>
 </div>
 </aside>
 <!-- END: Sidebar -->
 <!-- BEGIN: MainContent -->
 <section class="flex-1">
+<div id="actress-profiles-wrap" class="mb-8"></div>
 <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 border-b border-gray-100 pb-4">
 <div class="flex items-center space-x-6">
 <h2 id="search-title" class="text-lg font-bold text-gray-800 whitespace-nowrap">作品一覧</h2>
@@ -182,10 +171,10 @@
 </select>
 </div>
 <!-- 詳細検索 -->
-<button class="inline-flex items-center text-[11px] font-bold text-gray-600 hover:text-primary bg-white px-3 py-1.5 rounded-lg transition border border-gray-100 shadow-sm">
+<a href="/search/advanced" class="inline-flex items-center text-[11px] font-bold text-gray-600 hover:text-primary bg-white px-3 py-1.5 rounded-lg transition border border-gray-100 shadow-sm">
 <span class="material-symbols-outlined text-[16px] mr-1">tune</span>
-                                詳細検索
-                            </button>
+詳細検索
+</a>
 </div>
 </div>
 <div class="flex items-center space-x-4">
@@ -366,7 +355,7 @@
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
 
-  var filters = { contentType:'all', sortOrder:'popular', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'' };
+  var filters = { contentType:'all', sortOrder:'popular', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'', subMaker:'', subGenres:[] };
 
   function buildUrl(){
     var p = new URLSearchParams();
@@ -389,39 +378,122 @@
     return '/api/products?'+p.toString();
   }
 
+  var allResults = [];
   var grid = document.getElementById('search-results-grid');
+
+  function cardHtml(p){
+    var img = poster(p.main_image_url);
+    var noAct = !(p.actresses&&p.actresses.trim());
+    return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group block">'
+      +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
+      +(img?'<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
+      +'<div class="absolute bottom-2 right-2 flex gap-1">'
+      +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
+      +'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
+      +'</div></div>'
+      +'<div class="p-3 flex flex-col flex-1">'
+      +'<p class="text-xs font-bold line-clamp-2 mb-1">'+esc(p.title||'')+'</p>'
+      +(p.actresses?'<p class="text-[10px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
+      +'</div></a>';
+  }
+
+  function renderFiltered(){
+    if (!grid) return;
+    var filtered = allResults.slice();
+    if (filters.subMaker) filtered = filtered.filter(function(p){ return (p.maker||'') === filters.subMaker; });
+    if (filters.subGenres.length) filtered = filtered.filter(function(p){
+      var gns = (p.genres||'').split(',').map(function(s){return s.trim();});
+      return filters.subGenres.every(function(g){return gns.indexOf(g) !== -1;});
+    });
+    if (!filtered.length) { grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">絞り込み結果がありません</div>'; return; }
+    grid.innerHTML = filtered.map(cardHtml).join('');
+  }
+
+  function updateSidebarFilters(data){
+    var makerCount = {}, genreCount = {};
+    data.forEach(function(p){
+      var m = p.maker||'';
+      if (m) makerCount[m] = (makerCount[m]||0) + 1;
+      (p.genres||'').split(',').forEach(function(g){
+        g = g.trim();
+        if (g) genreCount[g] = (genreCount[g]||0) + 1;
+      });
+    });
+    var makers = Object.keys(makerCount).sort(function(a,b){return makerCount[b]-makerCount[a];});
+    var genres = Object.keys(genreCount).sort(function(a,b){return genreCount[b]-genreCount[a];});
+
+    var makerList = document.getElementById('sf-maker-list');
+    if (makerList) {
+      if (!makers.length) { makerList.innerHTML='<span class="text-[11px] text-gray-400 px-1">データなし</span>'; }
+      else {
+        makerList.innerHTML = makers.map(function(m){
+          var active = filters.subMaker === m;
+          return '<button data-maker="'+esc(m)+'" class="w-full flex items-center justify-between px-2 py-1 rounded-md text-left transition '+(active?'bg-primary/10 text-primary font-bold':'hover:bg-gray-50 text-gray-600')+'">'
+            +'<span class="truncate text-[11px] mr-1">'+esc(m)+'</span>'
+            +'<span class="text-[10px] text-gray-400 shrink-0">'+makerCount[m]+'</span>'
+            +'</button>';
+        }).join('');
+        makerList.querySelectorAll('[data-maker]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            var m = btn.getAttribute('data-maker');
+            filters.subMaker = filters.subMaker === m ? '' : m;
+            updateSidebarFilters(allResults);
+            renderFiltered();
+          });
+        });
+      }
+    }
+
+    var genreList = document.getElementById('sf-genre-list');
+    if (genreList) {
+      if (!genres.length) { genreList.innerHTML='<span class="text-[11px] text-gray-400 px-1">データなし</span>'; }
+      else {
+        genreList.innerHTML = genres.map(function(g){
+          var active = filters.subGenres.indexOf(g) !== -1;
+          return '<label class="flex items-center gap-2 px-1 py-0.5 rounded cursor-pointer hover:bg-gray-50 transition">'
+            +'<input type="checkbox" '+(active?'checked':'')+' data-genre="'+esc(g)+'" class="rounded-sm border-gray-300 w-3 h-3 accent-primary shrink-0">'
+            +'<span class="text-[11px] text-gray-600 flex-1 truncate">'+esc(g)+'</span>'
+            +'<span class="text-[10px] text-gray-400 shrink-0">'+genreCount[g]+'</span>'
+            +'</label>';
+        }).join('');
+        genreList.querySelectorAll('[data-genre]').forEach(function(chk){
+          chk.addEventListener('change', function(){
+            var g = chk.getAttribute('data-genre');
+            var idx = filters.subGenres.indexOf(g);
+            if (chk.checked && idx === -1) filters.subGenres.push(g);
+            else if (!chk.checked && idx !== -1) filters.subGenres.splice(idx, 1);
+            renderFiltered();
+          });
+        });
+      }
+    }
+  }
+
   function fetchAndRender(){
     if (!grid) return;
+    filters.subMaker = ''; filters.subGenres = [];
     grid.innerHTML = '<div class="col-span-5 py-12 text-center text-sm text-gray-400">読み込み中...</div>';
     fetch(buildUrl()).then(function(r){return r.json();}).then(function(data){
-      if (!data||!data.length){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">作品が見つかりませんでした</div>'; return; }
-      grid.innerHTML = data.map(function(p){
-        var img = poster(p.main_image_url);
-        var noAct = !(p.actresses&&p.actresses.trim());
-        return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group block">'
-          +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
-          +(img?'<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
-          +'<div class="absolute bottom-2 right-2 flex gap-1">'
-          +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
-          +'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
-          +'</div></div>'
-          +'<div class="p-3 flex flex-col flex-1">'
-          +'<p class="text-xs font-bold line-clamp-2 mb-1">'+esc(p.title||'')+'</p>'
-          +(p.actresses?'<p class="text-[10px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
-          +'</div>'
-          +'</a>';
-      }).join('');
+      allResults = data || [];
+      updateSidebarFilters(allResults);
+      if (!allResults.length){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">作品が見つかりませんでした</div>'; return; }
+      grid.innerHTML = allResults.map(cardHtml).join('');
     }).catch(function(){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">エラーが発生しました</div>'; });
   }
 
-  // Source toggle (MGS/FANZA)
-  var mgsBtn=document.getElementById('sf-mgs-btn'), fanzaBtn=document.getElementById('sf-fanza-btn');
+  // Source toggle (すべて/MGS/FANZA)
+  var allSrcBtn=document.getElementById('sf-all-src-btn'), mgsBtn=document.getElementById('sf-mgs-btn'), fanzaBtn=document.getElementById('sf-fanza-btn');
   function updateSourceBtns(){
-    if(mgsBtn){ mgsBtn.className='flex-1 text-[11px] font-bold py-1.5 rounded-md '+(filters.source==='mgs'?'bg-primary text-white shadow-sm':'text-gray-500 hover:text-gray-700'); }
-    if(fanzaBtn){ fanzaBtn.className='flex-1 text-[11px] font-medium py-1.5 rounded-md '+(filters.source==='fanza'?'bg-primary text-white shadow-sm':'text-gray-500 hover:text-gray-700'); }
+    var base='flex-1 text-[11px] py-1.5 rounded-md transition ';
+    var active='font-bold bg-white shadow-sm text-primary';
+    var inactive='font-medium text-gray-500 hover:text-gray-700';
+    if(allSrcBtn) allSrcBtn.className=base+(filters.source===''?active:inactive);
+    if(mgsBtn) mgsBtn.className=base+(filters.source==='mgs'?active:inactive);
+    if(fanzaBtn) fanzaBtn.className=base+(filters.source==='fanza'?active:inactive);
   }
-  if(mgsBtn) mgsBtn.addEventListener('click',function(){ filters.source=filters.source==='mgs'?'':'mgs'; updateSourceBtns(); fetchAndRender(); });
-  if(fanzaBtn) fanzaBtn.addEventListener('click',function(){ filters.source=filters.source==='fanza'?'':'fanza'; updateSourceBtns(); fetchAndRender(); });
+  if(allSrcBtn) allSrcBtn.addEventListener('click',function(){ filters.source=''; updateSourceBtns(); fetchAndRender(); });
+  if(mgsBtn) mgsBtn.addEventListener('click',function(){ filters.source='mgs'; updateSourceBtns(); fetchAndRender(); });
+  if(fanzaBtn) fanzaBtn.addEventListener('click',function(){ filters.source='fanza'; updateSourceBtns(); fetchAndRender(); });
 
   // Date range
   var fromInput=document.getElementById('sf-from'), toInput=document.getElementById('sf-to');
@@ -459,6 +531,61 @@
   // Sort select
   var sortSel=document.getElementById('sf-sort-sel');
   if(sortSel) sortSel.addEventListener('change',function(){ filters.sortOrder=sortSel.value==='新着順'?'new':'popular'; fetchAndRender(); });
+
+  // Clear sub-filters
+  var clearBtn = document.getElementById('sf-clear-btn');
+  if (clearBtn) clearBtn.addEventListener('click', function(){
+    filters.subMaker = ''; filters.subGenres = [];
+    updateSidebarFilters(allResults);
+    renderFiltered();
+  });
+
+  // Actress profile cards (web)
+  var profilesWrap = document.getElementById('actress-profiles-wrap');
+  if (actress && profilesWrap) {
+    var actressNames = actress.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    function calcAge(b){if(!b)return null;var d=new Date(b),t=new Date(),a=t.getFullYear()-d.getFullYear();if(t.getMonth()<d.getMonth()||(t.getMonth()===d.getMonth()&&t.getDate()<d.getDate()))a--;return a;}
+    actressNames.forEach(function(actName){
+      fetch('/api/actress/'+encodeURIComponent(actName)).then(function(r){return r.json();}).then(function(p){
+        // Stats grid
+        var statsData=[];
+        if(p.birthday){var age=calcAge(p.birthday);if(age)statsData.push({l:'年齢',v:age+'歳'});}
+        if(p.height)statsData.push({l:'身長',v:p.height+'cm'});
+        if(p.bust)statsData.push({l:'バスト',v:p.bust+'cm'+(p.cup?'('+p.cup+'カップ)':'')});
+        if(p.waist)statsData.push({l:'ウエスト',v:p.waist+'cm'});
+        if(p.hip)statsData.push({l:'ヒップ',v:p.hip+'cm'});
+        if(p.blood_type)statsData.push({l:'血液型',v:p.blood_type+'型'});
+        if(p.prefectures)statsData.push({l:'出身地',v:p.prefectures});
+        var statsHtml=statsData.map(function(s){return'<div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-400 mb-1">'+esc(s.l)+'</p><p class="font-bold text-gray-800 text-xs">'+esc(s.v)+'</p></div>';}).join('');
+        // SNS
+        var snsHtml='';
+        if(p.twitter)snsHtml+='<a class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:text-blue-400 transition border border-gray-100" href="https://x.com/'+esc(p.twitter)+'" target="_blank" rel="noopener"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg></a>';
+        if(p.instagram)snsHtml+='<a class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:text-pink-500 transition border border-gray-100" href="https://www.instagram.com/'+esc(p.instagram)+'" target="_blank" rel="noopener"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>';
+        // Extra badges
+        var extraHtml='';
+        if(p.augmented)extraHtml+='<span class="px-2 py-0.5 bg-pink-100 text-pink-600 text-[10px] font-bold rounded-full border border-pink-200">豊胸</span>';
+        if(p.aliases&&p.aliases.length)p.aliases.forEach(function(a){extraHtml+='<a href="/actress/'+encodeURIComponent(a)+'" class="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full border border-gray-200 hover:bg-gray-200 transition">'+esc(a)+'</a>';});
+        var displayName=esc(p.name||actName);
+        var imgSrc=p.image_url?esc(p.image_url):'';
+        var wrap=document.createElement('div');
+        wrap.innerHTML='<div class="bg-white border border-gray-100 rounded-2xl p-6 mb-4 shadow-sm flex flex-col md:flex-row gap-8 items-center md:items-start">'
+          +'<div class="flex-shrink-0"><div class="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-md bg-gray-100">'
+          +(imgSrc?'<img class="w-full h-full object-cover" src="'+imgSrc+'" alt="'+displayName+'" loading="lazy"/>':'')
+          +'</div></div>'
+          +'<div class="flex-1 text-center md:text-left">'
+          +'<div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">'
+          +'<div>'
+          +'<a href="/actress/'+encodeURIComponent(p.name||actName)+'" class="text-2xl md:text-3xl font-bold text-gray-900 hover:text-primary mb-1 block">'+displayName+'</a>'
+          +(extraHtml?'<div class="flex flex-wrap items-center gap-2 mt-1">'+extraHtml+'</div>':'')
+          +'</div>'
+          +(snsHtml?'<div class="flex items-center justify-center md:justify-end space-x-3">'+snsHtml+'</div>':'')
+          +'</div>'
+          +(statsHtml?'<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">'+statsHtml+'</div>':'')
+          +'</div></div>';
+        profilesWrap.appendChild(wrap.firstChild);
+      }).catch(function(){});
+    });
+  }
 
   if (term) fetchAndRender();
 })();

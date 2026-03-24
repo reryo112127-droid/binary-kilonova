@@ -40,6 +40,7 @@
 </header>
 <!-- END: Header -->
 <main class="pb-[80px]">
+<div id="actress-profiles-wrap"></div>
 <!-- BEGIN: FilterAndActionArea -->
 <section class="flex flex-col gap-2 py-4" data-purpose="filter-controls">
 <!-- 1. Top row: Type switching (3-way toggle) -->
@@ -347,6 +348,51 @@
   }
   if(mgsBtn) mgsBtn.addEventListener('click',function(){ filters.source=filters.source==='mgs'?'':'mgs'; updateSourceBtns(); fetchAndRender(); });
   if(fanzaBtn) fanzaBtn.addEventListener('click',function(){ filters.source=filters.source==='fanza'?'':'fanza'; updateSourceBtns(); fetchAndRender(); });
+
+  // Actress profile cards
+  var profilesWrap = document.getElementById('actress-profiles-wrap');
+  if (actress && profilesWrap) {
+    var actressNames = actress.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    function calcAge(b){if(!b)return null;var d=new Date(b),t=new Date(),a=t.getFullYear()-d.getFullYear();if(t.getMonth()<d.getMonth()||(t.getMonth()===d.getMonth()&&t.getDate()<d.getDate()))a--;return a;}
+    function fmtBday(b){if(!b)return'';var pts=b.split('-');return pts[0]+'年'+parseInt(pts[1])+'月'+parseInt(pts[2])+'日';}
+    actressNames.forEach(function(actName){
+      fetch('/api/actress/'+encodeURIComponent(actName)).then(function(r){return r.json();}).then(function(p){
+        var infoParts=[];
+        if(p.birthday){var age=calcAge(p.birthday);infoParts.push((age?age+'歳 ':'')+'('+fmtBday(p.birthday)+')');}
+        var sz=[];
+        if(p.height)sz.push('T'+p.height);
+        if(p.bust)sz.push('B'+p.bust+(p.cup?'('+p.cup+'カップ)':''));
+        if(p.waist)sz.push('W'+p.waist);
+        if(p.hip)sz.push('H'+p.hip);
+        if(sz.length)infoParts.push(sz.join(' '));
+        if(p.blood_type)infoParts.push(p.blood_type+'型');
+        if(p.prefectures)infoParts.push(p.prefectures);
+        var infoHtml=infoParts.map(function(s){return'<span>'+esc(s)+'</span>';}).join('');
+        var snsHtml='';
+        if(p.twitter)snsHtml+='<a href="https://x.com/'+esc(p.twitter)+'" target="_blank" rel="noopener" class="flex items-center gap-1 px-1.5 py-0.5 bg-slate-900 text-white rounded text-[9px] font-bold">X</a>';
+        if(p.instagram)snsHtml+='<a href="https://www.instagram.com/'+esc(p.instagram)+'" target="_blank" rel="noopener" class="flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-purple-500 to-orange-500 text-white rounded text-[9px] font-bold">IG</a>';
+        if(p.tiktok)snsHtml+='<a href="https://www.tiktok.com/@'+esc(p.tiktok)+'" target="_blank" rel="noopener" class="flex items-center gap-1 px-1.5 py-0.5 bg-black text-white rounded text-[9px] font-bold">TikTok</a>';
+        var extraHtml='';
+        if(p.augmented)extraHtml+='<span class="px-1.5 py-0.5 bg-pink-100 text-pink-600 text-[8px] font-bold rounded-full border border-pink-200">豊胸</span>';
+        if(p.aliases&&p.aliases.length)extraHtml+='<span class="text-[9px] text-slate-400">旧名：'+p.aliases.map(function(a){return esc(a);}).join('・')+'</span>';
+        var displayName=esc(p.name||actName);
+        var imgSrc=p.image_url?esc(p.image_url):'';
+        var wrap=document.createElement('div');
+        wrap.innerHTML='<section class="bg-white px-4 py-3 border-b border-slate-100">'
+          +'<div class="flex items-center gap-3">'
+          +'<div class="flex-shrink-0"><div class="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/10 shadow-sm bg-slate-100">'
+          +(imgSrc?'<img class="w-full h-full object-cover" src="'+imgSrc+'" alt="'+displayName+'" loading="lazy"/>':'')
+          +'</div></div>'
+          +'<div class="flex-1">'
+          +'<a href="/actress/'+encodeURIComponent(p.name||actName)+'" class="text-base font-bold hover:underline block" style="color:inherit">'+displayName+'</a>'
+          +(infoHtml?'<div class="text-[10px] text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">'+infoHtml+'</div>':'')
+          +(snsHtml?'<div class="flex flex-wrap gap-1.5 mt-1.5">'+snsHtml+'</div>':'')
+          +(extraHtml?'<div class="flex flex-wrap gap-1 mt-1">'+extraHtml+'</div>':'')
+          +'</div></div></section>';
+        profilesWrap.appendChild(wrap.firstChild);
+      }).catch(function(){});
+    });
+  }
 
   if (term) fetchAndRender();
 })();

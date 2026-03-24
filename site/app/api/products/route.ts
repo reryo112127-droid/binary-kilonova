@@ -18,7 +18,10 @@ export async function GET(request: NextRequest) {
     const label = searchParams.get('label') || '';
     const excludeGenres = searchParams.get('excludeGenres') || '';
     const cup = searchParams.get('cup') || '';
+    const cups = searchParams.get('cups') || ''; // カンマ区切り複数カップ e.g. "C,D,E"
     const heightRange = searchParams.get('height') || '';
+    const ageMin = parseInt(searchParams.get('ageMin') || '0', 10);
+    const ageMax = parseInt(searchParams.get('ageMax') || '0', 10);
     const fromDate = searchParams.get('fromDate') || '';
     const toDate = searchParams.get('toDate') || '';
     const source = searchParams.get('source') || ''; // 'mgs' | 'fanza' | ''
@@ -43,7 +46,14 @@ export async function GET(request: NextRequest) {
     // プロフィールフィルター
     let profileActresses: string[] = [];
     let hasProfileFilter = false;
-    if (cup || heightRange) {
+    const cupSet = cups ? new Set(cups.split(',').map(s => s.trim()).filter(Boolean)) : null;
+    function calcAge(birthday: string): number {
+        const d = new Date(birthday), t = new Date();
+        let a = t.getFullYear() - d.getFullYear();
+        if (t.getMonth() < d.getMonth() || (t.getMonth() === d.getMonth() && t.getDate() < d.getDate())) a--;
+        return a;
+    }
+    if (cup || heightRange || (cupSet && cupSet.size > 0) || ageMin || ageMax) {
         hasProfileFilter = true;
         try {
             const profilesPath = path.join(process.cwd(), 'data', 'actress_profiles.json');
@@ -54,9 +64,18 @@ export async function GET(request: NextRequest) {
                     const p = profiles[name];
                     let match = true;
                     if (cup && (!p.cup || p.cup !== cup)) match = false;
-                    if (heightRange && match) {
+                    if (match && cupSet && cupSet.size > 0 && (!p.cup || !cupSet.has(p.cup))) match = false;
+                    if (match && heightRange) {
                         const [min, max] = heightRange.split('-').map(Number);
-                        if (!p.height || p.height < min || p.height >= max) match = false;
+                        if (!p.height || p.height < min || (max && p.height >= max)) match = false;
+                    }
+                    if (match && (ageMin || ageMax)) {
+                        if (!p.birthday) { match = false; }
+                        else {
+                            const age = calcAge(p.birthday);
+                            if (ageMin && age < ageMin) match = false;
+                            if (ageMax && age > ageMax) match = false;
+                        }
                     }
                     if (match) profileActresses.push(name);
                 }
