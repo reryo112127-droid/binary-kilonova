@@ -46,8 +46,9 @@ jobs:
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
 
       # avwiki_full.jsonl → avwiki_profiles.json に変換（APIが読む形式）
+      # 失敗してもスクレイプ進捗は保存する
       - name: Build avwiki_profiles.json
-        run: node scripts/build_avwiki_profiles.js
+        run: node scripts/build_avwiki_profiles.js || echo "build_avwiki_profiles failed (non-fatal)"
 
       # 進捗ファイルをコミットしてpush（次回の続き再開に使う）
       - name: Commit progress
@@ -62,15 +63,19 @@ jobs:
             data/avwiki_url_list.json \
             data/avwiki_product_urls.json \
             || true
-          # avwiki_profiles.json の変化は Vercel 再デプロイが必要なので [vercel skip] を付けない
+
+          # avwiki_profiles.json: 10件以上増えた場合のみ Vercel 再デプロイ（毎時は不要）
+          BEFORE=$(git show HEAD:data/avwiki_profiles.json 2>/dev/null | grep -c '"url"' || echo 0)
           git add data/avwiki_profiles.json || true
-          PROFILES_CHANGED=false
-          git diff --staged --name-only | grep -q avwiki_profiles.json && PROFILES_CHANGED=true
-          # 進捗ファイルのみの変更は Vercel ビルド不要なので [vercel skip] を付ける
+          AFTER=$(grep -c '"url"' data/avwiki_profiles.json 2>/dev/null || echo 0)
+          DIFF=$(( AFTER - BEFORE ))
+
           if ! git diff --staged --quiet; then
-            if [ "$PROFILES_CHANGED" = "true" ]; then
-              git commit -m "avwiki: update profiles [skip ci]"
+            if [ "$DIFF" -ge 10 ]; then
+              # 10件以上増えた → Vercel 再デプロイあり
+              git commit -m "avwiki: update profiles +${DIFF} entries [skip ci]"
             else
+              # 進捗のみ or 微増 → Vercel ビルドスキップ
               git commit -m "avwiki: scraper progress [skip ci] [vercel skip]"
             fi
             git pull --rebase origin main || true
