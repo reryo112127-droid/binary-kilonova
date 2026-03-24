@@ -37,9 +37,19 @@ function NewCard({ p }: { p: Product }) {
                     <img alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" src={p.main_image_url} loading="lazy" />
                 )}
             </div>
-            <div className="flex flex-col justify-center min-w-0">
+            <div className="flex flex-col justify-center min-w-0 flex-1">
                 {actress && <span className="text-[9px] text-primary font-bold truncate">{actress}</span>}
                 <h3 className="font-bold text-[13px] line-clamp-2 mt-0.5 text-gray-800">{p.title}</h3>
+            </div>
+            <div className="flex flex-col items-center justify-center gap-1 shrink-0">
+                {!actress && (
+                    <button onClick={e => e.preventDefault()} className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-primary transition-colors">
+                        <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                    </button>
+                )}
+                <button onClick={e => e.preventDefault()} className="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-colors">
+                    <span className="material-symbols-outlined text-[18px]">favorite</span>
+                </button>
             </div>
         </Link>
     );
@@ -58,9 +68,11 @@ function PreorderCard({ p }: { p: Product }) {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
                 <span className="absolute top-1.5 left-1.5 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>
                 <div className="absolute bottom-1.5 right-1.5 flex gap-1">
-                    <button onClick={e => e.preventDefault()} className="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-slate-700 hover:bg-primary hover:text-white transition-colors">
-                        <span className="material-symbols-outlined text-[14px]">add</span>
-                    </button>
+                    {!p.actresses?.trim() && (
+                        <button onClick={e => e.preventDefault()} className="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-slate-700 hover:bg-primary hover:text-white transition-colors">
+                            <span className="material-symbols-outlined text-[14px]">add</span>
+                        </button>
+                    )}
                     <button onClick={e => e.preventDefault()} className="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-primary hover:bg-primary hover:text-white transition-colors">
                         <span className="material-symbols-outlined text-[14px]">favorite</span>
                     </button>
@@ -85,6 +97,16 @@ function RankCard({ p, rank }: { p: Product; rank: number }) {
             </div>
             <div className="absolute bottom-0 p-2.5 w-full">
                 <p className="text-white text-[13px] font-bold line-clamp-2">{p.title}</p>
+            </div>
+            <div className="absolute bottom-2 right-2 flex gap-1">
+                {!p.actresses?.trim() && (
+                    <button onClick={e => e.preventDefault()} className="w-6 h-6 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-primary transition-colors">
+                        <span className="material-symbols-outlined text-[14px]">add</span>
+                    </button>
+                )}
+                <button onClick={e => e.preventDefault()} className="w-6 h-6 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-rose-500 transition-colors">
+                    <span className="material-symbols-outlined text-[14px]">favorite</span>
+                </button>
             </div>
         </Link>
     );

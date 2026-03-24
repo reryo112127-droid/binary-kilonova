@@ -26,9 +26,11 @@ function PreorderCard({ p }: { p: Product }) {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
                 <span className="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>
                 <div className="absolute bottom-2 right-2 flex gap-1">
-                    <button onClick={e => e.preventDefault()} className="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors">
-                        <span className="material-symbols-outlined text-[16px]">add</span>
-                    </button>
+                    {!p.actresses?.trim() && (
+                        <button onClick={e => e.preventDefault()} className="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors">
+                            <span className="material-symbols-outlined text-[16px]">add</span>
+                        </button>
+                    )}
                     <button onClick={e => e.preventDefault()} className="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-red-500 hover:bg-red-500 hover:text-white transition-colors">
                         <span className="material-symbols-outlined text-[16px]">favorite</span>
                     </button>
@@ -50,6 +52,11 @@ function PosterCard({ p }: { p: Product }) {
                         onError={e => { if (p.main_image_url && e.currentTarget.src !== p.main_image_url) e.currentTarget.src = p.main_image_url!; }} />
                 )}
                 <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                    {!p.actresses?.trim() && (
+                        <button className="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors" onClick={e => e.preventDefault()}>
+                            <span className="material-symbols-outlined text-[16px]">add</span>
+                        </button>
+                    )}
                     <button className="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-primary hover:bg-primary hover:text-white transition-colors" onClick={e => e.preventDefault()}>
                         <span className="material-symbols-outlined text-[18px]">favorite</span>
                     </button>
