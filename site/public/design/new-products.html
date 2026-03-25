@@ -92,6 +92,12 @@
 <span class="material-symbols-outlined text-[20px]">south</span>
 </button>
 </div>
+<!-- 4. 期間フィルター -->
+<div class="flex gap-2 px-4">
+<button id="btn-today" onclick="setPeriod('today')" class="flex-1 h-9 rounded-full text-xs font-bold bg-primary text-white transition-all">今日</button>
+<button id="btn-week" onclick="setPeriod('week')" class="flex-1 h-9 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 transition-all">今週</button>
+<button id="btn-month" onclick="setPeriod('month')" class="flex-1 h-9 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 transition-all">今月</button>
+</div>
 </div>
 <!-- 5. 下部の作品グリッド (3列維持) -->
 <div class="grid grid-cols-3 gap-x-2 gap-y-4 px-4 pb-24" id="products-grid"><!-- 1 -->
@@ -235,20 +241,57 @@
 <script>(function(){
 var g=document.getElementById('products-grid');
 if(!g)return;
-g.innerHTML='';
-fetch('/api/products?sort=new&limit=30').then(function(r){return r.json();}).then(function(d){
-  if(!d||!d.length)return;
-  g.innerHTML=d.map(function(p){
-    var img=p.main_image_url||'';
-    var t=((p.title||'').substring(0,30)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
-    var pid=encodeURIComponent(p.product_id||'');
-    return '<div class="flex flex-col gap-1.5 cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
-      +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">'
-      +(img?'<img class="h-full w-full object-cover" src="'+img+'"/>':'')
-      +'</div>'
-      +'<p class="line-clamp-2 text-[11px] font-bold leading-tight">'+t+'</p></div>';
-  }).join('');
-}).catch(function(){});
+var currentPeriod='today';
+
+function fmt(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function getRange(period){
+  var today=new Date();
+  var toDate=fmt(today);
+  var fromDate;
+  if(period==='today'){
+    fromDate=toDate;
+  }else if(period==='week'){
+    var d=new Date(today);d.setDate(today.getDate()-6);fromDate=fmt(d);
+  }else{
+    fromDate=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-01';
+  }
+  return{fromDate:fromDate,toDate:toDate};
+}
+function loadProducts(){
+  var r=getRange(currentPeriod);
+  g.innerHTML='<p class="col-span-3 text-center text-slate-400 py-12 text-xs">読み込み中...</p>';
+  fetch('/api/products?sort=new&limit=60&fromDate='+r.fromDate+'&toDate='+r.toDate)
+    .then(function(res){return res.json();})
+    .then(function(d){
+      if(!d||!d.length){g.innerHTML='<p class="col-span-3 text-center text-slate-400 py-12 text-xs">この期間の作品がありません</p>';return;}
+      g.innerHTML=d.map(function(p){
+        var img=p.main_image_url||'';
+        var t=((p.title||'').substring(0,30)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        var pid=encodeURIComponent(p.product_id||'');
+        return '<div class="flex flex-col gap-1.5 cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
+          +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200">'
+          +(img?'<img class="h-full w-full object-cover" src="'+img+'"/>':'')
+          +'</div>'
+          +'<p class="line-clamp-2 text-[11px] font-bold leading-tight">'+t+'</p></div>';
+      }).join('');
+    }).catch(function(){g.innerHTML='<p class="col-span-3 text-center text-slate-400 py-12 text-xs">エラーが発生しました</p>';});
+}
+window.setPeriod=function(period){
+  currentPeriod=period;
+  ['today','week','month'].forEach(function(p){
+    var btn=document.getElementById('btn-'+p);
+    if(!btn)return;
+    if(p===period){
+      btn.className='flex-1 h-9 rounded-full text-xs font-bold bg-primary text-white transition-all';
+    }else{
+      btn.className='flex-1 h-9 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 transition-all';
+    }
+  });
+  loadProducts();
+};
+loadProducts();
 })();
 </script>
 </body></html>
