@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { injectMobileLayout, injectWebLayout } from '../lib/injectLayout';
 
+export const dynamic = 'force-dynamic';
+
 const MOBILE_UA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
 
 export async function GET(request: NextRequest) {
