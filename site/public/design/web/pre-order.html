@@ -129,55 +129,23 @@
 <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-6">
 <!-- メーカー -->
 <div>
-<h3 class="font-bold text-xs mb-3 text-gray-700" style="">メーカー</h3>
-<select class="w-full text-[12px] border-gray-200 rounded-lg focus:ring-blue-500/20 focus:border-blue-500">
-<option>すべてのメーカー</option>
-<option>メーカーA</option>
-<option>メーカーB</option>
-<option>メーカーC</option>
-</select>
+<h3 class="font-bold text-xs mb-3 text-gray-700">メーカー</h3>
+<input id="filter-maker" class="w-full text-[11px] px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-blue-500/20 focus:border-blue-500" placeholder="メーカー名で絞り込み..." type="text"/>
 </div>
 <!-- 出演者 -->
 <div>
-<h3 class="font-bold text-xs mb-3 text-gray-700" style="">出演者</h3>
-<div class="relative mb-2">
-<input class="w-full text-[11px] pl-8 pr-3 py-1.5 border-gray-200 rounded-lg focus:ring-blue-500/20 focus:border-blue-500" placeholder="出演者名で検索..." type="text"/>
+<h3 class="font-bold text-xs mb-3 text-gray-700">出演者</h3>
+<div class="relative">
+<input id="filter-actress" class="w-full text-[11px] pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:ring-blue-500/20 focus:border-blue-500" placeholder="出演者名で絞り込み..." type="text"/>
 <svg class="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-width="2"></path></svg>
-</div>
-<div class="max-h-32 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-<label class="flex items-center text-[11px] text-gray-600 cursor-pointer hover:bg-gray-50 p-1 rounded" style="">
-<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
-                出演者 A
-              </label>
-<label class="flex items-center text-[11px] text-gray-600 cursor-pointer hover:bg-gray-50 p-1 rounded" style="">
-<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
-                出演者 B
-              </label>
-<label class="flex items-center text-[11px] text-gray-600 cursor-pointer hover:bg-gray-50 p-1 rounded" style="">
-<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
-                出演者 C
-              </label>
 </div>
 </div>
 <!-- ジャンル -->
 <div>
-<h3 class="font-bold text-xs mb-3 text-gray-700" style="">ジャンル</h3>
-<div class="grid grid-cols-1 gap-2">
-<label class="flex items-center text-[12px] text-gray-600 cursor-pointer" style="">
-<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
-                アクション
-              </label>
-<label class="flex items-center text-[12px] text-gray-600 cursor-pointer" style="">
-<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
-                RPG
-              </label>
-<label class="flex items-center text-[12px] text-gray-600 cursor-pointer" style="">
-<input class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" type="checkbox"/>
-                アドベンチャー
-              </label>
+<h3 class="font-bold text-xs mb-3 text-gray-700">ジャンル</h3>
+<input id="filter-genre" class="w-full text-[11px] px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-blue-500/20 focus:border-blue-500" placeholder="ジャンルで絞り込み..." type="text"/>
 </div>
-</div>
-<button class="w-full bg-gray-900 text-white text-[12px] font-bold py-2.5 rounded-lg hover:bg-gray-800 transition shadow-sm" style="">
+<button onclick="clearFilters()" class="w-full bg-gray-900 text-white text-[12px] font-bold py-2.5 rounded-lg hover:bg-gray-800 transition shadow-sm">
             検索条件をクリア
           </button>
 </div>
@@ -358,7 +326,7 @@
 var g=document.getElementById('products-grid'),pgWrap=document.getElementById('pagination-wrap');
 if(!g)return;
 var LIMIT=40,today=new Date();
-var state={period:'all',selectedDate:null,calYear:today.getFullYear(),calMonth:today.getMonth(),source:'',excludeBest:false,excludeVR:false,currentPage:1};
+var state={period:'all',selectedDate:null,calYear:today.getFullYear(),calMonth:today.getMonth(),source:'',excludeBest:false,excludeVR:false,maker:'',actress:'',genre:'',currentPage:1};
 var lastCount=0;
 
 function fmt(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -420,6 +388,9 @@ function loadProducts(){
   if(state.source)url+='&source='+state.source;
   if(state.excludeBest)url+='&excludeBest=1';
   if(state.excludeVR)url+='&excludeGenres=VR';
+  if(state.maker)url+='&maker='+encodeURIComponent(state.maker);
+  if(state.actress)url+='&actress='+encodeURIComponent(state.actress);
+  if(state.genre)url+='&genre='+encodeURIComponent(state.genre);
   fetch(url).then(function(res){return res.json();}).then(function(d){
     lastCount=d?d.length:0;
     var cEl=document.getElementById('result-count');if(cEl)cEl.textContent=lastCount+' 件'+(state.currentPage>1?' ('+state.currentPage+'ページ)':'');
@@ -448,6 +419,8 @@ window.setSource=function(src){state.source=src;state.currentPage=1;updateSrcBtn
 window.toggleBest=function(){state.excludeBest=!state.excludeBest;state.currentPage=1;updateFilterBtns();loadProducts();};
 window.toggleVR=function(){state.excludeVR=!state.excludeVR;state.currentPage=1;updateFilterBtns();loadProducts();};
 window.goPage=function(page){if(page<1)return;state.currentPage=page;window.scrollTo(0,200);loadProducts();};
+window.clearFilters=function(){state.maker='';state.actress='';state.genre='';['maker','actress','genre'].forEach(function(k){var el=document.getElementById('filter-'+k);if(el)el.value='';});state.currentPage=1;loadProducts();};
+(function(){var t={};['maker','actress','genre'].forEach(function(k){var el=document.getElementById('filter-'+k);if(!el)return;el.addEventListener('input',function(){clearTimeout(t[k]);t[k]=setTimeout(function(){state[k]=el.value.trim();state.currentPage=1;loadProducts();},500);});});})();
 renderCal();updateQfBtns('all');updateSrcBtns();updateFilterBtns();loadProducts();
 })();
 </script>
