@@ -13,6 +13,7 @@
  *   node scripts/scrape_avwiki_products.js --dry-run    # 最初の5件のみ
  *   node scripts/scrape_avwiki_products.js --interval 60  # 60秒間隔
  *   node scripts/scrape_avwiki_products.js --apply      # 収集済みデータをDBに反映のみ
+ *   node scripts/scrape_avwiki_products.js --apply-videoc # videoc(素人)の女優不明作品に限定して反映
  *
  * 進捗: data/avwiki_products_progress.json
  * 出力: data/avwiki_product_map.jsonl  (女優名-品番マッピング)
@@ -32,11 +33,12 @@ const PROGRESS_FILE    = path.join(DATA_DIR, 'avwiki_products_progress.json');
 
 // ========== 引数 ==========
 const args       = process.argv.slice(2);
-const FETCH_ONLY = args.includes('--fetch-urls');
-const DRY_RUN    = args.includes('--dry-run');
-const APPLY_ONLY = args.includes('--apply');
-const intIdx     = args.indexOf('--interval');
-const INTERVAL_MS = intIdx !== -1 ? parseInt(args[intIdx + 1], 10) * 1000 : 120_000; // デフォルト2分
+const FETCH_ONLY    = args.includes('--fetch-urls');
+const DRY_RUN       = args.includes('--dry-run');
+const APPLY_ONLY    = args.includes('--apply');
+const APPLY_VIDEOC  = args.includes('--apply-videoc');
+const intIdx        = args.indexOf('--interval');
+const INTERVAL_MS   = intIdx !== -1 ? parseInt(args[intIdx + 1], 10) * 1000 : 120_000; // デフォルト2分
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -233,6 +235,65 @@ async function applyFromJsonl(clients) {
     console.log(`\n✅ 適用完了 | MGS更新: ${totalMgs}件 / FANZA更新: ${totalFanza}件`);
 }
 
+// ========== --apply-videoc モード: 素人作品に限定して女優情報を反映 ==========
+async function applyToVideoc(clients) {
+    console.log('[apply-videoc] FANZA videoc(素人)の女優不明作品に avwiki データを反映\n');
+
+    if (!fs.existsSync(OUTPUT_JSONL)) {
+        console.error('❌ avwiki_product_map.jsonl が見つかりません。先にスクレイプを実行してください。');
+        process.exit(1);
+    }
+
+    // avwiki_product_map.jsonl を読み込んでfanza_pid→女優名 マップを作成
+    const lines = fs.readFileSync(OUTPUT_JSONL, 'utf-8').split('\n').filter(l => l.trim());
+    const entries = lines
+        .map(l => { try { return JSON.parse(l); } catch { return null; } })
+        .filter(e => e && e.fanza_pid && e.actresses && e.actresses.length > 0);
+
+    console.log(`  avwikiマップ: ${entries.length.toLocaleString()}件（女優特定済み）`);
+
+    // FANZA DBで actresses が空の全品番を取得
+    const emptyResult = await clients.fanza.execute(
+        'SELECT product_id FROM products WHERE actresses IS NULL OR actresses = \'\''
+    );
+    const emptySet = new Set(emptyResult.rows.map(r => r.product_id));
+    console.log(`  FANZA DB 女優不明件数: ${emptySet.size.toLocaleString()}件`);
+
+    // マッチするものだけ抽出
+    const matched = entries.filter(e => emptySet.has(e.fanza_pid));
+    console.log(`  avwikiでマッチ: ${matched.length.toLocaleString()}件\n`);
+
+    if (matched.length === 0) {
+        console.log('✅ 反映対象なし（すでに全件更新済み or avwikiデータなし）');
+        return;
+    }
+
+    const BATCH = 200;
+    let totalUpdated = 0;
+    const now = new Date().toISOString();
+
+    for (let i = 0; i < matched.length; i += BATCH) {
+        const chunk = matched.slice(i, i + BATCH);
+        const statements = chunk.map(e => ({
+            sql:  'UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = \'\')',
+            args: [e.actresses.join(', '), now, e.fanza_pid],
+        }));
+        const results = await clients.fanza.batch(statements, 'write');
+        totalUpdated += results.reduce((acc, r) => acc + (r.rowsAffected || 0), 0);
+        process.stdout.write(`  ${Math.min(i + BATCH, matched.length)}/${matched.length} 処理 | 更新: ${totalUpdated}\r`);
+    }
+
+    console.log(`\n✅ apply-videoc 完了`);
+    console.log(`   マッチ件数: ${matched.length.toLocaleString()}件`);
+    console.log(`   FANZA DB 更新: ${totalUpdated.toLocaleString()}件`);
+
+    // 更新後の残件数表示
+    const afterResult = await clients.fanza.execute(
+        'SELECT COUNT(*) as cnt FROM products WHERE actresses IS NULL OR actresses = \'\''
+    );
+    console.log(`   更新後 女優不明残数: ${Number(afterResult.rows[0].cnt).toLocaleString()}件`);
+}
+
 // ========== 進捗管理 ==========
 function loadProgress() {
     if (fs.existsSync(PROGRESS_FILE)) {
@@ -267,6 +328,12 @@ async function main() {
     // --apply モード
     if (APPLY_ONLY) {
         await applyFromJsonl(clients);
+        return;
+    }
+
+    // --apply-videoc モード
+    if (APPLY_VIDEOC) {
+        await applyToVideoc(clients);
         return;
     }
 
