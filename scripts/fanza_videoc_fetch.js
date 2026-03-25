@@ -31,6 +31,8 @@ const HITS_PER_REQUEST   = 100;    // DMM API最大値
 const RATE_LIMIT_MS      = 1000;   // APIリクエスト間隔(ms)
 const TURSO_BATCH_SIZE   = 50;     // Tursoへの1バッチあたり件数
 const START_YEAR_MONTH   = '2010-01';
+const DISCORD_WEBHOOK    = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
+const DISCORD_REPORT_INTERVAL = 10; // N ヶ月ごとにDiscord進捗報告
 
 // -------- 引数パース --------
 const args    = process.argv.slice(2);
@@ -40,6 +42,22 @@ const FROM_YM = fromIdx !== -1 ? args[fromIdx + 1] : null;
 
 // -------- ユーティリティ --------
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function nowJST() {
+    return new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+}
+
+async function sendDiscord(content) {
+    try {
+        await fetch(DISCORD_WEBHOOK, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ content }),
+        });
+    } catch (e) {
+        console.warn('[Discord] 通知失敗:', e.message);
+    }
+}
 
 function getCurrentYearMonth() {
     const d = new Date();
@@ -253,7 +271,8 @@ async function main() {
     if (!DRY_RUN) await ensureSchema(turso);
 
     const countResult = await turso.execute('SELECT COUNT(*) as cnt FROM products');
-    console.log(`Turso現在のレコード数: ${Number(countResult.rows[0].cnt).toLocaleString()}件\n`);
+    const initialCount = Number(countResult.rows[0].cnt);
+    console.log(`Turso現在のレコード数: ${initialCount.toLocaleString()}件\n`);
 
     const progress = loadProgress();
     console.log(`[進捗] 完了月: ${progress.completed_months.length}ヶ月 / 取得済み: ${progress.total_fetched.toLocaleString()}件`);
@@ -262,6 +281,16 @@ async function main() {
     const currentYM = getCurrentYearMonth();
     let targetMonth  = startYM;
     let totalFetched = progress.total_fetched;
+    let monthsProcessed = 0; // 今回のセッションで処理した月数
+
+    // 開始通知
+    if (!DRY_RUN) {
+        await sendDiscord(
+            `🚀 **FANZA 素人Floor スクレイピング開始** (${nowJST()})\n` +
+            `開始月: ${startYM} → ${currentYM}\n` +
+            `Turso既存: ${initialCount.toLocaleString()}件 / 完了済み: ${progress.completed_months.length}ヶ月`
+        );
+    }
 
     while (targetMonth <= currentYM) {
         if (progress.completed_months.includes(targetMonth)) {
@@ -317,12 +346,29 @@ async function main() {
             progress.completed_months.push(targetMonth);
             progress.total_fetched = totalFetched;
             saveProgress(progress);
+            monthsProcessed++;
 
             console.log(`  ✅ ${targetMonth}: ${monthFetched.toLocaleString()}件完了 (累計: ${totalFetched.toLocaleString()}件)`);
+
+            // N ヶ月ごとに Discord 進捗報告
+            if (!DRY_RUN && monthsProcessed % DISCORD_REPORT_INTERVAL === 0) {
+                await sendDiscord(
+                    `📊 **FANZA 素人Floor 進捗** (${nowJST()})\n` +
+                    `完了: **${progress.completed_months.length}ヶ月** / 取得累計: **${totalFetched.toLocaleString()}件**\n` +
+                    `現在: ${targetMonth} まで完了`
+                );
+            }
 
         } catch (err) {
             console.error(`\n  ❌ ${targetMonth}: ${err.message}`);
             console.error('  5秒後にリトライ...');
+            if (!DRY_RUN) {
+                await sendDiscord(
+                    `⚠️ **FANZA 素人Floor エラー** (${nowJST()})\n` +
+                    `月: ${targetMonth} / エラー: ${err.message}\n` +
+                    `5秒後にリトライします`
+                );
+            }
             await sleep(5000);
             continue; // 同じ月を再試行
         }
@@ -350,6 +396,17 @@ async function main() {
     console.log('次のステップ（AVWIKI女優特定を反映）:');
     console.log('  node scripts/scrape_avwiki_products.js --apply-videoc');
     console.log('══════════════════════════════════════════════\n');
+
+    // 完了通知
+    if (!DRY_RUN) {
+        await sendDiscord(
+            `✅ **FANZA 素人Floor スクレイピング完了** (${nowJST()})\n` +
+            `完了月数: **${progress.completed_months.length}ヶ月**\n` +
+            `今回取得: **${totalFetched.toLocaleString()}件**\n` +
+            `Turso総レコード: **${finalCount}件**\n` +
+            `次: \`node scripts/scrape_avwiki_products.js --apply-videoc\` で女優情報を反映`
+        );
+    }
 }
 
 main().catch(err => {

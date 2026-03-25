@@ -235,6 +235,24 @@ async function applyFromJsonl(clients) {
     console.log(`\n✅ 適用完了 | MGS更新: ${totalMgs}件 / FANZA更新: ${totalFanza}件`);
 }
 
+const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
+
+async function sendDiscord(content) {
+    try {
+        await fetch(DISCORD_WEBHOOK, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ content }),
+        });
+    } catch (e) {
+        console.warn('[Discord] 通知失敗:', e.message);
+    }
+}
+
+function nowJST() {
+    return new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+}
+
 // ========== --apply-videoc モード: 素人作品に限定して女優情報を反映 ==========
 async function applyToVideoc(clients) {
     console.log('[apply-videoc] FANZA videoc(素人)の女優不明作品に avwiki データを反映\n');
@@ -283,15 +301,22 @@ async function applyToVideoc(clients) {
         process.stdout.write(`  ${Math.min(i + BATCH, matched.length)}/${matched.length} 処理 | 更新: ${totalUpdated}\r`);
     }
 
-    console.log(`\n✅ apply-videoc 完了`);
-    console.log(`   マッチ件数: ${matched.length.toLocaleString()}件`);
-    console.log(`   FANZA DB 更新: ${totalUpdated.toLocaleString()}件`);
-
-    // 更新後の残件数表示
     const afterResult = await clients.fanza.execute(
         'SELECT COUNT(*) as cnt FROM products WHERE actresses IS NULL OR actresses = \'\''
     );
-    console.log(`   更新後 女優不明残数: ${Number(afterResult.rows[0].cnt).toLocaleString()}件`);
+    const remaining = Number(afterResult.rows[0].cnt);
+
+    console.log(`\n✅ apply-videoc 完了`);
+    console.log(`   マッチ件数: ${matched.length.toLocaleString()}件`);
+    console.log(`   FANZA DB 更新: ${totalUpdated.toLocaleString()}件`);
+    console.log(`   更新後 女優不明残数: ${remaining.toLocaleString()}件`);
+
+    await sendDiscord(
+        `🎭 **AVWIKI → FANZA videoc 女優情報反映完了** (${nowJST()})\n` +
+        `avwikiマッチ: **${matched.length.toLocaleString()}件**\n` +
+        `FANZA DB 更新: **${totalUpdated.toLocaleString()}件**\n` +
+        `女優不明 残: **${remaining.toLocaleString()}件**`
+    );
 }
 
 // ========== 進捗管理 ==========
