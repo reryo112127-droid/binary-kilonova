@@ -491,7 +491,7 @@ function loadProducts(){
   g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">読み込み中...</p>';
   var delta=state.source?LIMIT:Math.ceil(LIMIT/2);
   var offset=(state.currentPage-1)*delta;
-  var url='/api/products?sort=new&limit='+LIMIT+'&fromDate='+r.fromDate+'&toDate='+r.toDate+'&offset='+offset;
+  var url='/api/products?sort=new&limit='+(LIMIT+1)+'&fromDate='+r.fromDate+'&toDate='+r.toDate+'&offset='+offset;
   if(state.source)url+='&source='+state.source;
   if(state.excludeBest)url+='&excludeBest=1';
   if(state.excludeVR)url+='&excludeGenres=VR';
@@ -499,8 +499,9 @@ function loadProducts(){
   if(state.actress)url+='&actress='+encodeURIComponent(state.actress);
   if(state.genre)url+='&genre='+encodeURIComponent(state.genre);
   fetch(url).then(function(res){return res.json();}).then(function(d){
-    lastCount=d?d.length:0;
-    var cEl=document.getElementById('result-count');if(cEl)cEl.textContent=lastCount+' 作品'+(state.currentPage>1?' ('+state.currentPage+'ページ)':'');
+    var hasNext=d&&d.length>LIMIT;if(hasNext)d=d.slice(0,LIMIT);
+    lastCount=hasNext?LIMIT+1:(d?d.length:0);
+    var cEl=document.getElementById('result-count');if(cEl)cEl.textContent=(hasNext?LIMIT+'+':d?d.length:0)+' 作品'+(state.currentPage>1?' ('+state.currentPage+'ページ)':'');
     renderPagination();
     if(!d||!d.length){g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">この期間の作品がありません</p>';return;}
     g.innerHTML=d.map(function(p){

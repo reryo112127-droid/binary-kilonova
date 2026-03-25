@@ -305,6 +305,10 @@
 </div>
 <!-- ページネーション -->
 <div id="pagination-wrap" class="mt-12 flex justify-center"></div>
+<!-- さらに読み込む -->
+<div id="load-more-wrap" class="mt-4 flex justify-center" style="display:none!important">
+<button id="load-more-btn" onclick="fetchMore()" class="px-6 py-2.5 bg-white border border-gray-200 text-sm font-bold text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition shadow-sm">さらに読み込む</button>
+</div>
 </section>
 <!-- END: MainContent -->
 </div>
@@ -323,12 +327,14 @@
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
 
-  var ITEMS_PER_PAGE=40,currentPage=1,filteredCache=[];
+  var ITEMS_PER_PAGE=40,currentPage=1,filteredCache=[],fetchOffset=0;
   var filters = { contentType:'all', sortOrder:'popular', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'', subMaker:'', subGenres:[] };
+  var FETCH_LIMIT=200;
 
-  function buildUrl(){
+  function buildUrl(off){
     var p = new URLSearchParams();
-    p.set('limit','200');
+    p.set('limit',String(FETCH_LIMIT+1));
+    p.set('offset',String(off||0));
     if (filters.vrOnly) { p.set('genre','VR'); }
     else if (actress) p.set('actress',actress);
     else if (maker) p.set('maker',maker);
@@ -345,6 +351,10 @@
     if (filters.fromDate) p.set('fromDate',filters.fromDate);
     if (filters.toDate) p.set('toDate',filters.toDate);
     return '/api/products?'+p.toString();
+  }
+  function setLoadMoreVisible(v){
+    var w=document.getElementById('load-more-wrap');
+    if(w)w.style.cssText=v?'display:flex;justify-content:center;margin-top:1rem':'display:none!important';
   }
 
   var allResults = [];
@@ -454,15 +464,32 @@
 
   function fetchAndRender(){
     if (!grid) return;
-    filters.subMaker = ''; filters.subGenres = []; currentPage = 1;
+    filters.subMaker = ''; filters.subGenres = []; currentPage = 1; fetchOffset = 0;
     grid.innerHTML = '<div class="col-span-5 py-12 text-center text-sm text-gray-400">読み込み中...</div>';
-    fetch(buildUrl()).then(function(r){return r.json();}).then(function(data){
-      allResults = data || [];
+    setLoadMoreVisible(false);
+    fetch(buildUrl(0)).then(function(r){return r.json();}).then(function(data){
+      var hasMore = data && data.length > FETCH_LIMIT;
+      allResults = hasMore ? data.slice(0, FETCH_LIMIT) : (data || []);
+      setLoadMoreVisible(hasMore);
       updateSidebarFilters(allResults);
       if (!allResults.length){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">作品が見つかりませんでした</div>'; renderPagination(0); return; }
       renderFiltered();
     }).catch(function(){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">エラーが発生しました</div>'; });
   }
+  window.fetchMore=function(){
+    var btn=document.getElementById('load-more-btn');if(btn){btn.textContent='読み込み中...';btn.disabled=true;}
+    fetchOffset+=FETCH_LIMIT;
+    fetch(buildUrl(fetchOffset)).then(function(r){return r.json();}).then(function(data){
+      var hasMore = data && data.length > FETCH_LIMIT;
+      var items = hasMore ? data.slice(0, FETCH_LIMIT) : (data || []);
+      allResults = allResults.concat(items);
+      setLoadMoreVisible(hasMore);
+      if(btn){btn.textContent='さらに読み込む';btn.disabled=false;}
+      filters.subMaker='';filters.subGenres=[];currentPage=1;
+      updateSidebarFilters(allResults);
+      renderFiltered();
+    }).catch(function(){if(btn){btn.textContent='さらに読み込む';btn.disabled=false;}});
+  };
 
   // Source toggle (すべて/MGS/FANZA)
   var allSrcBtn=document.getElementById('sf-all-src-btn'), mgsBtn=document.getElementById('sf-mgs-btn'), fanzaBtn=document.getElementById('sf-fanza-btn');
