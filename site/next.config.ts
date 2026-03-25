@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
     '/':             ['./public/design/**/*'],
     '/product/[id]': ['./public/design/**/*'],
     '/ranking':      ['./public/design/**/*'],
+    '/new':          ['./public/design/**/*'],
+    '/search':       ['./public/design/**/*'],
+    '/actress/[name]': ['./public/design/**/*'],
+    '/review/add/[id]': ['./public/design/**/*'],
   },
   images: {
     remotePatterns: [
