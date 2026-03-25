@@ -14,6 +14,7 @@
  *   node scripts/scrape_avwiki_products.js --interval 60  # 60秒間隔
  *   node scripts/scrape_avwiki_products.js --apply      # 収集済みデータをDBに反映のみ
  *   node scripts/scrape_avwiki_products.js --apply-videoc # videoc(素人)の女優不明作品に限定して反映
+ *   node scripts/scrape_avwiki_products.js --scrape-videoc-direct # FANZAのvideoc女優不明作品のproduct_idでavwikiを直接検索
  *
  * 進捗: data/avwiki_products_progress.json
  * 出力: data/avwiki_product_map.jsonl  (女優名-品番マッピング)
@@ -33,10 +34,11 @@ const PROGRESS_FILE    = path.join(DATA_DIR, 'avwiki_products_progress.json');
 
 // ========== 引数 ==========
 const args       = process.argv.slice(2);
-const FETCH_ONLY    = args.includes('--fetch-urls');
-const DRY_RUN       = args.includes('--dry-run');
-const APPLY_ONLY    = args.includes('--apply');
-const APPLY_VIDEOC  = args.includes('--apply-videoc');
+const FETCH_ONLY          = args.includes('--fetch-urls');
+const DRY_RUN             = args.includes('--dry-run');
+const APPLY_ONLY          = args.includes('--apply');
+const APPLY_VIDEOC        = args.includes('--apply-videoc');
+const SCRAPE_VIDEOC_DIRECT = args.includes('--scrape-videoc-direct');
 const intIdx        = args.indexOf('--interval');
 const INTERVAL_MS   = intIdx !== -1 ? parseInt(args[intIdx + 1], 10) * 1000 : 120_000; // デフォルト2分
 
@@ -319,6 +321,154 @@ async function applyToVideoc(clients) {
     );
 }
 
+// ========== --scrape-videoc-direct モード ==========
+// avwiki サイトマップ × FANZA DB 女優不明作品の積集合だけをスクレイプして女優を特定する。
+// 218K全件を試さず約3,000件に絞るため効率的。
+async function scrapeVideocDirect(clients) {
+    const CHECKED_FILE     = path.join(DATA_DIR, 'avwiki_videoc_direct_checked.txt');
+    const STATS_FILE       = path.join(DATA_DIR, 'avwiki_videoc_direct_stats.json');
+    const WAIT_MS          = 1200;  // ページ取得後の待機
+    const SAVE_INTERVAL    = 100;   // N件ごとに進捗保存
+    const DISCORD_INTERVAL = 500;   // N件ごとにDiscord通知
+
+    console.log('══════════════════════════════════════════');
+    console.log('  avwiki 直接スクレイプ (videoc 女優特定)');
+    console.log('══════════════════════════════════════════\n');
+
+    // ① avwiki サイトマップ URL リストを読み込んでスラグマップを作成
+    //    slug → avwiki URL の対応 (直接形式 + ハイフン除去形式 の両方)
+    if (!fs.existsSync(URL_LIST_FILE)) {
+        console.error('❌ avwiki_product_urls.json が見つかりません。先に --fetch-urls を実行してください。');
+        process.exit(1);
+    }
+    const allWikiUrls = JSON.parse(fs.readFileSync(URL_LIST_FILE, 'utf-8'));
+    // slug → wikiUrl マップ (直接形式)
+    const slugToUrl = new Map();
+    for (const u of allWikiUrls) {
+        const slug = u.replace(/^https:\/\/av-wiki\.net\//, '').replace(/\/$/, '');
+        slugToUrl.set(slug, u);
+        // ハイフン除去形式も登録 (cmd-004 → cmd004)
+        const noHyphen = slug.replace(/-/g, '');
+        if (noHyphen !== slug) slugToUrl.set(noHyphen, u);
+    }
+    console.log(`  avwiki スラグ数: ${slugToUrl.size.toLocaleString()}件 (元URL: ${allWikiUrls.length.toLocaleString()}件)`);
+
+    // ② FANZA DB 女優不明 product_id を取得
+    const emptyResult = await clients.fanza.execute(
+        "SELECT product_id FROM products WHERE actresses IS NULL OR actresses = ''"
+    );
+    const emptyPids = emptyResult.rows.map(r => r.product_id);
+    console.log(`  FANZA 女優不明: ${emptyPids.length.toLocaleString()}件`);
+
+    // ③ 交差集合: avwiki にあり かつ FANZA DB で女優不明のもの
+    //    product_id が直接スラグに一致するもの
+    const targets = emptyPids
+        .filter(pid => slugToUrl.has(pid))
+        .map(pid => ({ pid, url: slugToUrl.get(pid) }));
+    console.log(`  avwiki×FANZA 交差: ${targets.length.toLocaleString()}件\n`);
+
+    // ④ 進捗ロード
+    const checkedSet = new Set(
+        fs.existsSync(CHECKED_FILE)
+            ? fs.readFileSync(CHECKED_FILE, 'utf-8').split('\n').filter(Boolean)
+            : []
+    );
+    let stats = { found: 0, updated: 0, errors: 0 };
+    if (fs.existsSync(STATS_FILE)) Object.assign(stats, JSON.parse(fs.readFileSync(STATS_FILE, 'utf-8')));
+
+    const todo = targets.filter(t => !checkedSet.has(t.pid));
+    console.log(`  既チェック: ${checkedSet.size.toLocaleString()}件 / 残り: ${todo.length.toLocaleString()}件`);
+    console.log(`  発見済み: ${stats.found.toLocaleString()}件 / 更新済み: ${stats.updated.toLocaleString()}件\n`);
+
+    if (todo.length === 0) {
+        console.log('✅ 全対象スクレイプ済み');
+        return;
+    }
+
+    await sendDiscord(
+        `🔍 **avwiki videoc 直接スクレイプ 開始** (${nowJST()})\n` +
+        `対象: **${targets.length.toLocaleString()}件** (avwiki×FANZA女優不明の交差)\n` +
+        `残り: **${todo.length.toLocaleString()}件** / 既チェック: ${checkedSet.size.toLocaleString()}件`
+    );
+
+    const newlyChecked = [];
+    const now = new Date().toISOString();
+    let sessionChecked = 0, sessionFound = 0, sessionUpdated = 0;
+
+    for (const { pid, url } of todo) {
+        let pageData = null;
+        try {
+            const html = await fetchHtml(url);
+            if (html) pageData = parseProductPage(html, url);
+        } catch (e) {
+            stats.errors++;
+        }
+
+        checkedSet.add(pid);
+        newlyChecked.push(pid);
+        sessionChecked++;
+
+        if (pageData && pageData.actresses && pageData.actresses.length > 0) {
+            sessionFound++;
+            stats.found++;
+            const actressStr = pageData.actresses.join(', ');
+            try {
+                const res = await clients.fanza.execute({
+                    sql: "UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')",
+                    args: [actressStr, now, pid],
+                });
+                if (res.rowsAffected > 0) {
+                    sessionUpdated++;
+                    stats.updated++;
+                }
+                process.stdout.write(`\n  [発見] ${pid}: ${actressStr.substring(0, 40)}\n`);
+            } catch (e) {
+                stats.errors++;
+            }
+        }
+
+        if (sessionChecked % 20 === 0) {
+            process.stdout.write(`  ${sessionChecked}/${todo.length} | 発見: ${sessionFound} | 更新: ${sessionUpdated}\r`);
+        }
+
+        if (newlyChecked.length >= SAVE_INTERVAL) {
+            fs.appendFileSync(CHECKED_FILE, newlyChecked.join('\n') + '\n');
+            fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+            newlyChecked.length = 0;
+        }
+
+        if (sessionChecked % DISCORD_INTERVAL === 0) {
+            await sendDiscord(
+                `🔍 **avwiki videoc 直接スクレイプ 進捗** (${nowJST()})\n` +
+                `${sessionChecked.toLocaleString()}/${todo.length.toLocaleString()}件\n` +
+                `今回発見: **${sessionFound}件** / 今回更新: **${sessionUpdated}件**`
+            );
+        }
+
+        await sleep(WAIT_MS);
+    }
+
+    if (newlyChecked.length > 0) {
+        fs.appendFileSync(CHECKED_FILE, newlyChecked.join('\n') + '\n');
+    }
+    fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+
+    const afterResult = await clients.fanza.execute(
+        "SELECT COUNT(*) as cnt FROM products WHERE actresses IS NULL OR actresses = ''"
+    );
+    const remaining = Number(afterResult.rows[0].cnt);
+
+    console.log(`\n\n✅ scrape-videoc-direct 完了`);
+    console.log(`   チェック: ${sessionChecked.toLocaleString()}件 / 発見: ${sessionFound.toLocaleString()}件 / 更新: ${sessionUpdated.toLocaleString()}件`);
+    console.log(`   女優不明 残: ${remaining.toLocaleString()}件`);
+
+    await sendDiscord(
+        `✅ **avwiki videoc 直接スクレイプ 完了** (${nowJST()})\n` +
+        `チェック: **${sessionChecked.toLocaleString()}件** | 発見: **${sessionFound.toLocaleString()}件** | 更新: **${sessionUpdated.toLocaleString()}件**\n` +
+        `女優不明 残: **${remaining.toLocaleString()}件**`
+    );
+}
+
 // ========== 進捗管理 ==========
 function loadProgress() {
     if (fs.existsSync(PROGRESS_FILE)) {
@@ -359,6 +509,12 @@ async function main() {
     // --apply-videoc モード
     if (APPLY_VIDEOC) {
         await applyToVideoc(clients);
+        return;
+    }
+
+    // --scrape-videoc-direct モード
+    if (SCRAPE_VIDEOC_DIRECT) {
+        await scrapeVideocDirect(clients);
         return;
     }
 
