@@ -132,22 +132,6 @@
   <span class="text-[11px] text-gray-400 px-1">―</span>
 </div>
 </div>
-<div class="pt-4 border-t border-gray-50 space-y-3">
-<div class="flex items-center justify-between">
-<span class="text-[11px] text-gray-600">BEST/総集編非表示</span>
-<label class="inline-flex relative items-center cursor-pointer">
-<input id="sf-best-chk" class="sr-only peer" type="checkbox"/>
-<div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
-</label>
-</div>
-<div class="flex items-center justify-between">
-<span class="text-[11px] text-gray-600">VR作品非表示</span>
-<label class="inline-flex relative items-center cursor-pointer">
-<input id="sf-vr-chk" class="sr-only peer" type="checkbox"/>
-<div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
-</label>
-</div>
-</div>
 <button id="sf-clear-btn" class="w-full bg-gray-900 text-white text-[12px] font-bold py-2.5 rounded-lg hover:bg-gray-800 transition shadow-sm">
                         絞り込みをリセット
                     </button>
@@ -175,6 +159,8 @@
 <span class="material-symbols-outlined text-[16px] mr-1">tune</span>
 詳細検索
 </a>
+<button id="qf-best" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600">BEST除外</button>
+<button id="qf-vr" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600">VR除外</button>
 </div>
 </div>
 <div class="flex items-center space-x-4">
@@ -184,7 +170,7 @@
 <button id="sf-preorder-btn" class="px-4 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700">予約作品</button>
 <button id="sf-new-btn" class="px-4 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700">新作</button>
 </div>
-<p class="text-[11px] text-gray-400 hidden sm:block">15 / 128 作品</p>
+<p id="result-count" class="text-[11px] text-gray-400 hidden sm:block">-- 作品</p>
 </div>
 </div>
 <!-- 商品グリッド -->
@@ -318,25 +304,7 @@
                     </script>
 </div>
 <!-- ページネーション -->
-<div class="mt-12 flex justify-center">
-<nav class="flex items-center space-x-1">
-<a class="p-2 text-gray-300 hover:text-blue-600 transition" href="#">
-<svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-<path clip-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" fill-rule="evenodd"></path>
-</svg>
-</a>
-<a class="w-8 h-8 flex items-center justify-center text-xs font-bold bg-blue-600 text-white rounded-lg shadow-md shadow-blue-500/20" href="#">1</a>
-<a class="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition" href="#">2</a>
-<a class="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition" href="#">3</a>
-<span class="px-2 text-xs text-gray-300">...</span>
-<a class="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition" href="#">10</a>
-<a class="p-2 text-gray-300 hover:text-blue-600 transition" href="#">
-<svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-<path clip-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" fill-rule="evenodd"></path>
-</svg>
-</a>
-</nav>
-</div>
+<div id="pagination-wrap" class="mt-12 flex justify-center"></div>
 </section>
 <!-- END: MainContent -->
 </div>
@@ -355,12 +323,13 @@
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
 
+  var ITEMS_PER_PAGE=40,currentPage=1,filteredCache=[];
   var filters = { contentType:'all', sortOrder:'popular', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'', subMaker:'', subGenres:[] };
 
   function buildUrl(){
     var p = new URLSearchParams();
-    p.set('limit','60');
-    if (filters.vrOnly) p.set('genre','VR');
+    p.set('limit','200');
+    if (filters.vrOnly) { p.set('genre','VR'); }
     else if (actress) p.set('actress',actress);
     else if (maker) p.set('maker',maker);
     else if (label) p.set('label',label);
@@ -397,6 +366,15 @@
       +'</div></a>';
   }
 
+  function renderPagination(total){
+    var pgWrap=document.getElementById('pagination-wrap');
+    if(!pgWrap)return;
+    var isFirst=currentPage===1,isLast=(currentPage*ITEMS_PER_PAGE)>=total;
+    var pc='p-2 text-gray-200 cursor-not-allowed',pa='p-2 text-gray-400 hover:text-blue-600 transition';
+    var prev='<button '+(isFirst?'disabled ':'')+' onclick="srchPage('+(currentPage-1)+')" class="'+(isFirst?pc:pa)+'"><svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" fill-rule="evenodd"></path></svg></button>';
+    var next='<button '+(isLast?'disabled ':'')+' onclick="srchPage('+(currentPage+1)+')" class="'+(isLast?pc:pa)+'"><svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" fill-rule="evenodd"></path></svg></button>';
+    pgWrap.innerHTML='<nav class="flex items-center space-x-3">'+prev+'<span class="text-xs font-bold text-gray-600 px-2">'+currentPage+' / '+Math.max(1,Math.ceil(total/ITEMS_PER_PAGE))+' ページ</span>'+next+'</nav>';
+  }
   function renderFiltered(){
     if (!grid) return;
     var filtered = allResults.slice();
@@ -405,9 +383,14 @@
       var gns = (p.genres||'').split(',').map(function(s){return s.trim();});
       return filters.subGenres.every(function(g){return gns.indexOf(g) !== -1;});
     });
-    if (!filtered.length) { grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">絞り込み結果がありません</div>'; return; }
-    grid.innerHTML = filtered.map(cardHtml).join('');
+    filteredCache = filtered;
+    var cEl=document.getElementById('result-count');if(cEl){cEl.textContent=filtered.length+' 作品';cEl.classList.remove('hidden');}
+    if (!filtered.length) { grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">絞り込み結果がありません</div>'; renderPagination(0); return; }
+    var start=(currentPage-1)*ITEMS_PER_PAGE,page=filtered.slice(start,start+ITEMS_PER_PAGE);
+    grid.innerHTML = page.map(cardHtml).join('');
+    renderPagination(filtered.length);
   }
+  window.srchPage=function(p){if(p<1)return;currentPage=p;window.scrollTo(0,200);renderFiltered();};
 
   function updateSidebarFilters(data){
     var makerCount = {}, genreCount = {};
@@ -471,13 +454,13 @@
 
   function fetchAndRender(){
     if (!grid) return;
-    filters.subMaker = ''; filters.subGenres = [];
+    filters.subMaker = ''; filters.subGenres = []; currentPage = 1;
     grid.innerHTML = '<div class="col-span-5 py-12 text-center text-sm text-gray-400">読み込み中...</div>';
     fetch(buildUrl()).then(function(r){return r.json();}).then(function(data){
       allResults = data || [];
       updateSidebarFilters(allResults);
-      if (!allResults.length){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">作品が見つかりませんでした</div>'; return; }
-      grid.innerHTML = allResults.map(cardHtml).join('');
+      if (!allResults.length){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">作品が見つかりませんでした</div>'; renderPagination(0); return; }
+      renderFiltered();
     }).catch(function(){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">エラーが発生しました</div>'; });
   }
 
@@ -513,10 +496,12 @@
   });
   if(calClear) calClear.addEventListener('click',function(){ filters.fromDate=''; filters.toDate=''; if(fromInput)fromInput.value=''; if(toInput)toInput.value=''; fetchAndRender(); });
 
-  // BEST/VR toggles
-  var bestChk=document.getElementById('sf-best-chk'), vrChk=document.getElementById('sf-vr-chk');
-  if(bestChk) bestChk.addEventListener('change',function(){ filters.showBest=!bestChk.checked; fetchAndRender(); });
-  if(vrChk) vrChk.addEventListener('change',function(){ filters.vrOnly=vrChk.checked; fetchAndRender(); });
+  // BEST/VR toggle buttons (now next to 詳細検索)
+  var actCls='inline-flex items-center text-[11px] font-bold px-2.5 py-1.5 rounded-lg border transition bg-blue-50 border-blue-200 text-blue-700';
+  var inaCls='inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600';
+  var bestBtn=document.getElementById('qf-best'), vrBtn=document.getElementById('qf-vr');
+  if(bestBtn) bestBtn.addEventListener('click',function(){ filters.showBest=!filters.showBest; bestBtn.className=(filters.showBest?inaCls:actCls); fetchAndRender(); });
+  if(vrBtn) vrBtn.addEventListener('click',function(){ filters.vrOnly=!filters.vrOnly; vrBtn.className=(filters.vrOnly?actCls:inaCls); fetchAndRender(); });
 
   // Segmented control
   var allBtn=document.getElementById('sf-all-btn'), preBtn=document.getElementById('sf-preorder-btn'), newBtn=document.getElementById('sf-new-btn');

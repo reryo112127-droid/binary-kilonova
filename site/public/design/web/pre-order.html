@@ -97,35 +97,32 @@
 <aside class="w-full lg:w-64 flex-shrink-0 space-y-6" data-purpose="sidebar-filter">
 <!-- サービス切替 (Segmented Control) -->
 <div class="bg-gray-100 p-1 rounded-lg flex">
-<button class="flex-1 text-[11px] font-bold py-1.5 rounded-md bg-white shadow-sm text-blue-600" style="">MGS動画</button>
-<button class="flex-1 text-[11px] font-medium py-1.5 rounded-md text-gray-500 hover:text-gray-700" style="">FANZA</button>
+<button id="src-all" onclick="setSource('')" class="flex-1 text-[11px] font-bold py-1.5 rounded-md bg-white shadow-sm text-blue-600">すべて</button>
+<button id="src-mgs" onclick="setSource('mgs')" class="flex-1 text-[11px] font-medium py-1.5 rounded-md text-gray-500 hover:text-gray-700">MGS動画</button>
+<button id="src-fanza" onclick="setSource('fanza')" class="flex-1 text-[11px] font-medium py-1.5 rounded-md text-gray-500 hover:text-gray-700">FANZA</button>
 </div>
 <!-- 発売予定日カレンダー -->
 <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-<h2 class="font-bold text-sm mb-4 text-gray-800" style="">発売予定日で探す</h2>
-<div class="mb-4">
+<h2 class="font-bold text-sm mb-4 text-gray-800">発売予定日で探す</h2>
+<div class="mb-3" id="cal-wrap">
 <div class="flex items-center justify-between mb-3 px-1">
-<span class="text-[12px] font-bold" style="">2024年 11月</span>
+<span class="text-[12px] font-bold" id="cal-label"></span>
 <div class="flex space-x-1">
-<button class="p-1 hover:bg-gray-100 rounded text-gray-400" style=""><svg class="w-3 h-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="2"></path></svg></button>
-<button class="p-1 hover:bg-gray-100 rounded text-gray-400" style=""><svg class="w-3 h-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2"></path></svg></button>
+<button onclick="calMove(-1)" class="p-1 hover:bg-gray-100 rounded text-gray-400"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="2"></path></svg></button>
+<button onclick="calMove(1)" class="p-1 hover:bg-gray-100 rounded text-gray-400"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2"></path></svg></button>
 </div>
 </div>
-<div class="grid grid-cols-7 text-center text-[10px] text-gray-400 mb-2">
-<div class="" style="">日</div><div class="" style="">月</div><div class="" style="">火</div><div class="" style="">水</div><div class="" style="">木</div><div class="" style="">金</div><div class="" style="">土</div>
+<div class="grid grid-cols-7 text-center text-[10px] text-gray-400 mb-1">
+<div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
 </div>
-<div class="grid grid-cols-7 gap-1 text-center text-[11px]">
-<div class="py-1 text-gray-300" style="">27</div><div class="py-1 text-gray-300" style="">28</div><div class="py-1 text-gray-300" style="">29</div><div class="py-1 text-gray-300" style="">30</div><div class="py-1 text-gray-300" style="">31</div><button class="py-1 hover:bg-blue-50 rounded transition" style="">1</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">2</button>
-<button class="py-1 hover:bg-blue-50 rounded transition" style="">3</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">4</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">5</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">6</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">7</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">8</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">9</button>
-<button class="py-1 hover:bg-blue-50 rounded transition" style="">10</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">11</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">12</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">13</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">14</button><button class="py-1 bg-blue-600 text-white rounded font-bold" style="">15</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">16</button>
-<button class="py-1 hover:bg-blue-50 rounded transition" style="">17</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">18</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">19</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">20</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">21</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">22</button><button class="py-1 hover:bg-blue-50 rounded transition" style="">23</button>
-</div>
+<div class="grid grid-cols-7 gap-0.5 text-center text-[11px]" id="cal-days"></div>
 </div>
 <!-- クイックフィルター -->
-<div class="flex flex-wrap gap-2 pt-2 border-t border-gray-50">
-<button class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100" style="">本日</button>
-<button class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100" style="">明日</button>
-<button class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100" style="">今週末</button>
+<div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+<button id="qf-all" onclick="setQuickPeriod('all')" class="px-2.5 py-1.5 text-[11px] font-bold bg-blue-600 text-white rounded-md transition">全期間</button>
+<button id="qf-week" onclick="setQuickPeriod('week')" class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100">今週</button>
+<button id="qf-month" onclick="setQuickPeriod('month')" class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100">今月</button>
+<button id="qf-next" onclick="setQuickPeriod('next-month')" class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100">来月</button>
 </div>
 </div>
 <!-- 各種フィルター -->
@@ -180,23 +177,6 @@
               </label>
 </div>
 </div>
-<!-- 表示切替トグル -->
-<div class="pt-4 border-t border-gray-50 space-y-3">
-<div class="flex items-center justify-between">
-<span class="text-[11px] text-gray-600" style="">BEST/総集編非表示</span>
-<label class="inline-flex relative items-center cursor-pointer" style="">
-<input class="sr-only peer" type="checkbox"/>
-<div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
-</label>
-</div>
-<div class="flex items-center justify-between">
-<span class="text-[11px] text-gray-600" style="">VR作品非表示</span>
-<label class="inline-flex relative items-center cursor-pointer" style="">
-<input class="sr-only peer" type="checkbox"/>
-<div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
-</label>
-</div>
-</div>
 <button class="w-full bg-gray-900 text-white text-[12px] font-bold py-2.5 rounded-lg hover:bg-gray-800 transition shadow-sm" style="">
             検索条件をクリア
           </button>
@@ -216,13 +196,15 @@
 <option>人気順</option>
 </select>
 </div>
-<!-- 詳細検索ボタン (新規) -->
-<a class="inline-flex items-center text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition border border-blue-100" href="#" style="">
+<!-- 詳細検索ボタン -->
+<a class="inline-flex items-center text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition border border-blue-100" href="/search">
 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-width="2.5"></path></svg>
               詳細検索
             </a>
+<button id="qf-best" onclick="toggleBest()" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600">BEST除外</button>
+<button id="qf-vr" onclick="toggleVR()" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600">VR除外</button>
 </div>
-<p class="text-xs text-gray-400" style="">全 124 件の予約受付中タイトル</p>
+<p id="result-count" class="text-xs text-gray-400">-- 件</p>
 </div>
 <!-- 商品グリッド (横5×縦3 = 15作品) -->
 <div class="product-grid" id="products-grid" data-purpose="product-list">
@@ -365,25 +347,7 @@
 </article>
 </div>
 <!-- ページネーション -->
-<div class="mt-12 flex justify-center">
-<nav class="flex items-center space-x-1">
-<a class="p-2 text-gray-300 hover:text-blue-600 transition" href="#" style="">
-<svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-<path clip-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" fill-rule="evenodd"></path>
-</svg>
-</a>
-<a class="w-8 h-8 flex items-center justify-center text-xs font-bold bg-blue-600 text-white rounded-lg shadow-md shadow-blue-500/20" href="#" style="">1</a>
-<a class="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition" href="#" style="">2</a>
-<a class="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition" href="#" style="">3</a>
-<span class="px-2 text-xs text-gray-300" style="">...</span>
-<a class="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition" href="#" style="">10</a>
-<a class="p-2 text-gray-300 hover:text-blue-600 transition" href="#" style="">
-<svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-<path clip-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" fill-rule="evenodd"></path>
-</svg>
-</a>
-</nav>
-</div>
+<div id="pagination-wrap" class="mt-12 flex justify-center"></div>
 </section>
 <!-- END: MainContent -->
 </div>
@@ -391,25 +355,100 @@
 <!-- BEGIN: Footer (Minimized) -->
 <!-- END: Footer -->
 <script>(function(){
-var g=document.getElementById('products-grid');
+var g=document.getElementById('products-grid'),pgWrap=document.getElementById('pagination-wrap');
 if(!g)return;
-g.innerHTML='<p class="col-span-5 text-center text-slate-400 py-8">読み込み中...</p>';
-fetch('/api/products?sort=new&limit=15').then(function(r){return r.json();}).then(function(d){
-  if(!d||!d.length){g.innerHTML='<p class="col-span-5 text-center text-slate-400 py-8">作品がありません</p>';return;}
-  g.innerHTML=d.map(function(p){
-    var img=p.main_image_url||'';
-    var t=((p.title||'').substring(0,40)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
-    var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
-    var pid=encodeURIComponent(p.product_id||'');
-    return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
-      +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
-      +(img?'<img alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="'+img+'"/>':'<div class="w-full h-full bg-slate-200"></div>')
-      +'<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">予約受付中</span>'
-      +'</div>'
-      +'<div class="p-3"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8">'+t+'</h3>'
-      +'<p class="text-[10px] text-gray-400">'+dt+'</p></div></article>';
-  }).join('');
-}).catch(function(){g.innerHTML='<p class="col-span-5 text-center text-slate-400 py-8">エラーが発生しました</p>';});
+var LIMIT=40,today=new Date();
+var state={period:'all',selectedDate:null,calYear:today.getFullYear(),calMonth:today.getMonth(),source:'',excludeBest:false,excludeVR:false,currentPage:1};
+var lastCount=0;
+
+function fmt(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function getRange(){
+  var t=fmt(today);
+  if(state.selectedDate)return{fromDate:state.selectedDate,toDate:state.selectedDate};
+  if(state.period==='week'){var d=new Date(today);d.setDate(today.getDate()+7);return{fromDate:t,toDate:fmt(d)};}
+  if(state.period==='month'){var end=new Date(today.getFullYear(),today.getMonth()+1,0);return{fromDate:t,toDate:fmt(end)};}
+  if(state.period==='next-month'){var nm=today.getMonth()+1,ny=today.getFullYear();if(nm>11){nm=0;ny++;}var s=new Date(ny,nm,1),e=new Date(ny,nm+1,0);return{fromDate:fmt(s),toDate:fmt(e)};}
+  return{fromDate:'',toDate:''};
+}
+function renderCal(){
+  var y=state.calYear,m=state.calMonth,first=new Date(y,m,1).getDay(),last=new Date(y,m+1,0).getDate(),prevLast=new Date(y,m,0).getDate(),todayStr=fmt(today),html='';
+  document.getElementById('cal-label').textContent=y+'年 '+(m+1)+'月';
+  for(var i=0;i<first;i++)html+='<div class="py-1 text-gray-300">'+(prevLast-first+1+i)+'</div>';
+  for(var d=1;d<=last;d++){
+    var ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var isPast=ds<todayStr,isSel=ds===state.selectedDate,isToday=ds===todayStr;
+    var cls='py-1 rounded transition ';
+    if(isPast)cls+='text-gray-300 cursor-default';
+    else if(isSel)cls+='bg-blue-600 text-white font-bold cursor-pointer';
+    else if(isToday)cls+='bg-blue-100 text-blue-700 font-bold cursor-pointer';
+    else cls+='hover:bg-blue-50 text-gray-700 cursor-pointer';
+    var oc=isPast?'':' onclick="selectDate(\''+ds+'\')"';
+    html+='<button class="'+cls+'"'+oc+'>'+d+'</button>';
+  }
+  var rem=(7-((first+last)%7))%7;for(var n=1;n<=rem;n++)html+='<div class="py-1 text-gray-300">'+n+'</div>';
+  document.getElementById('cal-days').innerHTML=html;
+}
+function updateQfBtns(a){
+  ['all','week','month','next-month'].forEach(function(p){var id='qf-'+(p==='next-month'?'next':p);var b=document.getElementById(id);if(!b)return;b.className=p===a?'px-2.5 py-1.5 text-[11px] font-bold bg-blue-600 text-white rounded-md transition':'px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100';});
+}
+function updateSrcBtns(){
+  var map={'':'src-all','mgs':'src-mgs','fanza':'src-fanza'};
+  Object.keys(map).forEach(function(s){var b=document.getElementById(map[s]);if(!b)return;b.className='flex-1 text-[11px] py-1.5 rounded-md '+(s===state.source?'font-bold bg-white shadow-sm text-blue-600':'font-medium text-gray-500 hover:text-gray-700');});
+}
+function updateFilterBtns(){
+  var act='inline-flex items-center text-[11px] font-bold px-2.5 py-1.5 rounded-lg border transition bg-blue-50 border-blue-200 text-blue-700';
+  var ina='inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600';
+  var b=document.getElementById('qf-best');if(b)b.className=(state.excludeBest?act:ina);
+  var v=document.getElementById('qf-vr');if(v)v.className=(state.excludeVR?act:ina);
+}
+function renderPagination(){
+  if(!pgWrap)return;
+  var isFirst=state.currentPage===1,isLast=lastCount<LIMIT;
+  var pc='p-2 text-gray-200 cursor-not-allowed',pa='p-2 text-gray-400 hover:text-blue-600 transition';
+  var prev='<button '+(isFirst?'disabled ':'')+' onclick="goPage('+(state.currentPage-1)+')" class="'+(isFirst?pc:pa)+'"><svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" fill-rule="evenodd"></path></svg></button>';
+  var next='<button '+(isLast?'disabled ':'')+' onclick="goPage('+(state.currentPage+1)+')" class="'+(isLast?pc:pa)+'"><svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" fill-rule="evenodd"></path></svg></button>';
+  pgWrap.innerHTML='<nav class="flex items-center space-x-3">'+prev+'<span class="text-xs font-bold text-gray-600 px-2">'+state.currentPage+' ページ</span>'+next+'</nav>';
+}
+function loadProducts(){
+  var r=getRange();
+  g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">読み込み中...</p>';
+  var delta=state.source?LIMIT:Math.ceil(LIMIT/2);
+  var offset=(state.currentPage-1)*delta;
+  var url='/api/products?sort=pre-order&limit='+LIMIT+'&offset='+offset;
+  if(r.fromDate)url+='&fromDate='+r.fromDate;
+  if(r.toDate)url+='&toDate='+r.toDate;
+  if(state.source)url+='&source='+state.source;
+  if(state.excludeBest)url+='&excludeBest=1';
+  if(state.excludeVR)url+='&excludeGenres=VR';
+  fetch(url).then(function(res){return res.json();}).then(function(d){
+    lastCount=d?d.length:0;
+    var cEl=document.getElementById('result-count');if(cEl)cEl.textContent=lastCount+' 件'+(state.currentPage>1?' ('+state.currentPage+'ページ)':'');
+    renderPagination();
+    if(!d||!d.length){g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">この期間の予約作品がありません</p>';return;}
+    g.innerHTML=d.map(function(p){
+      var img=p.main_image_url||'';
+      var t=((p.title||'').substring(0,40)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+      var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
+      var pid=encodeURIComponent(p.product_id||'');
+      var badge=p.source==='fanza'?'<span class="absolute top-2 right-2 bg-orange-500 text-white text-[8px] font-bold px-1 py-0.5 rounded">FANZA</span>':'<span class="absolute top-2 right-2 bg-teal-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">MGS</span>';
+      return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
+        +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
+        +(img?'<img alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="'+img+'"/>':'<div class="w-full h-full bg-slate-200"></div>')
+        +'<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">予約受付中</span>'
+        +badge+'</div>'
+        +'<div class="p-3"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8">'+t+'</h3>'
+        +'<p class="text-[10px] text-gray-400">'+dt+' 発売予定</p></div></article>';
+    }).join('');
+  }).catch(function(){g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">エラーが発生しました</p>';renderPagination();});
+}
+window.setQuickPeriod=function(p){state.period=p;state.selectedDate=null;state.currentPage=1;updateQfBtns(p);renderCal();loadProducts();};
+window.selectDate=function(ds){state.selectedDate=ds;state.period=null;state.currentPage=1;updateQfBtns(null);renderCal();loadProducts();};
+window.calMove=function(dir){state.calMonth+=dir;if(state.calMonth>11){state.calMonth=0;state.calYear++;}if(state.calMonth<0){state.calMonth=11;state.calYear--;}renderCal();};
+window.setSource=function(src){state.source=src;state.currentPage=1;updateSrcBtns();loadProducts();};
+window.toggleBest=function(){state.excludeBest=!state.excludeBest;state.currentPage=1;updateFilterBtns();loadProducts();};
+window.toggleVR=function(){state.excludeVR=!state.excludeVR;state.currentPage=1;updateFilterBtns();loadProducts();};
+window.goPage=function(page){if(page<1)return;state.currentPage=page;window.scrollTo(0,200);loadProducts();};
+renderCal();updateQfBtns('all');updateSrcBtns();updateFilterBtns();loadProducts();
 })();
 </script>
 </body></html>
