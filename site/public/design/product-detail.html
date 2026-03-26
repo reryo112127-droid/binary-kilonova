@@ -210,7 +210,47 @@
       // サンプル動画
       if (p.sample_video_url) {
         var vBtn = document.getElementById('pd-video-btn');
-        if (vBtn) { vBtn.style.display=''; vBtn.onclick=function(){ window.open(p.sample_video_url,'_blank'); }; }
+        if (vBtn) {
+          vBtn.style.display='';
+          vBtn.onclick=function(){
+            var isMgs = p.sample_video_url && p.sample_video_url.indexOf('mgstage.com/sampleplayer') !== -1;
+            if (isMgs) {
+              // MGS: プロキシ経由で実際のMP4 URLを取得してインライン再生
+              vBtn.disabled = true;
+              vBtn.textContent = '読み込み中...';
+              fetch('/api/mgs-video?url='+encodeURIComponent(p.sample_video_url))
+                .then(function(r){ return r.json(); })
+                .then(function(d){
+                  vBtn.disabled = false;
+                  vBtn.textContent = 'サンプル動画を再生';
+                  if (!d.mp4) { alert('動画を取得できませんでした'); return; }
+                  showVideoModal(d.mp4);
+                })
+                .catch(function(){ vBtn.disabled=false; vBtn.textContent='サンプル動画を再生'; alert('エラーが発生しました'); });
+            } else {
+              window.open(p.sample_video_url,'_blank');
+            }
+          };
+        }
+      }
+
+      function showVideoModal(src) {
+        var ov = document.createElement('div');
+        ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;';
+        var inner = document.createElement('div');
+        inner.style.cssText='position:relative;width:100%;max-width:640px;padding:0 1rem;';
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent='✕';
+        closeBtn.style.cssText='position:absolute;top:-2rem;right:1rem;color:#fff;font-size:1.5rem;background:none;border:none;cursor:pointer;';
+        closeBtn.onclick=function(){ ov.remove(); };
+        var vid = document.createElement('video');
+        vid.src=src; vid.controls=true; vid.autoplay=true; vid.playsInline=true;
+        vid.style.cssText='width:100%;border-radius:.5rem;';
+        inner.appendChild(closeBtn);
+        inner.appendChild(vid);
+        ov.appendChild(inner);
+        ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+        document.body.appendChild(ov);
       }
 
       // 作品情報（リンク付き）
