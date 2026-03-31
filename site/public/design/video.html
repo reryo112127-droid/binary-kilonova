@@ -1,125 +1,500 @@
 <!DOCTYPE html>
-
-<html lang="ja"><head>
+<html lang="ja">
+<head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Sans+JP:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#ec5b13",
-                        "background-light": "#f8f6f6",
-                        "background-dark": "#1a110d",
-                    },
-                    fontFamily: {
-                        "display": ["Public Sans", "Noto Sans JP", "sans-serif"]
-                    },
-                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
-                },
-            },
-        }
-    </script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#ec5b13",
+        "background-dark": "#0a0a0a",
+      },
+      fontFamily: { "display": ["Public Sans", "Noto Sans JP", "sans-serif"] },
+    },
+  },
+}
+</script>
+<title>動画 | AVコンシェルジュ</title>
 <style>
-        body { font-family: 'Public Sans', 'Noto Sans JP', sans-serif; }
-        .aspect-video-container { aspect-ratio: 16 / 9; width: 100%; }
-        body {
-            min-height: max(884px, 100dvh);
-        }
-    </style>
+  html, body { height: 100%; background: #0a0a0a; overflow: hidden; font-family: 'Public Sans', 'Noto Sans JP', sans-serif; }
+  #feed {
+    position: fixed;
+    top: 44px; /* tab bar height */
+    left: 0; right: 0;
+    bottom: 72px; /* bottom nav height approx */
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .video-card {
+    height: calc(100dvh - 44px - 72px);
+    min-height: 400px;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    background: #0a0a0a;
+    flex-shrink: 0;
+  }
+  .video-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #111;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .video-wrap img, .video-wrap video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: left top;
+  }
+  .video-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px 8px;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .spin {
+    animation: spin 0.8s linear infinite;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    width: 36px; height: 36px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .tab-btn { transition: color 0.15s, border-color 0.15s; }
+  .tab-btn.active { color: #ec5b13; border-bottom: 2px solid #ec5b13; }
+  .tab-btn:not(.active) { color: rgba(255,255,255,0.5); border-bottom: 2px solid transparent; }
+  /* no-scrollbar */
+  #feed::-webkit-scrollbar { display: none; }
+  #feed { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
 </head>
-<body class="bg-background-dark text-slate-100 overflow-hidden">
-<!-- Main Content Container -->
-<main class="relative h-screen w-full flex flex-col bg-black">
-<!-- Video Area (Immersive Dark Background) -->
-<div class="flex-1 flex flex-col justify-center bg-black overflow-y-auto">
-<!-- Header for context -->
-<div class="p-4 flex items-center justify-between">
-<button class="p-2 -ml-2 text-white">
-<span class="material-symbols-outlined">arrow_back_ios_new</span>
-</button>
-<span class="font-bold text-sm">おすすめ動画</span>
-<button class="p-2 -mr-2 text-white"><span class="material-symbols-outlined">search</span></button>
+<body class="bg-[#0a0a0a] text-white">
+
+<!-- Tab Bar -->
+<div id="tab-bar" class="fixed top-0 left-0 right-0 z-40 flex items-center justify-center gap-8 bg-black/80 backdrop-blur-md border-b border-white/10" style="height:44px">
+  <button id="tab-random" class="tab-btn active text-sm font-bold px-2 py-2" onclick="switchTab('random')">ランダム</button>
+  <button id="tab-personal" class="tab-btn text-sm font-bold px-2 py-2" onclick="switchTab('personal')">あなたへ</button>
 </div>
-<!-- Horizontal Video Container (16:9) -->
-<div class="relative w-full aspect-video-container bg-zinc-900 group">
-<!-- Background Video Placeholder -->
-<div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC0sQuQ-KyLWt7DdiVpwkOLTE2yQJtE6fEZOHkw4Wuvj4hpa8vyP8708ywR9hjQokhzhztkBxdnZz1M0T-mwEM67I5_qG2mwJn1rr7snxJZVjiKj8MfWRKGFi4wO21Qwhbg2mGiFE_44gKAoRH9OsnMr3wCVllNHooG9adP-7q6bzoZAiWnlI3G6kMI2ABwQyTgp4yBuWaHS7BoqEHYVh3qaBcyVVqM-DB1YIZmDmvcnAKnwGfwHIRE4mISuk7eRSkwMyRNwvLu0aY');">
+
+<!-- Feed Container -->
+<div id="feed"></div>
+
+<!-- Empty state for personal tab -->
+<div id="empty-personal" class="hidden fixed inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center" style="top:44px;bottom:72px">
+  <span class="material-symbols-outlined text-[48px] text-white/30">favorite</span>
+  <p class="text-white/60 text-sm leading-relaxed">いいねした作品の出演者をもとに<br>おすすめ動画を表示します</p>
+  <a href="/ranking" class="px-5 py-2.5 bg-primary rounded-full text-white text-xs font-bold">ランキングを見る</a>
 </div>
-<!-- Play/Pause Indicator -->
-<div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-<div class="bg-black/40 rounded-full p-4">
-<span class="material-symbols-outlined text-white text-[48px] fill-current">play_arrow</span>
+
+<!-- Initial loading skeleton -->
+<div id="feed-skeleton" class="fixed flex flex-col" style="top:44px;left:0;right:0;bottom:72px;background:#0a0a0a">
+  <div class="w-full animate-pulse bg-zinc-800" style="aspect-ratio:16/9;flex-shrink:0"></div>
+  <div class="flex-1 p-4 space-y-3">
+    <div class="h-4 bg-zinc-800 rounded w-4/5 animate-pulse"></div>
+    <div class="h-3 bg-zinc-800 rounded w-2/5 animate-pulse"></div>
+    <div class="h-3 bg-zinc-800 rounded w-3/5 animate-pulse"></div>
+  </div>
 </div>
-</div>
-<!-- Progress Bar -->
-<div class="absolute bottom-0 left-0 w-full h-1 bg-white/20">
-<div class="h-full bg-primary" style="width: 35%;"></div>
-</div>
-</div>
-<!-- Information Area below video -->
-<div class="p-4 bg-background-dark flex-1">
-<div class="flex flex-col gap-4">
-<div>
-<h1 class="text-white font-bold text-xl mb-4">ダイナミック・モダン・コレオグラフィー</h1>
-<!-- Actress Profile Section -->
-<div class="flex items-center gap-3">
-<div class="w-12 h-12 rounded-full border-2 border-primary overflow-hidden">
-<img alt="DanceMaster Yuki" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsXlCcIwoA3whhQ9e1vfpBb4tckwA23hOQPAZGAlQahVpE-vcqX4QcYttjDTbOAecnBwEzRLUvT_yqF4OeI5iD4d2Iz5BMsv7OFZa66QgOJwzL-j0iW3nh2cccP9UaVs_4GT472efGKwGjBx1H-9Q4wDJjDQD2ATgfSGwBq8CurMm7zJF0Xxhsgf5bWeTUm8Jk6UvrgOzprpur79Pim47qPH0oE904YEMjve_jauaZHni8inlrPK7WrCO0x8LESXeaoSGkl1kPi8g"/>
-</div>
-<div>
-<p class="text-white font-bold text-base">DanceMaster Yuki</p>
-<p class="text-slate-400 text-xs">2.4M followers</p>
-</div>
-</div>
-</div>
-<!-- Action Buttons Row (Like, Add on the right side) -->
-<div class="flex items-center justify-between border-t border-white/10 pt-6 mt-2">
-<div class="flex items-center gap-6">
-<button class="flex flex-col items-center gap-1 group/btn">
-<span class="material-symbols-outlined text-[28px] text-white">chat</span>
-<span class="text-[12px] font-medium text-slate-300">842</span>
-</button>
-</div>
-<div class="flex gap-4">
-<button class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white">
-<span class="material-symbols-outlined text-[28px]">add</span>
-</button>
-<button class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
-<span class="material-symbols-outlined text-[28px] fill-current">favorite</span>
-</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-<!-- Bottom Navigation Bar -->
-<nav class="fixed flex h-16 w-full items-center justify-around border-t border-slate-800 bg-background-dark px-2 shrink-0">
-<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-primary transition-colors" href="/">
-<span class="material-symbols-outlined text-[24px]">home</span>
-<p class="text-[10px] font-medium font-display">ホーム</p>
-</a>
-<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-primary transition-colors" href="/search/advanced">
-<span class="material-symbols-outlined text-[24px]">search</span>
-<p class="text-[10px] font-medium font-display">検索</p>
-</a>
-<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-primary transition-colors" href="/ranking">
-<span class="material-symbols-outlined text-[24px]">emoji_events</span>
-<p class="text-[10px] font-medium font-display">ランキング</p>
-</a>
-<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-primary transition-colors" href="/video">
-<span class="material-symbols-outlined text-[24px] fill-current">play_circle</span>
-<p class="text-[10px] font-medium font-display">動画</p>
-</a>
-<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-primary transition-colors" href="/mypage">
-<span class="material-symbols-outlined text-[24px]">person</span>
-<p class="text-[10px] font-medium font-display">マイページ</p>
-</a>
+
+<!-- Injected nav placeholder -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-white/10 px-4 pb-6 pt-3 flex items-center justify-around">
+  <a class="flex flex-col items-center gap-1 text-slate-400 flex-1" href="/"><span class="material-symbols-outlined text-[24px]">home</span><span class="text-[10px] font-medium">ホーム</span></a>
+  <a class="flex flex-col items-center gap-1 text-slate-400 flex-1" href="/search/advanced"><span class="material-symbols-outlined text-[24px]">search</span><span class="text-[10px] font-medium">検索</span></a>
+  <a class="flex flex-col items-center gap-1 text-slate-400 flex-1" href="/ranking"><span class="material-symbols-outlined text-[24px]">trophy</span><span class="text-[10px] font-medium">ランキング</span></a>
+  <a class="flex flex-col items-center gap-1 text-primary flex-1" href="/video"><span class="material-symbols-outlined text-[24px]">play_circle</span><span class="text-[10px] font-bold">動画</span></a>
+  <a class="flex flex-col items-center gap-1 text-slate-400 flex-1" href="/mypage"><span class="material-symbols-outlined text-[24px]">person</span><span class="text-[10px] font-medium">マイページ</span></a>
 </nav>
-</main>
-</body></html>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ── ユーティリティ ── */
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function poster(url) {
+    if (!url) return '';
+    if (url.includes('pb_e_')) return url.replace('pb_e_', 'pf_e_');
+    return url;
+  }
+  function getSession() {
+    try { return localStorage.getItem('avc_session') || ''; } catch(e) { return ''; }
+  }
+
+  /* ── 状態 ── */
+  var currentTab = 'random';
+  var feeds = {
+    random: { products: [], loading: false, exhausted: false },
+    personal: { products: [], loading: false, exhausted: false, loaded: false }
+  };
+  var mp4Cache = {};
+  var activeVideos = new Set();
+
+  /* ── ボトムナビの実際の高さを取得してfeed位置を調整 ── */
+  function adjustFeedBottom() {
+    var nav = document.querySelector('nav[class*="fixed bottom"]');
+    if (nav) {
+      var h = nav.getBoundingClientRect().height;
+      document.getElementById('feed').style.bottom = h + 'px';
+      var emptyEl = document.getElementById('empty-personal');
+      if (emptyEl) emptyEl.style.bottom = h + 'px';
+      var skelEl = document.getElementById('feed-skeleton');
+      if (skelEl) skelEl.style.bottom = h + 'px';
+    }
+  }
+  setTimeout(adjustFeedBottom, 200);
+
+  /* ── API ── */
+  function fetchRandom(cb) {
+    var f = feeds.random;
+    if (f.loading || f.exhausted) return;
+    f.loading = true;
+    var HOME_MAKERS = encodeURIComponent('S1,MOODYZ,アイデアポケット,E-BODY,OPPAI,Fitch,Madonna,痴女ヘブン,kawaii,million,本中,ダスッ,Hunter,ワンズファクトリー,TAMEIKE,プレミアム,SOD,FALENO,DAHLIA,プレステージ,Jackson,シロウトTV,ナンパTV,ラグジュTV,DOC,ARA,KANBi,黒船,NTR.net,ドキュメンTV');
+    fetch('/api/products?sort=random&source=mgs&hasVideo=1&excludeBest=1&limit=10&makers=' + HOME_MAKERS)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        f.loading = false;
+        if (!data || !data.length) { f.exhausted = true; return; }
+        cb(data);
+      })
+      .catch(function() { f.loading = false; });
+  }
+
+  function fetchPersonal(cb) {
+    var f = feeds.personal;
+    if (f.loading) return;
+    f.loading = true;
+    f.loaded = true;
+    var sessionId = getSession();
+    if (!sessionId) {
+      f.loading = false;
+      showEmptyPersonal();
+      return;
+    }
+    // 1. いいね済み作品を取得
+    fetch('/api/mypage/likes?sessionId=' + encodeURIComponent(sessionId))
+      .then(function(r) { return r.json(); })
+      .then(function(likes) {
+        if (!likes || !likes.length) {
+          f.loading = false;
+          showEmptyPersonal();
+          return;
+        }
+        // 2. 上位女優を抽出
+        var actressCount = {};
+        likes.forEach(function(p) {
+          if (!p.actresses) return;
+          p.actresses.split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(a) {
+            actressCount[a] = (actressCount[a] || 0) + 1;
+          });
+        });
+        var topActresses = Object.keys(actressCount)
+          .sort(function(a, b) { return actressCount[b] - actressCount[a]; })
+          .slice(0, 4);
+
+        if (!topActresses.length) {
+          // 女優不明の場合はジャンルで代替
+          var genrePick = '';
+          likes.slice(0,3).forEach(function(p) {
+            if (!genrePick && p.genres) {
+              var gs = p.genres.split(',').map(function(s){return s.trim();}).filter(function(g){
+                return g && !['独占配信','配信専用','フルハイビジョン(FHD)','高画質'].includes(g);
+              });
+              if (gs[0]) genrePick = gs[0];
+            }
+          });
+          var url = genrePick
+            ? '/api/products?sort=random&source=mgs&hasVideo=1&excludeBest=1&limit=12&genre=' + encodeURIComponent(genrePick)
+            : '/api/products?sort=random&source=mgs&hasVideo=1&excludeBest=1&limit=12';
+          return fetch(url).then(function(r){return r.json();}).then(function(data){
+            f.loading = false;
+            cb(data || []);
+          });
+        }
+
+        // 3. 上位女優ごとに取得して合算
+        var requests = topActresses.map(function(actress) {
+          return fetch('/api/products?sort=random&source=mgs&hasVideo=1&limit=5&actress=' + encodeURIComponent(actress))
+            .then(function(r) { return r.json(); })
+            .catch(function() { return []; });
+        });
+
+        return Promise.all(requests).then(function(results) {
+          f.loading = false;
+          var seen = {};
+          var combined = [];
+          // ラウンドロビンでミックス（同じ女優の連続を防ぐ）
+          var maxLen = Math.max.apply(null, results.map(function(r){return r.length;}));
+          for (var i = 0; i < maxLen; i++) {
+            results.forEach(function(arr) {
+              if (!arr[i]) return;
+              var id = arr[i].product_id;
+              if (!seen[id]) { seen[id] = true; combined.push(arr[i]); }
+            });
+          }
+          if (!combined.length) {
+            showEmptyPersonal();
+          } else {
+            cb(combined);
+          }
+        });
+      })
+      .catch(function() { f.loading = false; showEmptyPersonal(); });
+  }
+
+  function showEmptyPersonal() {
+    document.getElementById('empty-personal').classList.remove('hidden');
+    document.getElementById('feed-skeleton').classList.add('hidden');
+  }
+
+  /* ── MP4プリフェッチ ── */
+  function prefetchMp4(p) {
+    if (!p || !p.sample_video_url || mp4Cache[p.product_id] !== undefined) return;
+    mp4Cache[p.product_id] = null; // 取得中フラグ
+    fetch('/api/mgs-video?url=' + encodeURIComponent(p.sample_video_url))
+      .then(function(r) { return r.json(); })
+      .then(function(d) { if (d.mp4) mp4Cache[p.product_id] = d.mp4; })
+      .catch(function() {});
+  }
+
+  /* ── カード生成 ── */
+  function createCard(p, idx) {
+    var f = feeds[currentTab];
+    var absIdx = f.products.length - 1; // 現在tabの中での位置
+
+    var card = document.createElement('div');
+    card.className = 'video-card';
+    card.dataset.productId = p.product_id;
+    card.dataset.idx = idx;
+
+    /* 動画エリア */
+    var wrap = document.createElement('div');
+    wrap.className = 'video-wrap';
+
+    var img = document.createElement('img');
+    img.src = poster(p.main_image_url) || '';
+    img.alt = '';
+    img.loading = 'lazy';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'absolute inset-0 flex items-center justify-center cursor-pointer';
+    overlay.innerHTML = '<div class="bg-black/40 rounded-full p-4 backdrop-blur-sm"><span class="material-symbols-outlined text-white" style="font-size:44px;font-variation-settings:\'FILL\' 1">play_circle</span></div>';
+
+    var spinEl = document.createElement('div');
+    spinEl.className = 'absolute inset-0 items-center justify-center hidden';
+    spinEl.innerHTML = '<div class="spin"></div>';
+    spinEl.style.display = 'none';
+
+    var video = document.createElement('video');
+    video.playsInline = true;
+    video.controls = true;
+    video.style.display = 'none';
+
+    function play(src) {
+      img.style.display = 'none';
+      overlay.style.display = 'none';
+      spinEl.style.display = 'none';
+      video.style.display = '';
+      video.src = src;
+      video.play().catch(function(){});
+      activeVideos.add(video);
+    }
+
+    overlay.addEventListener('click', function() {
+      if (mp4Cache[p.product_id]) {
+        play(mp4Cache[p.product_id]);
+        return;
+      }
+      overlay.style.display = 'none';
+      spinEl.style.display = 'flex';
+      fetch('/api/mgs-video?url=' + encodeURIComponent(p.sample_video_url))
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          spinEl.style.display = 'none';
+          if (d && d.mp4) {
+            mp4Cache[p.product_id] = d.mp4;
+            play(d.mp4);
+          } else {
+            overlay.style.display = '';
+          }
+        })
+        .catch(function() {
+          spinEl.style.display = 'none';
+          overlay.style.display = '';
+        });
+    });
+
+    wrap.appendChild(img);
+    wrap.appendChild(video);
+    wrap.appendChild(overlay);
+    wrap.appendChild(spinEl);
+
+    /* 情報エリア */
+    var info = document.createElement('div');
+    info.className = 'video-info';
+
+    var title = document.createElement('h2');
+    title.style.cssText = 'font-size:13px;font-weight:700;color:#fff;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px;';
+    title.textContent = p.title || '';
+
+    var acts = p.actresses ? p.actresses.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+    var actRow = document.createElement('div');
+    actRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:auto;flex-wrap:wrap;';
+    if (acts.length) {
+      acts.slice(0,2).forEach(function(a, i) {
+        if (i > 0) {
+          var sep = document.createElement('span');
+          sep.style.cssText = 'color:rgba(255,255,255,0.3);font-size:11px;';
+          sep.textContent = '/';
+          actRow.appendChild(sep);
+        }
+        var link = document.createElement('a');
+        link.href = '/actress/' + encodeURIComponent(a);
+        link.style.cssText = 'color:#ec5b13;font-size:11px;font-weight:700;text-decoration:none;';
+        link.textContent = a;
+        link.addEventListener('click', function(e) { e.stopPropagation(); });
+        actRow.appendChild(link);
+      });
+    }
+
+    var actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);';
+
+    var wishRow = document.createElement('div');
+    wishRow.style.cssText = 'display:flex;align-items:center;gap:5px;color:rgba(255,255,255,0.4);';
+    wishRow.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">favorite</span>'
+      + '<span style="font-size:11px;font-weight:700;">' + (p.wish_count ? Number(p.wish_count).toLocaleString() : '---') + '</span>';
+
+    var detailBtn = document.createElement('a');
+    detailBtn.href = '/product/' + encodeURIComponent(p.product_id);
+    detailBtn.style.cssText = 'display:flex;align-items:center;gap:5px;background:#ec5b13;color:#fff;border-radius:999px;padding:7px 14px;font-size:11px;font-weight:700;text-decoration:none;';
+    detailBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;">open_in_new</span>作品詳細';
+    detailBtn.addEventListener('click', function(e) { e.stopPropagation(); });
+
+    actions.appendChild(wishRow);
+    actions.appendChild(detailBtn);
+
+    info.appendChild(title);
+    if (acts.length) info.appendChild(actRow);
+    info.appendChild(actions);
+
+    card.appendChild(wrap);
+    card.appendChild(info);
+
+    return card;
+  }
+
+  /* ── フィードへの追加 ── */
+  var cardCount = 0;
+  function appendProducts(products) {
+    var feedEl = document.getElementById('feed');
+    var f = feeds[currentTab];
+    products.forEach(function(p) {
+      if (!p.sample_video_url) return;
+      f.products.push(p);
+      var card = createCard(p, cardCount++);
+      feedEl.appendChild(card);
+      observer.observe(card);
+    });
+    document.getElementById('feed-skeleton').classList.add('hidden');
+    document.getElementById('empty-personal').classList.add('hidden');
+
+    // 最初のカードのMP4をプリフェッチ
+    if (f.products.length === products.length && f.products.length > 0) {
+      prefetchMp4(f.products[0]);
+    }
+  }
+
+  /* ── IntersectionObserver（表示中カードでプリフェッチ＋追加読み込み） ── */
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (!entry.isIntersecting) {
+        // 画面外に出たビデオは一時停止
+        var v = entry.target.querySelector('video');
+        if (v && !v.paused) v.pause();
+        return;
+      }
+      var card = entry.target;
+      var idx = parseInt(card.dataset.idx, 10);
+      var f = feeds[currentTab];
+
+      // 次のカードのMP4をプリフェッチ
+      if (f.products[idx + 1]) prefetchMp4(f.products[idx + 1]);
+      if (f.products[idx + 2]) prefetchMp4(f.products[idx + 2]);
+
+      // 残り3枚以下になったら追加読み込み
+      var totalCards = document.getElementById('feed').children.length;
+      if (idx >= totalCards - 3) {
+        loadMore();
+      }
+    });
+  }, { threshold: 0.6 });
+
+  function loadMore() {
+    if (currentTab === 'random') {
+      fetchRandom(appendProducts);
+    }
+    // personal tab は一度のフェッチで十分（再フェッチは不要）
+  }
+
+  /* ── タブ切り替え ── */
+  function switchTab(tab) {
+    if (currentTab === tab) return;
+
+    // 全動画を停止
+    activeVideos.forEach(function(v) { try { v.pause(); } catch(e){} });
+
+    currentTab = tab;
+
+    document.getElementById('tab-random').classList.toggle('active', tab === 'random');
+    document.getElementById('tab-personal').classList.toggle('active', tab === 'personal');
+
+    var feedEl = document.getElementById('feed');
+    feedEl.innerHTML = '';
+    cardCount = 0;
+    document.getElementById('empty-personal').classList.add('hidden');
+
+    var f = feeds[tab];
+
+    if (f.products.length > 0) {
+      // キャッシュ済みデータを再描画
+      document.getElementById('feed-skeleton').classList.add('hidden');
+      appendProducts(f.products.slice());
+      f.products = [];
+    } else {
+      document.getElementById('feed-skeleton').classList.remove('hidden');
+      if (tab === 'random') {
+        fetchRandom(appendProducts);
+      } else {
+        if (!f.loaded) {
+          fetchPersonal(appendProducts);
+        } else {
+          showEmptyPersonal();
+        }
+      }
+    }
+  }
+
+  window.switchTab = switchTab;
+
+  /* ── 初期ロード ── */
+  fetchRandom(appendProducts);
+
+})();
+</script>
+</body>
+</html>
