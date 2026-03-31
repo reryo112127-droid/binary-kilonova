@@ -217,7 +217,7 @@ export async function GET(request: NextRequest) {
 
     function buildOrderBy(isMgs: boolean) {
         if (sort === 'new') return 'ORDER BY sale_start_date DESC';          // 配信日が新しい順
-        if (sort === 'pre-order') return 'ORDER BY scraped_at DESC';          // 新たに追加された順
+        if (sort === 'pre-order') return 'ORDER BY sale_start_date DESC';      // 配信日が遠い順（最も先の日付が先頭）
         if (sort === 'random') return 'ORDER BY RANDOM()';
         if (sort === 'discount') return 'ORDER BY discount_pct DESC';         // 割引率が高い順
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';

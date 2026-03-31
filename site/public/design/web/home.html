@@ -655,16 +655,19 @@
   var HOME_MAKERS='S1,MOODYZ,アイデアポケット,E-BODY,OPPAI,Fitch,Madonna,痴女ヘブン,kawaii,million,本中,ダスッ,Hunter,ワンズファクトリー,TAMEIKE,プレミアム,SOD,FALENO,DAHLIA,プレステージ,Jackson,シロウトTV,ナンパTV,ラグジュTV,DOC,ARA,KANBi,黒船,NTR.net,ドキュメンTV';
   var mkParam='&excludeBest=1&makers='+encodeURIComponent(HOME_MAKERS);
 
-  // Fetch pre-order section（未配信・配信日が遠い順・縦長カード）
-  fetch('/api/products?sort=pre-order&limit=8'+mkParam).then(function(r){return r.json();}).then(function(data){
+  // Fetch pre-order section（FANZAのみ・配信日が遠い順）
+  fetch('/api/products?sort=pre-order&source=fanza&limit=8'+mkParam).then(function(r){return r.json();}).then(function(data){
     var list=document.getElementById('home-preorder-list');
     if(list&&data&&data.length){
       list.innerHTML=data.map(function(p){return renderPreorderCard(p);}).join('');
     }
   }).catch(function(){});
 
-  // Fetch new arrivals section
-  fetch('/api/products?sort=new&limit=12'+mkParam).then(function(r){return r.json();}).then(function(data){
+  // Fetch new arrivals section（FANZAのみ・当日配信のみ・0件の場合は直近3日）
+  var _nd=new Date(),_nt=_nd.getFullYear()+'-'+String(_nd.getMonth()+1).padStart(2,'0')+'-'+String(_nd.getDate()).padStart(2,'0');
+  var _n3d=new Date(_nd-3*86400000),_n3=_n3d.getFullYear()+'-'+String(_n3d.getMonth()+1).padStart(2,'0')+'-'+String(_n3d.getDate()).padStart(2,'0');
+  function _fnew(from,to){return fetch('/api/products?sort=new&source=fanza&fromDate='+from+'&toDate='+to+'&limit=12'+mkParam).then(function(r){return r.json();});}
+  _fnew(_nt,_nt).then(function(d){return(d&&d.length>0)?d:_fnew(_n3,_nt);}).then(function(data){
     var list=document.getElementById('home-new-list');
     if(list&&data&&data.length){
       list.innerHTML=data.map(function(p){return renderCard(p,'新作','bg-blue-600');}).join('');

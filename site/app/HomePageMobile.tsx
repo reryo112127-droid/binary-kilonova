@@ -121,17 +121,28 @@ export default function HomePageMobile() {
     const mkParam = '&excludeBest=1&makers=' + encodeURIComponent(HOME_MAKERS);
 
     useEffect(() => {
-        fetch('/api/products?sort=pre-order&limit=6' + mkParam)
+        // 予約作品: FANZAのみ・配信日が遠い順
+        fetch('/api/products?sort=pre-order&source=fanza&limit=6' + mkParam)
             .then(r => r.json())
             .then(setPreorder)
             .catch(() => {});
+        // 注目・ランキング
         fetch('/api/products?sort=wish_count&limit=8' + mkParam)
             .then(r => r.json())
             .then(setPopular)
             .catch(() => {});
-        fetch('/api/products?sort=new&limit=10' + mkParam)
+        // 新作: FANZAのみ・当日配信のみ（0件の場合は直近3日にフォールバック）
+        const fmt = (d: Date) => d.toISOString().slice(0, 10);
+        const today = fmt(new Date());
+        fetch(`/api/products?sort=new&source=fanza&fromDate=${today}&toDate=${today}&limit=10` + mkParam)
             .then(r => r.json())
-            .then(setNewArrivals)
+            .then(data => {
+                if (data && data.length > 0) { setNewArrivals(data); return; }
+                const threeDaysAgo = fmt(new Date(Date.now() - 3 * 86400000));
+                return fetch(`/api/products?sort=new&source=fanza&fromDate=${threeDaysAgo}&toDate=${today}&limit=10` + mkParam)
+                    .then(r => r.json())
+                    .then(setNewArrivals);
+            })
             .catch(() => {});
     }, []);
 
