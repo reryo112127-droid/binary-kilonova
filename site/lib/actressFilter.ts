@@ -38,25 +38,36 @@ export function isAmateurWork(genres: string, maker: string): boolean {
     return false;
 }
 
+// 説明文形式かどうかを判定（女優名ではなくナンパ系の役名/説明文）
+function looksLikeDescription(name: string): boolean {
+    // 年齢パターン: 「23歳」「20歳」など
+    if (/\d+歳/.test(name)) return true;
+    // 括弧パターン: 【...】や（...）が含まれる
+    if (/[【】（）\(\)]/.test(name)) return true;
+    // 極端に長い名前（30文字超）は役名/説明文の可能性が高い
+    if (name.length > 30) return true;
+    return false;
+}
+
 export function filterActresses(actressesStr: string | null, genres: string | null, maker: string | null): string | null {
     if (!actressesStr) return null;
 
-    const isAmateur = isAmateurWork(genres || '', maker || '');
+    const entries = actressesStr.split(/,|、/).map(s => s.trim()).filter(Boolean);
 
-    // 素人作品の場合のみ、DBに登録された名前が「役名か実女優か」をチェック
+    // いずれかのエントリが説明文形式なら、素人作品とみなしてknown女優フィルターを適用
+    const hasDescriptionEntry = entries.some(e => looksLikeDescription(e));
+    const isAmateur = isAmateurWork(genres || '', maker || '') || hasDescriptionEntry;
+
     if (isAmateur) {
         const knownSet = getKnownActresses();
-        // 複数人の場合はカンマ区切りなどを分割
-        const ds = actressesStr.split(/,|、/).map(s => s.trim()).filter(Boolean);
-        const validActresses = ds.filter(a => knownSet.has(a));
+        const validActresses = entries.filter(a => knownSet.has(a));
 
         if (validActresses.length === 0) {
-            // 素人作品で、かつ辞書に載っている女優がいなければ役名とみなして消す
             return null;
         }
         return validActresses.join(', ');
     }
 
-    // 素人作品以外（メーカー品）は、あえてそのまま表示する
+    // 素人作品以外（メーカー品）は、そのまま表示する
     return actressesStr;
 }

@@ -327,7 +327,7 @@
         gnEl.innerHTML = gns.length ? linkedItems(gns,'genre') : '-';
       }
       set('pd-code', (p.product_id||'').toUpperCase());
-      set('pd-duration', p.duration_min ? p.duration_min+'分' : '-');
+      set('pd-duration', (p.duration_min && p.duration_min > 1) ? p.duration_min+'分' : '-');
       if (p.series_name) {
         var srEl = document.getElementById('pd-series');
         if (srEl) { srEl.innerHTML = '<a href="/search?series='+encodeURIComponent(p.series_name)+'" class="hover:underline text-primary">'+esc(p.series_name)+'</a>'; srEl.style.display=''; }

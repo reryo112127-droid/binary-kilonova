@@ -184,7 +184,7 @@
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
 <div class="flex border-b border-slate-100 pb-2">
-<span class="w-32 text-slate-400 text-sm" style="">出演者 / 制作者</span>
+<span class="w-32 text-slate-400 text-sm" style="">出演者</span>
 <span id="pd-actresses" class="flex-1 font-medium text-primary" style=""></span>
 </div>
 <div class="flex border-b border-slate-100 pb-2">
@@ -417,7 +417,7 @@
         gnEl.innerHTML = gns.length ? linkedItems(gns,'genre') : '-';
       }
       set('pd-code', (p.product_id||'').toUpperCase());
-      set('pd-duration', p.duration_min ? p.duration_min+'分' : '-');
+      set('pd-duration', (p.duration_min && p.duration_min > 1) ? p.duration_min+'分' : '-');
       if (p.series_name) {
         var srEl = document.getElementById('pd-series');
         if (srEl) srEl.innerHTML = '<a href="/search?series='+encodeURIComponent(p.series_name)+'" class="hover:underline text-primary">'+esc(p.series_name)+'</a>';

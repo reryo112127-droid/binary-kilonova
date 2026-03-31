@@ -79,8 +79,15 @@ export async function GET(
     const currentPrice= (fanzaSale?.current_price ?? mgsSale?.current_price ?? null) as number | null;
     const saleEndDate = (fanzaSale?.sale_end_date ?? mgsSale?.sale_end_date ?? null) as string | null;
 
+    // duration_min=1はAPIのデータ不備（DMM APIがプレースホルダーとして1を返す）なのでnullに
+    const durationMin = (() => {
+        const d = Number(primary.duration_min);
+        return (d && d > 1) ? d : null;
+    })();
+
     return NextResponse.json({
         ...primary,
+        duration_min: durationMin,
         source,
         // 後方互換性のため affiliate_url はプライマリソースのURLを保持
         affiliate_url: mgsAffiliateUrl ?? fanzaAffiliateUrl,
