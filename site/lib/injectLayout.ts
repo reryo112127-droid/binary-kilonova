@@ -31,7 +31,7 @@ function mobileBottomNav(activePage = ''): string {
         const active = activePage === page;
         return `<a class="flex flex-col items-center gap-1 ${active ? 'text-primary' : 'text-slate-400 dark:text-slate-500'} flex-1" href="${href}"><span class="material-symbols-outlined ${active ? 'active-icon ' : ''}text-[24px]">${icon}</span><span class="text-[10px] font-${active ? 'bold' : 'medium'}">${label}</span></a>`;
     }
-    return `<nav class="fixed bottom-0 left-0 right-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-lg border-t border-primary/10 px-4 pb-6 pt-3"><div class="flex items-center justify-between">${item('/', 'home', 'ホーム', 'home')}${item('/search', 'search', '検索', 'search')}${item('/ranking', 'trophy', 'ランキング', 'ranking')}${item('/search?sort=new', 'play_circle', '動画', 'video')}${item('/mypage', 'person', 'マイページ', 'mypage')}</div></nav>`;
+    return `<nav class="fixed bottom-0 left-0 right-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-lg border-t border-primary/10 px-4 pb-6 pt-3"><div class="flex items-center justify-between">${item('/', 'home', 'ホーム', 'home')}${item('/search/advanced', 'search', '検索', 'search')}${item('/ranking', 'trophy', 'ランキング', 'ranking')}${item('/video', 'play_circle', '動画', 'video')}${item('/mypage', 'person', 'マイページ', 'mypage')}</div></nav>`;
 }
 
 // ─── モバイル検索サジェストスクリプト ─────────────────────────
@@ -42,29 +42,25 @@ const MOBILE_SEARCH_SCRIPT = `<script>
   var list=document.getElementById('site-search-list');
   if(!input||!dropdown||!list)return;
   function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');}
-  var cache=null;
-  function getSuggest(){
-    if(cache)return Promise.resolve(cache);
-    return fetch('/api/suggest').then(r=>r.json()).then(d=>{cache=d;return d;}).catch(()=>({}));
-  }
+  var timer=null;
   function render(q){
-    getSuggest().then(function(data){
-      var acts=data.actresses||[];
-      var prods=data.products||[];
-      if(q){var ql=q.toLowerCase();acts=acts.filter(a=>a.name&&a.name.toLowerCase().includes(ql));prods=prods.filter(p=>p.title&&p.title.toLowerCase().includes(ql));}
-      var html=acts.slice(0,3).map(a=>
-        '<li class="px-3 py-1.5 text-[10px] hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer flex items-center gap-2" onclick="location.href=\'/actress/\'+encodeURIComponent(\''+esc(a.name)+'\')"><span class="material-symbols-outlined text-[14px] text-primary">person</span><span>'+esc(a.name)+'</span></li>'
-      ).concat(prods.slice(0,5).map(p=>
-        '<li class="px-3 py-1.5 text-[10px] hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer flex items-center gap-2" onclick="location.href=\'/product/\'+encodeURIComponent(\''+esc(p.product_id)+'\')"><span class="material-symbols-outlined text-[14px] text-slate-400">movie</span><span>'+esc((p.title||'').substring(0,28))+'</span></li>'
-      )).join('');
+    if(!q){dropdown.classList.add('hidden');return;}
+    fetch('/api/suggest?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(data){
+      var acts=(data.actresses||[]).slice(0,4);
+      var makes=(data.makers||[]).slice(0,2);
+      var html=acts.map(function(a){
+        return '<li class="px-3 py-1.5 text-[10px] hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer flex items-center gap-2" onclick="location.href=\'/actress/\'+encodeURIComponent(\''+esc(a)+'\')"><span class="material-symbols-outlined text-[14px] text-primary">person</span><span>'+esc(a)+'</span></li>';
+      }).concat(makes.map(function(m){
+        return '<li class="px-3 py-1.5 text-[10px] hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer flex items-center gap-2" onclick="location.href=\'/search?maker=\'+encodeURIComponent(\''+esc(m)+'\')"><span class="material-symbols-outlined text-[14px] text-slate-400">business</span><span>'+esc(m)+'</span></li>';
+      })).join('');
       list.innerHTML=html||'<li class="px-3 py-2 text-[10px] text-slate-400">該当なし</li>';
       dropdown.classList.remove('hidden');
-    });
+    }).catch(function(){dropdown.classList.add('hidden');});
   }
-  input.addEventListener('focus',()=>render(input.value));
-  input.addEventListener('input',()=>render(input.value));
-  input.addEventListener('keydown',e=>{if(e.key==='Enter'){dropdown.classList.add('hidden');location.href='/search?q='+encodeURIComponent(input.value);}});
-  document.addEventListener('click',e=>{if(!input.contains(e.target)&&!dropdown.contains(e.target))dropdown.classList.add('hidden');});
+  input.addEventListener('focus',function(){if(input.value)render(input.value);});
+  input.addEventListener('input',function(){clearTimeout(timer);timer=setTimeout(function(){render(input.value);},200);});
+  input.addEventListener('keydown',function(e){if(e.key==='Enter'){dropdown.classList.add('hidden');location.href='/search?q='+encodeURIComponent(input.value);}});
+  document.addEventListener('click',function(e){if(e.target&&!input.contains(e.target)&&!dropdown.contains(e.target))dropdown.classList.add('hidden');});
 })();
 </script>`;
 
@@ -108,15 +104,30 @@ function replaceOrAppendBottomNav(html: string, newNav: string): string {
 
 // ─── 公開関数 ─────────────────────────────────────────────────
 
+export interface MobileLayoutOptions {
+    /** Design_Exportのプレースホルダー画像をそのまま表示する（STITCH_CLEAN_SCRIPTを無効化） */
+    skipClean?: boolean;
+    /** Design_Exportのヘッダーをそのまま使用する（MOBILE_HEADERで置換しない） */
+    skipHeader?: boolean;
+    /** ボトムナビを追加しない（スティッキーフッターボタンがある詳細ページ用） */
+    skipBottomNav?: boolean;
+}
+
 /**
  * モバイルHTML向けレイアウト注入
  * ヘッダーとボトムナビをホーム画面デザインに統一する
  */
-export function injectMobileLayout(html: string, activePage = ''): string {
+export function injectMobileLayout(html: string, activePage = '', skipCleanOrOpts: boolean | MobileLayoutOptions = false): string {
+    const opts: MobileLayoutOptions = typeof skipCleanOrOpts === 'boolean'
+        ? { skipClean: skipCleanOrOpts }
+        : skipCleanOrOpts;
     html = html.replace('</head>', MOBILE_CSS + '\n</head>');
-    html = replaceHeader(html, MOBILE_HEADER);
-    html = replaceOrAppendBottomNav(html, mobileBottomNav(activePage));
-    html = html.replace('</body>', MOBILE_SEARCH_SCRIPT + '\n' + STITCH_CLEAN_SCRIPT + '\n</body>');
+    if (!opts.skipHeader) html = replaceHeader(html, MOBILE_HEADER);
+    if (!opts.skipBottomNav) html = replaceOrAppendBottomNav(html, mobileBottomNav(activePage));
+    const scripts = opts.skipClean
+        ? MOBILE_SEARCH_SCRIPT
+        : MOBILE_SEARCH_SCRIPT + '\n' + STITCH_CLEAN_SCRIPT;
+    html = html.replace('</body>', scripts + '\n</body>');
     return html;
 }
 

@@ -69,10 +69,65 @@
 <a class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors" href="#">
 <p class="text-[11px] font-bold tracking-tight text-center">おすすめ</p>
 </a>
+<a id="tab-contrib" class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors" href="#">
+<p class="text-[11px] font-bold tracking-tight text-center">貢献</p>
+</a>
 </div>
+</div>
+<!-- 貢献タブコンテンツ（初期非表示） -->
+<div id="contrib-panel" class="flex-1 p-4 space-y-4" style="display:none">
+<!-- バッジカード -->
+<div id="contrib-badge-card" class="rounded-2xl bg-gradient-to-br from-primary/10 to-amber-50 dark:from-primary/20 dark:to-slate-800 border border-primary/20 p-5 flex items-center gap-4">
+<div id="contrib-badge-emoji" class="text-4xl w-14 h-14 flex items-center justify-center bg-white dark:bg-slate-900 rounded-2xl shadow-sm">🥉</div>
+<div class="flex-1">
+<div id="contrib-badge-label" class="text-xs font-bold text-primary mb-1">ブロンズ</div>
+<div class="flex items-baseline gap-1">
+<span id="contrib-count" class="text-3xl font-black text-slate-900 dark:text-white">0</span>
+<span class="text-xs text-slate-500">件の女優特定に貢献</span>
+</div>
+<div id="contrib-next" class="mt-1.5 text-[10px] text-slate-400"></div>
+</div>
+</div>
+<!-- 次のバッジまでの進捗バー -->
+<div id="contrib-progress-wrap" class="space-y-1">
+<div class="flex justify-between text-[10px] text-slate-400">
+<span id="contrib-progress-label">次のランクまで</span>
+<span id="contrib-progress-pct"></span>
+</div>
+<div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+<div id="contrib-progress-bar" class="h-full bg-primary rounded-full transition-all" style="width:0%"></div>
+</div>
+</div>
+<!-- バッジ一覧 -->
+<div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-2">バッジ一覧</div>
+<div class="grid grid-cols-5 gap-2">
+<div class="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
+<span class="text-xl">🥉</span><span class="text-[9px] font-bold text-slate-500">ブロンズ</span><span class="text-[9px] text-slate-400">1件〜</span>
+</div>
+<div class="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
+<span class="text-xl">🥈</span><span class="text-[9px] font-bold text-slate-500">シルバー</span><span class="text-[9px] text-slate-400">5件〜</span>
+</div>
+<div class="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
+<span class="text-xl">🥇</span><span class="text-[9px] font-bold text-slate-500">ゴールド</span><span class="text-[9px] text-slate-400">20件〜</span>
+</div>
+<div class="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
+<span class="text-xl">💎</span><span class="text-[9px] font-bold text-slate-500">プラチナ</span><span class="text-[9px] text-slate-400">50件〜</span>
+</div>
+<div class="flex flex-col items-center gap-1 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
+<span class="text-xl">🏆</span><span class="text-[9px] font-bold text-slate-500">殿堂入り</span><span class="text-[9px] text-slate-400">100件〜</span>
+</div>
+</div>
+<!-- 最近の貢献作品 -->
+<div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-2">最近の貢献</div>
+<div id="contrib-recent" class="space-y-2"></div>
+<!-- ランキングへのリンク -->
+<a href="/ranking/contributor" class="flex items-center justify-center gap-2 w-full py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:border-primary hover:text-primary transition-colors mt-2">
+<span class="material-symbols-outlined text-base">leaderboard</span>
+貢献者ランキングを見る
+</a>
 </div>
 <!-- Content Section: 3-column Grid -->
-<div class="flex-1 p-3">
+<div id="main-grid-panel" class="flex-1 p-3">
 <div class="grid grid-cols-3 gap-3">
 <!-- Grid Item 1 -->
 <div class="flex flex-col gap-2">
@@ -197,4 +252,101 @@
 </div>
 </div>
 </div>
+<script>
+(function(){
+  // ─── セッションID取得 ───────────────────────────────────────
+  function getSessionId(){
+    var s=localStorage.getItem('_sid');
+    if(!s){s=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('_sid',s);}
+    return s;
+  }
+  var SID=getSessionId();
+
+  // ─── 貢献タブの切り替え ────────────────────────────────────
+  var tabBtn=document.getElementById('tab-contrib');
+  var mainGrid=document.getElementById('main-grid-panel');
+  var contribPanel=document.getElementById('contrib-panel');
+  if(tabBtn){
+    tabBtn.addEventListener('click',function(e){
+      e.preventDefault();
+      // 全タブのアクティブ解除
+      document.querySelectorAll('[class*="border-b-2"]').forEach(function(el){
+        el.classList.remove('border-primary','text-primary');
+        el.classList.add('border-transparent','text-slate-500');
+      });
+      tabBtn.classList.add('border-primary','text-primary');
+      tabBtn.classList.remove('border-transparent','text-slate-500');
+      if(mainGrid) mainGrid.style.display='none';
+      if(contribPanel){ contribPanel.style.display=''; loadContrib(); }
+    });
+  }
+
+  // ─── 貢献データ読み込み ────────────────────────────────────
+  var contribLoaded=false;
+  function loadContrib(){
+    if(contribLoaded)return;
+    contribLoaded=true;
+    fetch('/api/mypage/contributions',{headers:{'x-session-id':SID}})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var count=d.count||0;
+        var badge=d.badge;
+        var BADGES=[
+          {min:100,label:'殿堂入り',emoji:'🏆'},
+          {min:50, label:'プラチナ', emoji:'💎'},
+          {min:20, label:'ゴールド', emoji:'🥇'},
+          {min:5,  label:'シルバー', emoji:'🥈'},
+          {min:1,  label:'ブロンズ', emoji:'🥉'},
+        ];
+        // 現在バッジ
+        var cur=BADGES.find(function(b){return count>=b.min;})||null;
+        var emojiEl=document.getElementById('contrib-badge-emoji');
+        var labelEl=document.getElementById('contrib-badge-label');
+        var countEl=document.getElementById('contrib-count');
+        if(emojiEl) emojiEl.textContent=cur?cur.emoji:'—';
+        if(labelEl) labelEl.textContent=cur?cur.label:'まだバッジなし';
+        if(countEl) countEl.textContent=String(count);
+
+        // 次のバッジまで
+        var nextBadge=null;
+        for(var i=BADGES.length-1;i>=0;i--){
+          if(count<BADGES[i].min){nextBadge=BADGES[i];break;}
+        }
+        var nextEl=document.getElementById('contrib-next');
+        var barEl=document.getElementById('contrib-progress-bar');
+        var pctEl=document.getElementById('contrib-progress-pct');
+        var lblEl=document.getElementById('contrib-progress-label');
+        if(nextBadge){
+          var prev=cur?cur.min:0;
+          var pct=Math.round((count-prev)/(nextBadge.min-prev)*100);
+          if(nextEl) nextEl.textContent=nextBadge.emoji+' '+nextBadge.label+'まであと'+(nextBadge.min-count)+'件';
+          if(barEl) barEl.style.width=Math.min(pct,100)+'%';
+          if(pctEl) pctEl.textContent=pct+'%';
+          if(lblEl) lblEl.textContent=nextBadge.label+'まで';
+        } else {
+          if(nextEl) nextEl.textContent='🎉 最高ランク達成！';
+          if(barEl) barEl.style.width='100%';
+          if(document.getElementById('contrib-progress-wrap'))
+            document.getElementById('contrib-progress-wrap').style.display='none';
+        }
+
+        // 最近の貢献作品
+        var recentEl=document.getElementById('contrib-recent');
+        if(recentEl&&d.recent&&d.recent.length){
+          recentEl.innerHTML=d.recent.map(function(r){
+            var dt=new Date(r.created_at);
+            var ds=isNaN(dt)?'':((dt.getMonth()+1)+'/'+dt.getDate());
+            return '<a href="/product/'+encodeURIComponent(r.product_id)+'" class="flex items-center gap-3 py-2.5 border-b border-slate-100 dark:border-slate-800 hover:text-primary transition-colors">'
+              +'<span class="material-symbols-outlined text-primary text-sm">person_add</span>'
+              +'<span class="flex-1 text-xs font-bold uppercase">'+r.product_id+'</span>'
+              +(ds?'<span class="text-[10px] text-slate-400">'+ds+'</span>':'')
+              +'</a>';
+          }).join('');
+        } else if(recentEl){
+          recentEl.innerHTML='<p class="text-xs text-slate-400 py-2">まだ貢献がありません。作品ページの「出演者を追加」ボタンで女優を特定しましょう！</p>';
+        }
+      }).catch(function(){});
+  }
+})();
+</script>
 </body></html>

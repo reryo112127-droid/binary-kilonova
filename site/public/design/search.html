@@ -251,6 +251,11 @@
 </div>
 </section>
 <!-- END: ResultsGrid -->
+<div class="px-4 py-6 flex justify-center">
+<button id="load-more-btn" onclick="fetchMore()" style="display:none" class="w-full max-w-xs py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-primary hover:text-primary transition-colors shadow-sm">
+もっと見る
+</button>
+</div>
 </main>
 <script>
 (function(){
@@ -262,14 +267,18 @@
   if (h1 && term) h1.textContent = term;
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
+  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}
 
   var filters = { contentType:'all', sortOrder:'new', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'' };
+  var LIMIT = 60;
+  var fetchOffset = 0;
+  var isLoading = false;
 
-  function buildUrl(){
+  function buildUrl(off){
     var p = new URLSearchParams();
-    p.set('limit','60');
-    if (filters.vrOnly) p.set('genre','VR');
+    p.set('limit', String(LIMIT + 1)); // +1 でhasMore判定
+    p.set('offset', String(off || 0));
+    if (filters.vrOnly) p.set('excludeGenres','VR');
     else if (actress) p.set('actress',actress);
     else if (maker) p.set('maker',maker);
     else if (label) p.set('label',label);
@@ -287,28 +296,56 @@
     return '/api/products?'+p.toString();
   }
 
+  function cardHtml(p){
+    var img = poster(p.main_image_url);
+    var noAct = !(p.actresses&&p.actresses.trim());
+    return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="flex flex-col gap-1 block">'
+      +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">'
+      +(img?'<img class="h-full w-full object-cover object-left-top" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
+      +'<div class="absolute bottom-1 right-1 flex gap-1">'
+      +(noAct?'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">add</span></button>':'')
+      +'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">favorite</span></button>'
+      +'</div></div>'
+      +'<p class="line-clamp-2 text-[10px] font-bold leading-tight">'+esc(p.title||'')+'</p>'
+      +(p.actresses?'<p class="text-[9px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
+      +'</a>';
+  }
+
+  function setLoadMoreBtn(visible){
+    var btn = document.getElementById('load-more-btn');
+    if (btn) btn.style.display = visible ? '' : 'none';
+  }
+
   var grid = document.getElementById('search-results-grid');
   function fetchAndRender(){
     if (!grid) return;
+    fetchOffset = 0;
     grid.innerHTML = '<div class="col-span-3 py-8 text-center text-xs text-gray-400">読み込み中...</div>';
-    fetch(buildUrl()).then(function(r){return r.json();}).then(function(data){
+    setLoadMoreBtn(false);
+    fetch(buildUrl(0)).then(function(r){return r.json();}).then(function(data){
       if (!data||!data.length){ grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-gray-400">作品が見つかりませんでした</div>'; return; }
-      grid.innerHTML = data.map(function(p){
-        var img = poster(p.main_image_url);
-        var noAct = !(p.actresses&&p.actresses.trim());
-        return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="flex flex-col gap-1 block">'
-          +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">'
-          +(img?'<img class="h-full w-full object-cover" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
-          +'<div class="absolute bottom-1 right-1 flex gap-1">'
-          +(noAct?'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">add</span></button>':'')
-          +'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">favorite</span></button>'
-          +'</div></div>'
-          +'<p class="line-clamp-2 text-[10px] font-bold leading-tight">'+esc(p.title||'')+'</p>'
-          +(p.actresses?'<p class="text-[9px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
-          +'</a>';
-      }).join('');
+      var hasMore = data.length > LIMIT;
+      var items = hasMore ? data.slice(0, LIMIT) : data;
+      grid.innerHTML = items.map(cardHtml).join('');
+      setLoadMoreBtn(hasMore);
     }).catch(function(){ grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-gray-400">エラーが発生しました</div>'; });
   }
+
+  window.fetchMore = function(){
+    if (isLoading || !grid) return;
+    isLoading = true;
+    var btn = document.getElementById('load-more-btn');
+    if (btn) btn.textContent = '読み込み中...';
+    fetchOffset += LIMIT;
+    fetch(buildUrl(fetchOffset)).then(function(r){return r.json();}).then(function(data){
+      isLoading = false;
+      var hasMore = data && data.length > LIMIT;
+      var items = (data && hasMore) ? data.slice(0, LIMIT) : (data || []);
+      items.forEach(function(p){ grid.insertAdjacentHTML('beforeend', cardHtml(p)); });
+      if (btn) btn.textContent = 'もっと見る';
+      setLoadMoreBtn(hasMore);
+    }).catch(function(){ isLoading = false; if (btn) btn.textContent = 'もっと見る'; });
+  };
 
   // Content type radios
   document.querySelectorAll('input[name="content-type"]').forEach(function(r){

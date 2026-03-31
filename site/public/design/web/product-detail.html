@@ -154,8 +154,9 @@
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 <div class="flex flex-col gap-8">
 <!-- 1. Top: Large package image (landscape) -->
-<div class="w-full rounded-2xl overflow-hidden bg-slate-100 shadow-sm">
+<div class="w-full rounded-2xl overflow-hidden bg-slate-100 shadow-sm relative">
 <img id="pd-hero-img" alt="" class="w-full h-auto block"/>
+<span id="pd-vr-badge" class="absolute top-3 left-3 bg-violet-600 text-white text-sm font-black px-3 py-1 rounded-lg" style="display:none">VR</span>
 </div>
 <!-- 2. Below image: Thumbnails & Video Button -->
 <div class="flex items-center gap-4">
@@ -167,7 +168,7 @@
 </div>
 <!-- 3. Below visuals: Product Details -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-4">
-<div class="lg:col-span-2 space-y-8">
+<div class="lg:col-span-2 space-y-8" id="pd-main-col">
 <div>
 <div class="flex items-center gap-4 mb-4">
 <h2 id="pd-title" class="text-3xl font-black text-slate-900 leading-tight" style=""></h2>
@@ -206,6 +207,10 @@
 <span class="w-32 text-slate-400 text-sm" style="">収録時間</span>
 <span id="pd-duration" class="flex-1 font-medium" style=""></span>
 </div>
+<div id="pd-series-row" class="flex border-b border-slate-100 pb-2" style="display:none">
+<span class="w-32 text-slate-400 text-sm">シリーズ</span>
+<span id="pd-series" class="flex-1 font-medium"></span>
+</div>
 </div>
 <!-- Sale Info Field -->
 <div id="pd-sale" class="py-3 px-5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-4" style="display:none">
@@ -238,6 +243,13 @@
 </div>
 <p class="mt-4 text-[11px] text-slate-400 text-center" style="">※外部の配信サイトへ移動します。</p>
 </section>
+</div>
+<!-- Right Column: Actress Profiles -->
+<div class="lg:col-span-1">
+<div id="pd-actress-profiles" style="display:none">
+<h3 class="text-base font-bold text-slate-700 mb-3">出演者プロフィール</h3>
+<div id="pd-actress-cards" class="space-y-3"></div>
+</div>
 </div>
 </div>
 <!-- Review Section -->
@@ -346,11 +358,55 @@
         return items.map(function(v){ return '<a href="/search?'+param+'='+encodeURIComponent(v)+'" class="hover:underline text-primary">'+esc(v)+'</a>'; }).join('、');
       }
       var actEl = document.getElementById('pd-actresses');
+      var acts = p.actresses ? p.actresses.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
       if (actEl) {
-        var acts = p.actresses ? p.actresses.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
         actEl.innerHTML = acts.length ? linkedItems(acts,'actress') : '-';
       }
       if (p.actresses) { var cb=document.getElementById('pd-cast-btn'); if(cb) cb.style.display='none'; }
+
+      // 出演者プロフィールカード（右カラム）
+      if (acts.length && acts.length <= 6) {
+        Promise.all(acts.map(function(name){
+          return fetch('/api/actress/'+encodeURIComponent(name))
+            .then(function(r){ return r.json(); }).catch(function(){ return null; });
+        })).then(function(profiles){
+          var cards = profiles.filter(function(pr){
+            return pr && (pr.height || pr.bust || pr.cup || pr.birthday || pr.image_url);
+          });
+          if (!cards.length) return;
+          var container = document.getElementById('pd-actress-cards');
+          var section = document.getElementById('pd-actress-profiles');
+          if (!container || !section) return;
+          container.innerHTML = cards.map(function(pr){
+            var info = [];
+            if (pr.height) info.push(pr.height+'cm');
+            if (pr.bust && pr.cup) info.push('B'+pr.bust+'('+pr.cup+')');
+            else if (pr.bust) info.push('B'+pr.bust);
+            if (pr.waist) info.push('W'+pr.waist);
+            if (pr.hip) info.push('H'+pr.hip);
+            if (pr.birthday) {
+              var bd = new Date(pr.birthday), now = new Date();
+              var age = now.getFullYear() - bd.getFullYear();
+              if (now.getMonth() < bd.getMonth() || (now.getMonth()===bd.getMonth() && now.getDate()<bd.getDate())) age--;
+              if (!isNaN(age) && age>0 && age<80) info.push(age+'歳');
+            }
+            return '<a href="/actress/'+encodeURIComponent(pr.name)+'" class="flex items-start gap-3 p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors border border-slate-100 hover:border-primary/20 group">'
+              +(pr.image_url
+                ? '<img src="'+esc(pr.image_url)+'" class="w-14 h-14 rounded-full object-cover border border-slate-200 shrink-0" loading="lazy"/>'
+                : '<div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold text-xl">'+esc(pr.name.charAt(0))+'</div>')
+              +'<div class="flex-1 min-w-0 pt-0.5">'
+              +'<div class="flex items-center gap-2 flex-wrap mb-1">'
+              +'<span class="font-bold text-sm group-hover:text-primary transition-colors">'+esc(pr.name)+'</span>'
+              +(pr.retired ? '<span class="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded font-bold">引退</span>' : '')
+              +'</div>'
+              +(info.length ? '<div class="text-xs text-slate-500">'+info.join(' / ')+'</div>' : '')
+              +'</div>'
+              +'<span class="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors text-sm mt-1">chevron_right</span>'
+              +'</a>';
+          }).join('');
+          section.style.display = '';
+        }).catch(function(){});
+      }
       var mkEl = document.getElementById('pd-maker');
       if (mkEl) mkEl.innerHTML = p.maker ? '<a href="/search?maker='+encodeURIComponent(p.maker)+'" class="hover:underline">'+esc(p.maker)+'</a>' : '-';
       var lbEl = document.getElementById('pd-label');
@@ -362,6 +418,13 @@
       }
       set('pd-code', (p.product_id||'').toUpperCase());
       set('pd-duration', p.duration_min ? p.duration_min+'分' : '-');
+      if (p.series_name) {
+        var srEl = document.getElementById('pd-series');
+        if (srEl) srEl.innerHTML = '<a href="/search?series='+encodeURIComponent(p.series_name)+'" class="hover:underline text-primary">'+esc(p.series_name)+'</a>';
+        var srRow = document.getElementById('pd-series-row');
+        if (srRow) srRow.style.display='';
+      }
+      if (p.vr_flag) { var vrBadge = document.getElementById('pd-vr-badge'); if (vrBadge) vrBadge.style.display=''; }
 
       // セール
       if (p.discount_pct > 0) {
@@ -473,7 +536,7 @@
             var noAct = !(q.actresses&&q.actresses.trim());
             return '<div class="group cursor-pointer" onclick="location.href=\'/product/'+esc(q.product_id)+'\'">'
               +'<div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-100 mb-3 shadow-sm group-hover:shadow-md transition-all relative">'
-              +'<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
+              +'<img class="w-full h-full object-cover object-left-top group-hover:scale-105 transition-transform duration-500" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
               +'<div class="absolute bottom-2 right-2 flex gap-1.5">'
               +(noAct?'<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary transition-colors" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-sm">add_circle</span></button>':'')
               +'<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500 transition-colors" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-sm">favorite</span></button>'

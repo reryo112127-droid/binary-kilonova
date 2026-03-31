@@ -325,7 +325,7 @@
   if (titleEl && term) { titleEl.textContent = term; document.title = term + ' - 検索結果'; }
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
+  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}
 
   var ITEMS_PER_PAGE=40,currentPage=1,filteredCache=[],fetchOffset=0;
   var filters = { contentType:'all', sortOrder:'popular', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'', subMaker:'', subGenres:[] };
@@ -335,7 +335,7 @@
     var p = new URLSearchParams();
     p.set('limit',String(FETCH_LIMIT+1));
     p.set('offset',String(off||0));
-    if (filters.vrOnly) { p.set('genre','VR'); }
+    if (filters.vrOnly) { p.set('excludeGenres','VR'); }
     else if (actress) p.set('actress',actress);
     else if (maker) p.set('maker',maker);
     else if (label) p.set('label',label);
@@ -365,7 +365,7 @@
     var noAct = !(p.actresses&&p.actresses.trim());
     return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group block">'
       +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
-      +(img?'<img class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
+      +(img?'<img class="w-full h-full object-cover object-left-top group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
       +'<div class="absolute bottom-2 right-2 flex gap-1">'
       +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
       +'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'

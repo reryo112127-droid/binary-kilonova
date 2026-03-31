@@ -69,10 +69,12 @@ export async function GET(request: NextRequest) {
             ? fanzaClient.execute({
                   sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count,
                                genres, maker, sale_start_date,
-                               COALESCE(discount_pct, 0) AS discount_pct
+                               COALESCE(discount_pct, 0) AS discount_pct,
+                               COALESCE(review_count, 0) AS review_count,
+                               COALESCE(review_average, 0) AS review_average
                         FROM products
                         ${fanzaConds.conds.length ? 'WHERE ' + fanzaConds.conds.join(' AND ') : ''}
-                        ORDER BY sale_start_date DESC
+                        ORDER BY COALESCE(review_count,0) * COALESCE(review_average,0) DESC, sale_start_date DESC
                         LIMIT ${CANDIDATE_LIMIT}`,
                   args: fanzaConds.args,
               }).then(r => r.rows).catch(() => [])
@@ -87,6 +89,8 @@ export async function GET(request: NextRequest) {
         main_image_url: string;
         wish_count: number;
         discount_pct: number;
+        review_count: number;
+        review_average: number;
         genres: string | null;
         maker: string | null;
         sale_start_date: string | null;
@@ -109,6 +113,8 @@ export async function GET(request: NextRequest) {
                 main_image_url: String(r.main_image_url ?? ''),
                 wish_count: Number(r.wish_count ?? 0),
                 discount_pct: 0,
+                review_count: 0,
+                review_average: 0,
                 genres: (r.genres as string | null) || null,
                 maker: (r.maker as string | null) || null,
                 sale_start_date: (r.sale_start_date as string | null) || null,
@@ -131,6 +137,8 @@ export async function GET(request: NextRequest) {
                 main_image_url: String(r.main_image_url ?? ''),
                 wish_count: Number(r.wish_count ?? 0),
                 discount_pct: Number(r.discount_pct ?? 0),
+                review_count: Number(r.review_count ?? 0),
+                review_average: Number(r.review_average ?? 0),
                 genres: (r.genres as string | null) || null,
                 maker: (r.maker as string | null) || null,
                 sale_start_date: (r.sale_start_date as string | null) || null,
@@ -194,7 +202,7 @@ export async function GET(request: NextRequest) {
     const now = Date.now();
     const scoredAll = products.map(p => {
         const siteData = siteDataMap.get(p.product_id) ?? { siteLikes: 0, reviewStarCounts: {}, purchaseCount: 0 };
-        const score = computeProductScore(p.wish_count, siteData);
+        const score = computeProductScore(p.wish_count, siteData, p.review_count, p.review_average);
         // FANZA用: 配信日ベースの近日スコア（サイトデータ付きで評価）
         let fanzaRecency = 0;
         if (p.source === 'fanza' && p.sale_start_date) {

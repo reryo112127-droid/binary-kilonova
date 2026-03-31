@@ -40,10 +40,18 @@ export async function initSiteSchema() {
             platform   TEXT NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
         )`,
+        `CREATE TABLE IF NOT EXISTS cast_contributions (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            product_id TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(session_id, product_id)
+        )`,
         `CREATE INDEX IF NOT EXISTS idx_product_likes_pid   ON product_likes(product_id)`,
         `CREATE INDEX IF NOT EXISTS idx_actress_likes_name  ON actress_likes(actress_name)`,
         `CREATE INDEX IF NOT EXISTS idx_product_reviews_pid ON product_reviews(product_id)`,
         `CREATE INDEX IF NOT EXISTS idx_purchase_events_pid ON purchase_events(product_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_cast_contrib_session ON cast_contributions(session_id)`,
     ];
 
     for (const sql of statements) {
@@ -174,4 +182,90 @@ export async function getProductReviews(productId: string) {
         args: [productId],
     });
     return res.rows.map(r => ({ ...r }));
+}
+
+// ─── 貢献者バッジ定義 ─────────────────────────────────────────
+export const CONTRIBUTOR_BADGES = [
+    { min: 100, label: '殿堂入り', emoji: '🏆', color: 'text-yellow-500' },
+    { min:  50, label: 'プラチナ',  emoji: '💎', color: 'text-sky-400'    },
+    { min:  20, label: 'ゴールド',  emoji: '🥇', color: 'text-amber-500'  },
+    { min:   5, label: 'シルバー',  emoji: '🥈', color: 'text-slate-400'  },
+    { min:   1, label: 'ブロンズ',  emoji: '🥉', color: 'text-orange-400' },
+] as const;
+
+export function getContributorBadge(count: number) {
+    return CONTRIBUTOR_BADGES.find(b => count >= b.min) ?? null;
+}
+
+// ─── 貢献記録 ─────────────────────────────────────────────────
+export async function recordContribution(sessionId: string, productId: string): Promise<void> {
+    const db = getSiteClient();
+    if (!db || !sessionId) return;
+    await initSiteSchema();
+    // UNIQUE制約で重複は無視
+    await db.execute({
+        sql: `INSERT OR IGNORE INTO cast_contributions (session_id, product_id) VALUES (?, ?)`,
+        args: [sessionId, productId],
+    }).catch(() => {});
+}
+
+// ─── 自分の貢献統計 ──────────────────────────────────────────
+export async function getMyContributions(sessionId: string): Promise<{
+    count: number;
+    badge: typeof CONTRIBUTOR_BADGES[number] | null;
+    recent: { product_id: string; created_at: string }[];
+}> {
+    const db = getSiteClient();
+    if (!db || !sessionId) return { count: 0, badge: null, recent: [] };
+    await initSiteSchema();
+
+    const [countRes, recentRes] = await Promise.all([
+        db.execute({
+            sql: 'SELECT COUNT(*) as cnt FROM cast_contributions WHERE session_id = ?',
+            args: [sessionId],
+        }),
+        db.execute({
+            sql: 'SELECT product_id, created_at FROM cast_contributions WHERE session_id = ? ORDER BY created_at DESC LIMIT 10',
+            args: [sessionId],
+        }),
+    ]);
+
+    const count = Number(countRes.rows[0]?.cnt ?? 0);
+    return {
+        count,
+        badge: getContributorBadge(count),
+        recent: recentRes.rows.map(r => ({ product_id: String(r.product_id), created_at: String(r.created_at) })),
+    };
+}
+
+// ─── 貢献者ランキング ─────────────────────────────────────────
+export async function getContributorLeaderboard(limit = 20): Promise<{
+    rank: number;
+    session_display: string;  // 最初の8文字のみ表示
+    count: number;
+    badge: typeof CONTRIBUTOR_BADGES[number] | null;
+}[]> {
+    const db = getSiteClient();
+    if (!db) return [];
+    await initSiteSchema();
+
+    const res = await db.execute({
+        sql: `SELECT session_id, COUNT(*) as cnt
+              FROM cast_contributions
+              GROUP BY session_id
+              ORDER BY cnt DESC
+              LIMIT ?`,
+        args: [limit],
+    });
+
+    return res.rows.map((row, i) => {
+        const count = Number(row.cnt);
+        const sid   = String(row.session_id);
+        return {
+            rank:            i + 1,
+            session_display: sid.slice(0, 8) + '…',
+            count,
+            badge:           getContributorBadge(count),
+        };
+    });
 }

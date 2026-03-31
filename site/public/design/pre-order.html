@@ -37,6 +37,12 @@ tailwind.config = {
   </div>
   <div id="product-grid" class="grid grid-cols-3 gap-2.5">
   </div>
+  <div class="flex justify-center py-4 pb-28">
+    <button id="load-more-btn" onclick="fetchMore()" style="display:none"
+      class="w-full max-w-xs py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 shadow-sm active:bg-gray-50">
+      もっと見る
+    </button>
+  </div>
 </main>
 <!-- Bottom nav replaced by injectMobileLayout -->
 <nav class="fixed bottom-0 left-0 right-0"></nav>
@@ -75,28 +81,48 @@ function makeProductCard(p) {
 function skeletons() {
   return Array(12).fill('<div class="animate-pulse"><div class="aspect-[3/4] bg-slate-200 dark:bg-slate-700 rounded-xl mb-1.5"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-0.5"></div></div>').join('');
 }
+var LIMIT=60, fetchOffset=0, isLoading=false, tomorrowStr='';
+(function(){var d=new Date();d.setDate(d.getDate()+1);tomorrowStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+function setLoadMoreBtn(v){var b=document.getElementById('load-more-btn');if(b)b.style.display=v?'flex':'none';}
 async function load() {
-  var el = document.getElementById('product-grid');
-  var cnt = document.getElementById('product-count');
-  if (!el) return;
-  el.innerHTML = skeletons();
-  var d = new Date();
-  d.setDate(d.getDate() + 1);
-  var tomorrow = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  try {
-    var res = await fetch('/api/products?source=fanza&sort=new&fromDate='+encodeURIComponent(tomorrow)+'&limit=60');
-    var products = res.ok ? await res.json() : [];
-    if (!products.length) {
-      el.innerHTML = '<p class="col-span-full text-center py-12 text-slate-400 text-sm">予約作品が見つかりませんでした</p>';
-      if (cnt) cnt.textContent = '0件';
-      return;
-    }
-    el.innerHTML = products.map(makeProductCard).join('');
-    if (cnt) cnt.textContent = products.length + '件';
-  } catch(e) {
-    el.innerHTML = '<p class="col-span-full text-center py-12 text-slate-400 text-sm">読み込みエラー</p>';
-  }
+  var el=document.getElementById('product-grid');
+  var cnt=document.getElementById('product-count');
+  if(!el)return;
+  fetchOffset=0;
+  el.innerHTML=skeletons();
+  setLoadMoreBtn(false);
+  try{
+    var res=await fetch('/api/products?sort=pre-order&fromDate='+encodeURIComponent(tomorrowStr)+'&limit='+(LIMIT+1)+'&offset=0');
+    var products=res.ok?await res.json():[];
+    var hasMore=products.length>LIMIT;
+    if(hasMore)products=products.slice(0,LIMIT);
+    if(!products.length){el.innerHTML='<p class="col-span-full text-center py-12 text-slate-400 text-sm">予約作品が見つかりませんでした</p>';if(cnt)cnt.textContent='0件';return;}
+    el.innerHTML=products.map(makeProductCard).join('');
+    if(cnt)cnt.textContent=products.length+(hasMore?'+':'')+'件';
+    setLoadMoreBtn(hasMore);
+    fetchOffset=LIMIT;
+  }catch(e){el.innerHTML='<p class="col-span-full text-center py-12 text-slate-400 text-sm">読み込みエラー</p>';}
 }
+window.fetchMore=async function(){
+  if(isLoading)return;
+  isLoading=true;
+  var btn=document.getElementById('load-more-btn');
+  if(btn){btn.textContent='読み込み中...';btn.disabled=true;}
+  try{
+    var res=await fetch('/api/products?sort=pre-order&fromDate='+encodeURIComponent(tomorrowStr)+'&limit='+(LIMIT+1)+'&offset='+fetchOffset);
+    var products=res.ok?await res.json():[];
+    var hasMore=products.length>LIMIT;
+    if(hasMore)products=products.slice(0,LIMIT);
+    var el=document.getElementById('product-grid');
+    if(el&&products.length)el.insertAdjacentHTML('beforeend',products.map(makeProductCard).join(''));
+    var cnt=document.getElementById('product-count');
+    if(cnt){var cur=parseInt(cnt.textContent)||0;cnt.textContent=(cur+products.length)+(hasMore?'+':'')+'件';}
+    fetchOffset+=LIMIT;
+    setLoadMoreBtn(hasMore);
+  }catch(e){}
+  isLoading=false;
+  if(btn){btn.textContent='もっと見る';btn.disabled=false;}
+};
 load();
 </script>
 </body>

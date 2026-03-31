@@ -254,7 +254,7 @@
 <script>
 (function(){
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');if(url.includes('pics.dmm.co.jp')&&url.endsWith('pl.jpg'))return url;return url;}
+  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('pics.dmm.co.jp')&&url.endsWith('pl.jpg'))return url;return url;}
   function purl(id){return '/product/'+encodeURIComponent(id);}
 
   // 予約・新作セクション
@@ -273,7 +273,7 @@
         var date=p.sale_start_date?(p.sale_start_date.slice(0,10)):'';
         return '<a href="'+purl(p.product_id)+'" class="min-w-[120px] w-[120px] relative group block shrink-0">'
           +'<div class="aspect-[2/3] rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
-          +(ps?'<img class="w-full h-full object-cover" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
+          +(ps?'<img class="w-full h-full object-cover object-left-top" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
           +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
           +'<span class="absolute top-1.5 left-1.5 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>'
           +'<div class="absolute bottom-1.5 right-1.5 flex gap-1">'
@@ -298,7 +298,7 @@
         var actress=p.actresses?(p.actresses.split(',')[0].trim()):'';
         return '<a href="'+purl(p.product_id)+'" class="min-w-[260px] p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-primary/10 shadow-sm flex gap-3 relative block">'
           +'<div class="w-16 aspect-square rounded-lg overflow-hidden shrink-0 bg-slate-200">'
-          +(p.main_image_url?'<img class="w-full h-full object-cover" src="'+esc(p.main_image_url)+'" alt="" loading="lazy"/>':'')
+          +(p.main_image_url?'<img class="w-full h-full object-cover object-left-top" src="'+esc(p.main_image_url)+'" alt="" loading="lazy"/>':'')
           +'</div>'
           +'<div class="flex flex-col justify-center min-w-0 flex-1 pr-1">'
           +(actress?'<span class="text-[9px] text-primary font-bold">'+esc(actress)+'</span>':'')

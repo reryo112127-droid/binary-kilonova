@@ -325,9 +325,9 @@
 <script>(function(){
 var g=document.getElementById('products-grid'),pgWrap=document.getElementById('pagination-wrap');
 if(!g)return;
-var LIMIT=40,today=new Date();
-var state={period:'all',selectedDate:null,calYear:today.getFullYear(),calMonth:today.getMonth(),source:'',excludeBest:false,excludeVR:false,maker:'',actress:'',genre:'',currentPage:1};
-var lastCount=0;
+var FETCH_LIMIT=200,today=new Date();
+var state={period:'all',selectedDate:null,calYear:today.getFullYear(),calMonth:today.getMonth(),source:'',excludeBest:false,excludeVR:false,maker:'',actress:'',genre:''};
+var fetchOffset=0,isLoading=false;
 
 function fmt(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function getRange(){
@@ -369,20 +369,14 @@ function updateFilterBtns(){
   var b=document.getElementById('qf-best');if(b)b.className=(state.excludeBest?act:ina);
   var v=document.getElementById('qf-vr');if(v)v.className=(state.excludeVR?act:ina);
 }
-function renderPagination(){
+function setLoadMoreVisible(v){
   if(!pgWrap)return;
-  var isFirst=state.currentPage===1,isLast=lastCount<LIMIT;
-  var pc='p-2 text-gray-200 cursor-not-allowed',pa='p-2 text-gray-400 hover:text-blue-600 transition';
-  var prev='<button '+(isFirst?'disabled ':'')+' onclick="goPage('+(state.currentPage-1)+')" class="'+(isFirst?pc:pa)+'"><svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" fill-rule="evenodd"></path></svg></button>';
-  var next='<button '+(isLast?'disabled ':'')+' onclick="goPage('+(state.currentPage+1)+')" class="'+(isLast?pc:pa)+'"><svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" fill-rule="evenodd"></path></svg></button>';
-  pgWrap.innerHTML='<nav class="flex items-center space-x-3">'+prev+'<span class="text-xs font-bold text-gray-600 px-2">'+state.currentPage+' ページ</span>'+next+'</nav>';
+  if(v){pgWrap.innerHTML='<button onclick="loadMore()" class="px-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 shadow-sm transition">さらに読み込む</button>';pgWrap.style.display='flex';pgWrap.style.justifyContent='center';}
+  else{pgWrap.innerHTML='';pgWrap.style.display='none';}
 }
-function loadProducts(){
+function buildUrl(off){
   var r=getRange();
-  g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">読み込み中...</p>';
-  var delta=state.source?LIMIT:Math.ceil(LIMIT/2);
-  var offset=(state.currentPage-1)*delta;
-  var url='/api/products?sort=pre-order&limit='+(LIMIT+1)+'&offset='+offset;
+  var url='/api/products?sort=pre-order&limit='+(FETCH_LIMIT+1)+'&offset='+off;
   if(r.fromDate)url+='&fromDate='+r.fromDate;
   if(r.toDate)url+='&toDate='+r.toDate;
   if(state.source)url+='&source='+state.source;
@@ -391,37 +385,54 @@ function loadProducts(){
   if(state.maker)url+='&maker='+encodeURIComponent(state.maker);
   if(state.actress)url+='&actress='+encodeURIComponent(state.actress);
   if(state.genre)url+='&genre='+encodeURIComponent(state.genre);
-  fetch(url).then(function(res){return res.json();}).then(function(d){
-    var hasNext=d&&d.length>LIMIT;if(hasNext)d=d.slice(0,LIMIT);
-    lastCount=hasNext?LIMIT+1:(d?d.length:0);
-    var cEl=document.getElementById('result-count');if(cEl)cEl.textContent=(hasNext?LIMIT+'+':d?d.length:0)+' 件'+(state.currentPage>1?' ('+state.currentPage+'ページ)':'');
-    renderPagination();
-    if(!d||!d.length){g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">この期間の予約作品がありません</p>';return;}
-    g.innerHTML=d.map(function(p){
-      var img=p.main_image_url||'';
-      var t=((p.title||'').substring(0,40)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
-      var pid=encodeURIComponent(p.product_id||'');
-      var badge=p.source==='fanza'?'<span class="absolute top-2 right-2 bg-orange-500 text-white text-[8px] font-bold px-1 py-0.5 rounded">FANZA</span>':'<span class="absolute top-2 right-2 bg-teal-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">MGS</span>';
-      return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
-        +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
-        +(img?'<img alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="'+img+'"/>':'<div class="w-full h-full bg-slate-200"></div>')
-        +'<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">予約受付中</span>'
-        +badge+'</div>'
-        +'<div class="p-3"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8">'+t+'</h3>'
-        +'<p class="text-[10px] text-gray-400">'+dt+' 発売予定</p></div></article>';
-    }).join('');
-  }).catch(function(){g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">エラーが発生しました</p>';renderPagination();});
+  return url;
 }
-window.setQuickPeriod=function(p){state.period=p;state.selectedDate=null;state.currentPage=1;updateQfBtns(p);renderCal();loadProducts();};
-window.selectDate=function(ds){state.selectedDate=ds;state.period=null;state.currentPage=1;updateQfBtns(null);renderCal();loadProducts();};
+function cardHtml(p){
+  var img=p.main_image_url||'';
+  var t=((p.title||'').substring(0,40)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
+  var pid=encodeURIComponent(p.product_id||'');
+  var badge=p.source==='fanza'?'<span class="absolute top-2 right-2 bg-orange-500 text-white text-[8px] font-bold px-1 py-0.5 rounded">FANZA</span>':'<span class="absolute top-2 right-2 bg-teal-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">MGS</span>';
+  return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
+    +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
+    +(img?'<img alt="" class="w-full h-full object-cover object-left-top group-hover:scale-105 transition duration-500" src="'+img+'"/>':'<div class="w-full h-full bg-slate-200"></div>')
+    +'<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">予約受付中</span>'
+    +badge+'</div>'
+    +'<div class="p-3"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8">'+t+'</h3>'
+    +'<p class="text-[10px] text-gray-400">'+dt+' 発売予定</p></div></article>';
+}
+function loadProducts(){
+  fetchOffset=0;
+  g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">読み込み中...</p>';
+  setLoadMoreVisible(false);
+  fetch(buildUrl(0)).then(function(res){return res.json();}).then(function(d){
+    var hasMore=d&&d.length>FETCH_LIMIT;if(hasMore)d=d.slice(0,FETCH_LIMIT);
+    var cEl=document.getElementById('result-count');if(cEl)cEl.textContent=(d?d.length:0)+(hasMore?'+':'')+' 件';
+    if(!d||!d.length){g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">この期間の予約作品がありません</p>';return;}
+    g.innerHTML=d.map(cardHtml).join('');
+    fetchOffset=FETCH_LIMIT;
+    setLoadMoreVisible(hasMore);
+  }).catch(function(){g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">エラーが発生しました</p>';});
+}
+window.loadMore=function(){
+  if(isLoading)return;isLoading=true;
+  fetch(buildUrl(fetchOffset)).then(function(res){return res.json();}).then(function(d){
+    var hasMore=d&&d.length>FETCH_LIMIT;if(hasMore)d=d.slice(0,FETCH_LIMIT);
+    if(d&&d.length)g.insertAdjacentHTML('beforeend',d.map(cardHtml).join(''));
+    var cEl=document.getElementById('result-count');
+    if(cEl){var cur=parseInt(cEl.textContent)||0;cEl.textContent=(cur+(d?d.length:0))+(hasMore?'+':'')+' 件';}
+    fetchOffset+=FETCH_LIMIT;
+    setLoadMoreVisible(hasMore);
+  }).catch(function(){}).finally(function(){isLoading=false;});
+};
+window.setQuickPeriod=function(p){state.period=p;state.selectedDate=null;updateQfBtns(p);renderCal();loadProducts();};
+window.selectDate=function(ds){state.selectedDate=ds;state.period=null;updateQfBtns(null);renderCal();loadProducts();};
 window.calMove=function(dir){state.calMonth+=dir;if(state.calMonth>11){state.calMonth=0;state.calYear++;}if(state.calMonth<0){state.calMonth=11;state.calYear--;}renderCal();};
-window.setSource=function(src){state.source=src;state.currentPage=1;updateSrcBtns();loadProducts();};
-window.toggleBest=function(){state.excludeBest=!state.excludeBest;state.currentPage=1;updateFilterBtns();loadProducts();};
-window.toggleVR=function(){state.excludeVR=!state.excludeVR;state.currentPage=1;updateFilterBtns();loadProducts();};
-window.goPage=function(page){if(page<1)return;state.currentPage=page;window.scrollTo(0,200);loadProducts();};
-window.clearFilters=function(){state.maker='';state.actress='';state.genre='';['maker','actress','genre'].forEach(function(k){var el=document.getElementById('filter-'+k);if(el)el.value='';});state.currentPage=1;loadProducts();};
-(function(){var t={};['maker','actress','genre'].forEach(function(k){var el=document.getElementById('filter-'+k);if(!el)return;el.addEventListener('input',function(){clearTimeout(t[k]);t[k]=setTimeout(function(){state[k]=el.value.trim();state.currentPage=1;loadProducts();},500);});});})();
+window.setSource=function(src){state.source=src;updateSrcBtns();loadProducts();};
+window.toggleBest=function(){state.excludeBest=!state.excludeBest;updateFilterBtns();loadProducts();};
+window.toggleVR=function(){state.excludeVR=!state.excludeVR;updateFilterBtns();loadProducts();};
+window.clearFilters=function(){state.maker='';state.actress='';state.genre='';['maker','actress','genre'].forEach(function(k){var el=document.getElementById('filter-'+k);if(el)el.value='';});loadProducts();};
+(function(){var t={};['maker','actress','genre'].forEach(function(k){var el=document.getElementById('filter-'+k);if(!el)return;el.addEventListener('input',function(){clearTimeout(t[k]);t[k]=setTimeout(function(){state[k]=el.value.trim();loadProducts();},500);});});})();
 renderCal();updateQfBtns('all');updateSrcBtns();updateFilterBtns();loadProducts();
 })();
 </script>

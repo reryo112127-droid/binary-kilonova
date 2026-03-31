@@ -50,6 +50,7 @@
 <div id="pd-hero" class="w-full bg-slate-200 dark:bg-slate-800 overflow-hidden relative">
 <img id="pd-hero-img" alt="" class="w-full h-auto block"/>
 <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+<span id="pd-vr-badge" class="absolute top-2 left-2 bg-violet-600 text-white text-xs font-black px-2 py-0.5 rounded" style="display:none">VR</span>
 </div>
 </div>
 <!-- 2. Sample Carousel & Play Button -->
@@ -99,9 +100,16 @@
 <dd id="pd-code" class="col-span-2 font-medium uppercase"></dd>
 <dt class="text-slate-500 dark:text-slate-400">収録時間</dt>
 <dd id="pd-duration" class="col-span-2 font-medium"></dd>
+<dt id="pd-series-dt" class="text-slate-500 dark:text-slate-400" style="display:none">シリーズ</dt>
+<dd id="pd-series" class="col-span-2 font-medium" style="display:none"></dd>
 <dt class="text-slate-500 dark:text-slate-400">配信日</dt>
 <dd id="pd-date" class="col-span-2 font-medium"></dd>
 </dl>
+</div>
+<!-- 5b. Actress Profiles -->
+<div id="pd-actress-profiles" class="px-4 pb-2" style="display:none">
+<h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">出演者プロフィール</h3>
+<div id="pd-actress-cards" class="space-y-2"></div>
 </div>
 <!-- 6. Affiliate Buttons -->
 <div class="px-4 py-4 space-y-3">
@@ -260,11 +268,55 @@
           : '-';
       }
       var actEl = document.getElementById('pd-actresses');
+      var acts = p.actresses ? p.actresses.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
       if (actEl) {
-        var acts = p.actresses ? p.actresses.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
         actEl.innerHTML = acts.length ? linkedItems(acts,'actress') : '-';
       }
       if (p.actresses) hide('pd-cast-btn');
+
+      // 出演者プロフィールカード
+      if (acts.length && acts.length <= 6) {
+        Promise.all(acts.map(function(name){
+          return fetch('/api/actress/'+encodeURIComponent(name))
+            .then(function(r){ return r.json(); }).catch(function(){ return null; });
+        })).then(function(profiles){
+          var cards = profiles.filter(function(pr){
+            return pr && (pr.height || pr.bust || pr.cup || pr.birthday || pr.image_url);
+          });
+          if (!cards.length) return;
+          var container = document.getElementById('pd-actress-cards');
+          var section = document.getElementById('pd-actress-profiles');
+          if (!container || !section) return;
+          container.innerHTML = cards.map(function(pr){
+            var info = [];
+            if (pr.height) info.push(pr.height+'cm');
+            if (pr.bust && pr.cup) info.push('B'+pr.bust+'('+pr.cup+')');
+            else if (pr.bust) info.push('B'+pr.bust);
+            if (pr.waist) info.push('W'+pr.waist);
+            if (pr.hip) info.push('H'+pr.hip);
+            if (pr.birthday) {
+              var bd = new Date(pr.birthday), now = new Date();
+              var age = now.getFullYear() - bd.getFullYear();
+              if (now.getMonth() < bd.getMonth() || (now.getMonth()===bd.getMonth() && now.getDate()<bd.getDate())) age--;
+              if (!isNaN(age) && age>0 && age<80) info.push(age+'歳');
+            }
+            return '<a href="/actress/'+encodeURIComponent(pr.name)+'" class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">'
+              +(pr.image_url
+                ? '<img src="'+esc(pr.image_url)+'" class="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0" loading="lazy"/>'
+                : '<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold text-lg">'+esc(pr.name.charAt(0))+'</div>')
+              +'<div class="flex-1 min-w-0">'
+              +'<div class="flex items-center gap-1.5 flex-wrap">'
+              +'<span class="font-bold text-sm">'+esc(pr.name)+'</span>'
+              +(pr.retired ? '<span class="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded font-bold">引退</span>' : '')
+              +'</div>'
+              +(info.length ? '<div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">'+info.join(' / ')+'</div>' : '')
+              +'</div>'
+              +'<span class="material-symbols-outlined text-slate-400 text-sm shrink-0">chevron_right</span>'
+              +'</a>';
+          }).join('');
+          section.style.display = '';
+        }).catch(function(){});
+      }
       var mkEl = document.getElementById('pd-maker');
       if (mkEl) mkEl.innerHTML = p.maker ? '<a href="/search?maker='+encodeURIComponent(p.maker)+'" class="hover:underline">'+esc(p.maker)+'</a>' : '-';
       var lbEl = document.getElementById('pd-label');
@@ -276,6 +328,13 @@
       }
       set('pd-code', (p.product_id||'').toUpperCase());
       set('pd-duration', p.duration_min ? p.duration_min+'分' : '-');
+      if (p.series_name) {
+        var srEl = document.getElementById('pd-series');
+        if (srEl) { srEl.innerHTML = '<a href="/search?series='+encodeURIComponent(p.series_name)+'" class="hover:underline text-primary">'+esc(p.series_name)+'</a>'; srEl.style.display=''; }
+        var srDt = document.getElementById('pd-series-dt');
+        if (srDt) srDt.style.display='';
+      }
+      if (p.vr_flag) show('pd-vr-badge');
       set('pd-date', p.sale_start_date || '-');
 
       // セール
@@ -388,7 +447,7 @@
           recEl.innerHTML = items.map(function(q){
             var noAct = !(q.actresses&&q.actresses.trim());
             return '<div class="relative rounded-xl overflow-hidden bg-slate-100 shadow-sm cursor-pointer" onclick="location.href=\'/product/'+esc(q.product_id)+'\'">'
-              +'<img class="w-full aspect-[3/4] object-cover" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
+              +'<img class="w-full aspect-[3/4] object-cover object-left-top" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
               +'<div class="absolute bottom-1 right-1 flex gap-1">'
               +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-xs">add_circle</span></button>':'')
               +'<button class="w-6 h-6 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-xs">favorite</span></button>'

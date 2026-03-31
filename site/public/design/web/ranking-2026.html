@@ -190,7 +190,7 @@
                             return `
                                 <div class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group cursor-pointer">
                                     <div class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-100">
-                                        <img class="w-full h-full object-cover" src="${mockImages[imgIdx]}" alt="Work ${rank}">
+                                        <img class="w-full h-full object-cover object-left-top" src="${mockImages[imgIdx]}" alt="Work ${rank}">
                                         <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
                                         <div class="absolute top-0 left-0 bg-slate-900/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-br-md">${rank}</div>
                                     </div>
@@ -882,7 +882,7 @@
 <script>
 (function(){
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');return url;}
+  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}
   function purl(id){return '/product/'+encodeURIComponent(id);}
   function setCard(n,p){
     var img=document.getElementById('rank-'+n+'-img');
@@ -896,7 +896,7 @@
   }
   function renderItem(p,rank){
     var ps=poster(p.main_image_url);
-    var imgHtml=ps?'<img class="w-full h-full object-cover" src="'+esc(ps)+'" alt="'+rank+'">'
+    var imgHtml=ps?'<img class="w-full h-full object-cover object-left-top" src="'+esc(ps)+'" alt="'+rank+'">'
       :'<div class="w-full h-full flex items-center justify-center"><span class="material-symbols-outlined text-slate-400">movie</span></div>';
     var actress=p.actresses?(p.actresses.split(',')[0].trim()):'';
     return '<a href="'+purl(p.product_id)+'" class="relative flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all group">'

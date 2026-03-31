@@ -1,16 +1,13 @@
 /**
  * 作品のポスター画像URL（縦型）を返す
- * MGS: pb_e_ → pf_o1_（縦型パッケージ）
- * FANZA: {id}pl.jpg → {id}ps.jpg（横長→縦型ジャケット 120×170）
+ * MGS: pb_e_ → pf_e_（縦型パッケージ表面 421×600）
+ * FANZA: pl.jpg のまま（800×538横長）→ CSS object-left-top で表面左半分を表示
  */
 export function getPosterImageUrl(url: string | undefined | null): string {
     if (!url) return '';
-    // MGS: pb_e_XXX.jpg → pf_o1_XXX.jpg
-    if (url.includes('pb_e_')) return url.replace('pb_e_', 'pf_o1_');
-    // FANZA: {id}pl.jpg → {id}ps.jpg（縦型 147×200）
-    if (url.includes('pics.dmm.co.jp') && url.endsWith('pl.jpg')) {
-        return url.slice(0, -6) + 'ps.jpg';
-    }
+    // MGS: pb_e_XXX.jpg → pf_e_XXX.jpg（縦型高画質 421×600）
+    if (url.includes('pb_e_')) return url.replace('pb_e_', 'pf_e_');
+    // FANZA: pl.jpg はそのまま使い、CSS側で object-left-top を指定する
     return url;
 }
 

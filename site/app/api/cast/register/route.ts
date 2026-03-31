@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMgsClient, getFanzaClient } from '../../../../lib/turso';
+import { recordContribution, initSiteSchema } from '../../../../lib/siteDb';
 
 export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null);
@@ -40,6 +41,12 @@ export async function POST(request: NextRequest) {
         sql: 'INSERT INTO cast_submissions (product_id, actresses, session_id) VALUES (?, ?, ?)',
         args: [productId, actressesStr, sessionId],
     });
+
+    // 貢献ポイント記録（投稿時点でカウント）
+    if (sessionId) {
+        await initSiteSchema();
+        await recordContribution(sessionId, productId);
+    }
 
     // 同じ作品に2件以上一致する投稿があれば自動承認してDB更新
     const pending = await mgsClient.execute({

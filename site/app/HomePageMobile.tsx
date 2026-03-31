@@ -19,7 +19,7 @@ function SmallCard({ p }: { p: Product }) {
         <Link href={`/product/${encodeURIComponent(p.product_id)}`} className="min-w-[110px] w-[110px] shrink-0 block group">
             <div className="aspect-[2/3] rounded-lg bg-slate-200 mb-2 overflow-hidden shadow-sm">
                 {poster && (
-                    <img alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" src={poster} loading="lazy"
+                    <img alt="" className="w-full h-full object-cover object-left-top group-hover:scale-105 transition-transform" src={poster} loading="lazy"
                         onError={e => { if (p.main_image_url && e.currentTarget.src !== p.main_image_url) e.currentTarget.src = p.main_image_url!; }} />
                 )}
             </div>
@@ -34,7 +34,7 @@ function NewCard({ p }: { p: Product }) {
         <Link href={`/product/${encodeURIComponent(p.product_id)}`} className="min-w-[260px] p-3 bg-white rounded-xl border border-primary/10 shadow-sm flex gap-3 shrink-0 block group">
             <div className="w-16 aspect-square rounded-lg overflow-hidden shrink-0 bg-slate-100">
                 {p.main_image_url && (
-                    <img alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" src={p.main_image_url} loading="lazy" />
+                    <img alt="" className="w-full h-full object-cover object-left-top group-hover:scale-105 transition-transform" src={getPosterImageUrl(p.main_image_url)} loading="lazy" />
                 )}
             </div>
             <div className="flex flex-col justify-center min-w-0 flex-1">
@@ -62,7 +62,7 @@ function PreorderCard({ p }: { p: Product }) {
         <Link href={`/product/${encodeURIComponent(p.product_id)}`} className="min-w-[120px] w-[120px] shrink-0 block group">
             <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-md relative bg-slate-200">
                 {poster && (
-                    <img alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" src={poster} loading="lazy"
+                    <img alt="" className="w-full h-full object-cover object-left-top group-hover:scale-105 transition-transform" src={poster} loading="lazy"
                         onError={e => { if (p.main_image_url && e.currentTarget.src !== p.main_image_url) e.currentTarget.src = p.main_image_url!; }} />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />

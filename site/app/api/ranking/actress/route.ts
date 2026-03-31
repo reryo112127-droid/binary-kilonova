@@ -10,6 +10,8 @@ export const revalidate = 300; // 5分キャッシュ
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
+    const fromDate = searchParams.get('fromDate') || '';
+    const toDate   = searchParams.get('toDate')   || '';
 
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
@@ -20,15 +22,25 @@ export async function GET(request: NextRequest) {
     }
 
     // ─── Step 1: 候補作品を取得 ─────────────────────────────
+    const mgsDateConds: string[] = ['(duration_min IS NULL OR duration_min < 600)'];
+    const mgsDateArgs: string[] = [];
+    if (fromDate) { mgsDateConds.push("REPLACE(sale_start_date, '/', '-') >= ?"); mgsDateArgs.push(fromDate); }
+    if (toDate)   { mgsDateConds.push("REPLACE(sale_start_date, '/', '-') <= ?"); mgsDateArgs.push(toDate); }
+
+    const fanzaDateConds: string[] = [];
+    const fanzaDateArgs: string[] = [];
+    if (fromDate) { fanzaDateConds.push('sale_start_date >= ?'); fanzaDateArgs.push(fromDate); }
+    if (toDate)   { fanzaDateConds.push('sale_start_date <= ?'); fanzaDateArgs.push(toDate); }
+
     const [mgsRows, fanzaRows] = await Promise.all([
         mgsClient
             ? mgsClient.execute({
                   sql: `SELECT product_id, actresses, main_image_url, wish_count, genres, maker
                         FROM products
-                        WHERE (duration_min IS NULL OR duration_min < 600)
+                        WHERE ${mgsDateConds.join(' AND ')}
                         ORDER BY wish_count DESC
                         LIMIT ${CANDIDATE_LIMIT}`,
-                  args: [],
+                  args: mgsDateArgs,
               }).then(r => r.rows).catch(() => [])
             : [],
         fanzaClient
@@ -36,9 +48,10 @@ export async function GET(request: NextRequest) {
                   sql: `SELECT product_id, actresses, main_image_url,
                                0 AS wish_count, genres, maker
                         FROM products
+                        ${fanzaDateConds.length ? 'WHERE ' + fanzaDateConds.join(' AND ') : ''}
                         ORDER BY sale_start_date DESC
                         LIMIT ${CANDIDATE_LIMIT}`,
-                  args: [],
+                  args: fanzaDateArgs,
               }).then(r => r.rows).catch(() => [])
             : [],
     ]);

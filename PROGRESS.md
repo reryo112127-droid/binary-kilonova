@@ -1,6 +1,6 @@
 # AVコンシェルジュ — 進捗記録
 
-> 最終更新: 2026-03-25
+> 最終更新: 2026-03-31
 
 ---
 
@@ -103,9 +103,7 @@
   - 出身地を基本情報テキストに追加
   - 趣味を別名義・豊胸バッジエリアに追加
 - **avwiki全女優スクレイパー稼働中** (`scripts/scrape_avwiki_full.js`)
-  - 9,447 URL収集済み / ローマ字スラグ3,720件が対象
 - **avwiki品番→女優マッピングスクレイパー稼働中** (`scripts/scrape_avwiki_products.js`)
-  - 15,000件品番ページ → FANZA/MGS女優不明作品を特定・DB更新
 - **GitHub Actions CI 構築** (`.github/workflows/`)
   - `daily-update.yml` — FANZA+MGS日次更新 CI自動実行
   - `avwiki-scraper.yml` — avwikiスクレイパーを毎時実行、進捗をrepoにコミット
@@ -123,111 +121,118 @@
   - FANZA優先・MGSフォールバックで `discount_pct` / `sale_end_date` を統合表示
   - 赤バッジ `X%OFF` + `〜M/D まで` の期間表示（PC版・モバイル版）
 - **MGS女優名インデックス** (`data/mgs_actress_index.json`)
-  - `actor[]` URLパラメータから女優IDを抽出・蓄積
-  - 日次更新時に当日新作の出演レポートをコンソール出力
 - **Discord Webhook URL更新** — 全5ファイル一括更新
 - **AVWIKIスクレイパーのバグ修正**
-  - `scrape_avwiki_products.js` — SIGTERMハンドラー追加・`saveProgress`をDB更新前に実行
-  - `scrape_avwiki_full.js` — SIGTERMハンドラー追加
-  - `avwiki-scraper.yml` — `git pull --rebase` でpush競合を解消
 - **日次更新スケジュール最適化**
-  - FANZA: 深夜 0:05 JST（予約作品公開+5分）
-  - MGS: 午前 10:05 JST（新作公開+5分）
-  - FANZA・MGSそれぞれ独立したcronジョブ（`if: github.event.schedule`で分岐）
-- **Vercel ↔ GitHub 連携**
-  - VercelプロジェクトをGitHubリポジトリに接続
-  - pushのたびに自動デプロイ
-- **全APIルートの即時反映対応**
-  - `api/products` / `api/product/[id]` に `export const dynamic = 'force-dynamic'` 追加
-  - Turso更新後の次リクエストから最新データを即時配信
-- **FANZA女優プロフィール自動更新**
-  - `fanza_daily_update.js` — 新出演女優を DMM ActressSearch API で自動取得しTursoに保存
-- **AVWIKIスクレイプ結果のサイト自動反映**
-  - `scripts/build_avwiki_profiles.js` — `avwiki_full.jsonl` → Turso UPSERT
-  - スクレイプ毎時実行後にTursoへ直接書き込み（ファイルコミット不要）
-
-### Phase 13 — 検索UI拡充・AVWIKI最適化・日次更新修正（2026-03-25）
-
-#### 検索ページ改善
-- **女優プロフィールカード** — `?actress=name` のURL時に検索結果上部に表示
-  - モバイル版: w-14 h-14 コンパクトカード（写真・名前・身長・カップ・SNSバッジ）
-  - WEB版: w-40 h-40 大カード（ステータスグリッド・SNSアイコン）
-  - 複数女優指定時はカードを縦並び
-- **MGS / FANZA / すべて 3択トグル** — WEB版検索結果に「すべて」ボタン追加
-- **動的サイドバーフィルター** — 検索結果から実際のメーカー・ジャンルを集計してサイドバーに表示
-  - クライアントサイドで sub-filter（AND検索）、件数バッジ付き
-  - 「フィルタークリア」ボタン追加
-- **詳細検索ページ** (`/search/advanced`) — 完全リニューアル
-  - ソース選択・キーワード・女優名・メーカー・ジャンルチェックボックス（40ジャンル）
-  - 期間指定（クイックボタン: 本日/今週/今月/今年）
-  - 身長デュアルレンジスライダー（140〜185cm）
-  - カップチェックボックス（A〜K、複数選択 = `cups=A,B,C`）
-  - 年齢デュアルレンジスライダー（18〜60歳）
-  - BEST除外チェックボックス・ソート選択
-- **Products API 身体フィルター拡充** (`api/products/route.ts`)
-  - `cups` パラメータ追加（カンマ区切り複数カップ選択）
-  - `ageMin` / `ageMax` パラメータ追加（誕生日から年齢計算）
-
-#### AVWIKIスクレイピング最適化
-- **`avwiki-scraper.yml`** — schedule削除、ローカルバックグラウンド実行に移行
-- **`avwiki_local_runner.js`** 新規作成
-  - 女優スクレイパー + 品番スクレイパーを **Promise.all で並列実行**
-  - 従来の逐次実行（5.7日+）→ **最大5日で完了**（av-wiki.net負荷配慮）
-  - 1時間ごとにGitコミット・プッシュ
-  - 2時間ごとにTurso反映（`build_avwiki_profiles.js`）
-  - Discord奇数時間（JST 1/3/5/…/23時）に進捗報告（プログレスバー+ETA）
-  - 起動時・完了時・Ctrl+C時にも通知
-  - インターバル: 女優 **46秒** / 品番 **29秒**（リクエスト頻度 3.4req/分）
-
-#### Discord通知整備
-- **FANZA日次更新** — 新作0件・セールなしでも毎回通知するよう修正
-- **MGS日次更新** — Discord通知コードを新規追加（https モジュール使用）
-
-#### FANZA日次更新の方針変更
-- **新作取得 → 予約商品取得に変更**
-  - FANZAは約1ヶ月前に予約商品として登録される仕様
-  - 取得期間: 明日〜**2ヶ月先**（`--ahead N` で変更可）
-- **素人カテゴリ (`floor=videoc`) 追加**
-  - FANZAの floor 一覧を FloorList API で確認し `videoc`（素人）を発見
-  - `はめチャンネル`（658件）・`素人ペイペイ`（719件）等が収録
-  - `FLOORS = ['videoa', 'videoc']` で両カテゴリを取得
-
-#### MGS日次更新のバグ修正
-- **`db/database.js`** — スキーマ適用順序のバグ修正
-  - 原因: `CREATE INDEX ON products(discount_pct)` が旧スキーマDBで実行 → カラム未存在でエラー
-  - 修正: 既存DB読み込み直後にALTER TABLE移行を実行し、その後スキーマ適用
-  - 結果: MGSが24日間停止していた問題を解消
+  - FANZA: 深夜 0:05 JST / MGS: 午前 10:05 JST
+- **Vercel ↔ GitHub 連携** — pushのたびに自動デプロイ
+- **全APIルートの即時反映対応** — `force-dynamic` 追加
+- **FANZA女優プロフィール自動更新** — 新出演女優を自動取得しTursoに保存
+- **AVWIKIスクレイプ結果のサイト自動反映** — `build_avwiki_profiles.js`
 
 ### Phase 12 — 女優プロフィールTurso移行・Vercelエラー解消（2026-03-25）
 - **女優プロフィールをFANZA TursoへフルマイグレーションA**
-  - `scripts/migrate_actress_profiles_to_turso.js` — 一回限りの移行スクリプト
   - `actress_profiles` テーブル: 59,558件（FANZA+AVWIKIマージ）
   - `actress_aliases` テーブル: 249件（別名義マッピング）
 - **女優プロフィールAPIをTurso直接クエリに変更**
-  - `api/actress/[name]/route.ts` — `fs.readFileSync` → Tursoクエリ
-  - エイリアス解決・プロフィール取得を1〜2クエリで完結
-  - `force-dynamic` 追加 → スクレイプ後すぐサイトに反映（デプロイ不要）
 - **`build_avwiki_profiles.js` をTurso書き込みに変更**
-  - JSONファイル出力廃止 → Turso UPSERT（COALESCE で既存データを保護）
-  - 別名義も `actress_aliases` テーブルに登録
 - **Vercel Hobbyプランのボットコミットエラーを解消**
-  - 原因: `github-actions[bot]` コミットがVercel Hobbyでブロックされエラーメール
-  - 解決: 全ボットコミットに `[vercel skip]` を追加
-  - 根本解決: 女優プロフィールをTursoへ移行しファイルコミット自体が不要に
-- **`next.config.ts` のバンドル設定を簡素化**
-  - 女優プロフィールファイル（計13MB）のバンドルを削除
-  - Vercelデプロイサイズが大幅縮小
+- **`next.config.ts` のバンドル設定を簡素化**（デプロイサイズ大幅縮小）
+
+### Phase 13 — 検索UI拡充・AVWIKI最適化・日次更新修正（2026-03-25）
+- **女優プロフィールカード** — `?actress=name` のURL時に検索結果上部に表示
+- **MGS / FANZA / すべて 3択トグル** — WEB版検索結果
+- **動的サイドバーフィルター** — 実際のメーカー・ジャンルを集計してAND絞り込み
+- **詳細検索ページ** (`/search/advanced`) — 完全リニューアル
+  - 身長・カップ・年齢・ジャンル40種・期間指定など
+- **Products API 身体フィルター拡充** — `cups` / `ageMin` / `ageMax` パラメータ
+- **`avwiki_local_runner.js`** — 女優+品番スクレイパーを並列実行・Discord通知
+- **FANZA日次更新の方針変更** — 新作取得→予約商品取得（明日〜2ヶ月先）
+- **素人カテゴリ (`floor=videoc`) 追加**
+- **MGS日次更新バグ修正** — スキーマ適用順序の問題解消（24日間停止を解消）
+
+### Phase 14 — MGSサンプル動画・FANZAシリーズ/VR/別名統合（2026-03-31）
+
+#### MGSサンプル動画インライン再生
+- **`/api/mgs-video` プロキシAPI** 新規作成
+  - `sampleplayer.html/{UUID}` → `sampleRespons.php?pid={UUID}` → MP4 URL変換
+  - 商品詳細ページでMGS動画をインライン再生（外部遷移廃止）
+
+#### FANZAシリーズ情報・VRフラグ
+- **`series_id` / `series_name` / `vr_flag` カラム追加**（FANZA Turso・スキーマ）
+- **`fanza_daily_update.js` / `fanza_phase1_fetch.js`** — 新規取得時にシリーズ・VR情報を保存
+- **`fanza_series_vr_backfill.js`** — 既存22万件にバックフィル
+  - STEP1: タイトルパターンでVRフラグ即時更新（19,669件）
+  - STEP2: DMM API月別再取得でシリーズ情報更新（8,174件）
+- **商品詳細ページ** — VRバッジ・シリーズリンク表示（モバイル・WEB両対応）
+- **検索API** — `series` / `vr` クエリパラメータ対応
+
+#### AVWikiスクレイピング完了・DB反映
+- **`avwiki_by_actress.js`** — 36,971名処理完了（全FANZAデータの女優名で検索）
+- **`seesaawiki_by_actress.js`** — 完了済み
+- **`--apply-only`実行** — FANZA DB反映
+  - seesaawiki: 204,775件
+  - avwiki（1回目）: 451,660件
+  - avwiki（最終）: 195,943件（スクレイパー完了後の追加分）
+- **女優特定率（最終）**
+  - FANZA: 308,500件 / 448,585件（**68.8%**）
+  - MGS: 54,643件 / 115,409件（**47.3%**）
+  - 合計: 363,143件 / 563,994件（**64.4%**）
+
+#### AVWiki別名・引退データのDB統合
+- **`merge_avwiki_aliases.js`** — avwiki_full.jsonlの別名・引退データを統合
+  - `actress_aliases.json`: 231グループ/484名 → **1,189グループ/3,311名**
+  - Turso `actress_profiles`: aliases設定済み **2,118人** / retired設定済み **89人**
+- **`/api/actress/[name]`** — `retired` フィールド追加
+
+#### 商品詳細ページ：出演者プロフィールカード
+- **モバイル版** — アフィリエイトボタン上に出演者プロフィールカード表示
+- **WEB版** — 右カラム（1/3幅）に出演者プロフィールカード表示
+- 表示内容: 顔写真・名前・身長・スリーサイズ・年齢・引退バッジ
+- 女優ページへのリンク付き
+- プロフィールデータなし（素人等）の場合は非表示
+
+#### 検索高速化（FTS5 trigram）
+- **`scripts/create_fts5.js`** — FANZA・MGS両DBにFTS5 trigramインデックス構築
+  - FANZA: 448,585件を一括INSERT（1分49秒）
+  - MGS: 115,409件を一括INSERT（41秒）
+- **`site/app/api/products/route.ts`** — LIKEをFTS5サブクエリに置き換え
+  - 対象: `actress` / `genre` / `q`（title+actresses）/ `profileActresses`
+  - **FANZA actress検索: 17秒 → 24ms（700倍高速化）**
+  - **FANZA genre検索: 9.8秒 → 17ms**
+  - **MGS検索: 2.1秒 → 20ms**
+
+#### サジェスト・エイリアスデータ整備
+- suggest_cache から誤登録21名を削除
+- `actress_aliases.json` の誤グループ修正（ゴミデータ除去）
+
+---
+
+## 📊 現在のデータ規模
+
+| DB | 総作品数 | 女優特定済み | サンプル動画 |
+|---|---|---|---|
+| FANZA | 448,585件 | 308,500件（68.8%） | 331,430件 |
+| MGS | 115,409件 | 54,643件（47.3%） | 109,752件 |
+| **合計** | **563,994件** | **363,143件（64.4%）** | — |
+
+| 女優プロフィール | 件数 |
+|---|---|
+| 総プロフィール数 | 59,696人 |
+| 別名データあり | 2,118人 |
+| 引退フラグあり | 89人 |
+| 別名検索グループ | 1,189グループ / 3,311名 |
 
 ---
 
 ## 🔄 稼働中（継続タスク）
 
-| タスク | 状況 | 完了見込み |
-|---|---|---|
-| avwiki女優スクレイプ | 200/9,447完了（46秒間隔・ローカルBG） | 約5日 |
-| avwiki品番マッピング | 450/15,000完了（29秒間隔・ローカルBG） | 約5日 |
-| FANZA日次更新 | 毎日 0:05 JST（GitHub Actions） | 継続中 |
-| MGS日次更新 | 毎日 10:05 JST（GitHub Actions） | 継続中 |
+| タスク | 状況 |
+|---|---|
+| FANZA日次更新 | 毎日 0:05 JST（GitHub Actions）継続中 |
+| MGS日次更新 | 毎日 10:05 JST（GitHub Actions）継続中 |
+| avwikiスクレイパー | 全完了 |
+| seesaawikiスクレイパー | 全完了 |
 
 ---
 
@@ -239,28 +244,29 @@ binary-kilonova/
 │   ├── daily-update.yml          # ★ FANZA 0:05 JST / MGS 10:05 JST 自動実行
 │   └── avwiki-scraper.yml        # 手動実行のみ（スケジュール削除済み）
 ├── data/
-│   ├── mgs.db                    # MGS SQLite（114,563件）※gitignore
-│   ├── fanza.db                  # FANZA SQLite（384,000件+）※gitignore
-│   ├── suggest_cache.json        # サジェスト用キャッシュ
-│   ├── avwiki_full.jsonl         # avwiki新スクレイプ出力（稼働中）
-│   ├── avwiki_product_map.jsonl  # avwiki品番→女優マッピング（稼働中）
-│   └── avwiki_product_urls.json  # 品番ページURLリスト（15,000件）
-│   ※ actress_profiles.json / avwiki_profiles.json → Turso移行済み（ファイル不要）
+│   ├── mgs.db                    # MGS SQLite（115,409件）※gitignore
+│   ├── fanza.db                  # FANZA SQLite（448,585件）※gitignore
+│   ├── actress_aliases.json      # 別名グループ（1,189グループ/3,311名）
+│   ├── avwiki_full.jsonl         # avwikiスクレイプ結果（2,859件）
+│   └── avwiki_actress_map.jsonl  # 女優→品番マッピング
+│   ※ actress_profiles.json → Turso移行済み（ファイル不要）
 ├── scripts/
-│   ├── fanza_daily_update.js               # ★ FANZA日次更新（予約商品・videoa+videoc両floor）
-│   ├── phase3_daily_update.js              # ★ MGS日次更新（Discord通知付き）
-│   ├── avwiki_local_runner.js              # ★ AVWIKIローカルBG実行（並列・Discord通知）
-│   ├── scrape_avwiki_full.js               # avwiki全女優スクレイパー（BG稼働中）
-│   ├── scrape_avwiki_products.js           # avwiki品番スクレイパー（BG稼働中）
-│   ├── build_avwiki_profiles.js            # ★ avwiki_full.jsonl → Turso UPSERT
-│   ├── migrate_actress_profiles_to_turso.js # 移行済み（一回限り）
-│   ├── build_suggest_cache.js              # サジェストキャッシュ生成
-│   └── ...
+│   ├── fanza_daily_update.js          # ★ FANZA日次更新
+│   ├── phase3_daily_update.js         # ★ MGS日次更新（Discord通知付き）
+│   ├── create_fts5.js                 # FTS5 trigramインデックス構築
+│   ├── merge_avwiki_aliases.js        # AVWiki別名・引退データ統合
+│   ├── fanza_series_vr_backfill.js    # シリーズ/VRフラグバックフィル
+│   ├── avwiki_by_actress.js           # avwiki女優名→品番マッピング（完了）
+│   ├── seesaawiki_by_actress.js       # seesaawiki女優スクレイパー（完了）
+│   ├── build_avwiki_profiles.js       # avwiki_full.jsonl → Turso UPSERT
+│   ├── build_suggest_cache.js         # サジェストキャッシュ生成
+│   └── monitor_progress.js            # スクレイピング進捗監視・Discord報告
 └── site/                         # Next.jsアプリ（lunar-zodiac.vercel.app）
     └── app/api/
-        ├── products/route.ts        # force-dynamic — 即時反映
-        ├── product/[id]/route.ts    # force-dynamic — 即時反映
-        └── actress/[name]/route.ts  # force-dynamic — Turso直接クエリ
+        ├── products/route.ts        # FTS5対応・force-dynamic
+        ├── product/[id]/route.ts    # MGS+FANZA両DB並行検索
+        ├── actress/[name]/route.ts  # retired フィールド追加
+        └── mgs-video/route.ts       # MGSサンプル動画プロキシ
 ```
 
 ---
@@ -274,15 +280,14 @@ node scripts/fanza_daily_update.js
 # MGS日次更新
 node scripts/phase3_daily_update.js
 
-# avwikiスクレイプ結果をTursoに反映
-node scripts/build_avwiki_profiles.js
+# AVWiki別名・引退データ再統合（avwiki_full.jsonl更新後）
+node scripts/merge_avwiki_aliases.js
 
 # サジェストキャッシュのみ再生成
 node scripts/build_suggest_cache.js
 
-# avwikiスクレイプ状況確認
-node -e "const p=require('./data/avwiki_full_progress.json');console.log('女優:',p.found,'件');"; \
-node -e "const p=require('./data/avwiki_products_progress.json');console.log('品番:',p.scraped,'件')"
+# FTS5インデックス再構築（DBリセット後など）
+node scripts/create_fts5.js
 
 # サイト開発サーバー
 cd site && npm run dev
@@ -293,12 +298,6 @@ cd site && npm run dev
 ## 🗓 データ自動更新フロー
 
 ```
-ローカルBG   avwiki_local_runner.js（並列実行・46秒/29秒間隔）
-             └─ 女優スクレイプ + 品番スクレイプ 並行
-             └─ 1時間ごとにGitコミット・プッシュ
-             └─ 2時間ごとにTurso反映（build_avwiki_profiles.js）
-             └─ 奇数時間（JST）にDiscord進捗報告
-
 0:05 JST    GitHub Actions: fanza_daily_update.js
             → 予約商品（明日〜2ヶ月先）videoa + videoc 両floor取得
             → 価格更新（直近12ヶ月）→ Turso FANZA DB更新（即時反映）

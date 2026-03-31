@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
     const source = searchParams.get('source') || ''; // 'mgs' | 'fanza' | ''
     const makers = searchParams.get('makers') || ''; // カンマ区切りメーカーホワイトリスト
     const excludeBest = searchParams.get('excludeBest') === '1'; // BEST/総集編を除外
+    const hasVideo = searchParams.get('hasVideo') === '1'; // サンプル動画ありのみ
+    const series = searchParams.get('series') || ''; // シリーズ名
+    const vrOnly = searchParams.get('vr') === '1'; // VR作品のみ
+    const minDiscount = parseInt(searchParams.get('minDiscount') || '0', 10); // 最低割引率
 
     // 女優名寄せ辞書
     let actressList = [actress];
@@ -92,18 +96,30 @@ export async function GET(request: NextRequest) {
         return NextResponse.json([], { status: 503 });
     }
 
+    // FTS5 special char エスケープ
+    function esc5(s: string): string { return s.replace(/"/g, '""'); }
+    // FTS5 サブクエリ（?にMATCH文字列をバインド）
+    const FTS_IN = `product_id IN (SELECT product_id FROM products_fts WHERE products_fts MATCH ?)`;
+
     // 共通SQL条件ビルダー
     function buildConditions(isMgs: boolean) {
         const conditions: string[] = [];
         const args: (string | number)[] = [];
 
         if (q) {
-            conditions.push('(title LIKE ? OR actresses LIKE ? OR product_id LIKE ?)');
-            args.push(`%${q}%`, `%${q}%`, `%${q}%`);
+            // title・actresses は FTS5、product_id は LIKE（OR結合）
+            const qMatch = `{title actresses} : "${esc5(q)}"`;
+            conditions.push(`(${FTS_IN} OR product_id LIKE ?)`);
+            args.push(qMatch, `%${q}%`);
         }
         if (genre) {
-            conditions.push('genres LIKE ?');
-            args.push(`%${genre}%`);
+            // カンマ区切りで複数ジャンルOR対応
+            const genreList = genre.split(',').map(s => s.trim()).filter(Boolean);
+            if (genreList.length > 0) {
+                const escaped = genreList.map(g => `"${esc5(g)}"`).join(' OR ');
+                conditions.push(FTS_IN);
+                args.push(`genres : (${escaped})`);
+            }
         }
         if (maker) {
             conditions.push('maker LIKE ?');
@@ -120,14 +136,14 @@ export async function GET(request: NextRequest) {
             });
         }
         if (actress) {
-            const actressConditions = actressList.map(() => 'actresses LIKE ?').join(' OR ');
-            conditions.push(`(${actressConditions})`);
-            actressList.forEach(a => args.push(`%${a}%`));
+            const escaped = actressList.map(a => `"${esc5(a)}"`).join(' OR ');
+            conditions.push(FTS_IN);
+            args.push(`actresses : (${escaped})`);
         }
         if (hasProfileFilter) {
-            const profConditions = profileActresses.map(() => 'actresses LIKE ?').join(' OR ');
-            conditions.push(`(${profConditions})`);
-            profileActresses.forEach(a => args.push(`%${a}%`));
+            const escaped = profileActresses.map(a => `"${esc5(a)}"`).join(' OR ');
+            conditions.push(FTS_IN);
+            args.push(`actresses : (${escaped})`);
         }
         const today = new Date().toISOString().slice(0, 10);
         if (sort === 'pre-order') {
@@ -174,6 +190,24 @@ export async function GET(request: NextRequest) {
             });
             conditions.push('(duration_min IS NULL OR duration_min <= 200)');
         }
+        if (hasVideo) {
+            conditions.push('sample_video_url IS NOT NULL');
+        }
+        if (series && !isMgs) {
+            conditions.push('series_name LIKE ?');
+            args.push(`%${series}%`);
+        }
+        if (vrOnly && !isMgs) {
+            conditions.push('vr_flag = 1');
+        }
+        if (sort === 'discount' && isMgs) {
+            conditions.push('1=0'); // MGSにはセール情報なし
+        }
+        if (!isMgs && (sort === 'discount' || minDiscount > 0)) {
+            const threshold = minDiscount > 0 ? minDiscount : 1;
+            conditions.push('discount_pct >= ?');
+            args.push(threshold);
+        }
         if (isMgs) {
             conditions.push('(duration_min IS NULL OR duration_min < 600)');
         }
@@ -185,6 +219,7 @@ export async function GET(request: NextRequest) {
         if (sort === 'new') return 'ORDER BY sale_start_date DESC';          // 配信日が新しい順
         if (sort === 'pre-order') return 'ORDER BY scraped_at DESC';          // 新たに追加された順
         if (sort === 'random') return 'ORDER BY RANDOM()';
+        if (sort === 'discount') return 'ORDER BY discount_pct DESC';         // 割引率が高い順
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';
     }
 
@@ -197,8 +232,9 @@ export async function GET(request: NextRequest) {
             const sql = `SELECT product_id, title, actresses, main_image_url,
                          ${isMgs ? 'wish_count,' : '0 AS wish_count,'}
                          genres, maker, duration_min, sale_start_date,
-                         ${isMgs ? '0 AS discount_pct, NULL AS list_price, NULL AS current_price' : 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price'}
-                         FROM products ${where} ${orderBy} LIMIT ${perLimit} OFFSET ${offset}`;
+                         sample_video_url,
+                         ${isMgs ? '0 AS discount_pct, NULL AS list_price, NULL AS current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag' : 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag, 0) AS vr_flag'}
+                         FROM products ${where} ${orderBy} LIMIT ${perLimit} OFFSET ${perOffset}`;
 
             const result = await client.execute({ sql, args });
             return result.rows.map(row => {
@@ -217,8 +253,8 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    const bothAvailable = mgsClient && fanzaClient;
-    const perLimit = bothAvailable ? Math.ceil(limit / 2) : limit;
+    const perLimit = limit;
+    const perOffset = offset;
 
     const [mgsResults, fanzaResults] = await Promise.all([
         queryTurso(mgsClient, true, perLimit),

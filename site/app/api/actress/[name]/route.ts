@@ -60,6 +60,7 @@ export async function GET(
         sns_source:  row?.agency_source ?? (row?.avwiki_url ? 'avwiki' : null),
         agency_url:  row?.agency_url  ?? null,
         avwiki_url:  row?.avwiki_url  ?? null,
+        retired:     row?.retired === 1,
         augmented:   row?.augmented === 1,
         has_fanza_profile:  !!(row?.fanza_id),
         has_avwiki_profile: !!(row?.avwiki_url),

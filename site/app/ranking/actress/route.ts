@@ -7,15 +7,64 @@ export const dynamic = 'force-dynamic';
 
 const MOBILE_UA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
 
+function rankingTabBar(activeTab: 'products' | 'actresses'): string {
+    const active = 'flex flex-col items-center justify-center border-b-2 border-primary text-primary pb-2 pt-1 flex-1 transition-all';
+    const inactive = 'flex flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-2 pt-1 flex-1 transition-all';
+    return `<div class="sticky top-[49px] z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 border-b border-primary/10"><div class="flex justify-between"><a class="${activeTab === 'products' ? active : inactive}" href="/ranking"><p class="text-xs font-bold">作品</p></a><a class="${activeTab === 'actresses' ? active : inactive}" href="/ranking/actress"><p class="text-xs font-bold">出演者</p></a></div></div>`;
+}
+
 export async function GET(request: NextRequest) {
     const ua = request.headers.get('user-agent') || '';
     const isMobile = MOBILE_UA.test(ua);
 
-    const htmlFile = path.join(process.cwd(), 'public', 'design', 'web', 'actress-ranking-2026.html');
+    const htmlFile = isMobile
+        ? path.join(process.cwd(), 'public', 'design', 'ranking.html')
+        : path.join(process.cwd(), 'public', 'design', 'web', 'actress-ranking-2026.html');
 
     try {
         let html = fs.readFileSync(htmlFile, 'utf-8');
-        html = isMobile ? injectMobileLayout(html, 'ranking') : injectWebLayout(html);
+        html = isMobile ? injectMobileLayout(html, 'ranking', true) : injectWebLayout(html);
+        if (isMobile) {
+            html = html.replace('</header>', `</header>\n${rankingTabBar('actresses')}`);
+            html = html.replace('</body>', `<script>
+(function(){
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function aurl(n){return '/actress/'+encodeURIComponent(n);}
+  document.querySelectorAll('.material-symbols-outlined').forEach(function(el){
+    if(el.textContent.trim()==='tune'){el.style.cursor='pointer';el.addEventListener('click',function(){location.href='/ranking/custom';});}
+  });
+  fetch('/api/ranking/actress?limit=12&fromDate=2026-01-01&toDate=2026-12-31')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!Array.isArray(data)||!data.length)return;
+      function setCard(n,a){
+        var img=document.getElementById('rank-'+n+'-img');
+        var ttl=document.getElementById('rank-'+n+'-title');
+        var card=document.getElementById('rank-'+n+'-card');
+        if(!a)return;
+        if(img){img.src=a.image_url||'';img.alt=esc(a.name||'');}
+        if(ttl)ttl.textContent=a.name||'';
+        if(card)card.onclick=function(){location.href=aurl(a.name);};
+      }
+      setCard(1,data[0]);setCard(2,data[1]);setCard(3,data[2]);
+      var grid=document.getElementById('ranking-grid');
+      if(grid&&data.length>3){
+        grid.innerHTML=data.slice(3).map(function(a,i){
+          var rank=i+4;
+          var imgHtml=a.image_url
+            ?'<img class="w-full h-full object-cover" src="'+esc(a.image_url)+'" alt="'+esc(a.name||'')+'" />'
+            :'<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800"><span class="material-symbols-outlined text-slate-400">person</span></div>';
+          return '<a href="'+aurl(a.name)+'" class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">'
+            +'<div class="relative"><div class="w-full aspect-square rounded-md overflow-hidden mb-1.5">'+imgHtml+'</div>'
+            +'<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold">'+rank+'</span></div>'
+            +'<h3 class="font-bold text-[10px] line-clamp-1">'+esc(a.name||'')+'</h3></a>';
+        }).join('');
+      }
+    })
+    .catch(function(e){console.error('actress ranking error',e);});
+})();
+</script>\n</body>`);
+        }
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',

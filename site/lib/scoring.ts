@@ -13,6 +13,12 @@ export const PRODUCT_SCORE = {
     REVIEW: { 5: 150, 4: 80, 3: 10, 2: -40, 1: -100 } as Record<number, number>,
     /** アフィリエイトリンク経由購入（最強シグナル） */
     PURCHASE: 1000,
+    /**
+     * FANZAレビュースコア係数
+     * score += review_count × (review_average / 5.0) × FANZA_REVIEW
+     * 例: 100件 × 4.5/5 × 400 = 36,000 pt（wish_count 3.6万相当）
+     */
+    FANZA_REVIEW: 400,
 } as const;
 
 // ─── 女優スコア定数 ───────────────────────────────────────
@@ -35,7 +41,9 @@ export interface ProductSiteData {
 
 export function computeProductScore(
     wishCount: number,
-    siteData: ProductSiteData
+    siteData: ProductSiteData,
+    fanzaReviewCount = 0,
+    fanzaReviewAverage = 0,
 ): number {
     let score = wishCount * PRODUCT_SCORE.WISH_COUNT;
     score += siteData.siteLikes * PRODUCT_SCORE.SITE_LIKE;
@@ -43,6 +51,10 @@ export function computeProductScore(
         score += (count ?? 0) * (PRODUCT_SCORE.REVIEW[Number(stars)] ?? 0);
     }
     score += siteData.purchaseCount * PRODUCT_SCORE.PURCHASE;
+    // FANZAレビュー: review_count × (average/5) × 係数
+    if (fanzaReviewCount > 0 && fanzaReviewAverage > 0) {
+        score += fanzaReviewCount * (fanzaReviewAverage / 5.0) * PRODUCT_SCORE.FANZA_REVIEW;
+    }
     return Math.max(0, score);
 }
 

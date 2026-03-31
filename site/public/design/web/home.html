@@ -592,7 +592,7 @@
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(url){
     if(!url)return'https://via.placeholder.com/120x160?text=No+Image';
-    if(url.includes('pb_e_'))return url.replace('pb_e_','pf_o1_');
+    if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');
     if(url.includes('pics.dmm.co.jp')&&url.endsWith('pl.jpg'))return url;
     return url;
   }
@@ -601,7 +601,7 @@
   function renderCard(p,label,labelClass){
     return '<a href="'+purl(p.product_id)+'" class="flex-none w-[160px] space-y-2 group relative block">'
       +'<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">'
-      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover transition-transform group-hover:scale-105"/>'
+      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover object-left-top transition-transform group-hover:scale-105"/>'
       +'<span class="absolute top-2 left-2 '+labelClass+' text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">'+label+'</span>'
       +'<div class="absolute bottom-2 right-2 flex gap-1">'
       +(!(p.actresses&&p.actresses.trim())?'<button onclick="event.preventDefault()" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">add</span></button>':'')
@@ -617,7 +617,7 @@
     var date=p.sale_start_date?(p.sale_start_date.slice(0,10)):'';
     return '<a href="'+purl(p.product_id)+'" class="flex-none w-[150px] group relative block">'
       +'<div class="aspect-[2/3] overflow-hidden rounded-xl bg-gray-100 relative shadow-md">'
-      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover transition-transform group-hover:scale-105"/>'
+      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover object-left-top transition-transform group-hover:scale-105"/>'
       +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
       +'<span class="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>'
       +'<div class="absolute bottom-2 right-2 flex gap-1">'
@@ -639,7 +639,7 @@
     return '<a href="'+purl(p.product_id)+'" class="flex items-center space-x-4 p-3 bg-gray-50/50 border border-gray-100 rounded-custom hover:bg-white hover:shadow-sm transition-all group block">'
       +'<div class="flex-shrink-0 w-8 text-center">'+medal+'</div>'
       +'<div class="flex-shrink-0 w-14 h-[75px] overflow-hidden rounded bg-gray-100">'
-      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover"/>'
+      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover object-left-top"/>'
       +'</div>'
       +'<div class="flex-1 min-w-0">'
       +'<p class="text-xs font-bold truncate">'+esc(p.title)+'</p>'
