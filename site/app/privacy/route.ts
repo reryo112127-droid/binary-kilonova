@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
-import { ssrFetchPreOrdersPage, injectSsrScript } from '../../lib/ssrFetch';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,21 +12,12 @@ export async function GET(request: NextRequest) {
     const isMobile = MOBILE_UA.test(ua);
 
     const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'pre-order.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', 'pre-order.html');
+        ? path.join(process.cwd(), 'public', 'design', 'privacy.html')
+        : path.join(process.cwd(), 'public', 'design', 'web', 'privacy.html');
 
     try {
         let html = fs.readFileSync(htmlFile, 'utf-8');
-        html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
-
-        // SSRデータ取得・注入（初期表示分のみ）
-        try {
-            const products = await ssrFetchPreOrdersPage(61);
-            html = injectSsrScript(html, '__SSR_PREORDER_DATA__', products);
-        } catch (e) {
-            console.error('SSR pre-order fetch failed:', e);
-        }
-
+        html = isMobile ? injectMobileLayout(html, '') : injectWebLayout(html);
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',

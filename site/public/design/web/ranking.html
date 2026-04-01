@@ -527,7 +527,10 @@ var CAST_POD_CFG=[
 ];
 var ORDER=[1,0,2]; // indices: 2nd=1, 1st=0, 3rd=2 in display order
 
-fetch('/api/ranking?limit=9').then(function(r){return r.json();}).then(function(d){
+(window.__SSR_RANKING_DATA__
+  ?Promise.resolve(window.__SSR_RANKING_DATA__)
+  :fetch('/api/ranking?limit=9').then(function(r){return r.json();}))
+  .then(function(d){
   var items=d||[];
   var wp=document.getElementById('works-podium-row');
   var wl=document.getElementById('works-list');
@@ -546,7 +549,10 @@ fetch('/api/ranking?limit=9').then(function(r){return r.json();}).then(function(
   }
 }).catch(function(){});
 
-fetch('/api/ranking/actress?limit=9').then(function(r){return r.json();}).then(function(d){
+(window.__SSR_ACTRESS_RANKING_DATA__
+  ?Promise.resolve(window.__SSR_ACTRESS_RANKING_DATA__)
+  :fetch('/api/ranking/actress?limit=9').then(function(r){return r.json();}))
+  .then(function(d){
   var items=d||[];
   var cp=document.getElementById('cast-podium-row');
   var cl=document.getElementById('cast-list');

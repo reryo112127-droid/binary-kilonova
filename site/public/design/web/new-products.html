@@ -510,6 +510,14 @@ function cardHtml(p){
 }
 function loadProducts(){
   fetchOffset=0;
+  if(window.__SSR_NEW_DATA__&&window.__SSR_NEW_DATA__.length&&state.period==='month'&&!state.source&&!state.excludeBest&&!state.excludeVR&&!state.maker&&!state.actress&&!state.genre){
+    var _sd=window.__SSR_NEW_DATA__;window.__SSR_NEW_DATA__=null;
+    var _hm=_sd.length>FETCH_LIMIT;if(_hm)_sd=_sd.slice(0,FETCH_LIMIT);
+    var cEl=document.getElementById('result-count');if(cEl)cEl.textContent=(_sd.length||0)+(_hm?'+':'')+' 作品';
+    g.innerHTML=_sd.length?_sd.map(cardHtml).join(''):'<p class="col-span-5 text-center text-gray-400 py-12 text-sm">この期間の作品がありません</p>';
+    if(_sd.length){fetchOffset=FETCH_LIMIT;setLoadMoreVisible(_hm);}
+    return;
+  }
   g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">読み込み中...</p>';
   setLoadMoreVisible(false);
   fetch(buildUrl(0)).then(function(res){return res.json();}).then(function(d){

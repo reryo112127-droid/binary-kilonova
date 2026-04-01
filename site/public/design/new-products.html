@@ -271,6 +271,13 @@ function cardHtml(p){
 function loadProducts(){
   currentRange=getRange(currentPeriod);
   fetchOffset=0;
+  if(window.__SSR_NEW_DATA__&&window.__SSR_NEW_DATA__.length&&currentPeriod==='month'){
+    var _sd=window.__SSR_NEW_DATA__;window.__SSR_NEW_DATA__=null;
+    var _hm=_sd.length>LIMIT;if(_hm)_sd=_sd.slice(0,LIMIT);
+    g.innerHTML=_sd.length?_sd.map(cardHtml).join(''):'<p class="col-span-3 text-center text-slate-400 py-12 text-xs">この期間の作品がありません</p>';
+    if(_sd.length){fetchOffset=LIMIT;setLoadMoreBtn(_hm);}
+    return;
+  }
   g.innerHTML='<p class="col-span-3 text-center text-slate-400 py-12 text-xs">読み込み中...</p>';
   setLoadMoreBtn(false);
   fetch('/api/products?sort=new&limit='+(LIMIT+1)+'&offset=0&fromDate='+currentRange.fromDate+'&toDate='+currentRange.toDate)

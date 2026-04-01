@@ -89,6 +89,13 @@ async function load() {
   var cnt=document.getElementById('product-count');
   if(!el)return;
   fetchOffset=0;
+  if(window.__SSR_PREORDER_DATA__&&window.__SSR_PREORDER_DATA__.length){
+    var _pd=window.__SSR_PREORDER_DATA__;window.__SSR_PREORDER_DATA__=null;
+    var _hm=_pd.length>LIMIT;if(_hm)_pd=_pd.slice(0,LIMIT);
+    el.innerHTML=_pd.map(makeProductCard).join('');
+    if(cnt)cnt.textContent=_pd.length+(_hm?'+':'')+'件';
+    setLoadMoreBtn(_hm);fetchOffset=LIMIT;return;
+  }
   el.innerHTML=skeletons();
   setLoadMoreBtn(false);
   try{

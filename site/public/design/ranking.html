@@ -327,8 +327,9 @@
     if(ttl)ttl.textContent=p.title||'';
     if(card)card.onclick=function(){location.href=purl(p.product_id);};
   }
-  fetch('/api/ranking?limit=12&excludeBest=1&fromDate=2026-01-01&toDate=2026-12-31')
-    .then(function(r){return r.json();})
+  (window.__SSR_RANKING_DATA__
+    ?Promise.resolve(window.__SSR_RANKING_DATA__)
+    :fetch('/api/ranking?limit=12&excludeBest=1&fromDate=2026-01-01&toDate=2026-12-31').then(function(r){return r.json();}))
     .then(function(data){
       if(!Array.isArray(data)||!data.length)return;
       setCard(1,data[0]);setCard(2,data[1]);setCard(3,data[2]);

@@ -262,8 +262,9 @@
   var mkq='&excludeBest=1&makers='+encodeURIComponent(HOME_MAKERS);
 
   // 予約セクション（FANZAのみ・配信日が遠い順）
-  fetch('/api/products?sort=pre-order&source=fanza&limit=6'+mkq)
-    .then(function(r){return r.json();})
+  (window.__SSR_HOME_DATA__&&window.__SSR_HOME_DATA__.preOrders
+    ?Promise.resolve(window.__SSR_HOME_DATA__.preOrders)
+    :fetch('/api/products?sort=pre-order&source=fanza&limit=6'+mkq).then(function(r){return r.json();}))
     .then(function(data){
       if(!Array.isArray(data)||!data.length)return;
       var preList=document.getElementById('home-preorder-list');
@@ -293,9 +294,10 @@
   function _loadNew(from,to){
     return fetch('/api/products?sort=new&source=fanza&fromDate='+from+'&toDate='+to+'&limit=10'+mkq).then(function(r){return r.json();});
   }
-  _loadNew(_td,_td).then(function(data){
-    return (data&&data.length>0)?data:_loadNew(_3dStr,_td);
-  }).then(function(data){
+  (window.__SSR_HOME_DATA__&&window.__SSR_HOME_DATA__.newProducts&&window.__SSR_HOME_DATA__.newProducts.length
+    ?Promise.resolve(window.__SSR_HOME_DATA__.newProducts)
+    :_loadNew(_td,_td).then(function(data){return (data&&data.length>0)?data:_loadNew(_3dStr,_td);}))
+    .then(function(data){
       if(!Array.isArray(data)||!data.length)return;
       var newList=document.getElementById('home-new-list');
       if(!newList)return;
@@ -319,8 +321,9 @@
     }).catch(function(){});
 
   // ランキングセクション
-  fetch('/api/ranking?limit=5&excludeBest=1')
-    .then(function(r){return r.json();})
+  (window.__SSR_HOME_DATA__&&window.__SSR_HOME_DATA__.ranking
+    ?Promise.resolve(window.__SSR_HOME_DATA__.ranking)
+    :fetch('/api/ranking?limit=5&excludeBest=1').then(function(r){return r.json();}))
     .then(function(data){
       if(!Array.isArray(data)||!data.length)return;
       var list=document.getElementById('home-ranking-list');

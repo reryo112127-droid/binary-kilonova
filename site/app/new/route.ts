@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
+import { ssrFetchNewProductsPage, injectSsrScript } from '../../lib/ssrFetch';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,15 @@ export async function GET(request: NextRequest) {
     try {
         let html = fs.readFileSync(htmlFile, 'utf-8');
         html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
+
+        // SSRデータ取得・注入（初期表示分のみ）
+        try {
+            const products = await ssrFetchNewProductsPage(61);
+            html = injectSsrScript(html, '__SSR_NEW_DATA__', products);
+        } catch (e) {
+            console.error('SSR new products fetch failed:', e);
+        }
+
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',

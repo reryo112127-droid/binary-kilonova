@@ -656,7 +656,10 @@
   var mkParam='&excludeBest=1&makers='+encodeURIComponent(HOME_MAKERS);
 
   // Fetch pre-order section（FANZAのみ・配信日が遠い順）
-  fetch('/api/products?sort=pre-order&source=fanza&limit=8'+mkParam).then(function(r){return r.json();}).then(function(data){
+  (window.__SSR_HOME_DATA__&&window.__SSR_HOME_DATA__.preOrders
+    ?Promise.resolve(window.__SSR_HOME_DATA__.preOrders)
+    :fetch('/api/products?sort=pre-order&source=fanza&limit=8'+mkParam).then(function(r){return r.json();}))
+    .then(function(data){
     var list=document.getElementById('home-preorder-list');
     if(list&&data&&data.length){
       list.innerHTML=data.map(function(p){return renderPreorderCard(p);}).join('');
@@ -667,7 +670,10 @@
   var _nd=new Date(),_nt=_nd.getFullYear()+'-'+String(_nd.getMonth()+1).padStart(2,'0')+'-'+String(_nd.getDate()).padStart(2,'0');
   var _n3d=new Date(_nd-3*86400000),_n3=_n3d.getFullYear()+'-'+String(_n3d.getMonth()+1).padStart(2,'0')+'-'+String(_n3d.getDate()).padStart(2,'0');
   function _fnew(from,to){return fetch('/api/products?sort=new&source=fanza&fromDate='+from+'&toDate='+to+'&limit=12'+mkParam).then(function(r){return r.json();});}
-  _fnew(_nt,_nt).then(function(d){return(d&&d.length>0)?d:_fnew(_n3,_nt);}).then(function(data){
+  (window.__SSR_HOME_DATA__&&window.__SSR_HOME_DATA__.newProducts&&window.__SSR_HOME_DATA__.newProducts.length
+    ?Promise.resolve(window.__SSR_HOME_DATA__.newProducts)
+    :_fnew(_nt,_nt).then(function(d){return(d&&d.length>0)?d:_fnew(_n3,_nt);}))
+    .then(function(data){
     var list=document.getElementById('home-new-list');
     if(list&&data&&data.length){
       list.innerHTML=data.map(function(p){return renderCard(p,'新作','bg-blue-600');}).join('');
@@ -675,7 +681,10 @@
   }).catch(function(){});
 
   // Fetch ranking section
-  fetch('/api/ranking?limit=10&excludeBest=1').then(function(r){return r.json();}).then(function(data){
+  (window.__SSR_HOME_DATA__&&window.__SSR_HOME_DATA__.ranking
+    ?Promise.resolve(window.__SSR_HOME_DATA__.ranking)
+    :fetch('/api/ranking?limit=10&excludeBest=1').then(function(r){return r.json();}))
+    .then(function(data){
     var grid=document.getElementById('home-ranking-list');
     if(grid&&data&&data.length){
       grid.innerHTML=data.map(function(p,i){return renderRankItem(p,i+1);}).join('');

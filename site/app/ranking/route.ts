@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
+import { ssrFetchRanking, ssrFetchActressRanking, injectSsrScript } from '../../lib/ssrFetch';
 
 export const dynamic = 'force-dynamic';
 
 const MOBILE_UA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
 
-// Design_Exportのタブバー（replaceHeaderで消えるため再注入）
-// activeTab: 'products' | 'actresses'
 function rankingTabBar(activeTab: 'products' | 'actresses'): string {
     const active = 'flex flex-col items-center justify-center border-b-2 border-primary text-primary pb-2 pt-1 flex-1 transition-all';
     const inactive = 'flex flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-2 pt-1 flex-1 transition-all';
@@ -27,11 +26,27 @@ export async function GET(request: NextRequest) {
         let html = fs.readFileSync(htmlFile, 'utf-8');
         html = isMobile ? injectMobileLayout(html, 'ranking', true) : injectWebLayout(html);
         if (isMobile) {
-            // タブバーをMOBILE_HEADERの直後に再挿入
             html = html.replace('</header>', `</header>\n${rankingTabBar('products')}`);
-            // tuneアイコン → カスタムランキング作成ページ
             html = html.replace('</body>', `<script>(function(){document.querySelectorAll('.material-symbols-outlined').forEach(function(el){if(el.textContent.trim()==='tune'){el.style.cursor='pointer';el.addEventListener('click',function(){location.href='/ranking/custom';});}});})();</script>\n</body>`);
         }
+
+        // SSRデータ取得・注入
+        try {
+            if (isMobile) {
+                const ranking = await ssrFetchRanking(12);
+                html = injectSsrScript(html, '__SSR_RANKING_DATA__', ranking);
+            } else {
+                const [ranking, actressRanking] = await Promise.all([
+                    ssrFetchRanking(9),
+                    ssrFetchActressRanking(9),
+                ]);
+                html = injectSsrScript(html, '__SSR_RANKING_DATA__', ranking);
+                html = injectSsrScript(html, '__SSR_ACTRESS_RANKING_DATA__', actressRanking);
+            }
+        } catch (e) {
+            console.error('SSR ranking data fetch failed:', e);
+        }
+
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',

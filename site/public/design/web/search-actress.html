@@ -799,12 +799,12 @@ fetch('/api/actress/'+encodeURIComponent(actressName)).then(function(r){return r
     if(p.bust)sz.push('B'+(p.bust)+(p.cup?' ('+p.cup+'カップ)':''));
     if(p.waist)sz.push('W'+p.waist);
     if(p.hip)sz.push('H'+p.hip);
-    if(sz.length)cards.push({label:'スリーサイズ',value:sz.join(' ')+(p.augmented?' 🔸':'')});
+    if(sz.length){var szVal=sz.join(' ');cards.push({label:'スリーサイズ',value:szVal,html:esc(szVal)+(p.augmented?'<span class="material-symbols-outlined text-pink-500 align-middle ml-1" style="font-size:13px">content_cut</span>':'')});}
     if(p.blood_type)cards.push({label:'血液型',value:p.blood_type+'型'});
     if(p.prefectures)cards.push({label:'出身地',value:p.prefectures});
     if(p.hobby)cards.push({label:'趣味',value:p.hobby});
     statsEl.innerHTML=cards.map(function(c){
-      return'<div class="bg-gray-50 p-2.5 rounded-lg border border-gray-100"><span class="block text-gray-400 mb-0.5 text-[10px]">'+esc(c.label)+'</span><span class="font-bold text-gray-800 text-[11px]">'+esc(c.value)+'</span></div>';
+      return'<div class="bg-gray-50 p-2.5 rounded-lg border border-gray-100"><span class="block text-gray-400 mb-0.5 text-[10px]">'+esc(c.label)+'</span><span class="font-bold text-gray-800 text-[11px]">'+(c.html||esc(c.value))+'</span></div>';
     }).join('');
   }
 
