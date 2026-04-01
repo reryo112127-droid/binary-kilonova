@@ -320,6 +320,8 @@ async function main() {
                 if (items.length === 0) break;
 
                 for (const item of items) {
+                    const genres = item.iteminfo?.genre?.map(g => g.name) || [];
+                    if (genres.includes('ゲイ')) continue;
                     monthItems.push(convertItem(item));
                 }
 

@@ -506,7 +506,7 @@ function workPodItem(p,rank,wrap,imgSz,border,podCls,podH){
     +'<div class="w-full '+podCls+' '+podH+' rounded-t-2xl flex items-center justify-center p-3 shadow-2xl"><span class="font-bold text-sm text-black text-center line-clamp-2">'+t+'</span></div></div>';
 }
 function castPodItem(a,rank,wrap,imgSz,border,podCls,podH){
-  var img=a.sample_image||'';
+  var img=a.image_url||a.sample_image||'';
   var name=esc(a.name||'');
   var an=encodeURIComponent(a.name||'');
   return '<div class="flex flex-col items-center group '+wrap+' cursor-pointer" onclick="location.href=\'/actress/'+an+'\'">'
@@ -555,7 +555,7 @@ fetch('/api/ranking/actress?limit=9').then(function(r){return r.json();}).then(f
   }
   if(cl&&items.length>3){
     cl.innerHTML=items.slice(3,9).map(function(a,i){
-      var rank=i+4;var img=a.sample_image||'';var name=esc(a.name||'');var an=encodeURIComponent(a.name||'');
+      var rank=i+4;var img=a.image_url||a.sample_image||'';var name=esc(a.name||'');var an=encodeURIComponent(a.name||'');
       return '<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative cursor-pointer" onclick="location.href=\'/actress/'+an+'\'">'
         +'<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">'+rank+'</span>'
         +'<div class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">'

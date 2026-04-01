@@ -52,6 +52,8 @@ async function fetchActressImageUrl(actressName: string): Promise<string | null>
     return null;
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://lunar-zodiac.vercel.app';
+
 function injectSEOMeta(html: string, product: Record<string, unknown> | null, id: string, actressImageUrl: string | null): string {
     const displayId = id.toUpperCase();
 
@@ -99,12 +101,15 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
     if (actorList) jsonLd.actor = actorList;
     if (maker)     jsonLd.productionCompany = { '@type': 'Organization', name: maker };
 
+    const canonicalUrl = `${SITE_URL}/product/${encodeURIComponent(id)}`;
     const metaBlock = [
         `<title>${escHtml(seoTitle)}</title>`,
         `<meta name="description" content="${escHtml(desc)}"/>`,
+        `<link rel="canonical" href="${canonicalUrl}"/>`,
         `<meta property="og:title" content="${escHtml(seoTitle)}"/>`,
         `<meta property="og:description" content="${escHtml(desc)}"/>`,
         `<meta property="og:type" content="video.other"/>`,
+        `<meta property="og:url" content="${canonicalUrl}"/>`,
         ogImageUrl ? `<meta property="og:image" content="${escHtml(ogImageUrl)}"/>` : '',
         ogImageUrl
             ? `<meta name="twitter:card" content="summary_large_image"/>`

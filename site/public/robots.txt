@@ -12,3 +12,6 @@ Disallow: /actress/sns-register
 Disallow: /actress/rename-report
 
 Sitemap: https://lunar-zodiac.vercel.app/sitemap.xml
+
+# Crawl-delay for search engines
+Crawl-delay: 1

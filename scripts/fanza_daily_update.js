@@ -169,6 +169,12 @@ function convertItem(item) {
         current_price:      currentPrice,
         discount_pct:       discountPct,
         sale_end_date:      saleEndDate,
+        review_count:       item.review?.count != null ? Number(item.review.count) : null,
+        review_average:     item.review?.average != null ? parseFloat(item.review.average) : null,
+        series_id:          item.iteminfo?.series?.[0]?.id   ? String(item.iteminfo.series[0].id) : null,
+        series_name:        item.iteminfo?.series?.[0]?.name || null,
+        vr_flag:            (item.title || '').includes('【VR】') ||
+                            (item.prices?.deliveries?.delivery || []).some(d => d.type === '8k') ? 1 : 0,
         price_updated_at:   now,
         scraped_at:         now,
         updated_at:         now,
@@ -235,7 +241,11 @@ async function fetchPreorders(gteDateStr, lteDateStr) {
                     console.log(`  [${floor}] DMM API 件数: ${total.toLocaleString()} 件`);
                 }
                 if (items.length === 0) break;
-                for (const item of items) fetched.push(convertItem(item));
+                for (const item of items) {
+                    const genres = item.iteminfo?.genre?.map(g => g.name) || [];
+                    if (genres.includes('ゲイ')) continue;
+                    fetched.push(convertItem(item));
+                }
                 process.stdout.write(`  [${floor}] 取得中: ${fetched.length} 件\r`);
                 if (items.length < HITS_PER_REQUEST) break;
                 offset += HITS_PER_REQUEST;
@@ -279,6 +289,8 @@ async function refreshPrices() {
                         const { listPrice, currentPrice, discountPct, saleEndDate } = parsePrice(item);
                         priceMap.set(item.content_id, {
                             listPrice, currentPrice, discountPct, saleEndDate,
+                            reviewCount:   item.review?.count != null ? Number(item.review.count) : null,
+                            reviewAverage: item.review?.average != null ? parseFloat(item.review.average) : null,
                             price_updated_at: new Date().toISOString(),
                         });
                     }
@@ -325,12 +337,22 @@ async function main() {
         if (_url && _token) {
             const _turso = createClient({ url: _url, authToken: _token });
             try { await _turso.execute('ALTER TABLE products ADD COLUMN sale_end_date TEXT'); } catch {}
+            try { await _turso.execute('ALTER TABLE products ADD COLUMN review_count INTEGER'); } catch {}
+            try { await _turso.execute('ALTER TABLE products ADD COLUMN review_average REAL'); } catch {}
+            try { await _turso.execute('ALTER TABLE products ADD COLUMN series_id TEXT'); } catch {}
+            try { await _turso.execute('ALTER TABLE products ADD COLUMN series_name TEXT'); } catch {}
+            try { await _turso.execute('ALTER TABLE products ADD COLUMN vr_flag INTEGER DEFAULT 0'); } catch {}
             _turso.close();
         }
         // ローカルDB マイグレーション
         if (!process.env.CI && require('fs').existsSync(DB_PATH)) {
             const _db = new Database(DB_PATH);
             try { _db.prepare('ALTER TABLE products ADD COLUMN sale_end_date TEXT').run(); } catch {}
+            try { _db.prepare('ALTER TABLE products ADD COLUMN review_count INTEGER').run(); } catch {}
+            try { _db.prepare('ALTER TABLE products ADD COLUMN review_average REAL').run(); } catch {}
+            try { _db.prepare('ALTER TABLE products ADD COLUMN series_id TEXT').run(); } catch {}
+            try { _db.prepare('ALTER TABLE products ADD COLUMN series_name TEXT').run(); } catch {}
+            try { _db.prepare('ALTER TABLE products ADD COLUMN vr_flag INTEGER DEFAULT 0').run(); } catch {}
             _db.close();
         }
     }
@@ -370,8 +392,10 @@ async function main() {
         'product_id','title','actresses','maker','label','duration_min',
         'genres','sale_start_date','main_image_url','sample_images_json',
         'sample_video_url','affiliate_url','detail_url',
-        'list_price','current_price','discount_pct','sale_end_date','price_updated_at',
-        'scraped_at','updated_at',
+        'list_price','current_price','discount_pct','sale_end_date',
+        'review_count','review_average',
+        'series_id','series_name','vr_flag',
+        'price_updated_at','scraped_at','updated_at',
     ];
 
     let newCount    = newItems.length; // CI環境ではAPI取得数をそのまま使用
@@ -403,6 +427,8 @@ async function main() {
                     current_price    = @currentPrice,
                     discount_pct     = @discountPct,
                     sale_end_date    = @saleEndDate,
+                    review_count     = COALESCE(@reviewCount, review_count),
+                    review_average   = COALESCE(@reviewAverage, review_average),
                     price_updated_at = @price_updated_at,
                     updated_at       = @price_updated_at
                 WHERE product_id = @product_id
@@ -411,10 +437,12 @@ async function main() {
                 for (const [product_id, v] of entries) {
                     const r = updateStmt.run({
                         product_id,
-                        listPrice:    v.listPrice,
-                        currentPrice: v.currentPrice,
-                        discountPct:  v.discountPct,
-                        saleEndDate:  v.saleEndDate ?? null,
+                        listPrice:     v.listPrice,
+                        currentPrice:  v.currentPrice,
+                        discountPct:   v.discountPct,
+                        saleEndDate:   v.saleEndDate ?? null,
+                        reviewCount:   v.reviewCount ?? null,
+                        reviewAverage: v.reviewAverage ?? null,
                         price_updated_at: v.price_updated_at,
                     });
                     if (r.changes > 0) priceUpdated++;
@@ -457,7 +485,9 @@ async function main() {
         // 価格 update (バッチ UPDATE)
         if (priceMap.size > 0) {
             const updateSql = `UPDATE products SET
-                list_price=?, current_price=?, discount_pct=?, sale_end_date=?, price_updated_at=?, updated_at=?
+                list_price=?, current_price=?, discount_pct=?, sale_end_date=?,
+                review_count=COALESCE(?,review_count), review_average=COALESCE(?,review_average),
+                price_updated_at=?, updated_at=?
                 WHERE product_id=?`;
             const entries = Array.from(priceMap.entries());
             const BATCH = 50;
@@ -468,7 +498,7 @@ async function main() {
                     await turso.batch(
                         batch.map(([pid, v]) => ({
                             sql: updateSql,
-                            args: [v.listPrice, v.currentPrice, v.discountPct, v.saleEndDate ?? null, v.price_updated_at, v.price_updated_at, pid],
+                            args: [v.listPrice, v.currentPrice, v.discountPct, v.saleEndDate ?? null, v.reviewCount ?? null, v.reviewAverage ?? null, v.price_updated_at, v.price_updated_at, pid],
                         })),
                         'write'
                     );
@@ -476,7 +506,7 @@ async function main() {
                 } catch {
                     for (const [pid, v] of batch) {
                         try {
-                            await turso.execute({ sql: updateSql, args: [v.listPrice, v.currentPrice, v.discountPct, v.saleEndDate ?? null, v.price_updated_at, v.price_updated_at, pid] });
+                            await turso.execute({ sql: updateSql, args: [v.listPrice, v.currentPrice, v.discountPct, v.saleEndDate ?? null, v.reviewCount ?? null, v.reviewAverage ?? null, v.price_updated_at, v.price_updated_at, pid] });
                             tUpdated++;
                         } catch (e2) { /* skip */ }
                     }

@@ -137,6 +137,9 @@ function convertItem(item) {
         sample_images: sampleImages.length > 0 ? sampleImages : null,
         affiliate_url: item.affiliateURL || null,
         detail_url: item.URL || null,
+        series_id:    item.iteminfo?.series?.[0]?.id   ? String(item.iteminfo.series[0].id) : null,
+        series_name:  item.iteminfo?.series?.[0]?.name || null,
+        vr_flag:      (item.title || '').includes('【VR】') ? 1 : 0,
     };
 }
 

@@ -112,15 +112,22 @@
 <div id="pd-actress-cards" class="space-y-2"></div>
 </div>
 <!-- 6. Affiliate Buttons -->
-<div class="px-4 py-4 space-y-3">
-<a id="pd-fanza-btn" class="block bg-[#ff3333] text-white text-center py-4 rounded-xl font-bold shadow-md relative overflow-hidden group" href="#" style="display:none" target="_blank" rel="noopener">
+<div class="px-4 py-4 space-y-3" id="pd-cta-area">
+<a id="pd-fanza-btn" class="block bg-[#ff3333] text-white text-center py-4 rounded-xl font-bold shadow-lg shadow-rose-200 relative overflow-hidden active:scale-[0.98] transition-transform" href="#" style="display:none" target="_blank" rel="noopener noreferrer">
 <div class="absolute top-0 right-0 bg-black/20 px-2 py-0.5 text-[10px] rounded-bl-lg">PR</div>
-<span class="text-lg">FANZA動画で今すぐ見る</span>
+<div class="flex flex-col items-center gap-0.5">
+<span class="text-base font-black tracking-wide">▶ FANZA動画で今すぐ見る</span>
+<span id="pd-fanza-price" class="text-xs font-medium opacity-90" style="display:none"></span>
+</div>
 </a>
-<a id="pd-mgs-btn" class="block bg-[#00a0e9] text-white text-center py-4 rounded-xl font-bold shadow-md relative overflow-hidden group" href="#" style="display:none" target="_blank" rel="noopener">
+<a id="pd-mgs-btn" class="block bg-[#005BAC] text-white text-center py-4 rounded-xl font-bold shadow-lg shadow-blue-200 relative overflow-hidden active:scale-[0.98] transition-transform" href="#" style="display:none" target="_blank" rel="noopener noreferrer">
 <div class="absolute top-0 right-0 bg-black/20 px-2 py-0.5 text-[10px] rounded-bl-lg">PR</div>
-<span class="text-lg">MGS動画で今すぐ見る</span>
+<div class="flex flex-col items-center gap-0.5">
+<span class="text-base font-black tracking-wide">▶ MGS動画で今すぐ見る</span>
+<span class="text-xs font-medium opacity-90">見放題プレミアム対応</span>
+</div>
 </a>
+<p class="text-center text-[10px] text-slate-400">※外部サービスへ移動します</p>
 </div>
 <!-- 7. Review Section -->
 <div class="px-4 py-6 border-t border-slate-100 dark:border-slate-800">
@@ -350,14 +357,36 @@
         }
       }
 
-      // アフィリエイトボタン
+      // アフィリエイトボタン + 価格表示 + 購入トラッキング
+      function trackPurchase(platform) {
+        try { fetch('/api/purchase/'+encodeURIComponent(id), {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platform:platform})}); } catch(e){}
+      }
       if (p.fanza_affiliate_url) {
         var fb = document.getElementById('pd-fanza-btn');
-        if (fb) { fb.href = p.fanza_affiliate_url; fb.style.display=''; }
+        if (fb) {
+          fb.href = p.fanza_affiliate_url;
+          fb.style.display = '';
+          fb.addEventListener('click', function(){ trackPurchase('fanza'); }, {once:true});
+          // 価格表示
+          var priceEl = document.getElementById('pd-fanza-price');
+          if (priceEl && p.current_price) {
+            var priceText = '¥' + Number(p.current_price).toLocaleString();
+            if (p.list_price && p.list_price > p.current_price) {
+              priceText = '¥' + Number(p.list_price).toLocaleString() + ' → ' + priceText;
+            }
+            if (p.discount_pct > 0) priceText = p.discount_pct + '%OFF ' + priceText;
+            priceEl.textContent = priceText;
+            priceEl.style.display = '';
+          }
+        }
       }
       if (p.mgs_affiliate_url) {
         var mb = document.getElementById('pd-mgs-btn');
-        if (mb) { mb.href = p.mgs_affiliate_url; mb.style.display=''; }
+        if (mb) {
+          mb.href = p.mgs_affiliate_url;
+          mb.style.display = '';
+          mb.addEventListener('click', function(){ trackPurchase('mgs'); }, {once:true});
+        }
       }
 
       // レビューボタンリンク設定

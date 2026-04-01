@@ -4,8 +4,8 @@ import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import AgeGate from '@/components/AgeGate';
 
-const SITE_NAME = 'AV Concierge';
-const SITE_URL = 'https://lunar-zodiac.vercel.app';
+const SITE_NAME = 'AVコンシェルジュ';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://lunar-zodiac.vercel.app';
 const DESCRIPTION = 'MGS動画11万件以上の作品情報を横断検索。女優・ジャンル・スリーサイズによる高精度フィルター搭載。期待度ランキング・新着・素人作品も完全網羅。';
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_NAME}`,
   },
   description: DESCRIPTION,
-  keywords: ['AV', 'FANZA', 'MGS動画', 'AV女優', '動画', 'ランキング', 'アダルト'],
+  keywords: ['AV', 'FANZA', 'MGS動画', 'AV女優', '動画', 'ランキング', 'アダルト', '品番', '無料', '動画配信'],
   authors: [{ name: SITE_NAME }],
   robots: {
     index: true,

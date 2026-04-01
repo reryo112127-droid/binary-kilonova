@@ -221,27 +221,21 @@
 </div>
 </div>
 <!-- Affiliate Links Section -->
-<section class="bg-slate-50 p-8 rounded-2xl border border-slate-100">
-<h3 class="text-xl font-bold mb-6 flex items-center gap-2" style="">
-<span class="material-symbols-outlined text-primary" style="">shopping_bag</span>
-                            この作品を見る　</h3>
+<section class="bg-gradient-to-br from-slate-50 to-white p-8 rounded-2xl border border-slate-100 shadow-sm">
+<h3 class="text-xl font-black mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">play_circle</span>この作品を今すぐ見る</h3>
+<p id="pd-price-line" class="text-sm text-slate-500 mb-5" style="display:none"></p>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-<a id="pd-fanza-btn" class="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl hover:shadow-md hover:border-primary transition-all group" href="#" target="_blank" rel="noopener" style="display:none">
-<div class="flex items-center gap-3">
-<div class="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white font-black text-xs" style="">FANZA</div>
-<div class="text-sm font-bold text-slate-900" style="">FANZAで視聴する</div>
-</div>
-<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="">open_in_new</span>
+<a id="pd-fanza-btn" class="flex flex-col items-center justify-center gap-1 bg-[#ff3333] hover:bg-[#e02020] text-white py-5 px-6 rounded-2xl font-black shadow-lg shadow-rose-200/60 transition-all hover:scale-[1.02] active:scale-[0.98]" href="#" target="_blank" rel="noopener noreferrer" style="display:none">
+<span class="text-lg tracking-wide">▶ FANZA動画で視聴する</span>
+<span id="pd-fanza-price" class="text-xs font-medium opacity-90" style="display:none"></span>
+<span class="text-[11px] opacity-70 font-normal mt-0.5">PR・外部サービス</span>
 </a>
-<a id="pd-mgs-btn" class="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl hover:shadow-md hover:border-primary transition-all group" href="#" target="_blank" rel="noopener" style="display:none">
-<div class="flex items-center gap-3">
-<div class="w-10 h-10 bg-[#005BAC] rounded-lg flex items-center justify-center text-white font-black text-xs" style="">MGS</div>
-<div class="text-sm font-bold text-slate-900" style="">MGS動画で視聴する</div>
-</div>
-<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors" style="">open_in_new</span>
+<a id="pd-mgs-btn" class="flex flex-col items-center justify-center gap-1 bg-[#005BAC] hover:bg-[#004d99] text-white py-5 px-6 rounded-2xl font-black shadow-lg shadow-blue-200/60 transition-all hover:scale-[1.02] active:scale-[0.98]" href="#" target="_blank" rel="noopener noreferrer" style="display:none">
+<span class="text-lg tracking-wide">▶ MGS動画で視聴する</span>
+<span class="text-[11px] opacity-70 font-normal mt-0.5">PR・外部サービス</span>
 </a>
 </div>
-<p class="mt-4 text-[11px] text-slate-400 text-center" style="">※外部の配信サイトへ移動します。</p>
 </section>
 </div>
 <!-- Right Column: Actress Profiles -->
@@ -439,14 +433,43 @@
         }
       }
 
-      // アフィリエイトボタン
+      // アフィリエイトボタン + 価格表示 + 購入トラッキング
+      function trackPurchase(platform) {
+        try { fetch('/api/purchase/'+encodeURIComponent(id), {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platform:platform})}); } catch(e){}
+      }
+      // 価格ライン表示
+      if (p.current_price) {
+        var priceLine = document.getElementById('pd-price-line');
+        if (priceLine) {
+          var pt = '価格: ¥' + Number(p.current_price).toLocaleString();
+          if (p.list_price && p.list_price > p.current_price) pt = '定価 ¥' + Number(p.list_price).toLocaleString() + ' → セール価格 ¥' + Number(p.current_price).toLocaleString();
+          if (p.discount_pct > 0) pt = '🔥 ' + p.discount_pct + '%OFF — ' + pt;
+          priceLine.textContent = pt;
+          priceLine.style.display = '';
+        }
+      }
       if (p.fanza_affiliate_url) {
         var fb = document.getElementById('pd-fanza-btn');
-        if (fb) { fb.href = p.fanza_affiliate_url; fb.style.display=''; }
+        if (fb) {
+          fb.href = p.fanza_affiliate_url;
+          fb.style.display = '';
+          fb.addEventListener('click', function(){ trackPurchase('fanza'); }, {once:true});
+          var fpriceEl = document.getElementById('pd-fanza-price');
+          if (fpriceEl && p.current_price) {
+            var fpText = '¥' + Number(p.current_price).toLocaleString();
+            if (p.discount_pct > 0) fpText = p.discount_pct + '%OFF ' + fpText;
+            fpriceEl.textContent = fpText;
+            fpriceEl.style.display = '';
+          }
+        }
       }
       if (p.mgs_affiliate_url) {
         var mb = document.getElementById('pd-mgs-btn');
-        if (mb) { mb.href = p.mgs_affiliate_url; mb.style.display=''; }
+        if (mb) {
+          mb.href = p.mgs_affiliate_url;
+          mb.style.display = '';
+          mb.addEventListener('click', function(){ trackPurchase('mgs'); }, {once:true});
+        }
       }
 
       // レビューボタンリンク設定
