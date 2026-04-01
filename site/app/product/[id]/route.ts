@@ -38,7 +38,21 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
     return null;
 }
 
-function injectSEOMeta(html: string, product: Record<string, unknown> | null, id: string): string {
+// OGP用: 女優プロフィール画像（非露骨）を取得
+async function fetchActressImageUrl(actressName: string): Promise<string | null> {
+    const fanzaClient = getFanzaClient();
+    if (!fanzaClient || !actressName) return null;
+    try {
+        const r = await fanzaClient.execute({
+            sql: 'SELECT image_url FROM actress_profiles WHERE name = ? AND image_url IS NOT NULL LIMIT 1',
+            args: [actressName],
+        });
+        if (r.rows.length > 0) return String(r.rows[0].image_url || '');
+    } catch { /* ignore */ }
+    return null;
+}
+
+function injectSEOMeta(html: string, product: Record<string, unknown> | null, id: string, actressImageUrl: string | null): string {
     const displayId = id.toUpperCase();
 
     // 女優名フィルタ適用
@@ -67,7 +81,11 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
     if (saleDate)  descParts.push(`配信: ${saleDate}`);
     const desc = descParts.join(' | ').slice(0, 130);
 
-    // JSON-LD (VideoObject)
+    // OGP画像: 女優プロフィール写真（非露骨）を優先。なければ og:image を省略
+    // ※ パッケージ画像（main_image_url）は露骨なため SNS シェア時に使用しない
+    const ogImageUrl = actressImageUrl || '';
+
+    // JSON-LD (VideoObject) にはパッケージ画像を使用（検索エンジン向け）
     const actorList = actresses
         ? actresses.split(',').map(a => ({ '@type': 'Person', name: a.trim() }))
         : undefined;
@@ -87,8 +105,10 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
         `<meta property="og:title" content="${escHtml(seoTitle)}"/>`,
         `<meta property="og:description" content="${escHtml(desc)}"/>`,
         `<meta property="og:type" content="video.other"/>`,
-        imgUrl ? `<meta property="og:image" content="${escHtml(imgUrl)}"/>` : '',
-        `<meta name="twitter:card" content="summary_large_image"/>`,
+        ogImageUrl ? `<meta property="og:image" content="${escHtml(ogImageUrl)}"/>` : '',
+        ogImageUrl
+            ? `<meta name="twitter:card" content="summary_large_image"/>`
+            : `<meta name="twitter:card" content="summary"/>`,
         `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`,
     ].filter(Boolean).join('\n');
 
@@ -111,9 +131,24 @@ export async function GET(
     try {
         let html = fs.readFileSync(htmlFile, 'utf-8');
 
-        // DB取得 → SEOメタ注入（並列でHTML読込と実行）
+        // 作品データ取得
         const product = await fetchProduct(id);
-        html = injectSEOMeta(html, product, id);
+
+        // OGP用: 女優プロフィール画像を並列取得（露骨なパッケージ画像の代替）
+        let actressImageUrl: string | null = null;
+        if (product?.actresses) {
+            const filtered = filterActresses(
+                String(product.actresses),
+                String(product.genres || ''),
+                String(product.maker || '')
+            );
+            const firstName = filtered?.split(',')[0]?.trim();
+            if (firstName) {
+                actressImageUrl = await fetchActressImageUrl(firstName);
+            }
+        }
+
+        html = injectSEOMeta(html, product, id, actressImageUrl);
 
         html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
         return new NextResponse(html, {

@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
         let html = fs.readFileSync(htmlFile, 'utf-8');
         html = isMobile ? injectMobileLayout(html, 'ranking', true) : injectWebLayout(html);
         if (isMobile) {
+            // 作品ランキングスクリプトとの競合を防ぐフラグを head に注入
+            html = html.replace('</head>', `<script>window.__ACTRESS_RANKING=true;</script></head>`);
             html = html.replace('</header>', `</header>\n${rankingTabBar('actresses')}`);
             html = html.replace('</body>', `<script>
 (function(){

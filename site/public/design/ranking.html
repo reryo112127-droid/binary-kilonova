@@ -312,6 +312,8 @@
 </div>
 <script>
 (function(){
+  // 女優ランキングページでは作品ランキングスクリプトをスキップ
+  if (window.__ACTRESS_RANKING) return;
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}
   function purl(id){return '/product/'+encodeURIComponent(id);}

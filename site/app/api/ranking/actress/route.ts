@@ -134,7 +134,23 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    // ─── Step 4: スコア計算してソート ────────────────────────
+    // ─── Step 4: 女優プロフィール画像を取得（顔写真・非露骨）──
+    const actressImageMap = new Map<string, string>();
+    if (fanzaClient && topEntries.length > 0) {
+        try {
+            const names = topEntries.map(e => e.name);
+            const placeholders = names.map(() => '?').join(',');
+            const imgRes = await fanzaClient.execute({
+                sql: `SELECT name, image_url FROM actress_profiles WHERE name IN (${placeholders}) AND image_url IS NOT NULL`,
+                args: names,
+            });
+            for (const row of imgRes.rows) {
+                if (row.image_url) actressImageMap.set(String(row.name), String(row.image_url));
+            }
+        } catch { /* ignore */ }
+    }
+
+    // ─── Step 5: スコア計算してソート ────────────────────────
     const LIKE_BONUS = 5000; // いいね1件 = wish_count 5000相当
 
     const scored = topEntries.map(e => {
@@ -146,6 +162,7 @@ export async function GET(request: NextRequest) {
             wish_score: e.wishScore,
             work_count: e.workCount,
             actress_likes: likes,
+            image_url: actressImageMap.get(e.name) || null, // プロフィール写真（非露骨）
             sample_image: e.sampleImage,
             sample_product_id: e.sampleProductId,
         };
