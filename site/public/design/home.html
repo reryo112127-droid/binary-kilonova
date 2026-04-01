@@ -300,19 +300,20 @@
       var newList=document.getElementById('home-new-list');
       if(!newList)return;
       newList.innerHTML=data.map(function(p){
+        var ps=poster(p.main_image_url);
         var actress=p.actresses?(p.actresses.split(',')[0].trim()):'';
-        return '<a href="'+purl(p.product_id)+'" class="min-w-[260px] p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-primary/10 shadow-sm flex gap-3 relative block">'
-          +'<div class="w-16 aspect-square rounded-lg overflow-hidden shrink-0 bg-slate-200">'
-          +(p.main_image_url?'<img class="w-full h-full object-cover object-left-top" src="'+esc(p.main_image_url)+'" alt="" loading="lazy"/>':'')
+        return '<a href="'+purl(p.product_id)+'" class="min-w-[120px] w-[120px] relative group block shrink-0">'
+          +'<div class="aspect-[2/3] rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
+          +(ps?'<img class="w-full h-full object-cover object-left-top" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
+          +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
+          +'<span class="absolute top-1.5 left-1.5 bg-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded">新作</span>'
+          +'<div class="absolute bottom-1.5 right-1.5 flex gap-1">'
+          +(!actress?'<button onclick="event.preventDefault()" class="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-slate-700 hover:bg-primary hover:text-white transition-colors"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
+          +'<button onclick="event.preventDefault()" class="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-primary hover:bg-primary hover:text-white transition-colors"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
           +'</div>'
-          +'<div class="flex flex-col justify-center min-w-0 flex-1 pr-1">'
-          +(actress?'<span class="text-[9px] text-primary font-bold">'+esc(actress)+'</span>':'')
-          +'<h3 class="font-bold text-[13px] truncate">'+esc(p.title||'')+'</h3>'
           +'</div>'
-          +'<div class="flex flex-col items-center justify-center gap-1 shrink-0">'
-          +(!(actress)?'<button onclick="event.preventDefault()" class="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[16px]">add_circle</span></button>':'')
-          +'<button onclick="event.preventDefault()" class="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-colors"><span class="material-symbols-outlined text-[16px]">favorite</span></button>'
-          +'</div>'
+          +(actress?'<p class="text-[9px] text-primary font-bold mt-1">'+esc(actress)+'</p>':'')
+          +'<p class="text-[10px] font-bold leading-tight line-clamp-2 mt-0.5">'+esc(p.title||'')+'</p>'
           +'</a>';
       }).join('');
     }).catch(function(){});
