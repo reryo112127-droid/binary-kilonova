@@ -1211,7 +1211,7 @@ fetch('/api/ranking/actress?limit=50&fromDate=2026-01-01&toDate=2026-12-31').the
   if(podRow&&items.length>=3){
     podRow.innerHTML=ORDER.map(function(pi,i){
       var c=POD_CFG[i];var a=items[pi]||{};
-      var img=a.image_url||a.sample_image||'';var name=esc(a.name||'');var an=encodeURIComponent(a.name||'');
+      var img=a.image_url||'';var name=esc(a.name||'');var an=encodeURIComponent(a.name||'');
       return '<div class="flex flex-col items-center group '+c.wrap+' cursor-pointer" onclick="location.href=\'/actress/'+an+'\'">'
         +'<div class="relative mb-6"><div class="'+c.imgSz+' '+c.border+' overflow-hidden shadow-2xl relative z-10">'
         +(img?'<img class="w-full h-full object-cover" src="'+img+'"/>':'<div class="w-full h-full bg-slate-200"></div>')
@@ -1224,7 +1224,7 @@ fetch('/api/ranking/actress?limit=50&fromDate=2026-01-01&toDate=2026-12-31').the
   }
   if(grid&&items.length>3){
     grid.innerHTML=items.slice(3).map(function(a,i){
-      var rank=i+4;var img=a.image_url||a.sample_image||'';var name=esc(a.name||'');var an=encodeURIComponent(a.name||'');
+      var rank=i+4;var img=a.image_url||'';var name=esc(a.name||'');var an=encodeURIComponent(a.name||'');
       return '<div class="bg-white dark:bg-slate-800 p-2 sm:p-3 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-3 hover:shadow-md transition-all hover:border-primary/30 relative group cursor-pointer" onclick="location.href=\'/actress/'+an+'\'">'
         +'<div class="relative shrink-0"><div class="w-12 h-12 rounded-lg overflow-hidden bg-slate-100">'
         +(img?'<img class="w-full h-full object-cover" src="'+img+'"/>':'<span class="material-symbols-outlined text-slate-300 flex items-center justify-center w-full h-full text-2xl">account_circle</span>')

@@ -44,7 +44,10 @@ export async function GET(request: NextRequest) {
         var ttl=document.getElementById('rank-'+n+'-title');
         var card=document.getElementById('rank-'+n+'-card');
         if(!a)return;
-        if(img){img.src=a.image_url||'';img.alt=esc(a.name||'');}
+        if(img){
+          if(a.image_url){img.src=a.image_url;img.alt=esc(a.name||'');}
+          else{img.style.display='none';var p=img.parentNode;if(p){var d=document.createElement('div');d.className='w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-700';d.innerHTML='<span class="material-symbols-outlined text-slate-400 text-4xl">account_circle</span>';p.appendChild(d);}}
+        }
         if(ttl)ttl.textContent=a.name||'';
         if(card)card.onclick=function(){location.href=aurl(a.name);};
       }
