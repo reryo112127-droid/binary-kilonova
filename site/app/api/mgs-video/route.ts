@@ -15,9 +15,15 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'url required' }, { status: 400 });
     }
 
-    // UUID を URL の末尾から抽出
+    // DB に直接 mp4 URL が格納されている場合はプロキシ経由で返す
+    if (url.includes('.mp4')) {
+        const proxyUrl = `/api/mgs-video/proxy?mp4=${encodeURIComponent(url)}`;
+        return NextResponse.json({ mp4: proxyUrl });
+    }
+
+    // sampleplayer.html/{UUID} 形式の場合は sampleRespons.php 経由で取得
     const uuid = url.split('/').pop();
-    if (!uuid || !/^[0-9a-f-]{36}$/.test(uuid)) {
+    if (!uuid || !/^[0-9a-f-]{36}$/i.test(uuid)) {
         return NextResponse.json({ error: 'invalid url' }, { status: 400 });
     }
 
