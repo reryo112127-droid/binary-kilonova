@@ -46,6 +46,8 @@ function looksLikeDescription(name: string): boolean {
     if (/[【】（）\(\)]/.test(name)) return true;
     // 極端に長い名前（30文字超）は役名/説明文の可能性が高い
     if (name.length > 30) return true;
+    // スペースを含む → 「名前 職業」「名前 年齢 説明」形式（AV女優名にスペースは通常入らない）
+    if (/\s/.test(name.trim())) return true;
     return false;
 }
 
@@ -60,12 +62,20 @@ export function filterActresses(actressesStr: string | null, genres: string | nu
 
     if (isAmateur) {
         const knownSet = getKnownActresses();
-        const validActresses = entries.filter(a => knownSet.has(a));
+        const processed = entries.map(entry => {
+            // known女優はそのまま
+            if (knownSet.has(entry)) return entry;
+            // 説明文形式 → 最初のトークン（名前部分）を抽出
+            if (looksLikeDescription(entry)) {
+                const first = entry.split(/\s+/)[0];
+                return (first && first.length >= 2) ? first : null;
+            }
+            // クリーンな名前（説明なし）はそのまま表示
+            return entry;
+        }).filter((a): a is string => !!a);
 
-        if (validActresses.length === 0) {
-            return null;
-        }
-        return validActresses.join(', ');
+        if (processed.length === 0) return null;
+        return processed.join(', ');
     }
 
     // 素人作品以外（メーカー品）は、そのまま表示する
