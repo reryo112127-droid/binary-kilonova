@@ -600,8 +600,8 @@
 
   function renderCard(p,label,labelClass){
     return '<a href="'+purl(p.product_id)+'" class="flex-none w-[160px] space-y-2 group relative block">'
-      +'<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">'
-      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover object-left-top transition-transform group-hover:scale-105"/>'
+      +'<div class="overflow-hidden rounded-custom bg-gray-100 relative">'
+      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-auto block transition-transform group-hover:scale-105"/>'
       +'<span class="absolute top-2 left-2 '+labelClass+' text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">'+label+'</span>'
       +'<div class="absolute bottom-2 right-2 flex gap-1">'
       +(!(p.actresses&&p.actresses.trim())?'<button onclick="event.preventDefault()" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">add</span></button>':'')
@@ -616,8 +616,8 @@
   function renderPreorderCard(p){
     var date=p.sale_start_date?(p.sale_start_date.slice(0,10)):'';
     return '<a href="'+purl(p.product_id)+'" class="flex-none w-[150px] group relative block">'
-      +'<div class="aspect-[2/3] overflow-hidden rounded-xl bg-gray-100 relative shadow-md">'
-      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover object-left-top transition-transform group-hover:scale-105"/>'
+      +'<div class="overflow-hidden rounded-xl bg-gray-100 relative shadow-md">'
+      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-auto block transition-transform group-hover:scale-105"/>'
       +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
       +'<span class="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>'
       +'<div class="absolute bottom-2 right-2 flex gap-1">'

@@ -842,8 +842,8 @@ if(grid){
       var badge=isAmateur?'<span class="absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">素人</span>'
                :isNew?'<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">NEW</span>':'';
       return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
-        +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
-        +(img?'<img alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="'+img+'"/>':'<div class="w-full h-full bg-slate-200"></div>')
+        +'<div class="bg-gray-50 relative overflow-hidden">'
+        +(img?'<img alt="" class="w-full h-auto block group-hover:scale-105 transition duration-500" src="'+img+'"/>':'')
         +badge+'</div>'
         +'<div class="p-3 flex flex-col flex-1"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8 group-hover:text-blue-600 transition">'+t+'</h3>'
         +'<p class="text-[10px] text-gray-400">'+dt+'</p></div></article>';

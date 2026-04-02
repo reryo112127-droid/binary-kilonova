@@ -364,8 +364,8 @@
     var img = poster(p.main_image_url);
     var noAct = !(p.actresses&&p.actresses.trim());
     return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group block">'
-      +'<div class="aspect-[3/4] bg-gray-50 relative overflow-hidden">'
-      +(img?'<img class="w-full h-full object-cover object-left-top group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
+      +'<div class="bg-gray-50 relative overflow-hidden">'
+      +(img?'<img class="w-full h-auto block group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
       +'<div class="absolute bottom-2 right-2 flex gap-1">'
       +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
       +'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'

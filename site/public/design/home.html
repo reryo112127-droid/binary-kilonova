@@ -273,8 +273,8 @@
         var ps=poster(p.main_image_url);
         var date=p.sale_start_date?(p.sale_start_date.slice(0,10)):'';
         return '<a href="'+purl(p.product_id)+'" class="min-w-[120px] w-[120px] relative group block shrink-0">'
-          +'<div class="aspect-[2/3] rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
-          +(ps?'<img class="w-full h-full object-cover object-left-top" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
+          +'<div class="rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
+          +(ps?'<img class="w-full h-auto block" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
           +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
           +'<span class="absolute top-1.5 left-1.5 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>'
           +'<div class="absolute bottom-1.5 right-1.5 flex gap-1">'
@@ -305,8 +305,8 @@
         var ps=poster(p.main_image_url);
         var actress=p.actresses?(p.actresses.split(',')[0].trim()):'';
         return '<a href="'+purl(p.product_id)+'" class="min-w-[120px] w-[120px] relative group block shrink-0">'
-          +'<div class="aspect-[2/3] rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
-          +(ps?'<img class="w-full h-full object-cover object-left-top" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
+          +'<div class="rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
+          +(ps?'<img class="w-full h-auto block" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
           +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
           +'<span class="absolute top-1.5 left-1.5 bg-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded">新作</span>'
           +'<div class="absolute bottom-1.5 right-1.5 flex gap-1">'

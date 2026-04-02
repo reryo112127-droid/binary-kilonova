@@ -300,8 +300,8 @@
     var img = poster(p.main_image_url);
     var noAct = !(p.actresses&&p.actresses.trim());
     return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="flex flex-col gap-1 block">'
-      +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-md bg-gray-100">'
-      +(img?'<img class="h-full w-full object-cover object-left-top" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
+      +'<div class="relative w-full overflow-hidden rounded-md bg-gray-100">'
+      +(img?'<img class="w-full h-auto block" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
       +'<div class="absolute bottom-1 right-1 flex gap-1">'
       +(noAct?'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">add</span></button>':'')
       +'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">favorite</span></button>'

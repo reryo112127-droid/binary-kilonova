@@ -67,8 +67,8 @@ function makeProductCard(p) {
   var liked = isLiked(id);
   var hStyle = liked ? "font-variation-settings:'FILL' 1;color:#ef4444" : "color:#94a3b8";
   return '<article class="group cursor-pointer" onclick="location.href=\'/product/'+encId+'\'">'+
-    '<div class="aspect-[3/4] overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 relative mb-1.5 shadow-sm">'+
-    (img ? '<img alt="" class="w-full h-full object-cover object-top" src="'+esc(img)+'" loading="lazy"/>' : '')+
+    '<div class="overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 relative mb-1.5 shadow-sm">'+
+    (img ? '<img alt="" class="w-full h-auto block" src="'+esc(img)+'" loading="lazy"/>' : '')+
     '<span class="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow-sm">予約</span>'+
     '<div class="absolute bottom-1 right-1 flex gap-0.5">'+
     '<button class="bg-white/90 rounded-full p-0.5 shadow-sm" onclick="event.stopPropagation();toggleLike(\''+esc(id)+'\',this)">'+

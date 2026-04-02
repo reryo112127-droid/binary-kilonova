@@ -338,10 +338,10 @@
         grid.innerHTML=data.slice(3).map(function(p,i){
           var rank=i+4;
           var ps=poster(p.main_image_url);
-          var img=ps?'<img class="w-full h-full object-cover object-left-top" src="'+esc(ps)+'" alt="'+rank+'" />'
-            :'<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800"><span class="material-symbols-outlined text-slate-400">movie</span></div>';
+          var img=ps?'<img class="w-full h-auto block" src="'+esc(ps)+'" alt="'+rank+'" />'
+            :'';
           return '<a href="'+purl(p.product_id)+'" class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">'
-            +'<div class="relative"><div class="w-full aspect-[3/4] rounded-md overflow-hidden mb-1.5">'+img+'</div>'
+            +'<div class="relative"><div class="w-full overflow-hidden rounded-md mb-1.5">'+img+'</div>'
             +'<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold">'+rank+'</span></div>'
             +'<h3 class="font-bold text-[10px] line-clamp-1">'+esc(p.title||'')+'</h3></a>';
         }).join('');
