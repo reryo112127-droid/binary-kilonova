@@ -42,8 +42,8 @@ export function isAmateurWork(genres: string, maker: string): boolean {
 function looksLikeDescription(name: string): boolean {
     // 年齢パターン: 「23歳」「20歳」など
     if (/\d+歳/.test(name)) return true;
-    // 括弧パターン: 【...】や（...）が含まれる
-    if (/[【】（）\(\)]/.test(name)) return true;
+    // 括弧パターン: 【...】や ASCII () — ※全角（）は女優の別名表記（例: Nia（伊東める））に使われるため除外
+    if (/[【】\(\)]/.test(name)) return true;
     // 極端に長い名前（30文字超）は役名/説明文の可能性が高い
     if (name.length > 30) return true;
     // スペースを含む → 「名前 職業」「名前 年齢 説明」形式（AV女優名にスペースは通常入らない）
@@ -65,11 +65,8 @@ export function filterActresses(actressesStr: string | null, genres: string | nu
         const processed = entries.map(entry => {
             // known女優はそのまま
             if (knownSet.has(entry)) return entry;
-            // 説明文形式 → 最初のトークン（名前部分）を抽出
-            if (looksLikeDescription(entry)) {
-                const first = entry.split(/\s+/)[0];
-                return (first && first.length >= 2) ? first : null;
-            }
+            // 説明文形式（役名・年齢・職業など）→ 特定できないためnull
+            if (looksLikeDescription(entry)) return null;
             // クリーンな名前（説明なし）はそのまま表示
             return entry;
         }).filter((a): a is string => !!a);
