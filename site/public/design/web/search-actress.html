@@ -832,7 +832,7 @@ if(grid){
     if(!items||!items.length){grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">作品がありません</p>';return;}
     if(photoEl&&!photoEl.dataset.set&&items[0]&&items[0].main_image_url)photoEl.src=items[0].main_image_url;
     grid.innerHTML=items.map(function(p){
-      var img=p.main_image_url||'';
+      var img=(p.main_image_url||'').replace(/pl\.jpg$/,'pt.jpg');
       var t=esc((p.title||'').substring(0,40));
       var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
       var pid=encodeURIComponent(p.product_id||'');

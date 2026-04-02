@@ -495,7 +495,7 @@ function buildUrl(off){
   return url;
 }
 function cardHtml(p){
-  var img=p.main_image_url||'';
+  var img=(p.main_image_url||'').replace(/pl\.jpg$/,'pt.jpg');
   var t=((p.title||'').substring(0,40)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
   var pid=encodeURIComponent(p.product_id||'');

@@ -336,7 +336,7 @@ if(grid){
   fetch('/api/products?actress='+encodeURIComponent(actressName)+'&sort=new&limit=30').then(function(r){return r.json();}).then(function(items){
     if(!items||!items.length){grid.innerHTML='<p class="col-span-3 text-center text-slate-400 py-8 text-xs">作品がありません</p>';return;}
     grid.innerHTML=items.map(function(p){
-      var img=p.main_image_url||'';
+      var img=(p.main_image_url||'').replace(/pl\.jpg$/,'pt.jpg');
       var t=esc((p.title||'').substring(0,30));
       var pid=encodeURIComponent(p.product_id||'');
       var genres=p.genres||'';

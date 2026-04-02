@@ -267,7 +267,7 @@
   if (h1 && term) h1.textContent = term;
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}
+  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.endsWith('pl.jpg'))return url.replace('pl.jpg','pt.jpg');return url;}
 
   var filters = { contentType:'all', sortOrder:'new', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'' };
   var LIMIT = 60;

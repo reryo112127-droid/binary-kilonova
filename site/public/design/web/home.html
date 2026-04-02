@@ -593,7 +593,7 @@
   function poster(url){
     if(!url)return'https://via.placeholder.com/120x160?text=No+Image';
     if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');
-    if(url.includes('pics.dmm.co.jp')&&url.endsWith('pl.jpg'))return url;
+    if(url.endsWith('pl.jpg'))return url.replace('pl.jpg','pt.jpg');
     return url;
   }
   function purl(id){return'/product/'+encodeURIComponent(id);}

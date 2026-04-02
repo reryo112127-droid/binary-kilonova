@@ -259,7 +259,7 @@ function getRange(period){
 }
 function setLoadMoreBtn(v){var b=document.getElementById('load-more-btn');if(b)b.style.display=v?'flex':'none';}
 function cardHtml(p){
-  var img=p.main_image_url||'';
+  var img=(p.main_image_url||'').replace(/pl\.jpg$/,'pt.jpg');
   var t=((p.title||'').substring(0,30)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   var pid=encodeURIComponent(p.product_id||'');
   return '<div class="flex flex-col gap-1.5 cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'

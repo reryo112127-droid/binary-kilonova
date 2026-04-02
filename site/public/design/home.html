@@ -254,7 +254,7 @@
 <script>
 (function(){
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('pics.dmm.co.jp')&&url.endsWith('pl.jpg'))return url;return url;}
+  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.endsWith('pl.jpg'))return url.replace('pl.jpg','pt.jpg');return url;}
   function purl(id){return '/product/'+encodeURIComponent(id);}
 
   // 予約・新作セクション

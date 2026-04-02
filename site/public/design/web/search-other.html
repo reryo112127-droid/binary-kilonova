@@ -325,7 +325,7 @@
   if (titleEl && term) { titleEl.textContent = term; document.title = term + ' - 検索結果'; }
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}
+  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.endsWith('pl.jpg'))return url.replace('pl.jpg','pt.jpg');return url;}
 
   var ITEMS_PER_PAGE=40,currentPage=1,filteredCache=[],fetchOffset=0;
   var filters = { contentType:'all', sortOrder:'popular', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'', subMaker:'', subGenres:[] };
