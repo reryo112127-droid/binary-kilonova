@@ -159,16 +159,21 @@ tailwind.config = {
   setTimeout(adjustFeedBottom, 200);
 
   /* ── API ── */
+  // 高評価順（wish_count DESC）でランダムオフセットを使い多様性を確保
+  var randomOffset = Math.floor(Math.random() * 300);
+  var fetchOffset = randomOffset;
+
   function fetchRandom(cb) {
     var f = feeds.random;
     if (f.loading || f.exhausted) return;
     f.loading = true;
-    var HOME_MAKERS = encodeURIComponent('S1,MOODYZ,アイデアポケット,E-BODY,OPPAI,Fitch,Madonna,痴女ヘブン,kawaii,million,本中,ダスッ,Hunter,ワンズファクトリー,TAMEIKE,プレミアム,SOD,FALENO,DAHLIA,プレステージ,Jackson,シロウトTV,ナンパTV,ラグジュTV,DOC,ARA,KANBi,黒船,NTR.net,ドキュメンTV');
-    fetch('/api/products?sort=random&source=mgs&hasVideo=1&excludeBest=1&limit=10&makers=' + HOME_MAKERS)
+    // sort未指定 → wish_count DESC（MGSデフォルト）
+    fetch('/api/products?source=mgs&hasVideo=1&excludeBest=1&limit=10&offset=' + fetchOffset)
       .then(function(r) { return r.json(); })
       .then(function(data) {
         f.loading = false;
         if (!data || !data.length) { f.exhausted = true; return; }
+        fetchOffset += 10;
         cb(data);
       })
       .catch(function() { f.loading = false; });
@@ -315,19 +320,21 @@ tailwind.config = {
     }
 
     overlay.addEventListener('click', function() {
-      img.style.display = 'none';
-      overlay.style.display = 'none';
-      video.style.display = '';
-      activeVideos.add(video);
-      // iOS Safari: ユーザージェスチャー内で即play()を呼ぶことでautoplay制限を回避
-      video.play().catch(function(){});
-
-      if (mp4Cache[p.product_id]) {
-        video.src = mp4Cache[p.product_id];
+      var src = mp4Cache[p.product_id];
+      if (src) {
+        // キャッシュ済み → 即再生
+        img.style.display = 'none';
+        overlay.style.display = 'none';
+        spinEl.style.display = 'none';
+        video.style.display = '';
+        video.src = src;
         video.load();
         video.play().catch(function(){});
+        activeVideos.add(video);
         return;
       }
+      // URL取得中 → スピナー表示（videoはまだ非表示のままにしておく）
+      overlay.style.display = 'none';
       spinEl.style.display = 'flex';
       fetch('/api/mgs-video?url=' + encodeURIComponent(p.sample_video_url))
         .then(function(r) { return r.json(); })
@@ -335,17 +342,19 @@ tailwind.config = {
           spinEl.style.display = 'none';
           if (d && d.mp4) {
             mp4Cache[p.product_id] = d.mp4;
+            img.style.display = 'none';
+            video.style.display = '';
             video.src = d.mp4;
             video.load();
-            video.play().catch(function(){});
+            // controls=trueなので、ユーザーはネイティブ再生ボタンをタップして再生できる
+            // iOSではfetch().then()内のplay()がブロックされるためautoplayは行わない
+            activeVideos.add(video);
           } else {
-            video.style.display = 'none';
             overlay.style.display = '';
           }
         })
         .catch(function() {
           spinEl.style.display = 'none';
-          video.style.display = 'none';
           overlay.style.display = '';
         });
     });

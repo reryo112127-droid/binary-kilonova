@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
 
     try {
         let html = fs.readFileSync(htmlFile, 'utf-8');
-        html = isMobile ? injectMobileLayout(html, 'video', true) : injectWebLayout(html);
+        // 動画ページは全画面プレーヤー設計のため標準ヘッダーを注入しない
+        html = isMobile ? injectMobileLayout(html, 'video', { skipHeader: true, skipClean: true }) : injectWebLayout(html);
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
