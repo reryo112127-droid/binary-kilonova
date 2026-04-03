@@ -315,11 +315,19 @@ tailwind.config = {
     }
 
     overlay.addEventListener('click', function() {
+      img.style.display = 'none';
+      overlay.style.display = 'none';
+      video.style.display = '';
+      activeVideos.add(video);
+      // iOS Safari: ユーザージェスチャー内で即play()を呼ぶことでautoplay制限を回避
+      video.play().catch(function(){});
+
       if (mp4Cache[p.product_id]) {
-        play(mp4Cache[p.product_id]);
+        video.src = mp4Cache[p.product_id];
+        video.load();
+        video.play().catch(function(){});
         return;
       }
-      overlay.style.display = 'none';
       spinEl.style.display = 'flex';
       fetch('/api/mgs-video?url=' + encodeURIComponent(p.sample_video_url))
         .then(function(r) { return r.json(); })
@@ -327,13 +335,17 @@ tailwind.config = {
           spinEl.style.display = 'none';
           if (d && d.mp4) {
             mp4Cache[p.product_id] = d.mp4;
-            play(d.mp4);
+            video.src = d.mp4;
+            video.load();
+            video.play().catch(function(){});
           } else {
+            video.style.display = 'none';
             overlay.style.display = '';
           }
         })
         .catch(function() {
           spinEl.style.display = 'none';
+          video.style.display = 'none';
           overlay.style.display = '';
         });
     });

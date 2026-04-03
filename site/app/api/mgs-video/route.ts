@@ -52,7 +52,9 @@ export async function GET(request: NextRequest) {
         // Smooth Streaming (.ism/request...) → MP4 に変換
         const mp4 = data.url.replace(/\.ism\/request.*$/, '.mp4');
 
-        return NextResponse.json({ mp4 });
+        // プロキシ経由で返す（CORS/Referer制限を回避）
+        const proxyUrl = `/api/mgs-video/proxy?mp4=${encodeURIComponent(mp4)}`;
+        return NextResponse.json({ mp4: proxyUrl });
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'unknown';
         return NextResponse.json({ error: msg }, { status: 502 });
