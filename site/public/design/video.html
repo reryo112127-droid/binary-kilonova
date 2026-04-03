@@ -320,8 +320,40 @@ tailwind.config = {
     }
 
     overlay.addEventListener('click', function() {
-      // MGSはサーバー側IPブロックのためiframeで直接表示
-      showMgsPlayerModal(p.sample_video_url);
+      var src = mp4Cache[p.product_id];
+      if (src) {
+        img.style.display = 'none';
+        overlay.style.display = 'none';
+        spinEl.style.display = 'none';
+        video.style.display = '';
+        video.src = src;
+        video.load();
+        video.play().catch(function(){});
+        activeVideos.add(video);
+        return;
+      }
+      overlay.style.display = 'none';
+      spinEl.style.display = 'flex';
+      fetch('/api/mgs-video?url=' + encodeURIComponent(p.sample_video_url))
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          spinEl.style.display = 'none';
+          if (d && d.mp4) {
+            mp4Cache[p.product_id] = d.mp4;
+            img.style.display = 'none';
+            video.style.display = '';
+            video.src = d.mp4;
+            video.load();
+            video.play().catch(function(){});
+            activeVideos.add(video);
+          } else {
+            overlay.style.display = '';
+          }
+        })
+        .catch(function() {
+          spinEl.style.display = 'none';
+          overlay.style.display = '';
+        });
     });
 
     wrap.appendChild(img);
@@ -476,29 +508,6 @@ tailwind.config = {
   }
 
   window.switchTab = switchTab;
-
-  /* ── MGSプレーヤーモーダル ── */
-  function showMgsPlayerModal(playerUrl) {
-    var ov = document.createElement('div');
-    ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;';
-    var closeBtn = document.createElement('button');
-    closeBtn.textContent='✕ 閉じる';
-    closeBtn.style.cssText='color:#fff;font-size:13px;background:none;border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:5px 16px;cursor:pointer;';
-    closeBtn.onclick=function(){ ov.remove(); };
-    var iframe = document.createElement('iframe');
-    iframe.src=playerUrl;
-    iframe.style.cssText='width:min(640px,95vw);aspect-ratio:16/9;border:none;border-radius:8px;background:#111;';
-    iframe.allow='autoplay; fullscreen';
-    var fallback = document.createElement('a');
-    fallback.href=playerUrl; fallback.target='_blank';
-    fallback.textContent='うまく再生されない場合はこちら';
-    fallback.style.cssText='color:rgba(255,255,255,0.4);font-size:11px;text-decoration:underline;';
-    ov.appendChild(closeBtn);
-    ov.appendChild(iframe);
-    ov.appendChild(fallback);
-    ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
-    document.body.appendChild(ov);
-  }
 
   /* ── 初期ロード ── */
   fetchRandom(appendProducts);
