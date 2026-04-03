@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
+// Edge Runtimeで実行 → ユーザー最寄りのVercel PoP（日本ユーザーなら東京）から
+// MGSにリクエストを送るため、米国サーバーのIPブロックを回避できる
+export const runtime = 'edge';
 
 /**
  * MGS サンプル動画URLを取得するプロキシ
@@ -15,10 +17,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'url required' }, { status: 400 });
     }
 
-    // DB に直接 mp4 URL が格納されている場合はプロキシ経由で返す
+    // DB に直接 mp4 URL が格納されている場合はそのまま返す
     if (url.includes('.mp4')) {
-        const proxyUrl = `/api/mgs-video/proxy?mp4=${encodeURIComponent(url)}`;
-        return NextResponse.json({ mp4: proxyUrl });
+        return NextResponse.json({ mp4: url });
     }
 
     // sampleplayer.html/{UUID} 形式の場合は sampleRespons.php 経由で取得
