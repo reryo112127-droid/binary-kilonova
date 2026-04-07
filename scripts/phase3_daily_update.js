@@ -83,7 +83,13 @@ async function buildPriceMap(pages) {
         try {
             const html = await fetchPage(url);
             const { products } = parseSearchPage(html);
-            if (products.length === 0) break;
+            if (products.length === 0) {
+                if (p === 1) {
+                    // page 1 が空 = ページ取得失敗か想定外レスポンス
+                    throw new Error('ページ1の商品取得が0件 (ブロック・メンテ・認証エラーの可能性)');
+                }
+                break;
+            }
             const now = new Date().toISOString();
             for (const product of products) {
                 priceMap.set(product.product_id, {
@@ -98,6 +104,7 @@ async function buildPriceMap(pages) {
             if (p < pages) await politeWait();
         } catch (e) {
             console.warn(`\n  [価格更新] ページ${p}エラー: ${e.message}`);
+            if (p === 1) throw e; // page 1 失敗は致命的 → 呼び出し元の catch へ
             break;
         }
     }
@@ -308,6 +315,7 @@ async function main() {
         // ---- STEP 2: 価格更新 ----
         let priceMap = new Map();
         let saleCount = 0;
+        let step2Error = null;
         try {
             console.log(`[STEP 2] 価格更新: 直近${PRICE_REFRESH_PAGES}ページ (${PRICE_REFRESH_PAGES * ITEMS_PER_PAGE}件)`);
             priceMap = await buildPriceMap(PRICE_REFRESH_PAGES);
@@ -324,6 +332,7 @@ async function main() {
                 console.log(`  ローカルDB 価格更新完了`);
             }
         } catch (e) {
+            step2Error = e.message;
             console.warn('[STEP 2] 価格更新エラー:', e.message);
         }
 
@@ -393,10 +402,11 @@ async function main() {
         // Discord通知
         const lines = [
             `🎬 **MGS動画 日次更新** (${now})`,
-            `新作: **${newProducts.length}件** / 価格更新: **${priceMap.size.toLocaleString()}件**`,
+            `新作: **${newProducts.length}件** / 価格取得: **${priceMap.size.toLocaleString()}件**`,
         ];
         if (saleCount > 0) lines.push(`🏷️ セール中: **${saleCount.toLocaleString()}件**`);
         if (newProducts.length === 0) lines.push('ℹ️ 本日の新作なし');
+        if (step2Error) lines.push(`⚠️ 価格更新エラー: ${step2Error}`);
         await sendDiscord(lines.join('\n'));
     }
 }

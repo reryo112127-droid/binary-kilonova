@@ -143,6 +143,8 @@ tailwind.config = {
   };
   var mp4Cache = {};
   var activeVideos = new Set();
+  var preorderCache = []; // 予約作品プール
+  var preorderLoaded = false;
 
   /* ── ボトムナビの実際の高さを取得してfeed位置を調整 ── */
   function adjustFeedBottom() {
@@ -159,24 +161,79 @@ tailwind.config = {
   setTimeout(adjustFeedBottom, 200);
 
   /* ── API ── */
-  // 高評価順（wish_count DESC）でランダムオフセットを使い多様性を確保
-  var randomOffset = Math.floor(Math.random() * 300);
-  var fetchOffset = randomOffset;
+  // MGS: 高評価順（wish_count DESC）でランダムオフセット
+  var mgsOffset = Math.floor(Math.random() * 200);
+  // FANZA: 新着順でランダムオフセット
+  var fanzaOffset = Math.floor(Math.random() * 100);
+  // カード追加カウンター（予約作品を挿入するタイミング管理）
+  var cardInsertCount = 0;
+
+  // 予約作品を事前読み込み
+  function loadPreorders() {
+    if (preorderLoaded) return;
+    preorderLoaded = true;
+    fetch('/api/products?sort=pre-order&hasVideo=0&excludeBest=1&limit=30')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data && data.length) {
+          // シャッフル
+          for (var i = data.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = data[i]; data[i] = data[j]; data[j] = tmp;
+          }
+          preorderCache = data;
+        }
+      })
+      .catch(function() {});
+  }
 
   function fetchRandom(cb) {
     var f = feeds.random;
     if (f.loading || f.exhausted) return;
     f.loading = true;
-    // sort未指定 → wish_count DESC（MGSデフォルト）
-    fetch('/api/products?source=mgs&hasVideo=1&excludeBest=1&limit=10&offset=' + fetchOffset)
+
+    // MGS(高評価) 6件 + FANZA(新着) 4件 を並行取得
+    var mgsReq = fetch('/api/products?source=mgs&hasVideo=1&excludeBest=1&limit=6&offset=' + mgsOffset)
       .then(function(r) { return r.json(); })
-      .then(function(data) {
-        f.loading = false;
-        if (!data || !data.length) { f.exhausted = true; return; }
-        fetchOffset += 10;
-        cb(data);
-      })
-      .catch(function() { f.loading = false; });
+      .catch(function() { return []; });
+    var fanzaReq = fetch('/api/products?source=fanza&hasVideo=1&excludeBest=1&limit=4&offset=' + fanzaOffset)
+      .then(function(r) { return r.json(); })
+      .catch(function() { return []; });
+
+    Promise.all([mgsReq, fanzaReq]).then(function(results) {
+      f.loading = false;
+      var mgs = results[0] || [];
+      var fanza = results[1] || [];
+
+      if (!mgs.length && !fanza.length) { f.exhausted = true; return; }
+      if (mgs.length) mgsOffset += 6;
+      if (fanza.length) fanzaOffset += 4;
+
+      // 交互にミックス（MGS 3: FANZA 2 の比率を維持しつつラウンドロビン）
+      var mixed = [];
+      var mi = 0, fi = 0;
+      while (mi < mgs.length || fi < fanza.length) {
+        if (mi < mgs.length) mixed.push(mgs[mi++]);
+        if (mi < mgs.length) mixed.push(mgs[mi++]);
+        if (fi < fanza.length) mixed.push(fanza[fi++]);
+        if (mi < mgs.length) mixed.push(mgs[mi++]);
+        if (fi < fanza.length) mixed.push(fanza[fi++]);
+      }
+
+      // 5枚ごとに予約作品を1枚挟む
+      var withPreorder = [];
+      mixed.forEach(function(p) {
+        withPreorder.push(p);
+        cardInsertCount++;
+        if (cardInsertCount % 5 === 0 && preorderCache.length) {
+          var pre = preorderCache.shift();
+          pre._isPreorder = true;
+          withPreorder.push(pre);
+        }
+      });
+
+      cb(withPreorder);
+    });
   }
 
   function fetchPersonal(cb) {
@@ -267,10 +324,20 @@ tailwind.config = {
   }
 
   /* ── MP4プリフェッチ ── */
+  function getVideoApiUrl(p) {
+    if (!p || !p.sample_video_url) return null;
+    if (p.source === 'fanza') {
+      return '/api/fanza-video?url=' + encodeURIComponent(p.sample_video_url);
+    }
+    return '/api/mgs-video?url=' + encodeURIComponent(p.sample_video_url);
+  }
+
   function prefetchMp4(p) {
     if (!p || !p.sample_video_url || mp4Cache[p.product_id] !== undefined) return;
+    var apiUrl = getVideoApiUrl(p);
+    if (!apiUrl) return;
     mp4Cache[p.product_id] = null; // 取得中フラグ
-    fetch('/api/mgs-video?url=' + encodeURIComponent(p.sample_video_url))
+    fetch(apiUrl)
       .then(function(r) { return r.json(); })
       .then(function(d) { if (d.mp4) mp4Cache[p.product_id] = d.mp4; })
       .catch(function() {});
@@ -297,7 +364,11 @@ tailwind.config = {
 
     var overlay = document.createElement('div');
     overlay.className = 'absolute inset-0 flex items-center justify-center cursor-pointer';
-    overlay.innerHTML = '<div class="bg-black/40 rounded-full p-4 backdrop-blur-sm"><span class="material-symbols-outlined text-white" style="font-size:44px;font-variation-settings:\'FILL\' 1">play_circle</span></div>';
+    if (p._isPreorder) {
+      overlay.innerHTML = '<div class="bg-black/60 rounded-xl px-5 py-3 backdrop-blur-sm flex flex-col items-center gap-1"><span class="material-symbols-outlined text-[#ec5b13]" style="font-size:36px;">event</span><span style="font-size:11px;font-weight:700;color:#fff;">予約作品を見る</span></div>';
+    } else {
+      overlay.innerHTML = '<div class="bg-black/40 rounded-full p-4 backdrop-blur-sm"><span class="material-symbols-outlined text-white" style="font-size:44px;font-variation-settings:\'FILL\' 1">play_circle</span></div>';
+    }
 
     var spinEl = document.createElement('div');
     spinEl.className = 'absolute inset-0 items-center justify-center hidden';
@@ -320,6 +391,12 @@ tailwind.config = {
     }
 
     overlay.addEventListener('click', function() {
+      // 予約作品は動画なし → 作品詳細へ
+      if (p._isPreorder || !p.sample_video_url) {
+        window.location.href = '/product/' + encodeURIComponent(p.product_id);
+        return;
+      }
+
       var src = mp4Cache[p.product_id];
       if (src) {
         img.style.display = 'none';
@@ -334,7 +411,8 @@ tailwind.config = {
       }
       overlay.style.display = 'none';
       spinEl.style.display = 'flex';
-      fetch('/api/mgs-video?url=' + encodeURIComponent(p.sample_video_url))
+      var apiUrl = getVideoApiUrl(p);
+      fetch(apiUrl)
         .then(function(r) { return r.json(); })
         .then(function(d) {
           spinEl.style.display = 'none';
@@ -364,6 +442,22 @@ tailwind.config = {
     /* 情報エリア */
     var info = document.createElement('div');
     info.className = 'video-info';
+
+    // 予約作品バッジ
+    if (p._isPreorder) {
+      var badge = document.createElement('div');
+      badge.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:#ec5b13;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-bottom:6px;';
+      badge.innerHTML = '<span class="material-symbols-outlined" style="font-size:12px;">event</span>予約受付中';
+      info.appendChild(badge);
+    }
+
+    // ソースバッジ（MGS/FANZA）
+    if (!p._isPreorder && p.source) {
+      var srcBadge = document.createElement('div');
+      srcBadge.style.cssText = 'display:inline-flex;align-items:center;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-bottom:4px;opacity:0.7;' + (p.source === 'mgs' ? 'background:#1a1a2e;color:#8888ff;' : 'background:#1a1a1a;color:#ff8888;');
+      srcBadge.textContent = p.source === 'mgs' ? 'MGS' : 'FANZA';
+      info.appendChild(srcBadge);
+    }
 
     var title = document.createElement('h2');
     title.style.cssText = 'font-size:13px;font-weight:700;color:#fff;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px;';
@@ -422,7 +516,7 @@ tailwind.config = {
     var feedEl = document.getElementById('feed');
     var f = feeds[currentTab];
     products.forEach(function(p) {
-      if (!p.sample_video_url) return;
+      if (!p.sample_video_url && !p._isPreorder) return;
       f.products.push(p);
       var card = createCard(p, cardCount++);
       feedEl.appendChild(card);
@@ -510,6 +604,7 @@ tailwind.config = {
   window.switchTab = switchTab;
 
   /* ── 初期ロード ── */
+  loadPreorders(); // 予約作品を事前取得
   fetchRandom(appendProducts);
 
 })();

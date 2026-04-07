@@ -496,12 +496,12 @@
 <script>(function(){
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 function workPodItem(p,rank,wrap,imgSz,border,podCls,podH){
-  var img=(p.main_image_url||'').replace(/pl\.jpg$/,'pt.jpg');
+  var img=(function(u){return u&&u.includes('pb_e_')?u.replace('pb_e_','pf_e_'):u;})(p.main_image_url||'');
   var t=esc((p.title||'').substring(0,18));
   var pid=encodeURIComponent(p.product_id||'');
   return '<div class="flex flex-col items-center group '+wrap+' cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
     +'<div class="relative mb-6"><div class="'+imgSz+' '+border+' overflow-hidden shadow-2xl relative z-10">'
-    +(img?'<div class="h-full w-full bg-cover bg-left-top" style="background-image:url(\''+img+'\')"></div>':'<div class="w-full h-full bg-slate-200"></div>')
+    +(img?'<div class="h-full w-full bg-cover bg-center" style="background-image:url(\''+img+'\')"></div>':'<div class="w-full h-full bg-slate-200"></div>')
     +'</div><div class="absolute -top-4 -right-2 '+podCls+' w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20">'+rank+'</div></div>'
     +'<div class="w-full '+podCls+' '+podH+' rounded-t-2xl flex items-center justify-center p-3 shadow-2xl"><span class="font-bold text-sm text-black text-center line-clamp-2">'+t+'</span></div></div>';
 }
@@ -539,11 +539,11 @@ var ORDER=[1,0,2]; // indices: 2nd=1, 1st=0, 3rd=2 in display order
   }
   if(wl&&items.length>3){
     wl.innerHTML=items.slice(3,9).map(function(p,i){
-      var rank=i+4;var img=(p.main_image_url||'').replace(/pl\.jpg$/,'pt.jpg');var t=esc((p.title||'').substring(0,30));var pid=encodeURIComponent(p.product_id||'');
+      var rank=i+4;var img=(function(u){return u&&u.includes('pb_e_')?u.replace('pb_e_','pf_e_'):u;})(p.main_image_url||'');var t=esc((p.title||'').substring(0,30));var pid=encodeURIComponent(p.product_id||'');
       return '<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
         +'<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">'+rank+'</span>'
-        +'<div class="w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">'
-        +(img?'<img class="w-full h-auto block" src="'+img+'"/>':'')
+        +'<div class="w-16 h-[85px] flex-shrink-0 overflow-hidden rounded-lg bg-slate-200">'
+        +(img?'<img class="w-full h-full object-cover object-right block" src="'+img+'"/>':'')
         +'</div><div class="flex-1 min-w-0"><p class="font-bold text-sm line-clamp-2">'+t+'</p></div></div>';
     }).join('');
   }

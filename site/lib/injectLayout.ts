@@ -20,7 +20,7 @@ const MOBILE_CSS = `<style id="layout-styles">
 </style>`;
 
 // ─── モバイル標準ヘッダー（home.htmlと同一デザイン） ───────────
-const MOBILE_HEADER = `<header class="sticky top-0 z-50 flex items-center justify-between bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-2 py-2 border-b border-primary/10"><div class="flex items-center gap-1.5 w-full"><div class="flex items-center gap-1 shrink-0"><a href="/" class="flex items-center gap-1"><div class="size-6 bg-primary rounded-lg flex items-center justify-center text-white"><span class="material-symbols-outlined text-[12px]">play_circle</span></div><span class="text-[10px] font-bold tracking-tight text-primary hidden min-[360px]:block">AVランキング</span></a></div><div class="relative flex-1 group min-w-0 mx-1"><div class="relative"><input id="site-search-input" class="w-full h-7 bg-slate-100 dark:bg-slate-800 border-none rounded-full py-1 pl-7 pr-2 text-[10px] focus:ring-1 focus:ring-primary/50 transition-all outline-none text-slate-900 dark:text-white" placeholder="検索" type="text"/><span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-[14px] text-slate-400">search</span></div><div class="hidden absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-50" id="site-search-dropdown"><ul class="py-1" id="site-search-list"></ul></div></div><div class="flex items-center gap-1 shrink-0"><button onclick="location.href='/info/add'" class="flex items-center justify-center p-0.5 text-slate-600 dark:text-slate-400" title="情報を追加"><span class="material-symbols-outlined text-[18px]">add_circle</span></button><a href="/signup" class="px-1.5 py-1 text-[9px] font-bold text-primary border border-primary/20 rounded-md whitespace-nowrap">新規登録</a><a href="/login" class="px-1.5 py-1 text-[9px] font-bold bg-primary text-white rounded-md whitespace-nowrap">ログイン</a></div></div></header>`;
+const MOBILE_HEADER = `<header class="sticky top-0 z-50 flex items-center bg-white border-b border-gray-100 px-3 py-2" style="background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)"><a href="/" class="shrink-0 mr-2"><div class="size-7 bg-primary rounded-lg flex items-center justify-center text-white"><span class="material-symbols-outlined text-[14px]">play_circle</span></div></a><form action="/search" method="get" id="site-search-form" style="flex:1;position:relative;display:flex;align-items:center;gap:6px"><div style="position:relative;flex:1"><input id="site-search-input" name="q" type="search" autocomplete="off" placeholder="女優・メーカーを検索..." style="width:100%;height:36px;background:#f3f4f6;border:none;border-radius:18px;padding:0 12px 0 32px;font-size:13px;outline:none;-webkit-appearance:none;color:#111"/><span class="material-symbols-outlined" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:16px;color:#9ca3af;pointer-events:none">search</span></div><button type="submit" style="height:36px;padding:0 12px;background:#ec5b13;color:#fff;border:none;border-radius:18px;font-size:12px;font-weight:700;white-space:nowrap;-webkit-tap-highlight-color:transparent">検索</button></form><div id="site-search-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border-bottom:1px solid #e5e7eb;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:100"><ul id="site-search-list" style="list-style:none;margin:0;padding:4px 0"></ul></div></header>`;
 
 // ─── WEB標準ヘッダー（web/home.htmlと同一デザインベース） ───────
 const WEB_HEADER = `<header class="sticky top-0 z-50 w-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800" data-layout="standard-web"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div class="flex items-center justify-between h-14"><div class="flex items-center gap-6 shrink-0"><a href="/" class="flex items-center gap-2 shrink-0"><div class="size-7 bg-primary rounded-lg flex items-center justify-center text-white"><span class="material-symbols-outlined text-[14px]">play_circle</span></div><span class="font-bold text-base tracking-tight hidden sm:block text-slate-900 dark:text-white">AVランキング</span></a><nav class="hidden lg:flex items-center gap-5 text-xs font-medium"><a class="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors" href="/new">新作</a><a class="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors" href="/pre-order">予約</a><a class="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors" href="/ranking">ランキング</a><a class="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors flex items-center gap-1" href="/info/add"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>情報を追加</a><a class="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors" href="/mypage">マイページ</a></nav></div><div class="flex items-center gap-3 flex-1 justify-end ml-4 max-w-sm"><div class="relative flex-1"><span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg></span><input id="web-search-input" class="block w-full pl-9 pr-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-primary dark:bg-slate-800 dark:text-white dark:placeholder-slate-400 transition-all" placeholder="作品、出演者を検索..." type="text"/></div><button onclick="location.href='/search/advanced'" class="flex items-center gap-1 px-3 py-1.5 bg-primary text-white rounded-xl text-xs font-bold hover:opacity-90 transition-opacity shrink-0"><span class="material-symbols-outlined text-sm">tune</span><span class="hidden md:block">詳細検索</span></button><div class="flex items-center gap-2 shrink-0"><a href="/login" class="text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-primary">ログイン</a><a href="/signup" class="bg-primary text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity">新規登録</a></div></div></div></div></header>`;
@@ -37,30 +37,34 @@ function mobileBottomNav(activePage = ''): string {
 // ─── モバイル検索サジェストスクリプト ─────────────────────────
 const MOBILE_SEARCH_SCRIPT = `<script>
 (function(){
+  var form=document.getElementById('site-search-form');
   var input=document.getElementById('site-search-input');
   var dropdown=document.getElementById('site-search-dropdown');
   var list=document.getElementById('site-search-list');
   if(!input||!dropdown||!list)return;
   function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');}
   var timer=null;
+  function hideDrop(){dropdown.style.display='none';}
+  function showDrop(){dropdown.style.display='block';}
   function render(q){
-    if(!q){dropdown.classList.add('hidden');return;}
+    if(!q){hideDrop();return;}
     fetch('/api/suggest?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(data){
       var acts=(data.actresses||[]).slice(0,4);
       var makes=(data.makers||[]).slice(0,2);
       var html=acts.map(function(a){
-        return '<li class="px-3 py-1.5 text-[10px] hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer flex items-center gap-2" onclick="location.href=\'/actress/\'+encodeURIComponent(\''+esc(a)+'\')"><span class="material-symbols-outlined text-[14px] text-primary">person</span><span>'+esc(a)+'</span></li>';
+        return '<li style="padding:10px 16px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f9fafb" onclick="location.href=\'/actress/\'+encodeURIComponent(\''+esc(a)+'\')"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13">person</span><span>'+esc(a)+'</span></li>';
       }).concat(makes.map(function(m){
-        return '<li class="px-3 py-1.5 text-[10px] hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer flex items-center gap-2" onclick="location.href=\'/search?maker=\'+encodeURIComponent(\''+esc(m)+'\')"><span class="material-symbols-outlined text-[14px] text-slate-400">business</span><span>'+esc(m)+'</span></li>';
+        return '<li style="padding:10px 16px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f9fafb" onclick="location.href=\'/search?maker=\'+encodeURIComponent(\''+esc(m)+'\')"><span class="material-symbols-outlined" style="font-size:16px;color:#9ca3af">business</span><span>'+esc(m)+'</span></li>';
       })).join('');
-      list.innerHTML=html||'<li class="px-3 py-2 text-[10px] text-slate-400">該当なし</li>';
-      dropdown.classList.remove('hidden');
-    }).catch(function(){dropdown.classList.add('hidden');});
+      list.innerHTML=html;
+      if(html)showDrop();else hideDrop();
+    }).catch(function(){hideDrop();});
   }
-  input.addEventListener('focus',function(){if(input.value)render(input.value);});
+  input.addEventListener('focus',function(){if(input.value.trim())render(input.value);});
   input.addEventListener('input',function(){clearTimeout(timer);timer=setTimeout(function(){render(input.value);},200);});
-  input.addEventListener('keydown',function(e){if(e.key==='Enter'){dropdown.classList.add('hidden');location.href='/search?q='+encodeURIComponent(input.value);}});
-  document.addEventListener('click',function(e){if(e.target&&!input.contains(e.target)&&!dropdown.contains(e.target))dropdown.classList.add('hidden');});
+  if(form)form.addEventListener('submit',function(){hideDrop();});
+  document.addEventListener('click',function(e){if(!input.contains(e.target)&&!dropdown.contains(e.target))hideDrop();});
+  document.addEventListener('touchstart',function(e){if(!input.contains(e.target)&&!dropdown.contains(e.target))hideDrop();},{passive:true});
 })();
 </script>`;
 

@@ -62,7 +62,7 @@
 </div>
 <!-- 2. Middle row: Filter toggles -->
 <div class="flex items-center gap-2 overflow-x-auto px-4 no-scrollbar">
-<button class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full bg-gray-100 px-3 py-1">
+<button id="sf-advanced-btn" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full bg-gray-100 px-3 py-1">
 <span class="material-symbols-outlined text-[16px]">filter_list</span>
 <span class="material-symbols-outlined text-[16px]">expand_more</span>
 </button>
@@ -132,19 +132,21 @@
   if (h1 && term) h1.textContent = term;
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.endsWith('pl.jpg'))return url.replace('pl.jpg','pt.jpg');return url;}
+  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}
 
   var filters = { contentType:'all', sortOrder:'new', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'' };
   var LIMIT = 60;
   var fetchOffset = 0;
   var isLoading = false;
+  var allData = []; // ロード済み全データキャッシュ
+  var serverHasMore = false;
 
   function buildUrl(off){
     var p = new URLSearchParams();
     p.set('limit', String(LIMIT + 1)); // +1 でhasMore判定
     p.set('offset', String(off || 0));
-    if (filters.vrOnly) p.set('excludeGenres','VR');
-    else if (actress) p.set('actress',actress);
+    // 注: VR除外・BEST除外・sourceはクライアントサイドフィルター
+    if (actress) p.set('actress',actress);
     else if (maker) p.set('maker',maker);
     else if (label) p.set('label',label);
     else if (genre) p.set('genre',genre);
@@ -154,19 +156,34 @@
     else if (filters.contentType==='new') p.set('sort','new');
     else p.set('sort', filters.sortOrder==='popular' ? 'wish_count' : 'new');
 
-    if (filters.source) p.set('source',filters.source);
-    if (!filters.showBest) p.set('excludeBest','1');
     if (filters.fromDate) p.set('fromDate',filters.fromDate);
     if (filters.toDate) p.set('toDate',filters.toDate);
     return '/api/products?'+p.toString();
+  }
+
+  // クライアントサイドフィルター（現在のキャッシュに適用）
+  function applyClientFilters(data){
+    return data.filter(function(p){
+      // VR除外
+      if (filters.vrOnly && p.genres && /\bVR\b|VR専用/i.test(p.genres)) return false;
+      // BEST/総集編除外
+      if (!filters.showBest){
+        var t = p.title||'';
+        if (/BEST|ベスト|総集編|コレクション/i.test(t)) return false;
+        if (p.duration_min && Number(p.duration_min) > 200) return false;
+      }
+      // ソース（MGS/FANZA）
+      if (filters.source && p.source && p.source !== filters.source) return false;
+      return true;
+    });
   }
 
   function cardHtml(p){
     var img = poster(p.main_image_url);
     var noAct = !(p.actresses&&p.actresses.trim());
     return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="flex flex-col gap-1 block">'
-      +'<div class="relative w-full overflow-hidden rounded-md bg-gray-100">'
-      +(img?'<img class="w-full h-auto block" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
+      +'<div class="relative w-full aspect-[3/4] overflow-hidden rounded-md bg-gray-100">'
+      +(img?'<img class="w-full h-full object-cover object-right block" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
       +'<div class="absolute bottom-1 right-1 flex gap-1">'
       +(noAct?'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">add</span></button>':'')
       +'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">favorite</span></button>'
@@ -181,18 +198,33 @@
     if (btn) btn.style.display = visible ? '' : 'none';
   }
 
+  // キャッシュから再描画（APIコールなし）
   var grid = document.getElementById('search-results-grid');
+  function renderFromCache(){
+    if (!grid) return;
+    var items = applyClientFilters(allData);
+    if (!items.length){
+      grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-gray-400">作品が見つかりませんでした</div>';
+      setLoadMoreBtn(false);
+      return;
+    }
+    grid.innerHTML = items.map(cardHtml).join('');
+    setLoadMoreBtn(serverHasMore);
+  }
+
+  // APIから取り直す（ソート・期間・コンテンツタイプ変更時）
   function fetchAndRender(){
     if (!grid) return;
+    allData = [];
     fetchOffset = 0;
+    serverHasMore = false;
     grid.innerHTML = '<div class="col-span-3 py-8 text-center text-xs text-gray-400">読み込み中...</div>';
     setLoadMoreBtn(false);
     fetch(buildUrl(0)).then(function(r){return r.json();}).then(function(data){
       if (!data||!data.length){ grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-gray-400">作品が見つかりませんでした</div>'; return; }
-      var hasMore = data.length > LIMIT;
-      var items = hasMore ? data.slice(0, LIMIT) : data;
-      grid.innerHTML = items.map(cardHtml).join('');
-      setLoadMoreBtn(hasMore);
+      serverHasMore = data.length > LIMIT;
+      allData = serverHasMore ? data.slice(0, LIMIT) : data;
+      renderFromCache();
     }).catch(function(){ grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-gray-400">エラーが発生しました</div>'; });
   }
 
@@ -204,11 +236,14 @@
     fetchOffset += LIMIT;
     fetch(buildUrl(fetchOffset)).then(function(r){return r.json();}).then(function(data){
       isLoading = false;
-      var hasMore = data && data.length > LIMIT;
-      var items = (data && hasMore) ? data.slice(0, LIMIT) : (data || []);
-      items.forEach(function(p){ grid.insertAdjacentHTML('beforeend', cardHtml(p)); });
+      serverHasMore = data && data.length > LIMIT;
+      var items = (data && serverHasMore) ? data.slice(0, LIMIT) : (data || []);
+      allData = allData.concat(items);
       if (btn) btn.textContent = 'もっと見る';
-      setLoadMoreBtn(hasMore);
+      // 追加分のみgridに追記（全再描画しない）
+      var filtered = applyClientFilters(items);
+      filtered.forEach(function(p){ grid.insertAdjacentHTML('beforeend', cardHtml(p)); });
+      setLoadMoreBtn(serverHasMore);
     }).catch(function(){ isLoading = false; if (btn) btn.textContent = 'もっと見る'; });
   };
 
@@ -220,19 +255,19 @@
   document.querySelectorAll('input[name="sort-order"]').forEach(function(r){
     r.addEventListener('change',function(){ filters.sortOrder=r.value==='popular'?'popular':'new'; fetchAndRender(); });
   });
-  // BEST toggle
+  // BEST toggle（クライアントサイドフィルター）
   var bestBtn=document.getElementById('sf-best-btn'), bestIcon=document.getElementById('sf-best-icon');
   if(bestBtn) bestBtn.addEventListener('click',function(){
     filters.showBest=!filters.showBest;
     if(bestIcon){ bestIcon.textContent=filters.showBest?'toggle_on':'toggle_off'; bestIcon.className='material-symbols-outlined text-[18px] '+(filters.showBest?'text-primary':'text-gray-300'); }
-    fetchAndRender();
+    renderFromCache();
   });
-  // VR toggle
+  // VR toggle（クライアントサイドフィルター）
   var vrBtn=document.getElementById('sf-vr-btn'), vrIcon=document.getElementById('sf-vr-icon');
   if(vrBtn) vrBtn.addEventListener('click',function(){
     filters.vrOnly=!filters.vrOnly;
     if(vrIcon){ vrIcon.textContent=filters.vrOnly?'toggle_on':'toggle_off'; vrIcon.className='material-symbols-outlined text-[18px] '+(filters.vrOnly?'text-primary':'text-gray-300'); }
-    fetchAndRender();
+    renderFromCache();
   });
   // Calendar
   var calBtn=document.getElementById('sf-cal-btn'), calPanel=document.getElementById('sf-cal-panel');
@@ -248,8 +283,22 @@
     if(mgsBtn){ mgsBtn.className=mgsBtn.className.replace(/bg-primary text-white|bg-gray-100/g,'').trim(); mgsBtn.classList.add(filters.source==='mgs'?'bg-primary':'bg-gray-100'); var s=mgsBtn.querySelector('span'); if(s) s.className='text-[11px] font-medium '+(filters.source==='mgs'?'text-white':'text-gray-600'); }
     if(fanzaBtn){ fanzaBtn.className=fanzaBtn.className.replace(/bg-primary text-white|bg-gray-100/g,'').trim(); fanzaBtn.classList.add(filters.source==='fanza'?'bg-primary':'bg-gray-100'); var s=fanzaBtn.querySelector('span'); if(s) s.className='text-[11px] font-medium '+(filters.source==='fanza'?'text-white':'text-gray-600'); }
   }
-  if(mgsBtn) mgsBtn.addEventListener('click',function(){ filters.source=filters.source==='mgs'?'':'mgs'; updateSourceBtns(); fetchAndRender(); });
-  if(fanzaBtn) fanzaBtn.addEventListener('click',function(){ filters.source=filters.source==='fanza'?'':'fanza'; updateSourceBtns(); fetchAndRender(); });
+  if(mgsBtn) mgsBtn.addEventListener('click',function(){ filters.source=filters.source==='mgs'?'':'mgs'; updateSourceBtns(); renderFromCache(); });
+  if(fanzaBtn) fanzaBtn.addEventListener('click',function(){ filters.source=filters.source==='fanza'?'':'fanza'; updateSourceBtns(); renderFromCache(); });
+  // 詳細検索ボタン：現在の検索条件を引き継いで詳細検索ページへ
+  var advBtn=document.getElementById('sf-advanced-btn');
+  if(advBtn) advBtn.addEventListener('click',function(){
+    var ap=new URLSearchParams();
+    if(actress) ap.set('actress',actress);
+    if(maker) ap.set('maker',maker);
+    if(label) ap.set('label',label);
+    if(genre) ap.set('genre',genre);
+    if(q) ap.set('q',q);
+    if(filters.source) ap.set('source',filters.source);
+    if(filters.fromDate) ap.set('fromDate',filters.fromDate);
+    if(filters.toDate) ap.set('toDate',filters.toDate);
+    location.href='/search/advanced?'+ap.toString();
+  });
 
   // Actress profile cards
   var profilesWrap = document.getElementById('actress-profiles-wrap');

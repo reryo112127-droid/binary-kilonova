@@ -1,40 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
-import { ssrFetchNewProductsPage, injectSsrScript } from '../../lib/ssrFetch';
 
 export const dynamic = 'force-dynamic';
 
-const MOBILE_UA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
-
-export async function GET(request: NextRequest) {
-    const ua = request.headers.get('user-agent') || '';
-    const isMobile = MOBILE_UA.test(ua);
-
-    const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'new-products.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', 'new-products.html');
-
-    try {
-        let html = fs.readFileSync(htmlFile, 'utf-8');
-        html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
-
-        // SSRデータ取得・注入（初期表示分のみ）
-        try {
-            const products = await ssrFetchNewProductsPage(61);
-            html = injectSsrScript(html, '__SSR_NEW_DATA__', products);
-        } catch (e) {
-            console.error('SSR new products fetch failed:', e);
-        }
-
-        return new NextResponse(html, {
-            headers: {
-                'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store',
-            },
-        });
-    } catch {
-        return new NextResponse('Not found', { status: 404 });
-    }
+export async function GET(_request: NextRequest) {
+    return NextResponse.redirect(new URL('/products?type=new', _request.url), 302);
 }

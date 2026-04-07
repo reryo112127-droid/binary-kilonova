@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         var dt=p.sale_start_date?(String(p.sale_start_date).slice(0,4)+'年'):'';
         return '<div class="group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
           +'<div class="aspect-[3/4] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 relative mb-3">'
-          +(img?'<img class="w-full h-full object-cover object-left-top group-hover:scale-105 transition-transform duration-300" src="'+esc(img)+'" alt="'+t+'"/>':'<div class="w-full h-full bg-slate-200"></div>')
+          +(img?'<img class="w-full h-full object-cover object-right group-hover:scale-105 transition-transform duration-300" src="'+esc(img)+'" alt="'+t+'"/>':'<div class="w-full h-full bg-slate-200"></div>')
           +'</div><h3 class="text-sm font-semibold truncate group-hover:text-primary transition-colors">'+t+'</h3>'
           +(dt?'<p class="text-xs text-slate-500">'+dt+'リリース</p>':'')
           +'</div>';

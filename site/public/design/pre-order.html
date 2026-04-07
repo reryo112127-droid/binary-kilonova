@@ -51,8 +51,7 @@ tailwind.config = {
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function getPosterImageUrl(url) {
   if (!url) return '';
-  if (url.includes('pb_e_')) return url.replace('pb_e_', 'pf_o1_');
-  if (url.endsWith('pl.jpg')) return url.replace('pl.jpg', 'pt.jpg');
+  if (url.includes('pb_e_')) return url.replace('pb_e_', 'pf_e_');
   return url;
 }
 function getSessionId(){var sid=localStorage.getItem('av-session-id');if(!sid){var arr=new Uint8Array(16);crypto.getRandomValues(arr);sid=Array.from(arr).map(function(b,i){return(i===4||i===6||i===8||i===10?'-':'')+(b<16?'0':'')+b.toString(16);}).join('');localStorage.setItem('av-session-id',sid);}return sid;}
@@ -67,8 +66,8 @@ function makeProductCard(p) {
   var liked = isLiked(id);
   var hStyle = liked ? "font-variation-settings:'FILL' 1;color:#ef4444" : "color:#94a3b8";
   return '<article class="group cursor-pointer" onclick="location.href=\'/product/'+encId+'\'">'+
-    '<div class="overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 relative mb-1.5 shadow-sm">'+
-    (img ? '<img alt="" class="w-full h-auto block" src="'+esc(img)+'" loading="lazy"/>' : '')+
+    '<div class="aspect-[3/4] overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 relative mb-1.5 shadow-sm">'+
+    (img ? '<img alt="" class="w-full h-full object-cover object-right block" src="'+esc(img)+'" loading="lazy"/>' : '')+
     '<span class="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow-sm">予約</span>'+
     '<div class="absolute bottom-1 right-1 flex gap-0.5">'+
     '<button class="bg-white/90 rounded-full p-0.5 shadow-sm" onclick="event.stopPropagation();toggleLike(\''+esc(id)+'\',this)">'+

@@ -185,17 +185,17 @@
 <div class="mb-8">
 <div class="flex justify-between items-center mb-3">
 <label class="text-sm font-medium">身長</label>
-<span class="text-sm text-orange-600 font-bold" id="height-label">140cm - 180cm+</span>
+<span class="text-sm text-orange-600 font-bold" id="height-label">指定なし</span>
 </div>
-<input class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" max="190" min="130" type="range" value="150"/>
+<input class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="height-slider" max="190" min="130" type="range" value="130"/>
 </div>
 <!-- Age Slider -->
 <div class="mb-8">
 <div class="flex justify-between items-center mb-3">
 <label class="text-sm font-medium">年齢</label>
-<span class="text-sm text-orange-600 font-bold" id="age-label">18歳 - 50歳+</span>
+<span class="text-sm text-orange-600 font-bold" id="age-label">指定なし</span>
 </div>
-<input class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" max="60" min="18" type="range" value="24"/>
+<input class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="age-slider" max="50" min="18" type="range" value="18"/>
 </div>
 <!-- Cup Size Slider -->
 <div class="mb-2">
@@ -237,21 +237,32 @@
 </div>
 <!-- END: StickyFooterButton -->
 <script data-purpose="event-handlers">
-    const cupSlider = document.getElementById('cup-slider');
-    const cupLabel = document.getElementById('cup-label');
-    const cups = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', '0', 'P', 'Q+'];
+    const cups = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q+'];
 
-    if (cupSlider) {
-      cupSlider.addEventListener('input', (e) => {
-        const val = e.target.value;
-        cupLabel.textContent = `${cups[val]}カップ以上`;
+    var cupSlider = document.getElementById('cup-slider');
+    var cupLabel = document.getElementById('cup-label');
+    if (cupSlider && cupLabel) {
+      cupSlider.addEventListener('input', function(e) {
+        cupLabel.textContent = cups[e.target.value] + 'カップ以上';
       });
     }
 
-    document.querySelectorAll('input[type="range"]').forEach(slider => {
-      slider.addEventListener('input', (e) => {
-        // Logic for other sliders can be added here
+    var heightSlider = document.getElementById('height-slider');
+    var heightLabel = document.getElementById('height-label');
+    if (heightSlider && heightLabel) {
+      heightSlider.addEventListener('input', function(e) {
+        var v = parseInt(e.target.value, 10);
+        heightLabel.textContent = v <= 130 ? '指定なし' : v + 'cm以上';
       });
-    });
+    }
+
+    var ageSlider = document.getElementById('age-slider');
+    var ageLabel = document.getElementById('age-label');
+    if (ageSlider && ageLabel) {
+      ageSlider.addEventListener('input', function(e) {
+        var v = parseInt(e.target.value, 10);
+        ageLabel.textContent = v <= 18 ? '指定なし' : v + '歳以上';
+      });
+    }
   </script>
 </body></html>

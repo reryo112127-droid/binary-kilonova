@@ -52,7 +52,7 @@ export default function ProductCard({
                             src={imgSrc}
                             alt={title}
                             fill
-                            className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                            className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
                             sizes="(max-width: 640px) 50vw, 25vw"
                             priority={false}
                             unoptimized

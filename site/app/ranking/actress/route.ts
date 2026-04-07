@@ -45,8 +45,24 @@ export async function GET(request: NextRequest) {
         var card=document.getElementById('rank-'+n+'-card');
         if(!a)return;
         if(img){
-          if(a.image_url){img.src=a.image_url;img.alt=esc(a.name||'');}
-          else{img.style.display='none';var p=img.parentNode;if(p){var d=document.createElement('div');d.className='w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-700';d.innerHTML='<span class="material-symbols-outlined text-slate-400 text-4xl">account_circle</span>';p.appendChild(d);}}
+          // コンテナを 3:4矩形 → 正円に変更
+          var wrap=img.parentElement;
+          if(wrap){
+            wrap.style.borderRadius='50%';
+            wrap.style.aspectRatio='1/1';
+            img.style.objectPosition='center top';
+          }
+          if(a.image_url){
+            img.src=a.image_url;img.alt=esc(a.name||'');
+          } else {
+            img.style.display='none';
+            if(wrap){
+              var d=document.createElement('div');
+              d.style.cssText='width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#e2e8f0;';
+              d.innerHTML='<span class="material-symbols-outlined" style="font-size:2.5rem;color:#94a3b8">account_circle</span>';
+              wrap.appendChild(d);
+            }
+          }
         }
         if(ttl)ttl.textContent=a.name||'';
         if(card)card.onclick=function(){location.href=aurl(a.name);};
@@ -57,12 +73,14 @@ export async function GET(request: NextRequest) {
         grid.innerHTML=data.slice(3).map(function(a,i){
           var rank=i+4;
           var imgHtml=a.image_url
-            ?'<img class="w-full h-full object-cover" src="'+esc(a.image_url)+'" alt="'+esc(a.name||'')+'" />'
-            :'<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800"><span class="material-symbols-outlined text-slate-400">person</span></div>';
-          return '<a href="'+aurl(a.name)+'" class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">'
-            +'<div class="relative"><div class="w-full aspect-square rounded-md overflow-hidden mb-1.5">'+imgHtml+'</div>'
-            +'<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold">'+rank+'</span></div>'
-            +'<h3 class="font-bold text-[10px] line-clamp-1">'+esc(a.name||'')+'</h3></a>';
+            ?'<img class="w-full h-full object-cover object-center" src="'+esc(a.image_url)+'" alt="'+esc(a.name||'')+'" style="object-position:center top"/>'
+            :'<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-800"><span class="material-symbols-outlined text-slate-400 text-3xl">account_circle</span></div>';
+          return '<a href="'+aurl(a.name)+'" class="flex flex-col items-center p-1.5">'
+            +'<div class="relative mb-1.5 w-full">'
+            +'<div class="w-full aspect-square rounded-full overflow-hidden border-2 border-primary/20 shadow-sm">'+imgHtml+'</div>'
+            +'<span class="absolute top-0 left-0 w-5 h-5 flex items-center justify-center bg-black/60 text-white text-[9px] rounded-full font-bold">'+rank+'</span>'
+            +'</div>'
+            +'<h3 class="font-bold text-[10px] text-center line-clamp-1 w-full">'+esc(a.name||'')+'</h3></a>';
         }).join('');
       }
     })

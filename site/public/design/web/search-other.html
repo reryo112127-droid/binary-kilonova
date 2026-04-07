@@ -325,7 +325,7 @@
   if (titleEl && term) { titleEl.textContent = term; document.title = term + ' - 検索結果'; }
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.endsWith('pl.jpg'))return url.replace('pl.jpg','pt.jpg');return url;}
+  function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}
 
   var ITEMS_PER_PAGE=40,currentPage=1,filteredCache=[],fetchOffset=0;
   var filters = { contentType:'all', sortOrder:'popular', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'', subMaker:'', subGenres:[] };
@@ -364,8 +364,8 @@
     var img = poster(p.main_image_url);
     var noAct = !(p.actresses&&p.actresses.trim());
     return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group block">'
-      +'<div class="bg-gray-50 relative overflow-hidden">'
-      +(img?'<img class="w-full h-auto block group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
+      +'<div class="bg-gray-50 relative overflow-hidden aspect-[3/4]">'
+      +(img?'<img class="w-full h-full object-cover object-right group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
       +'<div class="absolute bottom-2 right-2 flex gap-1">'
       +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
       +'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'

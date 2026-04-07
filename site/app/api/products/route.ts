@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const maker = searchParams.get('maker') || '';
     const label = searchParams.get('label') || '';
     const excludeGenres = searchParams.get('excludeGenres') || '';
+    const excludeLabel = searchParams.get('excludeLabel') || '';
     const cup = searchParams.get('cup') || '';
     const cups = searchParams.get('cups') || ''; // カンマ区切り複数カップ e.g. "C,D,E"
     const heightRange = searchParams.get('height') || '';
@@ -134,6 +135,10 @@ export async function GET(request: NextRequest) {
                 conditions.push('genres NOT LIKE ?');
                 args.push(`%${ex}%`);
             });
+        }
+        if (excludeLabel && !isMgs) {
+            conditions.push('label NOT LIKE ?');
+            args.push(`%${excludeLabel}%`);
         }
         if (actress) {
             const escaped = actressList.map(a => `"${esc5(a)}"`).join(' OR ');

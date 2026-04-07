@@ -593,15 +593,14 @@
   function poster(url){
     if(!url)return'https://via.placeholder.com/120x160?text=No+Image';
     if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');
-    if(url.endsWith('pl.jpg'))return url.replace('pl.jpg','pt.jpg');
     return url;
   }
   function purl(id){return'/product/'+encodeURIComponent(id);}
 
   function renderCard(p,label,labelClass){
     return '<a href="'+purl(p.product_id)+'" class="flex-none w-[160px] space-y-2 group relative block">'
-      +'<div class="overflow-hidden rounded-custom bg-gray-100 relative">'
-      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-auto block transition-transform group-hover:scale-105"/>'
+      +'<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative">'
+      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover object-right transition-transform group-hover:scale-105"/>'
       +'<span class="absolute top-2 left-2 '+labelClass+' text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm">'+label+'</span>'
       +'<div class="absolute bottom-2 right-2 flex gap-1">'
       +(!(p.actresses&&p.actresses.trim())?'<button onclick="event.preventDefault()" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">add</span></button>':'')
@@ -616,8 +615,8 @@
   function renderPreorderCard(p){
     var date=p.sale_start_date?(p.sale_start_date.slice(0,10)):'';
     return '<a href="'+purl(p.product_id)+'" class="flex-none w-[150px] group relative block">'
-      +'<div class="overflow-hidden rounded-xl bg-gray-100 relative shadow-md">'
-      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-auto block transition-transform group-hover:scale-105"/>'
+      +'<div class="aspect-[3/4] overflow-hidden rounded-xl bg-gray-100 relative shadow-md">'
+      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover object-right transition-transform group-hover:scale-105"/>'
       +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
       +'<span class="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>'
       +'<div class="absolute bottom-2 right-2 flex gap-1">'
@@ -639,7 +638,7 @@
     return '<a href="'+purl(p.product_id)+'" class="flex items-center space-x-4 p-3 bg-gray-50/50 border border-gray-100 rounded-custom hover:bg-white hover:shadow-sm transition-all group block">'
       +'<div class="flex-shrink-0 w-8 text-center">'+medal+'</div>'
       +'<div class="flex-shrink-0 w-14 h-[75px] overflow-hidden rounded bg-gray-100">'
-      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover object-left-top"/>'
+      +'<img src="'+esc(poster(p.main_image_url))+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover object-right"/>'
       +'</div>'
       +'<div class="flex-1 min-w-0">'
       +'<p class="text-xs font-bold truncate">'+esc(p.title)+'</p>'
@@ -658,7 +657,7 @@
   // Fetch pre-order section（FANZAのみ・配信日が遠い順）
   (window.__SSR_HOME_DATA__&&window.__SSR_HOME_DATA__.preOrders
     ?Promise.resolve(window.__SSR_HOME_DATA__.preOrders)
-    :fetch('/api/products?sort=pre-order&source=fanza&limit=8'+mkParam).then(function(r){return r.json();}))
+    :fetch('/api/products?sort=pre-order&source=fanza&limit=8&excludeLabel=LadyHunter'+mkParam).then(function(r){return r.json();}))
     .then(function(data){
     var list=document.getElementById('home-preorder-list');
     if(list&&data&&data.length){
@@ -669,7 +668,7 @@
   // Fetch new arrivals section（FANZAのみ・当日配信のみ・0件の場合は直近3日）
   var _nd=new Date(),_nt=_nd.getFullYear()+'-'+String(_nd.getMonth()+1).padStart(2,'0')+'-'+String(_nd.getDate()).padStart(2,'0');
   var _n3d=new Date(_nd-3*86400000),_n3=_n3d.getFullYear()+'-'+String(_n3d.getMonth()+1).padStart(2,'0')+'-'+String(_n3d.getDate()).padStart(2,'0');
-  function _fnew(from,to){return fetch('/api/products?sort=new&source=fanza&fromDate='+from+'&toDate='+to+'&limit=12'+mkParam).then(function(r){return r.json();});}
+  function _fnew(from,to){return fetch('/api/products?sort=new&source=fanza&fromDate='+from+'&toDate='+to+'&limit=12&excludeLabel=LadyHunter'+mkParam).then(function(r){return r.json();});}
   (window.__SSR_HOME_DATA__&&window.__SSR_HOME_DATA__.newProducts&&window.__SSR_HOME_DATA__.newProducts.length
     ?Promise.resolve(window.__SSR_HOME_DATA__.newProducts)
     :_fnew(_nt,_nt).then(function(d){return(d&&d.length>0)?d:_fnew(_n3,_nt);}))

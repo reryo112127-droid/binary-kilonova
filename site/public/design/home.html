@@ -78,7 +78,7 @@
 <section class="mt-4">
 <div class="flex items-center justify-between px-4 mb-3">
 <h2 class="text-lg font-bold" style="">予約作品</h2>
-<a class="text-xs text-primary font-medium" href="/pre-order" style="">すべて見る</a>
+<a class="text-xs text-primary font-medium" href="/products?type=pre-order" style="">すべて見る</a>
 </div>
 <div id="home-preorder-list" class="flex gap-3 overflow-x-auto px-4 no-scrollbar">
 <div class="min-w-[110px] w-[110px] relative group">
@@ -117,7 +117,7 @@
 <section class="mt-8">
 <div class="flex items-center justify-between px-4 mb-3">
 <h2 class="text-lg font-bold" style="">新作</h2>
-<span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold" style="">New Arrival</span>
+<a class="text-xs text-primary font-medium" href="/products?type=new" style="">すべて見る</a>
 </div>
 <div id="home-new-list" class="flex gap-3 overflow-x-auto px-4 no-scrollbar">
 <div class="min-w-[260px] p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-primary/10 shadow-sm flex gap-3 relative">
@@ -254,7 +254,7 @@
 <script>
 (function(){
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.endsWith('pl.jpg'))return url.replace('pl.jpg','pt.jpg');return url;}
+  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}
   function purl(id){return '/product/'+encodeURIComponent(id);}
 
   // 予約・新作セクション
@@ -264,7 +264,7 @@
   // 予約セクション（FANZAのみ・配信日が遠い順）
   (window.__SSR_HOME_DATA__&&window.__SSR_HOME_DATA__.preOrders
     ?Promise.resolve(window.__SSR_HOME_DATA__.preOrders)
-    :fetch('/api/products?sort=pre-order&source=fanza&limit=6'+mkq).then(function(r){return r.json();}))
+    :fetch('/api/products?sort=pre-order&source=fanza&limit=6&excludeLabel=LadyHunter'+mkq).then(function(r){return r.json();}))
     .then(function(data){
       if(!Array.isArray(data)||!data.length)return;
       var preList=document.getElementById('home-preorder-list');
@@ -273,8 +273,8 @@
         var ps=poster(p.main_image_url);
         var date=p.sale_start_date?(p.sale_start_date.slice(0,10)):'';
         return '<a href="'+purl(p.product_id)+'" class="min-w-[120px] w-[120px] relative group block shrink-0">'
-          +'<div class="rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
-          +(ps?'<img class="w-full h-auto block" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
+          +'<div class="aspect-[3/4] rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
+          +(ps?'<img class="w-full h-full object-cover object-right block" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
           +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
           +'<span class="absolute top-1.5 left-1.5 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">予約</span>'
           +'<div class="absolute bottom-1.5 right-1.5 flex gap-1">'
@@ -292,7 +292,7 @@
   var _d=new Date(),_td=_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
   var _3d=new Date(_d-3*86400000),_3dStr=_3d.getFullYear()+'-'+String(_3d.getMonth()+1).padStart(2,'0')+'-'+String(_3d.getDate()).padStart(2,'0');
   function _loadNew(from,to){
-    return fetch('/api/products?sort=new&source=fanza&fromDate='+from+'&toDate='+to+'&limit=10'+mkq).then(function(r){return r.json();});
+    return fetch('/api/products?sort=new&source=fanza&fromDate='+from+'&toDate='+to+'&limit=10&excludeLabel=LadyHunter'+mkq).then(function(r){return r.json();});
   }
   (window.__SSR_HOME_DATA__&&window.__SSR_HOME_DATA__.newProducts&&window.__SSR_HOME_DATA__.newProducts.length
     ?Promise.resolve(window.__SSR_HOME_DATA__.newProducts)
@@ -305,8 +305,8 @@
         var ps=poster(p.main_image_url);
         var actress=p.actresses?(p.actresses.split(',')[0].trim()):'';
         return '<a href="'+purl(p.product_id)+'" class="min-w-[120px] w-[120px] relative group block shrink-0">'
-          +'<div class="rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
-          +(ps?'<img class="w-full h-auto block" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
+          +'<div class="aspect-[3/4] rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
+          +(ps?'<img class="w-full h-full object-cover object-right block" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
           +'<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent"></div>'
           +'<span class="absolute top-1.5 left-1.5 bg-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded">新作</span>'
           +'<div class="absolute bottom-1.5 right-1.5 flex gap-1">'

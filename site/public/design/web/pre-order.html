@@ -388,14 +388,14 @@ function buildUrl(off){
   return url;
 }
 function cardHtml(p){
-  var img=(p.main_image_url||'').replace(/pl\.jpg$/,'pt.jpg');
+  var img=p.main_image_url||'';
   var t=((p.title||'').substring(0,40)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
   var pid=encodeURIComponent(p.product_id||'');
   var badge=p.source==='fanza'?'<span class="absolute top-2 right-2 bg-orange-500 text-white text-[8px] font-bold px-1 py-0.5 rounded">FANZA</span>':'<span class="absolute top-2 right-2 bg-teal-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">MGS</span>';
   return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
-    +'<div class="bg-gray-50 relative overflow-hidden">'
-    +(img?'<img alt="" class="w-full h-auto block group-hover:scale-105 transition duration-500" src="'+img+'"/>':'')
+    +'<div class="bg-gray-50 relative overflow-hidden aspect-[3/4]">'
+    +(img?'<img alt="" class="w-full h-full object-cover object-right group-hover:scale-105 transition duration-500" src="'+img+'"/>':'')
     +'<span class="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">予約受付中</span>'
     +badge+'</div>'
     +'<div class="p-3"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8">'+t+'</h3>'

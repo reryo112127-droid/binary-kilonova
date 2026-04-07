@@ -20,7 +20,7 @@ function PreorderCard({ p }: { p: Product }) {
         <Link href={`/product/${encodeURIComponent(p.product_id)}`} className="flex-none w-[150px] group block">
             <div className="aspect-[2/3] overflow-hidden rounded-xl bg-gray-100 relative shadow-md">
                 {poster && (
-                    <img alt="" className="w-full h-full object-cover object-left-top transition-transform group-hover:scale-105" src={poster} loading="lazy"
+                    <img alt="" className="w-full h-full object-cover object-right transition-transform group-hover:scale-105" src={poster} loading="lazy"
                         onError={e => { if (p.main_image_url && e.currentTarget.src !== p.main_image_url) e.currentTarget.src = p.main_image_url!; }} />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
@@ -48,7 +48,7 @@ function PosterCard({ p }: { p: Product }) {
         <Link href={`/product/${encodeURIComponent(p.product_id)}`} className="flex-none w-[160px] group cursor-pointer block">
             <div className="aspect-[3/4] overflow-hidden rounded bg-gray-100 relative mb-2">
                 {poster && (
-                    <img alt="" className="w-full h-full object-cover object-left-top transition-transform group-hover:scale-105" src={poster} loading="lazy"
+                    <img alt="" className="w-full h-full object-cover object-right transition-transform group-hover:scale-105" src={poster} loading="lazy"
                         onError={e => { if (p.main_image_url && e.currentTarget.src !== p.main_image_url) e.currentTarget.src = p.main_image_url!; }} />
                 )}
                 <div className="absolute bottom-2 right-2 flex items-center gap-1">
@@ -77,7 +77,7 @@ function RankCard({ p, rank }: { p: Product; rank: number }) {
         <Link href={`/product/${encodeURIComponent(p.product_id)}`} className="flex items-center gap-4 py-3 border-b border-gray-50 group hover:bg-gray-50/50 transition-colors px-2 -mx-2 rounded block">
             <span className={`w-8 h-8 rounded flex items-center justify-center text-xs font-black shrink-0 ${medalClass}`}>{rank}</span>
             <div className="w-10 h-14 rounded overflow-hidden shrink-0 bg-gray-100">
-                {p.main_image_url && <img alt="" className="w-full h-full object-cover object-left-top" src={getPosterImageUrl(p.main_image_url)} loading="lazy"
+                {p.main_image_url && <img alt="" className="w-full h-full object-cover object-right" src={getPosterImageUrl(p.main_image_url)} loading="lazy"
                     onError={e => { if (e.currentTarget.src !== p.main_image_url) e.currentTarget.src = p.main_image_url!; }} />}
             </div>
             <div className="flex-1 min-w-0">

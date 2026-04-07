@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
+import { getSearchOptions, getContextualSearchOptions } from '../../../lib/searchOptions';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,8 +152,37 @@ const ADVANCED_SEARCH_SCRIPT = `<script>
     document.addEventListener('click', function(e){ if(!wrap||!wrap.contains(e.target)) dropdown.style.display='none'; });
   }
 
+  // ─── URLから引き継いだ検索条件 ───────────────────────────
+  var prefill = new URLSearchParams(location.search);
+  var prefillActress = prefill.get('actress') || '';
+  var prefillMaker   = prefill.get('maker')   || '';
+  var prefillLabel   = prefill.get('label')   || '';
+  var prefillGenre   = prefill.get('genre')   || '';
+  var prefillSource  = prefill.get('source')  || '';
+  var prefillQ       = prefill.get('q')       || '';
+  var prefillFrom    = prefill.get('fromDate')|| '';
+  var prefillTo      = prefill.get('toDate')  || '';
+
+  // プラットフォームを引き継ぎ
+  if(prefillSource){
+    var radios=document.querySelectorAll('input[name="platform"]');
+    radios.forEach(function(r){ if(r.value===prefillSource) r.checked=true; });
+    updateChipDisplay('platform');
+  }
+
   // ─── メインデータ取得・描画 ──────────────────────────────
-  fetch('/api/search/options').then(function(r){return r.json();}).then(function(data){
+  (function(){
+    if(window.__SSR_SEARCH_OPTIONS__) return Promise.resolve(window.__SSR_SEARCH_OPTIONS__);
+    // SSRデータがない場合はクライアントから現在のパラメータ付きでフェッチ
+    var op=new URLSearchParams();
+    if(prefillActress) op.set('actress',prefillActress);
+    if(prefillMaker)   op.set('maker',prefillMaker);
+    if(prefillLabel)   op.set('label',prefillLabel);
+    if(prefillGenre)   op.set('genre',prefillGenre);
+    if(prefillQ)       op.set('q',prefillQ);
+    if(prefillSource)  op.set('source',prefillSource);
+    return fetch('/api/search/options?'+op.toString()).then(function(r){return r.json();});
+  })().then(function(data){
     var makers = data.makers || [];
     var genres = data.genres || [];
     var actresses = data.actresses || [];
@@ -164,11 +194,21 @@ const ADVANCED_SEARCH_SCRIPT = `<script>
       if(chipsDiv) chipsDiv.innerHTML = makers.slice(0,8).map(function(m){ return chipHtml(m.name,'maker',null); }).join('');
       var allBtn = makerSec.querySelector('button');
       if(allBtn){ allBtn.onclick = function(){ showAll('maker','メーカー',makers); }; }
-      // チップ変更時に表示更新
       makerSec.addEventListener('change', function(){ updateChipDisplay('maker'); });
-      // メーカーテキストオートコンプリート
       var makerInput = makerSec.querySelector('input[type="text"]');
       setupAutocomplete(makerInput, makers.map(function(m){ return m.name; }));
+      // 引き継ぎ: メーカー名をチップ選択 or テキスト入力にセット
+      var targetMaker = prefillMaker || prefillLabel;
+      if(targetMaker){
+        var found = false;
+        chipsDiv && chipsDiv.querySelectorAll('input[name="maker"]').forEach(function(inp){
+          if(inp.value === targetMaker){ inp.checked=true; found=true; }
+        });
+        if(!found && makerInput) makerInput.value = targetMaker;
+        updateChipDisplay('maker');
+      }
+      // 汎用クエリをメーカー欄に引き継ぎ（fallback）
+      if(!targetMaker && prefillQ && makerInput) makerInput.value = prefillQ;
     }
 
     // ジャンルチップ差し替え
@@ -179,6 +219,28 @@ const ADVANCED_SEARCH_SCRIPT = `<script>
       var gAllBtn = genreSec.querySelector('button');
       if(gAllBtn){ gAllBtn.onclick = function(){ showAll('genre','ジャンル',genres); }; }
       genreSec.addEventListener('change', function(){ updateChipDisplay('genre'); });
+      // 引き継ぎ: ジャンル（カンマ区切り複数対応）
+      if(prefillGenre){
+        var prefillGenres = prefillGenre.split(',').map(function(s){return s.trim();}).filter(Boolean);
+        var missingGenres = [];
+        prefillGenres.forEach(function(gname){
+          var found=false;
+          gChipsDiv && gChipsDiv.querySelectorAll('input[name="genre"]').forEach(function(inp){
+            if(inp.value===gname){ inp.checked=true; found=true; }
+          });
+          if(!found){ missingGenres.push(gname); }
+        });
+        // チップにない場合はDBから探してチップ追加
+        missingGenres.forEach(function(gname){
+          var match = genres.find(function(g){return g.name===gname;});
+          if(match && gChipsDiv){
+            var el=document.createElement('div'); el.innerHTML=chipHtml(gname,'genre',null);
+            var newChip=el.firstChild; gChipsDiv.insertBefore(newChip,gChipsDiv.firstChild);
+            newChip.querySelector('input').checked=true;
+          }
+        });
+        updateChipDisplay('genre');
+      }
     }
 
     // 出演者チップ追加 + すべて見るボタン挿入
@@ -207,10 +269,21 @@ const ADVANCED_SEARCH_SCRIPT = `<script>
         actSec.insertBefore(aChips, textInputWrap);
         actSec.addEventListener('change', function(){ updateChipDisplay('actress-chip'); });
       }
-      // 出演者テキストオートコンプリート
       var actInput = actSec.querySelector('input[type="text"]');
       setupAutocomplete(actInput, actresses.map(function(a){ return a.name; }));
+      // 引き継ぎ: 出演者
+      if(prefillActress){
+        var aChipsEl = document.getElementById('actress-chips');
+        var found = false;
+        aChipsEl && aChipsEl.querySelectorAll('input[name="actress-chip"]').forEach(function(inp){
+          if(inp.value===prefillActress){ inp.checked=true; found=true; }
+        });
+        if(!found && actInput) actInput.value = prefillActress;
+        updateChipDisplay('actress-chip');
+      }
     }
+
+    // 日付を引き継ぎ（カレンダー欄は詳細検索にないため年代セレクトはそのまま）
   }).catch(function(e){ console.error('search options error', e); });
 
   // ─── フォーム送信 ─────────────────────────────────────────
@@ -244,6 +317,19 @@ const ADVANCED_SEARCH_SCRIPT = `<script>
       var genreVals = Array.from(form.querySelectorAll('input[name="genre"]')).filter(function(el){ return el.checked || el.type==='hidden'; }).map(function(el){ return el.value; });
       if(genreVals.length) p.set('genre', genreVals.join(','));
 
+      // 身長
+      var hSlider = document.getElementById('height-slider');
+      if(hSlider){ var hv=parseInt(hSlider.value,10); if(hv>130) p.set('height', hv+'-999'); }
+
+      // 年齢
+      var aSlider = document.getElementById('age-slider');
+      if(aSlider){ var av=parseInt(aSlider.value,10); if(av>18){ p.set('ageMin', String(av)); } }
+
+      // カップ数
+      var cSlider = document.getElementById('cup-slider');
+      var cupNames = ['','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
+      if(cSlider){ var cv=parseInt(cSlider.value,10); if(cv>1){ var cupName=cupNames[cv]||''; if(cupName) p.set('cup', cupName); } }
+
       // 年代
       var era = document.getElementById('era-select');
       if(era && era.value && era.value !== 'all'){
@@ -271,7 +357,26 @@ export async function GET(request: NextRequest) {
         html = isMobile
             ? injectMobileLayout(html, 'search', { skipClean: true, skipHeader: true, skipBottomNav: true })
             : injectWebLayout(html);
+
         if (isMobile) {
+            // URLパラメータがあればコンテキスト絞り込み、なければ全体オプション
+            const reqUrl = new URL(request.url);
+            const actress = reqUrl.searchParams.get('actress') || '';
+            const maker   = reqUrl.searchParams.get('maker')   || '';
+            const label   = reqUrl.searchParams.get('label')   || '';
+            const genre   = reqUrl.searchParams.get('genre')   || '';
+            const q       = reqUrl.searchParams.get('q')       || '';
+            const source  = reqUrl.searchParams.get('source')  || '';
+
+            const hasFilter = !!(actress || maker || label || genre || q);
+            const ssrData = hasFilter
+                ? await getContextualSearchOptions({ actress, maker, label, genre, q, source }).catch(() => null)
+                : await getSearchOptions().catch(() => null);
+
+            if (ssrData) {
+                const ssrScript = `<script>window.__SSR_SEARCH_OPTIONS__=${JSON.stringify(ssrData)};</script>`;
+                html = html.replace('</head>', ssrScript + '\n</head>');
+            }
             html = html.replace('</body>', ADVANCED_SEARCH_SCRIPT + '\n</body>');
         }
         return new NextResponse(html, {

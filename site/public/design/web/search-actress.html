@@ -832,7 +832,7 @@ if(grid){
     if(!items||!items.length){grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">作品がありません</p>';return;}
     if(photoEl&&!photoEl.dataset.set&&items[0]&&items[0].main_image_url)photoEl.src=items[0].main_image_url;
     grid.innerHTML=items.map(function(p){
-      var img=(p.main_image_url||'').replace(/pl\.jpg$/,'pt.jpg');
+      var img=(function(u){return u&&u.includes('pb_e_')?u.replace('pb_e_','pf_e_'):u;})(p.main_image_url||'');
       var t=esc((p.title||'').substring(0,40));
       var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
       var pid=encodeURIComponent(p.product_id||'');
@@ -842,8 +842,8 @@ if(grid){
       var badge=isAmateur?'<span class="absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">素人</span>'
                :isNew?'<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">NEW</span>':'';
       return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
-        +'<div class="bg-gray-50 relative overflow-hidden">'
-        +(img?'<img alt="" class="w-full h-auto block group-hover:scale-105 transition duration-500" src="'+img+'"/>':'')
+        +'<div class="bg-gray-50 relative overflow-hidden aspect-[3/4]">'
+        +(img?'<img alt="" class="w-full h-full object-cover object-right block group-hover:scale-105 transition duration-500" src="'+img+'"/>':'')
         +badge+'</div>'
         +'<div class="p-3 flex flex-col flex-1"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8 group-hover:text-blue-600 transition">'+t+'</h3>'
         +'<p class="text-[10px] text-gray-400">'+dt+'</p></div></article>';

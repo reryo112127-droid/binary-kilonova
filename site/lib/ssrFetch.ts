@@ -45,7 +45,7 @@ export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
     const client = getFanzaClient();
     if (!client) return [];
     const today = new Date().toISOString().slice(0, 10);
-    const conds = ['sale_start_date > ?'];
+    const conds = ['sale_start_date > ?', "label NOT LIKE '%LadyHunter%'"];
     const args: (string | number)[] = [today];
     addBestExcl(conds, args);
     addMakersFanza(conds, args, HOME_MAKERS);
@@ -69,7 +69,7 @@ export async function ssrFetchFanzaNewProducts(limit: number): Promise<Row[]> {
     const d3ago = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
 
     async function query(from: string, to: string): Promise<Row[]> {
-        const conds = ['sale_start_date IS NOT NULL', 'sale_start_date >= ?', 'sale_start_date <= ?'];
+        const conds = ['sale_start_date IS NOT NULL', 'sale_start_date >= ?', 'sale_start_date <= ?', "label NOT LIKE '%LadyHunter%'"];
         const args: (string | number)[] = [from, to];
         addBestExcl(conds, args);
         addMakersFanza(conds, args, HOME_MAKERS);
