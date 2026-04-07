@@ -593,6 +593,7 @@
   function poster(url){
     if(!url)return'https://via.placeholder.com/120x160?text=No+Image';
     if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');
+    if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');
     return url;
   }
   function purl(id){return'/product/'+encodeURIComponent(id);}

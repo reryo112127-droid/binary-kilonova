@@ -206,7 +206,7 @@ var _sampleImgs = [];
   var id = decodeURIComponent((location.pathname.match(/\/product\/(.+)/) || [])[1] || '');
   if (!id) return;
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(u){return u&&u.includes('pb_e_')?u.replace('pb_e_','pf_e_'):u||'';}
+  function poster(u){if(!u)return'';if(u.includes('pb_e_'))return u.replace('pb_e_','pf_e_');if(u.includes('/digital/amateur/')function poster(u){return u&&u.includes('pb_e_')?u.replace('pb_e_','pf_e_'):u||'';}function poster(u){return u&&u.includes('pb_e_')?u.replace('pb_e_','pf_e_'):u||'';}u.endsWith('jm.jpg'))return u.replace('jm.jpg','jp-001.jpg');return u;}
   function set(elId, val){ var el=document.getElementById(elId); if(el) el.textContent=val||'-'; }
   function show(elId){ var el=document.getElementById(elId); if(el) el.style.display=''; }
   function hide(elId){ var el=document.getElementById(elId); if(el) el.style.display='none'; }
