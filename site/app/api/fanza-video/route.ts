@@ -38,13 +38,15 @@ export async function GET(request: NextRequest) {
 
         const html = await res.text();
 
-        // "src":"//cc3001.dmm.co.jp/pv/.../xxx_sm_s.mp4" を抽出
-        const mp4Match = html.match(/"src":"(\/\/cc3001\.dmm\.co\.jp\/[^"]+\.mp4)"/);
+        // "src":"\/\/cc3001.dmm.co.jp\/pv\/...\/xxx_sm_s.mp4" を抽出
+        // DMMのレスポンスはスラッシュがエスケープされている（\/\/）ため、\\/ にもマッチさせる
+        const mp4Match = html.match(/"src":"([^"]+\.mp4)"/);
         if (!mp4Match) {
             return NextResponse.json({ error: 'mp4 not found' }, { status: 404 });
         }
 
-        const mp4 = 'https:' + mp4Match[1].replace(/\\\//g, '/');
+        // エスケープされたスラッシュを戻してhttpsスキームを付与
+        const mp4 = ('https:' + mp4Match[1]).replace(/\\\//g, '/');
         return NextResponse.json({ mp4 });
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'unknown';
