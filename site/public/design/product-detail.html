@@ -49,7 +49,6 @@
 <div class="@container">
 <div id="pd-hero" class="w-full bg-slate-200 dark:bg-slate-800 overflow-hidden relative">
 <img id="pd-hero-img" alt="" class="w-full h-auto block"/>
-<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
 <span id="pd-vr-badge" class="absolute top-2 left-2 bg-violet-600 text-white text-xs font-black px-2 py-0.5 rounded" style="display:none">VR</span>
 </div>
 </div>
@@ -73,7 +72,7 @@
 <span class="material-symbols-outlined text-pink-500">favorite</span>
 <span class="text-sm font-semibold">いいね</span>
 </button>
-<button id="pd-cast-btn" class="flex-1 flex items-center justify-center gap-2 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<button id="pd-cast-btn" class="flex-1 flex items-center justify-center gap-2 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" style="display:none">
 <span class="material-symbols-outlined text-primary">person_add</span>
 <span class="text-sm font-semibold">出演者を追加</span>
 </button>
@@ -152,9 +151,17 @@
 <div id="pd-review-list" class="space-y-4"></div>
 </div>
 <!-- 8. Recommended Section -->
-<div class="px-4 py-8">
-<h3 class="text-lg font-bold mb-4">おすすめの作品</h3>
-<div id="pd-recommend" class="grid grid-cols-2 gap-3"></div>
+<div class="py-6 border-t border-slate-100 dark:border-slate-800" id="pd-recommend-section">
+<h3 class="text-sm font-bold text-slate-500 px-4 mb-3 uppercase tracking-wider">おすすめ作品</h3>
+<div id="pd-recommend" class="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-1">
+  <!-- loading skeleton -->
+  <div class="flex gap-3">
+    <div class="flex-none w-[120px]"><div class="w-full aspect-[3/4] bg-slate-200 rounded-xl animate-pulse"></div><div class="h-2 bg-slate-200 rounded mt-2 animate-pulse"></div></div>
+    <div class="flex-none w-[120px]"><div class="w-full aspect-[3/4] bg-slate-200 rounded-xl animate-pulse"></div><div class="h-2 bg-slate-200 rounded mt-2 animate-pulse"></div></div>
+    <div class="flex-none w-[120px]"><div class="w-full aspect-[3/4] bg-slate-200 rounded-xl animate-pulse"></div><div class="h-2 bg-slate-200 rounded mt-2 animate-pulse"></div></div>
+    <div class="flex-none w-[120px]"><div class="w-full aspect-[3/4] bg-slate-200 rounded-xl animate-pulse"></div><div class="h-2 bg-slate-200 rounded mt-2 animate-pulse"></div></div>
+  </div>
+</div>
 </div>
 </main>
 <!-- 10. Bottom Navigation Bar -->
@@ -194,10 +201,12 @@
         }
     </style>
 <script>
+var _sampleImgs = [];
 (function(){
   var id = decodeURIComponent((location.pathname.match(/\/product\/(.+)/) || [])[1] || '');
   if (!id) return;
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function poster(u){return u&&u.includes('pb_e_')?u.replace('pb_e_','pf_e_'):u||'';}
   function set(elId, val){ var el=document.getElementById(elId); if(el) el.textContent=val||'-'; }
   function show(elId){ var el=document.getElementById(elId); if(el) el.style.display=''; }
   function hide(elId){ var el=document.getElementById(elId); if(el) el.style.display='none'; }
@@ -205,7 +214,7 @@
   fetch('/api/product/'+encodeURIComponent(id))
     .then(function(r){ return r.json(); })
     .then(function(p){
-      // ヒーロー画像（横長のまま使用）
+      // ヒーロー画像: pl.jpg（800×538）をCSSクロップで縦型ポスター表示
       var heroImg = document.getElementById('pd-hero-img');
       if (heroImg && p.main_image_url) heroImg.src = p.main_image_url;
 
@@ -216,8 +225,9 @@
       // サンプル画像
       var samples = document.getElementById('pd-samples');
       if (samples && p.sample_images && p.sample_images.length) {
-        samples.innerHTML = p.sample_images.slice(0,6).map(function(img){
-          return '<div class="flex-none w-40 aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">'
+        _sampleImgs = p.sample_images;
+        samples.innerHTML = p.sample_images.map(function(img, i){
+          return '<div class="flex-none w-40 aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer active:opacity-80" onclick="openLightbox('+i+')">'
             +'<img class="w-full h-full object-cover" src="'+esc(img)+'" loading="lazy"/></div>';
         }).join('');
       }
@@ -229,18 +239,24 @@
           vBtn.style.display='';
           vBtn.onclick=function(){
             var isMgs = p.sample_video_url && p.sample_video_url.indexOf('mgstage.com/sampleplayer') !== -1;
-            if (isMgs) {
+            var isFanza = p.sample_video_url && p.sample_video_url.indexOf('dmm.co.jp') !== -1;
+            if (isMgs || isFanza) {
+              var apiPath = isMgs ? '/api/mgs-video' : '/api/fanza-video';
               vBtn.disabled = true;
-              vBtn.textContent = '読み込み中...';
-              fetch('/api/mgs-video?url='+encodeURIComponent(p.sample_video_url))
+              vBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span><span>読み込み中...</span>';
+              fetch(apiPath+'?url='+encodeURIComponent(p.sample_video_url))
                 .then(function(r){ return r.json(); })
                 .then(function(d){
                   vBtn.disabled = false;
-                  vBtn.textContent = 'サンプル動画を再生';
-                  if (!d.mp4) { alert('動画を取得できませんでした'); return; }
+                  vBtn.innerHTML = '<span class="material-symbols-outlined">play_circle</span><span>サンプル動画を再生</span>';
+                  if (!d.mp4) { window.open(p.sample_video_url,'_blank'); return; }
                   showVideoModal(d.mp4);
                 })
-                .catch(function(){ vBtn.disabled=false; vBtn.textContent='サンプル動画を再生'; alert('エラーが発生しました'); });
+                .catch(function(){
+                  vBtn.disabled=false;
+                  vBtn.innerHTML = '<span class="material-symbols-outlined">play_circle</span><span>サンプル動画を再生</span>';
+                  window.open(p.sample_video_url,'_blank');
+                });
             } else {
               window.open(p.sample_video_url,'_blank');
             }
@@ -278,7 +294,7 @@
       if (actEl) {
         actEl.innerHTML = acts.length ? linkedItems(acts,'actress') : '-';
       }
-      if (p.actresses) hide('pd-cast-btn');
+      if (!p.actresses) show('pd-cast-btn');
 
       // 出演者プロフィールカード
       if (acts.length && acts.length <= 6) {
@@ -449,44 +465,87 @@
           }
         }).catch(function(){});
 
-      // おすすめ作品（ジャンル類似スコアリング）
-      var gnsArr = (p.genres||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+      // おすすめ作品（類似スコアリング API → フォールバック: ジャンル検索）
       var recEl = document.getElementById('pd-recommend');
-      if (recEl && gnsArr.length) {
-        var topGenres = gnsArr.slice(0, 3);
-        Promise.all(topGenres.map(function(g){
-          return fetch('/api/products?genre='+encodeURIComponent(g)+'&limit=20')
-            .then(function(r){ return r.json(); }).catch(function(){ return []; });
-        })).then(function(results){
-          var seen = {};
-          var scored = [];
-          results.forEach(function(data){
-            (data.products||data||[]).forEach(function(q){
-              if (q.product_id === p.product_id || seen[q.product_id]) return;
-              seen[q.product_id] = true;
-              var qGns = (q.genres||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
-              q._score = qGns.filter(function(g){ return gnsArr.indexOf(g) !== -1; }).length;
-              scored.push(q);
-            });
-          });
-          scored.sort(function(a,b){ return b._score - a._score; });
-          var items = scored.slice(0, 6);
-          if (!items.length) return;
-          recEl.innerHTML = items.map(function(q){
-            var noAct = !(q.actresses&&q.actresses.trim());
-            return '<div class="relative rounded-xl overflow-hidden bg-slate-100 shadow-sm cursor-pointer" onclick="location.href=\'/product/'+esc(q.product_id)+'\'">'
-              +'<img class="w-full aspect-[3/4] object-cover object-left-top" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
-              +'<div class="absolute bottom-1 right-1 flex gap-1">'
-              +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-xs">add_circle</span></button>':'')
-              +'<button class="w-6 h-6 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-xs">favorite</span></button>'
-              +'</div>'
-              +'<div class="p-2"><p class="text-xs font-bold line-clamp-2">'+esc(q.title||'')+'</p></div>'
-              +'</div>';
-          }).join('');
-        }).catch(function(){});
+      function renderRec(items){
+        if (!items || !items.length || !recEl) return;
+        recEl.innerHTML = items.map(function(q){
+          var noAct = !(q.actresses&&q.actresses.trim());
+          return '<a href="/product/'+encodeURIComponent(q.product_id)+'" class="flex-none w-[120px] block">'
+            +'<div class="relative aspect-[3/4] rounded-xl overflow-hidden bg-slate-200 shadow-sm">'
+            +(q.main_image_url?'<img class="w-full h-full object-cover object-right block" src="'+esc(poster(q.main_image_url))+'" loading="lazy" alt=""/>':'')
+            +'<div class="absolute bottom-1 right-1 flex gap-1">'
+            +(noAct?'<button class="w-5 h-5 flex items-center justify-center bg-white/90 rounded-full shadow-sm hover:text-primary" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[11px]">add</span></button>':'')
+            +'<button class="w-5 h-5 flex items-center justify-center bg-white/90 rounded-full shadow-sm hover:text-rose-500" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[11px]">favorite</span></button>'
+            +'</div></div>'
+            +(q.actresses?'<p class="text-[9px] text-primary font-bold mt-1 truncate px-0.5">'+esc(q.actresses.split(',')[0].trim())+'</p>':'')
+            +'<p class="text-[10px] font-bold leading-tight line-clamp-2 mt-0.5 px-0.5">'+esc(q.title||'')+'</p>'
+            +'</a>';
+        }).join('');
       }
+      fetch('/api/product/'+encodeURIComponent(id)+'/similar')
+        .then(function(r){ return r.json(); })
+        .then(function(items){
+          if (items && items.length) { renderRec(items); return; }
+          // フォールバック: 同じジャンルの人気作品
+          var g0 = (p.genres||'').split(',')[0].trim();
+          if (!g0) return;
+          fetch('/api/products?genre='+encodeURIComponent(g0)+'&limit=9&sort=wish_count')
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+              var items2 = (data||[]).filter(function(q){ return q.product_id!==id; }).slice(0,8);
+              renderRec(items2);
+            }).catch(function(){});
+        }).catch(function(){});
     })
     .catch(function(){});
+})();
+</script>
+<!-- Lightbox -->
+<div id="lightbox" style="display:none" class="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center" onclick="closeLightbox()">
+  <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white bg-black/50 rounded-full w-10 h-10 flex items-center justify-center z-10">
+    <span class="material-symbols-outlined">close</span>
+  </button>
+  <button id="lb-prev" onclick="event.stopPropagation();moveLightbox(-1)" class="absolute left-3 top-1/2 -translate-y-1/2 text-white bg-black/50 rounded-full w-10 h-10 flex items-center justify-center z-10">
+    <span class="material-symbols-outlined">chevron_left</span>
+  </button>
+  <img id="lb-img" src="" alt="" class="max-w-full max-h-full object-contain select-none" onclick="event.stopPropagation()"/>
+  <button id="lb-next" onclick="event.stopPropagation();moveLightbox(1)" class="absolute right-3 top-1/2 -translate-y-1/2 text-white bg-black/50 rounded-full w-10 h-10 flex items-center justify-center z-10">
+    <span class="material-symbols-outlined">chevron_right</span>
+  </button>
+  <div id="lb-counter" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 text-sm"></div>
+</div>
+<script>
+var _lbIdx=0;
+function openLightbox(i){
+  if(!_sampleImgs||!_sampleImgs.length)return;
+  _lbIdx=i;
+  document.getElementById('lb-img').src=_sampleImgs[i];
+  document.getElementById('lb-counter').textContent=(i+1)+' / '+_sampleImgs.length;
+  document.getElementById('lb-prev').style.display=_sampleImgs.length>1?'':'none';
+  document.getElementById('lb-next').style.display=_sampleImgs.length>1?'':'none';
+  document.getElementById('lightbox').style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function closeLightbox(){
+  document.getElementById('lightbox').style.display='none';
+  document.body.style.overflow='';
+}
+function moveLightbox(d){
+  if(!_sampleImgs||!_sampleImgs.length)return;
+  _lbIdx=(_lbIdx+d+_sampleImgs.length)%_sampleImgs.length;
+  document.getElementById('lb-img').src=_sampleImgs[_lbIdx];
+  document.getElementById('lb-counter').textContent=(_lbIdx+1)+' / '+_sampleImgs.length;
+}
+// タッチスワイプ
+(function(){
+  var el=document.getElementById('lightbox');
+  var tx=0;
+  el.addEventListener('touchstart',function(e){tx=e.touches[0].clientX;},{passive:true});
+  el.addEventListener('touchend',function(e){
+    var dx=e.changedTouches[0].clientX-tx;
+    if(Math.abs(dx)>50)moveLightbox(dx<0?1:-1);
+  },{passive:true});
 })();
 </script>
 </body></html>

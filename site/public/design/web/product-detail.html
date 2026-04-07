@@ -176,7 +176,7 @@
 <span class="material-symbols-outlined text-rose-500 text-xl group-hover:fill-1" style="">favorite</span>
 <span class="text-sm font-bold text-slate-700 whitespace-nowrap" style="">いいね</span>
 </button>
-<button id="pd-cast-btn" class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="">
+<button id="pd-cast-btn" class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="display:none">
 <span class="material-symbols-outlined text-slate-500 text-xl" style="">person_add</span>
 <span class="text-sm font-bold text-slate-700" style="">出演者を追加</span>
 </button>
@@ -275,6 +275,7 @@
 </section>
 </main>
 <script>
+var _sampleImgs = [];
 (function(){
   var id = decodeURIComponent((location.pathname.match(/\/product\/(.+)/) || [])[1] || '');
   if (!id) return;
@@ -296,8 +297,9 @@
       // サンプル画像
       var samples = document.getElementById('pd-samples');
       if (samples && p.sample_images && p.sample_images.length) {
-        samples.innerHTML = p.sample_images.slice(0,6).map(function(img){
-          return '<div class="flex-none w-48 aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm">'
+        _sampleImgs = p.sample_images;
+        samples.innerHTML = p.sample_images.map(function(img, i){
+          return '<div class="flex-none w-48 aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick="openLightbox('+i+')">'
             +'<img class="w-full h-full object-cover" src="'+esc(img)+'" loading="lazy"/></div>';
         }).join('');
       }
@@ -309,18 +311,24 @@
           vBtn.style.display='';
           vBtn.onclick=function(){
             var isMgs = p.sample_video_url && p.sample_video_url.indexOf('mgstage.com/sampleplayer') !== -1;
-            if (isMgs) {
+            var isFanza = p.sample_video_url && p.sample_video_url.indexOf('dmm.co.jp') !== -1;
+            if (isMgs || isFanza) {
+              var apiPath = isMgs ? '/api/mgs-video' : '/api/fanza-video';
               vBtn.disabled = true;
-              vBtn.textContent = '読み込み中...';
-              fetch('/api/mgs-video?url='+encodeURIComponent(p.sample_video_url))
+              vBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> 読み込み中...';
+              fetch(apiPath+'?url='+encodeURIComponent(p.sample_video_url))
                 .then(function(r){ return r.json(); })
                 .then(function(d){
                   vBtn.disabled = false;
-                  vBtn.textContent = 'サンプル動画を再生';
-                  if (!d.mp4) { alert('動画を取得できませんでした'); return; }
+                  vBtn.innerHTML = '<span class="material-symbols-outlined">play_circle</span> サンプル動画を再生';
+                  if (!d.mp4) { window.open(p.sample_video_url,'_blank'); return; }
                   showVideoModal(d.mp4);
                 })
-                .catch(function(){ vBtn.disabled=false; vBtn.textContent='サンプル動画を再生'; alert('エラーが発生しました'); });
+                .catch(function(){
+                  vBtn.disabled=false;
+                  vBtn.innerHTML = '<span class="material-symbols-outlined">play_circle</span> サンプル動画を再生';
+                  window.open(p.sample_video_url,'_blank');
+                });
             } else {
               window.open(p.sample_video_url,'_blank');
             }
@@ -356,7 +364,7 @@
       if (actEl) {
         actEl.innerHTML = acts.length ? linkedItems(acts,'actress') : '-';
       }
-      if (p.actresses) { var cb=document.getElementById('pd-cast-btn'); if(cb) cb.style.display='none'; }
+      if (!p.actresses) { var cb=document.getElementById('pd-cast-btn'); if(cb) cb.style.display=''; }
 
       // 出演者プロフィールカード（右カラム）
       if (acts.length && acts.length <= 6) {
@@ -559,7 +567,7 @@
             var noAct = !(q.actresses&&q.actresses.trim());
             return '<div class="group cursor-pointer" onclick="location.href=\'/product/'+esc(q.product_id)+'\'">'
               +'<div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-100 mb-3 shadow-sm group-hover:shadow-md transition-all relative">'
-              +'<img class="w-full h-full object-cover object-left-top group-hover:scale-105 transition-transform duration-500" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
+              +'<img class="w-full h-full object-cover object-right group-hover:scale-105 transition-transform duration-500" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
               +'<div class="absolute bottom-2 right-2 flex gap-1.5">'
               +(noAct?'<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary transition-colors" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-sm">add_circle</span></button>':'')
               +'<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500 transition-colors" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-sm">favorite</span></button>'
@@ -572,5 +580,50 @@
     })
     .catch(function(){});
 })();
+</script>
+<!-- Lightbox -->
+<div id="lightbox" style="display:none" class="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center" onclick="closeLightbox()">
+  <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white bg-black/50 rounded-full w-10 h-10 flex items-center justify-center z-10 hover:bg-black/70 transition-colors">
+    <span class="material-symbols-outlined">close</span>
+  </button>
+  <button id="lb-prev" onclick="event.stopPropagation();moveLightbox(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black/50 rounded-full w-12 h-12 flex items-center justify-center z-10 hover:bg-black/70 transition-colors">
+    <span class="material-symbols-outlined">chevron_left</span>
+  </button>
+  <img id="lb-img" src="" alt="" class="max-w-[90vw] max-h-[90vh] object-contain select-none rounded-lg shadow-2xl" onclick="event.stopPropagation()"/>
+  <button id="lb-next" onclick="event.stopPropagation();moveLightbox(1)" class="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/50 rounded-full w-12 h-12 flex items-center justify-center z-10 hover:bg-black/70 transition-colors">
+    <span class="material-symbols-outlined">chevron_right</span>
+  </button>
+  <div id="lb-counter" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/70 text-sm bg-black/50 px-3 py-1 rounded-full"></div>
+</div>
+<script>
+var _lbIdx=0;
+function openLightbox(i){
+  if(!_sampleImgs||!_sampleImgs.length)return;
+  _lbIdx=i;
+  document.getElementById('lb-img').src=_sampleImgs[i];
+  document.getElementById('lb-counter').textContent=(i+1)+' / '+_sampleImgs.length;
+  document.getElementById('lb-prev').style.display=_sampleImgs.length>1?'':'none';
+  document.getElementById('lb-next').style.display=_sampleImgs.length>1?'':'none';
+  document.getElementById('lightbox').style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function closeLightbox(){
+  document.getElementById('lightbox').style.display='none';
+  document.body.style.overflow='';
+}
+function moveLightbox(d){
+  if(!_sampleImgs||!_sampleImgs.length)return;
+  _lbIdx=(_lbIdx+d+_sampleImgs.length)%_sampleImgs.length;
+  document.getElementById('lb-img').src=_sampleImgs[_lbIdx];
+  document.getElementById('lb-counter').textContent=(_lbIdx+1)+' / '+_sampleImgs.length;
+}
+// キーボード操作
+document.addEventListener('keydown',function(e){
+  if(document.getElementById('lightbox').style.display==='flex'){
+    if(e.key==='ArrowLeft')moveLightbox(-1);
+    else if(e.key==='ArrowRight')moveLightbox(1);
+    else if(e.key==='Escape')closeLightbox();
+  }
+});
 </script>
 </body></html>
