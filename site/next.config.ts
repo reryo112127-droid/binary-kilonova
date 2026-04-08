@@ -13,7 +13,9 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/':             ['./public/design/**/*', './data/*_cache.json'],
     '/product/[id]': ['./public/design/**/*'],
-    '/ranking':      ['./public/design/**/*'],
+    '/ranking':        ['./public/design/**/*'],
+    '/ranking/custom': ['./public/design/**/*'],
+    '/ranking/actress':['./public/design/**/*'],
     '/new':          ['./public/design/**/*'],
     '/pre-order':    ['./public/design/**/*'],
     '/products':     ['./public/design/**/*'],
