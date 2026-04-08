@@ -3,6 +3,7 @@ import { getMgsClient, getFanzaClient, getSiteClient } from '../../../../lib/tur
 import { initSiteSchema } from '../../../../lib/siteDb';
 import { filterActresses } from '../../../../lib/actressFilter';
 import { getCached, setCached } from '../../../../lib/apiCache';
+import { readStaticCache } from '../../../../lib/staticCache';
 
 const CANDIDATE_LIMIT = 500;
 const ACTRESS_RANKING_TTL = 30 * 60 * 1000; // 30分
@@ -11,6 +12,15 @@ export const revalidate = 300; // 5分キャッシュ
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
+    const fromDate = searchParams.get('fromDate') || '';
+    const toDate   = searchParams.get('toDate')   || '';
+
+    // 2026年デフォルトクエリは静的JSONから返す
+    if (fromDate === '2026-01-01' && toDate === '2026-12-31') {
+        const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
+        const cached = readStaticCache<unknown[]>('actress_ranking_2026_cache.json');
+        if (cached && cached.length > 0) return NextResponse.json(cached.slice(0, limit));
+    }
 
     const cacheKey = 'actress_ranking_' + Array.from(searchParams.entries())
         .sort(([a], [b]) => a.localeCompare(b))
@@ -19,8 +29,6 @@ export async function GET(request: NextRequest) {
     const hit = getCached<unknown[]>(cacheKey, ACTRESS_RANKING_TTL);
     if (hit) return NextResponse.json(hit);
     const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
-    const fromDate = searchParams.get('fromDate') || '';
-    const toDate   = searchParams.get('toDate')   || '';
 
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();

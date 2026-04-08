@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   // サーバーレス関数のバンドルに必要なファイルのみ含める
   // 女優プロフィールはTursoに移行済みのためファイルバンドル不要
   outputFileTracingIncludes: {
-    '/':             ['./public/design/**/*'],
+    '/':             ['./public/design/**/*', './data/*_cache.json'],
     '/product/[id]': ['./public/design/**/*'],
     '/ranking':      ['./public/design/**/*'],
     '/new':          ['./public/design/**/*'],
@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
     '/search':       ['./public/design/**/*'],
     '/actress/[name]': ['./public/design/**/*'],
     '/review/add/[id]': ['./public/design/**/*'],
+    '/api/products':          ['./data/*_cache.json'],
+    '/api/ranking':           ['./data/*_cache.json'],
+    '/api/ranking/actress':   ['./data/*_cache.json'],
+    '/api/search-options':    ['./data/suggest_cache.json'],
   },
   images: {
     remotePatterns: [

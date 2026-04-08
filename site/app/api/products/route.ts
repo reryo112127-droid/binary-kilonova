@@ -4,6 +4,7 @@ import path from 'path';
 import { filterActresses } from '../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { getCached, setCached } from '../../../lib/apiCache';
+import { readStaticCache } from '../../../lib/staticCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,9 +12,27 @@ const PRODUCTS_TTL = 5 * 60 * 1000; // 5分
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
+    const sort = searchParams.get('sort') || 'new';
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
 
-    // offset=0 のシンプルなクエリはキャッシュ（ユーザー固有パラメータなし）
-    const offset0 = !searchParams.get('offset') || searchParams.get('offset') === '0';
+    // フィルターなし・offset=0 のみ静的JSONを使用
+    const noFilter = !searchParams.get('q') && !searchParams.get('genre') && !searchParams.get('actress')
+        && !searchParams.get('maker') && !searchParams.get('fromDate') && !searchParams.get('source')
+        && !searchParams.get('cup') && !searchParams.get('height') && !searchParams.get('vr');
+
+    if (noFilter && offset === 0) {
+        const file = sort === 'wish_count' ? 'products_popular_cache.json'
+                   : sort === 'new'        ? 'products_new_cache.json'
+                   : null;
+        if (file) {
+            const cached = readStaticCache<unknown[]>(file);
+            if (cached && cached.length > 0) return NextResponse.json(cached.slice(0, limit));
+        }
+    }
+
+    // offset=0 のシンプルなクエリはインメモリキャッシュ
+    const offset0 = offset === 0;
     if (offset0) {
         const cacheKey = 'products_' + Array.from(searchParams.entries())
             .filter(([k]) => k !== 'offset')
@@ -26,9 +45,6 @@ export async function GET(request: NextRequest) {
         // 結果取得後にキャッシュ（後続の処理で設定）
         (request as NextRequest & { _cacheKey?: string })._cacheKey = cacheKey;
     }
-    const sort = searchParams.get('sort') || 'wish_count';
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
     const q = searchParams.get('q') || '';
     const genre = searchParams.get('genre') || '';
     const actress = searchParams.get('actress') || '';
