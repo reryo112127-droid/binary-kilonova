@@ -76,9 +76,12 @@ export async function GET(request: NextRequest) {
 
     try {
         let html = fs.readFileSync(htmlFile, 'utf-8');
-        html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
         if (isMobile) {
+            // skipHeader: Stitch独自ヘッダー（戻るボタン+タイトル）をそのまま使う
+            html = injectMobileLayout(html, '', { skipHeader: true });
             html = html.replace('</body>', CUSTOM_RANKING_SCRIPT + '\n</body>');
+        } else {
+            html = injectWebLayout(html);
         }
         return new NextResponse(html, {
             headers: {
