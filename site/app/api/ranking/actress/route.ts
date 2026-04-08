@@ -2,13 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getMgsClient, getFanzaClient, getSiteClient } from '../../../../lib/turso';
 import { initSiteSchema } from '../../../../lib/siteDb';
 import { filterActresses } from '../../../../lib/actressFilter';
+import { getCached, setCached } from '../../../../lib/apiCache';
 
 const CANDIDATE_LIMIT = 500;
+const ACTRESS_RANKING_TTL = 30 * 60 * 1000; // 30分
 
 export const revalidate = 300; // 5分キャッシュ
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
+
+    const cacheKey = 'actress_ranking_' + Array.from(searchParams.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}=${v}`)
+        .join('&');
+    const hit = getCached<unknown[]>(cacheKey, ACTRESS_RANKING_TTL);
+    if (hit) return NextResponse.json(hit);
     const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
     const fromDate = searchParams.get('fromDate') || '';
     const toDate   = searchParams.get('toDate')   || '';
@@ -170,5 +179,7 @@ export async function GET(request: NextRequest) {
 
     scored.sort((a, b) => b.score - a.score);
 
-    return NextResponse.json(scored.slice(0, limit));
+    const finalScored = scored.slice(0, limit);
+    setCached(cacheKey, finalScored);
+    return NextResponse.json(finalScored);
 }

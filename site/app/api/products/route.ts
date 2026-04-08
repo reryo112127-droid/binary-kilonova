@@ -3,11 +3,29 @@ import fs from 'fs';
 import path from 'path';
 import { filterActresses } from '../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
+import { getCached, setCached } from '../../../lib/apiCache';
 
 export const dynamic = 'force-dynamic';
 
+const PRODUCTS_TTL = 5 * 60 * 1000; // 5分
+
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
+
+    // offset=0 のシンプルなクエリはキャッシュ（ユーザー固有パラメータなし）
+    const offset0 = !searchParams.get('offset') || searchParams.get('offset') === '0';
+    if (offset0) {
+        const cacheKey = 'products_' + Array.from(searchParams.entries())
+            .filter(([k]) => k !== 'offset')
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => `${k}=${v}`)
+            .join('&');
+        const hit = getCached<unknown[]>(cacheKey, PRODUCTS_TTL);
+        if (hit) return NextResponse.json(hit);
+
+        // 結果取得後にキャッシュ（後続の処理で設定）
+        (request as NextRequest & { _cacheKey?: string })._cacheKey = cacheKey;
+    }
     const sort = searchParams.get('sort') || 'wish_count';
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
@@ -274,5 +292,8 @@ export async function GET(request: NextRequest) {
         if (fanzaResults[i]) combined.push(fanzaResults[i]);
     }
 
-    return NextResponse.json(combined.slice(0, limit));
+    const result = combined.slice(0, limit);
+    const cacheKey = (request as NextRequest & { _cacheKey?: string })._cacheKey;
+    if (cacheKey) setCached(cacheKey, result);
+    return NextResponse.json(result);
 }

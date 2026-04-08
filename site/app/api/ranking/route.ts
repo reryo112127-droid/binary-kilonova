@@ -3,13 +3,22 @@ import { getMgsClient, getFanzaClient, getSiteClient } from '../../../lib/turso'
 import { initSiteSchema } from '../../../lib/siteDb';
 import { computeProductScore, PRODUCT_SCORE } from '../../../lib/scoring';
 import { filterActresses } from '../../../lib/actressFilter';
+import { getCached, setCached } from '../../../lib/apiCache';
 
 const CANDIDATE_LIMIT = 300; // スコア計算用候補数
+const RANKING_TTL = 30 * 60 * 1000; // 30分
 
 export const revalidate = 300; // 5分キャッシュ
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
+
+    const cacheKey = 'ranking_' + Array.from(searchParams.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}=${v}`)
+        .join('&');
+    const hit = getCached<unknown[]>(cacheKey, RANKING_TTL);
+    if (hit) return NextResponse.json(hit);
     const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
     const fromDate = searchParams.get('fromDate') || ''; // e.g. "2026-01-01"
     const toDate = searchParams.get('toDate') || '';     // e.g. "2026-12-31"
@@ -230,5 +239,7 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    return NextResponse.json(result.slice(0, limit));
+    const finalResult = result.slice(0, limit);
+    setCached(cacheKey, finalResult);
+    return NextResponse.json(finalResult);
 }

@@ -1,4 +1,7 @@
+import fs from 'fs';
+import path from 'path';
 import { getMgsClient, getFanzaClient } from './turso';
+import { getCached, setCached } from './apiCache';
 
 export type OptionItem = { name: string; count: number };
 export type SearchOptions = { makers: OptionItem[]; genres: OptionItem[]; actresses: OptionItem[] };
@@ -12,19 +15,41 @@ export interface ContextualFilter {
     source?: string; // 'mgs' | 'fanza' | ''
 }
 
-let cache: SearchOptions | null = null;
-let cacheAt = 0;
-const CACHE_TTL = 5 * 60 * 1000;
-
 const EXCLUDE_GENRES = new Set(['ゲイ', 'TS・男の娘', 'ニューハーフ']);
+const SEARCH_OPTIONS_CACHE_KEY = 'searchOptions_v1';
+const SEARCH_OPTIONS_TTL = 60 * 60 * 1000; // 1時間（ファイル読み込みなので長めに）
 
 export async function getSearchOptions(): Promise<SearchOptions> {
-    const now = Date.now();
-    if (cache && now - cacheAt < CACHE_TTL) return cache;
+    const cached = getCached<SearchOptions>(SEARCH_OPTIONS_CACHE_KEY, SEARCH_OPTIONS_TTL);
+    if (cached) return cached;
 
+    // suggest_cache.json から読み込む（Turso不要）
+    try {
+        const filePath = path.join(process.cwd(), 'data', 'suggest_cache.json');
+        const raw = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as {
+            actresses?: string[];
+            makers?: string[];
+            labels?: string[];
+            genres?: string[];
+        };
+
+        const actresses: OptionItem[] = (raw.actresses || []).map((name, i) => ({ name, count: Math.max(1, 10000 - i) }));
+        const makers: OptionItem[] = (raw.makers || []).map((name, i) => ({ name, count: Math.max(1, 10000 - i) }));
+        const genres: OptionItem[] = (raw.genres || [])
+            .filter(name => !EXCLUDE_GENRES.has(name))
+            .map((name, i) => ({ name, count: Math.max(1, 10000 - i) }));
+
+        const result: SearchOptions = { actresses, makers, genres };
+        setCached(SEARCH_OPTIONS_CACHE_KEY, result);
+        return result;
+    } catch (e) {
+        console.error('[searchOptions] suggest_cache.json 読み込み失敗、Tursoにフォールバック:', e);
+    }
+
+    // フォールバック: Tursoから取得（読み込み数を抑えるためSAMPLEを削減）
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
-    const SAMPLE = 15000;
+    const SAMPLE = 3000;
 
     const [mgsMakerRows, fanzaMakerRows, mgsGenreRows, fanzaGenreRows, mgsActressRows, fanzaActressRows] =
         await Promise.all([
@@ -73,16 +98,24 @@ export async function getSearchOptions(): Promise<SearchOptions> {
     }
     const actresses = Array.from(actressMap.entries()).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
 
-    cache = { makers, genres, actresses };
-    cacheAt = now;
-    return cache;
+    const result: SearchOptions = { makers, genres, actresses };
+    setCached(SEARCH_OPTIONS_CACHE_KEY, result);
+    return result;
 }
 
 /**
  * 現在の検索コンテキストに絞ったオプションを返す。
  * 例: actress で絞り込み中なら、その女優の作品にあるメーカー・ジャンル・共演女優のみ。
  */
+const CONTEXTUAL_TTL = 5 * 60 * 1000; // 5分
+
 export async function getContextualSearchOptions(filter: ContextualFilter): Promise<SearchOptions> {
+    const cacheKey = 'ctx_' + JSON.stringify(Object.fromEntries(
+        Object.entries(filter).filter(([, v]) => v).sort(([a], [b]) => a.localeCompare(b))
+    ));
+    const cached = getCached<SearchOptions>(cacheKey, CONTEXTUAL_TTL);
+    if (cached) return cached;
+
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
     const LIMIT = 3000;
@@ -160,9 +193,11 @@ export async function getContextualSearchOptions(filter: ContextualFilter): Prom
         }
     }
 
-    return {
+    const contextResult: SearchOptions = {
         makers:   Array.from(makerMap.entries()).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count })),
         genres:   Array.from(genreMap.entries()).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count })),
         actresses: Array.from(actressMap.entries()).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count })),
     };
+    setCached(cacheKey, contextResult);
+    return contextResult;
 }
