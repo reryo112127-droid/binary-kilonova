@@ -77,8 +77,9 @@ export async function GET(request: NextRequest) {
     try {
         let html = fs.readFileSync(htmlFile, 'utf-8');
         if (isMobile) {
-            // skipHeader: Stitch独自ヘッダー（戻るボタン+タイトル）をそのまま使う
-            html = injectMobileLayout(html, '', { skipHeader: true });
+            // skipHeader: Stitch独自ヘッダーをそのまま使う
+            // skipBottomNav: Stitch固定フッターボタン（この条件でランキングを作成）をそのまま使う
+            html = injectMobileLayout(html, '', { skipHeader: true, skipBottomNav: true });
             html = html.replace('</body>', CUSTOM_RANKING_SCRIPT + '\n</body>');
         } else {
             html = injectWebLayout(html);
