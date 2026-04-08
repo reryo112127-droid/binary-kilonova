@@ -25,6 +25,13 @@ export async function GET(request: NextRequest) {
         let html = fs.readFileSync(htmlFile, 'utf-8');
         html = isMobile ? injectMobileLayout(html, 'ranking', true) : injectWebLayout(html);
         if (isMobile) {
+            // Stitchのプレースホルダー画像・テキストを削除（データ読み込み前に表示されないように）
+            html = html.replace(/src="https:\/\/lh3\.googleusercontent\.com\/[^"]+"/g, 'src="" style="display:none"');
+            html = html.replace(/(<p id="rank-1-title"[^>]*>)[^<]*(<\/p>)/, '$1$2');
+            html = html.replace(/(<p id="rank-2-title"[^>]*>)[^<]*(<\/p>)/, '$1$2');
+            html = html.replace(/(<p id="rank-3-title"[^>]*>)[^<]*(<\/p>)/, '$1$2');
+            // ranking-grid の静的ダミーカードを削除
+            html = html.replace(/(<div id="ranking-grid"[^>]*>)[\s\S]*?(<\/div>\s*<\/section>)/, '$1\n$2');
             // 作品ランキングスクリプトとの競合を防ぐフラグを head に注入
             html = html.replace('</head>', `<script>window.__ACTRESS_RANKING=true;</script></head>`);
             html = html.replace('</header>', `</header>\n${rankingTabBar('actresses')}`);
