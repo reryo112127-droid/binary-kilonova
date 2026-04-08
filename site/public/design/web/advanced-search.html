@@ -67,19 +67,19 @@
       <div class="flex gap-3">
         <label class="flex-1 cursor-pointer">
           <input type="radio" name="source" value="" class="hidden peer" checked/>
-          <div class="text-center py-3 rounded-lg border-2 border-gray-100 bg-gray-50 text-sm font-bold text-gray-500 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition">
+          <div class="text-center py-3 rounded-lg border-2 border-gray-100 bg-gray-50 text-sm font-bold text-gray-500 peer-checked:border-orange-500 peer-checked:bg-orange-50 peer-checked:text-orange-500 transition">
             すべて
           </div>
         </label>
         <label class="flex-1 cursor-pointer">
           <input type="radio" name="source" value="mgs" class="hidden peer"/>
-          <div class="text-center py-3 rounded-lg border-2 border-gray-100 bg-gray-50 text-sm font-bold text-gray-500 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition">
+          <div class="text-center py-3 rounded-lg border-2 border-gray-100 bg-gray-50 text-sm font-bold text-gray-500 peer-checked:border-orange-500 peer-checked:bg-orange-50 peer-checked:text-orange-500 transition">
             MGS動画
           </div>
         </label>
         <label class="flex-1 cursor-pointer">
           <input type="radio" name="source" value="fanza" class="hidden peer"/>
-          <div class="text-center py-3 rounded-lg border-2 border-gray-100 bg-gray-50 text-sm font-bold text-gray-500 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition">
+          <div class="text-center py-3 rounded-lg border-2 border-gray-100 bg-gray-50 text-sm font-bold text-gray-500 peer-checked:border-orange-500 peer-checked:bg-orange-50 peer-checked:text-orange-500 transition">
             FANZA
           </div>
         </label>
@@ -229,7 +229,7 @@
     genreGrid.innerHTML = GENRES.map(function(g){
       return '<label class="cursor-pointer">'
         +'<input type="checkbox" value="'+g+'" class="hidden peer genre-chk"/>'
-        +'<span class="block text-center text-[11px] px-2 py-1.5 rounded-lg border border-gray-200 text-gray-600 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary peer-checked:font-bold transition select-none">'+g+'</span>'
+        +'<span class="block text-center text-[11px] px-2 py-1.5 rounded-lg border border-gray-200 text-gray-600 peer-checked:border-orange-500 peer-checked:bg-orange-50 peer-checked:text-orange-500 peer-checked:font-bold transition select-none">'+g+'</span>'
         +'</label>';
     }).join('');
   }
@@ -240,7 +240,7 @@
     cupGrid.innerHTML = CUPS.map(function(c){
       return '<label class="cursor-pointer">'
         +'<input type="checkbox" value="'+c+'" class="hidden peer cup-chk"/>'
-        +'<span class="block w-10 text-center text-[11px] py-1.5 rounded-lg border border-gray-200 text-gray-600 peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary peer-checked:font-bold transition select-none">'+c+'</span>'
+        +'<span class="block w-10 text-center text-[11px] py-1.5 rounded-lg border border-gray-200 text-gray-600 peer-checked:border-orange-500 peer-checked:bg-orange-50 peer-checked:text-orange-500 peer-checked:font-bold transition select-none">'+c+'</span>'
         +'</label>';
     }).join('');
   }
