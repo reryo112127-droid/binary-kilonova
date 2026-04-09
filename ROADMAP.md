@@ -1,6 +1,6 @@
 # AVコンシェルジュ — ロードマップ
 
-> 作成: 2026-03-17 / 最終更新: 2026-03-26
+> 作成: 2026-03-17 / 最終更新: 2026-04-09
 
 ---
 
@@ -50,6 +50,25 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
   - /api/ranking/actress に fromDate/toDate パラメータ追加
   - actress-ranking-2026.html・ranking.html(モバイル) に日付フィルター追加
 ### [x] FANZAレビューデータのDB追加・ランキング反映（2026-03-25）
+### [x] スマホ版・PC版 UI改善まとめ（2026-04-08〜09）
+  - サンプル画像ライトボックス拡大表示（モバイル・PC）
+  - FANZA素人系作品の画質向上（jm.jpg → jp-001.jpg）
+  - FANZAサンプル動画再生修正（エスケープスラッシュ対応）
+  - スマホ版作品一覧ページ: FANZAとMGS実データ表示、全フィルターボタン機能化
+  - スマホ版カスタムランキング作成ページ: Stitch設計を使用、フォーム送信実装
+  - スマホ版女優ランキング: Stitch仮データ削除、リアルデータのみ表示
+  - スマホ版ランキング→カスタムランキング遷移（tuneアイコン実装）
+  - カスタムランキングページ: ボトムナビ削除、「この条件でランキングを作成」ボタン表示
+  - 詳細検索・カスタムランキングのプラットフォームデフォルトを「両方」に変更
+  - PC版詳細検索: プラットフォーム・ジャンル・カップ数の選択枠をオレンジ色に修正
+### [x] Turso読み取り削減（2026-04-08）
+  - `lib/apiCache.ts` 新規: 共通TTLインメモリキャッシュ（最大100エントリ）
+  - `searchOptions.ts`: getSearchOptions()をTurso不要化（suggest_cache.json読み込み）、SAMPLE 15000→3000削減
+  - `getContextualSearchOptions()` に5分キャッシュ追加
+  - `/api/products`: offset=0クエリに5分インメモリキャッシュ
+  - `/api/ranking` `/api/ranking/actress`: 30分インメモリキャッシュ
+  - `scripts/generate-static-cache.mjs` 新規: 静的JSONキャッシュ生成スクリプト
+  - 静的JSON優先配信: 新着・人気作品・2026ランキング・女優ランキングはTurso読み取りゼロ化（Turso解除後に有効化）
 ### [x] スマホヘッダー検索欄修正・ボトムナビリンク修正（2026-03-26）
   - MOBILE_SEARCH_SCRIPT: `/api/suggest?q=` 形式に更新（旧: 全件取得→クライアントフィルタ、新: サーバーサイドフィルタ）
   - 女優は文字列配列 / メーカーも表示
@@ -67,7 +86,20 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
 
 ## 🚀 優先度: 高
 
-### [ ] GitHub Secretsの設定 ← **次のステップ**
+### [ ] Tursoブロック解除後: 静的JSONキャッシュ生成 ← **次のステップ（〜2026-05-01）**
+- Turso無料枠は毎月1日リセット。解除されたら即実行すること
+- 手順:
+  1. `cd site && node scripts/generate-static-cache.mjs`
+  2. `npx vercel deploy --prod --yes`
+  3. `git add data/*_cache.json && git commit -m "静的キャッシュ更新" && git push`
+- 生成されるファイル:
+  - `data/products_new_cache.json` — 新着作品60件（Turso読み取りゼロ化）
+  - `data/products_popular_cache.json` — 人気作品60件（Turso読み取りゼロ化）
+  - `data/ranking_2026_cache.json` — 作品ランキング2026 top100（Turso読み取りゼロ化）
+  - `data/actress_ranking_2026_cache.json` — 女優ランキング2026 top50（Turso読み取りゼロ化）
+- 以降、月1回または新しいデータに更新したいタイミングで再実行する
+
+### [ ] GitHub Secretsの設定
 - GitHubリポジトリ → Settings → Secrets and variables → Actions
 - 追加するSecrets:
   - `DMM_API_ID` / `DMM_AFFILIATE_ID` / `DMM_AFFILIATE_IDS`
@@ -98,9 +130,9 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
 ## 📋 優先度: 中
 
 ### [ ] 女優ランキングタブ
-- `/ranking` ページに「女優ランキング」タブ追加
-- `/api/ranking/actress` エンドポイント作成
-  - `actress_likes` + 出演作レビュー + 出演作購入でスコア計算
+- スマホ版: 作品タブ・出演者タブ切り替えは実装済み
+- PC版: 女優ランキングセクションを追加
+- `/api/ranking/actress` エンドポイント実装済み（actress_likes + wish_countでスコア計算）
 
 ### [ ] レビュー一覧の作品詳細ページへの表示
 - `ProductDetailClient.tsx` にレビューセクション追加
@@ -154,12 +186,13 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
 
 | 優先 | タスク | 状態 |
 |------|--------|------|
-| 🔴 高 | GitHub Secrets設定（CIを稼働させる） | **次のステップ** |
+| 🔴 高 | **Tursoブロック解除後に静的JSON生成**（〜05/01） | ⏳ 待機中 |
+| 🔴 高 | GitHub Secrets設定（CIを稼働させる） | 未着手 |
 | 🔴 高 | Vercel環境変数設定（TURSO_SITE_URL等） | 未着手 |
 | 🔴 高 | OGP画像の非露骨化（SNS Phase A） | 未着手 |
 | 🔴 高 | Blueskyアカウント登録・`.env`設定 | 未着手 |
 | 🔴 高 | Telegram Botアカウント登録・`.env`設定 | 未着手 |
-| ⏳ 待機 | avwikiデータ統合（スクレイプ完了後 〜04/08） | スクレイプ中 |
+| ⏳ 待機 | avwikiデータ統合（スクレイプ完了後 〜04/09） | スクレイプ中 |
 | ⏳ 待機 | avwiki品番DB反映確認（〜04/12） | スクレイプ中 |
 | 🟡 中 | セールページ実装 | 未着手 |
 | 🟡 中 | 女優ランキングタブ追加 | 未着手 |
@@ -169,9 +202,10 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
 
 ## 🌐 デプロイ先
 
-**本番URL: https://lunar-zodiac.vercel.app**
+**本番URL: https://avrankings.com**
 
-- デプロイは常に `cd site && rm -rf .next && vercel --prod` で実行すること（ビルドキャッシュ問題回避）
+- デプロイ: `cd site && npx vercel deploy --prod --yes`
+- エイリアスが外れた場合: `npx vercel alias <deployment-url> avrankings.com`
 - プロジェクト: `avdesires-projects/lunar-zodiac`
 
 ---
@@ -179,7 +213,9 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
 ## 🗒️ メモ
 
 - DMM API レート制限: 1リクエスト/秒（`RATE_LIMIT_MS = 1200ms` で対応）
-- Turso 無料プラン制限: 500 DB reads/day → 必要なら有料プランへ
+- Turso 無料プラン制限: 読み取り上限は月次リセット（毎月1日）。2026-04-08現在ブロック中
+  - ブロック解除後は `node scripts/generate-static-cache.mjs` を実行して静的JSONを生成すること
+  - ホーム・ランキング・新着など主要エンドポイントはJSONから配信されTurso読み取りゼロになる
 - `suggest_cache.json` は日次更新時に自動再生成される
 - `site/.env.local` に Turso 接続情報が入っている（Gitに含めないこと）
   - `TURSO_MGS_URL` / `TURSO_MGS_TOKEN`
