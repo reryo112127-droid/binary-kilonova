@@ -11,6 +11,8 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const JSONL_FILE = path.join(__dirname, '../data/avwiki_full.jsonl');
 const BATCH = 100;
+// --force: SNS・改名情報をCOALESCEではなく上書きで更新（再スキャン時に使用）
+const FORCE = process.argv.includes('--force');
 
 async function main() {
     if (!fs.existsSync(JSONL_FILE)) {
@@ -50,10 +52,10 @@ async function main() {
                     waist      = COALESCE(actress_profiles.waist,      excluded.waist),
                     hip        = COALESCE(actress_profiles.hip,        excluded.hip),
                     cup        = COALESCE(actress_profiles.cup,        excluded.cup),
-                    twitter    = COALESCE(actress_profiles.twitter,    excluded.twitter),
-                    instagram  = COALESCE(actress_profiles.instagram,  excluded.instagram),
-                    tiktok     = COALESCE(actress_profiles.tiktok,     excluded.tiktok),
-                    aliases    = COALESCE(actress_profiles.aliases,    excluded.aliases),
+                    twitter    = ${FORCE ? 'COALESCE(excluded.twitter, actress_profiles.twitter)'    : 'COALESCE(actress_profiles.twitter,    excluded.twitter)'},
+                    instagram  = ${FORCE ? 'COALESCE(excluded.instagram, actress_profiles.instagram)': 'COALESCE(actress_profiles.instagram,  excluded.instagram)'},
+                    tiktok     = ${FORCE ? 'COALESCE(excluded.tiktok, actress_profiles.tiktok)'      : 'COALESCE(actress_profiles.tiktok,     excluded.tiktok)'},
+                    aliases    = ${FORCE ? 'COALESCE(excluded.aliases, actress_profiles.aliases)'    : 'COALESCE(actress_profiles.aliases,    excluded.aliases)'},
                     updated_at = excluded.updated_at`,
             args: [
                 entry.name,

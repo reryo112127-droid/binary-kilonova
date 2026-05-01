@@ -28,6 +28,7 @@ const PROGRESS_FILE = path.join(DATA_DIR, 'avwiki_full_progress.json');
 const args       = process.argv.slice(2);
 const FETCH_ONLY = args.includes('--fetch-urls');
 const DRY_RUN    = args.includes('--dry-run');
+const RESCAN     = args.includes('--rescan'); // 完了済みをリセットして全女優を再スキャン
 const intIdx     = args.indexOf('--interval');
 const INTERVAL_MS = intIdx !== -1 ? parseInt(args[intIdx + 1], 10) * 1000 : 600_000; // デフォルト10分
 
@@ -405,6 +406,13 @@ async function main() {
 
     // 進捗ロード
     const progress = loadProgressFromFile();
+    if (RESCAN) {
+        console.log('[モード] 再スキャン: 完了済みURLをリセットして全女優を再スキャンします');
+        progress.completed = new Set();
+        // 再スキャン時はJSONLをリセット（古いデータを消してTursoへの反映も新鮮にする）
+        fs.writeFileSync(OUTPUT_JSONL, '');
+        console.log(`  avwiki_full.jsonl をリセットしました`);
+    }
     console.log(`[進捗] 完了: ${progress.completed.size.toLocaleString()} / ${urls.length.toLocaleString()}`);
 
     // Ctrl+C / timeout(SIGTERM) で安全に中断

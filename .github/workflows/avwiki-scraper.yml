@@ -1,7 +1,17 @@
 name: AVWiki Scraper
 
 on:
-  workflow_dispatch:        # 手動実行のみ（スケジュール実行はローカルで行う）
+  schedule:
+    - cron: '0 19 * * *'      # 毎日 4:00 JST (= 19:00 UTC) — 通常スクレイプ（続き）
+    - cron: '0 18 * * 0'      # 毎週日曜 3:00 JST (= 18:00 UTC) — 全件再スキャン（SNS・改名更新）
+  workflow_dispatch:            # 手動実行
+    inputs:
+      rescan:
+        description: '全件再スキャン（SNS・改名を強制更新）'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
 
 concurrency:
   group: avwiki-scraper
@@ -27,15 +37,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 女優プロフィールスクレイプ（30秒間隔、最大50分）
-      - name: Scrape actress profiles
-        run: timeout 50m node scripts/scrape_avwiki_full.js --interval 30 || true
-        env:
-          CI: ''   # avwikiスクレイパーはCI変数不要
+      # 再スキャンモードの判定（週次スケジュール or 手動でrescan=true）
+      - name: Set rescan flag
+        id: mode
+        run: |
+          if [ "${{ github.event.schedule }}" = "0 18 * * 0" ] || [ "${{ github.event.inputs.rescan }}" = "true" ]; then
+            echo "rescan=true" >> $GITHUB_OUTPUT
+          else
+            echo "rescan=false" >> $GITHUB_OUTPUT
+          fi
 
-      # 品番→女優マッピングスクレイプ（15秒間隔、最大50分）
+      # 女優プロフィールスクレイプ（30秒間隔、最大3時間 ≒ 360ページ/回）
+      - name: Scrape actress profiles (通常)
+        if: steps.mode.outputs.rescan == 'false'
+        run: timeout 3h node scripts/scrape_avwiki_full.js --interval 30 || true
+        env:
+          CI: ''
+
+      # 週次再スキャン: 全女優を再スキャンしてSNS・改名情報を更新
+      - name: Scrape actress profiles (再スキャン)
+        if: steps.mode.outputs.rescan == 'true'
+        run: timeout 3h node scripts/scrape_avwiki_full.js --interval 30 --rescan || true
+        env:
+          CI: ''
+
+      # 品番→女優マッピングスクレイプ（15秒間隔、最大3時間 ≒ 720ページ/回）
       - name: Scrape product actress mapping
-        run: timeout 50m node scripts/scrape_avwiki_products.js --interval 15 || true
+        run: timeout 3h node scripts/scrape_avwiki_products.js --interval 15 || true
         env:
           CI: ''
           TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
@@ -44,8 +72,14 @@ jobs:
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
 
       # avwiki_full.jsonl → Turso actress_profiles に反映
+      # 再スキャン時は --force でSNS・改名を上書き更新
       - name: Build avwiki profiles (Turso)
-        run: node scripts/build_avwiki_profiles.js || echo "build_avwiki_profiles failed (non-fatal)"
+        run: |
+          if [ "${{ steps.mode.outputs.rescan }}" = "true" ]; then
+            node scripts/build_avwiki_profiles.js --force || echo "build_avwiki_profiles failed (non-fatal)"
+          else
+            node scripts/build_avwiki_profiles.js || echo "build_avwiki_profiles failed (non-fatal)"
+          fi
         env:
           TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
@@ -64,7 +98,11 @@ jobs:
             data/avwiki_product_urls.json \
             || true
           if ! git diff --staged --quiet; then
-            git commit -m "avwiki: scraper progress [skip ci] [vercel skip]"
+            if [ "${{ steps.mode.outputs.rescan }}" = "true" ]; then
+              git commit -m "avwiki: weekly rescan - SNS/改名情報更新 [skip ci] [vercel skip]"
+            else
+              git commit -m "avwiki: scraper progress [skip ci] [vercel skip]"
+            fi
             git pull --rebase origin main || git rebase --abort || true
             git push || echo "Push failed (non-fatal, will retry next run)"
           fi
