@@ -10,6 +10,9 @@ concurrency:
   group: daily-update
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
   fanza-update:
     name: FANZA 日次更新
@@ -17,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -43,7 +48,37 @@ jobs:
           TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
 
-      # 女優プロフィール・サジェストキャッシュはTursoに直接書き込むためコミット不要
+      - name: Install site dependencies
+        run: cd site && npm ci
+
+      - name: Generate static JSON cache
+        run: cd site && node scripts/generate-static-cache.mjs
+        env:
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+
+      - name: Deploy to Vercel
+        run: cd site && npx vercel deploy --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Commit updated cache files
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add \
+            site/data/products_new_cache.json \
+            site/data/products_popular_cache.json \
+            site/data/ranking_2026_cache.json \
+            site/data/actress_ranking_2026_cache.json \
+            || true
+          if ! git diff --staged --quiet; then
+            git commit -m "cache: FANZA日次更新後の静的キャッシュ更新 [skip ci] [vercel skip]"
+            git pull --rebase origin main || git rebase --abort || true
+            git push || echo "Push failed (non-fatal)"
+          fi
 
   mgs-update:
     name: MGS 日次更新
@@ -51,6 +86,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -65,4 +102,35 @@ jobs:
         env:
           TURSO_MGS_URL:   ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN: ${{ secrets.TURSO_MGS_TOKEN }}
-      # APIルートはforce-dynamicのため再デプロイ不要。Turso更新後すぐサイトに反映される。
+
+      - name: Install site dependencies
+        run: cd site && npm ci
+
+      - name: Generate static JSON cache
+        run: cd site && node scripts/generate-static-cache.mjs
+        env:
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+
+      - name: Deploy to Vercel
+        run: cd site && npx vercel deploy --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Commit updated cache files
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add \
+            site/data/products_new_cache.json \
+            site/data/products_popular_cache.json \
+            site/data/ranking_2026_cache.json \
+            site/data/actress_ranking_2026_cache.json \
+            || true
+          if ! git diff --staged --quiet; then
+            git commit -m "cache: MGS日次更新後の静的キャッシュ更新 [skip ci] [vercel skip]"
+            git pull --rebase origin main || git rebase --abort || true
+            git push || echo "Push failed (non-fatal)"
+          fi

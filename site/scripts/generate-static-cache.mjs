@@ -17,17 +17,22 @@ import { createClient } from '@libsql/client';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 
-// .env.local を手動でロード
+// .env.local を手動でロード（CIでは環境変数が直接設定されるためスキップ）
 function loadEnv() {
     const envPath = path.join(ROOT, '.env.local');
-    if (!fs.existsSync(envPath)) { console.error('.env.local が見つかりません'); process.exit(1); }
+    if (!fs.existsSync(envPath)) return; // CI: 環境変数は外部から注入済み
     for (const line of fs.readFileSync(envPath, 'utf-8').split('\n')) {
         const m = line.match(/^([A-Z0-9_]+)=(.+)$/);
-        if (m) process.env[m[1]] = m[2].trim();
+        if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim(); // 既存の環境変数は上書きしない
     }
 }
 
 loadEnv();
+
+if (!process.env.TURSO_MGS_URL || !process.env.TURSO_FANZA_URL) {
+    console.error('TURSO_MGS_URL / TURSO_FANZA_URL が未設定です');
+    process.exit(1);
+}
 
 const mgs   = createClient({ url: process.env.TURSO_MGS_URL,   authToken: process.env.TURSO_MGS_TOKEN });
 const fanza = createClient({ url: process.env.TURSO_FANZA_URL,  authToken: process.env.TURSO_FANZA_TOKEN });
