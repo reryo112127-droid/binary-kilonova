@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFanzaClient } from '../../../../lib/turso';
+import { getCached, setCached } from '../../../../lib/apiCache';
+
+const ACTRESS_TTL = 30 * 60 * 1000; // 30分
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +13,10 @@ export async function GET(
     const { name } = await params;
     const actressName = decodeURIComponent(name);
     const nameNoSpace = actressName.replace(/\s+/g, '');
+
+    const cacheKey = `actress_${actressName}`;
+    const cached = getCached<object>(cacheKey, ACTRESS_TTL);
+    if (cached) return NextResponse.json(cached);
 
     const db = getFanzaClient();
     if (!db) {
@@ -67,5 +74,6 @@ export async function GET(
         has_agency_profile: !!(row?.agency_url),
     };
 
+    setCached(cacheKey, profile);
     return NextResponse.json(profile);
 }

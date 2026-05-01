@@ -6,6 +6,10 @@
 
 import { getMgsClient, getFanzaClient } from './turso';
 import { filterActresses } from './actressFilter';
+import { readStaticCache } from './staticCache';
+import { getCached, setCached } from './apiCache';
+
+const SSR_PAGE_TTL = 5 * 60 * 1000; // 5分
 
 const HOME_MAKERS = [
     'S1','MOODYZ','アイデアポケット','E-BODY','OPPAI','Fitch','Madonna','痴女ヘブン',
@@ -42,6 +46,8 @@ function addMakersFanza(conds: string[], args: (string | number)[], makers: stri
 
 /** ホーム用: FANZA予約作品（配信日降順） */
 export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
+    const cached = readStaticCache<Row[]>('home_preorder_cache.json');
+    if (cached && cached.length > 0) return cached.slice(0, limit);
     const client = getFanzaClient();
     if (!client) return [];
     const today = new Date().toISOString().slice(0, 10);
@@ -63,6 +69,8 @@ export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
 
 /** ホーム用: FANZA新作（当日→直近3日フォールバック） */
 export async function ssrFetchFanzaNewProducts(limit: number): Promise<Row[]> {
+    const cached = readStaticCache<Row[]>('products_new_cache.json');
+    if (cached && cached.length > 0) return cached.slice(0, limit);
     const client = getFanzaClient();
     if (!client) return [];
     const today = new Date().toISOString().slice(0, 10);
@@ -92,6 +100,8 @@ export async function ssrFetchFanzaNewProducts(limit: number): Promise<Row[]> {
 
 /** ランキング: MGS(wish_count) + FANZA(review) 2:1インターリーブ */
 export async function ssrFetchRanking(limit: number): Promise<Row[]> {
+    const cached = readStaticCache<Row[]>('ranking_2026_cache.json');
+    if (cached && cached.length > 0) return cached.slice(0, limit);
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
     const yearStart = new Date().getFullYear() + '-01-01';
@@ -133,6 +143,8 @@ export async function ssrFetchRanking(limit: number): Promise<Row[]> {
 
 /** 女優ランキング: wish_count集計 + プロフィール画像 */
 export async function ssrFetchActressRanking(limit: number): Promise<Row[]> {
+    const cached = readStaticCache<Row[]>('actress_ranking_2026_cache.json');
+    if (cached && cached.length > 0) return cached.slice(0, limit);
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
     const yearStart = new Date().getFullYear() + '-01-01';
@@ -206,6 +218,10 @@ export async function ssrFetchActressRanking(limit: number): Promise<Row[]> {
 
 /** 新作ページ用: MGS + FANZA 直近30日 */
 export async function ssrFetchNewProductsPage(limit: number): Promise<Row[]> {
+    const cacheKey = `ssr_new_${limit}`;
+    const cached = getCached<Row[]>(cacheKey, SSR_PAGE_TTL);
+    if (cached) return cached;
+
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
     const today = new Date().toISOString().slice(0, 10);
@@ -238,11 +254,17 @@ export async function ssrFetchNewProductsPage(limit: number): Promise<Row[]> {
         if (mgsRows[i]) combined.push(mapRow(mgsRows[i] as Row, 'mgs'));
         if (fanzaRows[i]) combined.push(mapRow(fanzaRows[i] as Row, 'fanza'));
     }
-    return combined.slice(0, limit);
+    const result = combined.slice(0, limit);
+    setCached(cacheKey, result);
+    return result;
 }
 
 /** 予約ページ用: MGS + FANZA 明日以降 */
 export async function ssrFetchPreOrdersPage(limit: number): Promise<Row[]> {
+    const cacheKey = `ssr_preorder_${limit}`;
+    const cached = getCached<Row[]>(cacheKey, SSR_PAGE_TTL);
+    if (cached) return cached;
+
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
     const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
@@ -271,7 +293,9 @@ export async function ssrFetchPreOrdersPage(limit: number): Promise<Row[]> {
         if (mgsRows[i]) combined.push(mapRow(mgsRows[i] as Row, 'mgs'));
         if (fanzaRows[i]) combined.push(mapRow(fanzaRows[i] as Row, 'fanza'));
     }
-    return combined.slice(0, limit);
+    const result = combined.slice(0, limit);
+    setCached(cacheKey, result);
+    return result;
 }
 
 /** SSRデータをHTMLのheadに安全に注入するヘルパー */

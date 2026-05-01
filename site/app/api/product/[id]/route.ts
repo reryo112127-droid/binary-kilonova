@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { filterActresses } from '../../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../../lib/turso';
+import { getCached, setCached } from '../../../../lib/apiCache';
+
+const PRODUCT_TTL = 60 * 60 * 1000; // 1時間
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +22,10 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id } = await params;
+
+    const cacheKey = `product_${id}`;
+    const cached = getCached<Record<string, unknown>>(cacheKey, PRODUCT_TTL);
+    if (cached) return NextResponse.json(cached);
 
     let mgsProduct: Record<string, unknown> | null = null;
     let fanzaProduct: Record<string, unknown> | null = null;
@@ -85,7 +92,7 @@ export async function GET(
         return (d && d > 1) ? d : null;
     })();
 
-    return NextResponse.json({
+    const responseData = {
         ...primary,
         duration_min: durationMin,
         source,
@@ -111,5 +118,7 @@ export async function GET(
         sample_images: primary.sample_images_json
             ? JSON.parse(String(primary.sample_images_json))
             : [],
-    });
+    };
+    setCached(cacheKey, responseData);
+    return NextResponse.json(responseData);
 }

@@ -4,7 +4,7 @@
  */
 
 const _cache = new Map<string, { data: unknown; at: number }>();
-const MAX_ENTRIES = 100;
+const MAX_ENTRIES = 500;
 
 export function getCached<T>(key: string, ttlMs: number): T | null {
     const entry = _cache.get(key);

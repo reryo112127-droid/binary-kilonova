@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMgsClient, getFanzaClient } from '../../../../../lib/turso';
 import { filterActresses } from '../../../../../lib/actressFilter';
+import { getCached, setCached } from '../../../../../lib/apiCache';
+
+const SIMILAR_TTL = 30 * 60 * 1000; // 30分
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +46,10 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> },
 ) {
     const { id } = await params;
+
+    const cacheKey = `similar_${id}`;
+    const cached = getCached<ReturnType<typeof toProduct>[]>(cacheKey, SIMILAR_TTL);
+    if (cached) return NextResponse.json(cached);
 
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
@@ -135,5 +142,6 @@ export async function GET(
     scored.sort((a, b) => b._score - a._score);
     const result = scored.slice(0, 8).map(({ _score: _, ...p }) => p);
 
+    setCached(cacheKey, result);
     return NextResponse.json(result);
 }
