@@ -59,10 +59,19 @@ jobs:
           TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
 
-      - name: Deploy to Vercel
-        run: cd site && npx vercel deploy --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
+      - name: Build for Cloudflare Workers
+        run: cd site && npx opennextjs-cloudflare build
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+
+      - name: Deploy to Cloudflare Workers
+        run: cd site && npx opennextjs-cloudflare deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Commit updated cache files
         run: |
@@ -73,9 +82,11 @@ jobs:
             site/data/products_popular_cache.json \
             site/data/ranking_2026_cache.json \
             site/data/actress_ranking_2026_cache.json \
+            site/data/home_preorder_cache.json \
+            site/data/sale_cache.json \
             || true
           if ! git diff --staged --quiet; then
-            git commit -m "cache: FANZA日次更新後の静的キャッシュ更新 [skip ci] [vercel skip]"
+            git commit -m "cache: FANZA日次更新後の静的キャッシュ更新 [skip ci]"
             git pull --rebase origin main || git rebase --abort || true
             git push || echo "Push failed (non-fatal)"
           fi
@@ -114,10 +125,19 @@ jobs:
           TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
 
-      - name: Deploy to Vercel
-        run: cd site && npx vercel deploy --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
+      - name: Build for Cloudflare Workers
+        run: cd site && npx opennextjs-cloudflare build
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+
+      - name: Deploy to Cloudflare Workers
+        run: cd site && npx opennextjs-cloudflare deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Commit updated cache files
         run: |
@@ -128,9 +148,11 @@ jobs:
             site/data/products_popular_cache.json \
             site/data/ranking_2026_cache.json \
             site/data/actress_ranking_2026_cache.json \
+            site/data/home_preorder_cache.json \
+            site/data/sale_cache.json \
             || true
           if ! git diff --staged --quiet; then
-            git commit -m "cache: MGS日次更新後の静的キャッシュ更新 [skip ci] [vercel skip]"
+            git commit -m "cache: MGS日次更新後の静的キャッシュ更新 [skip ci]"
             git pull --rebase origin main || git rebase --abort || true
             git push || echo "Push failed (non-fatal)"
           fi

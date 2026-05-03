@@ -31,6 +31,8 @@ const DRY_RUN    = args.includes('--dry-run');
 const RESCAN     = args.includes('--rescan'); // 完了済みをリセットして全女優を再スキャン
 const intIdx     = args.indexOf('--interval');
 const INTERVAL_MS = intIdx !== -1 ? parseInt(args[intIdx + 1], 10) * 1000 : 600_000; // デフォルト10分
+const maxIdx     = args.indexOf('--max');
+const MAX_COUNT  = maxIdx !== -1 ? parseInt(args[maxIdx + 1], 10) : Infinity; // 1回の実行上限
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -304,12 +306,13 @@ async function scrapeAll(urls, progress) {
     console.log(`  残り: ${pending.length.toLocaleString()}ページ`);
     console.log(`  間隔: ${intervalSec}秒(${(intervalSec/60).toFixed(0)}分) / 推定: ${estimateDays}日`);
     if (DRY_RUN) console.log('  [DRY RUN] 最初の3件のみ処理');
+    if (MAX_COUNT !== Infinity) console.log(`  [MAX] 最大 ${MAX_COUNT} 件で終了`);
     console.log('');
 
     const outputStream = fs.createWriteStream(OUTPUT_JSONL, { flags: 'a' });
 
     let processed = 0;
-    const limit = DRY_RUN ? 3 : Infinity;
+    const limit = DRY_RUN ? 3 : MAX_COUNT;
 
     for (const url of pending) {
         if (processed >= limit) break;

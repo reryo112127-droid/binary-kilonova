@@ -1,0 +1,62 @@
+name: AVWIKI 女優情報スクレイプ（週次）
+
+on:
+  schedule:
+    - cron: '0 17 * * 0'   # 日曜 02:00 JST (= 17:00 UTC 土曜)
+  workflow_dispatch:         # 手動実行
+
+concurrency:
+  group: avwiki-update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  avwiki-scrape:
+    name: AVWIKI スクレイプ & Turso反映
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 1回あたり700件 × 3秒 = 約35分
+      # 進捗は data/avwiki_full_progress.json に保存されるため
+      # 毎週続きから処理される
+      - name: Scrape AVWIKI (最大700件)
+        run: node scripts/scrape_avwiki_full.js --interval 3 --max 700
+        timeout-minutes: 45
+
+      - name: Push to Turso (actress_profiles)
+        run: node scripts/build_avwiki_profiles.js
+        env:
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+
+      - name: Commit progress & results
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add \
+            data/avwiki_full.jsonl \
+            data/avwiki_full_progress.json \
+            data/avwiki_url_list.json \
+            || true
+          if ! git diff --staged --quiet; then
+            git commit -m "avwiki: 週次スクレイプ進捗保存 [skip ci]"
+            git pull --rebase origin main || git rebase --abort || true
+            git push || echo "Push failed (non-fatal)"
+          else
+            echo "変更なし（スキップ）"
+          fi
