@@ -29,9 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 直近72ヶ月（6年）の価格・セール情報を更新
+      # FANZA: 直近72ヶ月（6年）の価格・セール情報を更新
       # 予約商品取得はスキップ（daily-updateで実施済み）
-      - name: Refresh prices (直近6年)
+      - name: FANZA 価格更新 (直近6年)
         run: node scripts/fanza_daily_update.js --months 72 --no-preorder
         env:
           DMM_API_ID:        ${{ secrets.DMM_API_ID }}
@@ -39,3 +39,10 @@ jobs:
           DMM_AFFILIATE_IDS: ${{ secrets.DMM_AFFILIATE_IDS }}
           TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+
+      # MGS: 直近700ページ（約6年分）の価格・セール情報を更新
+      - name: MGS 価格更新 (直近6年)
+        run: node scripts/phase3_daily_update.js --pages 700 --no-preorder
+        env:
+          TURSO_MGS_URL:   ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN: ${{ secrets.TURSO_MGS_TOKEN }}

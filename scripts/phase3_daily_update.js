@@ -7,7 +7,9 @@
  * 更新後は Turso にも同期する。
  *
  * 使い方:
- *   node scripts/phase3_daily_update.js
+ *   node scripts/phase3_daily_update.js              # デフォルト
+ *   node scripts/phase3_daily_update.js --pages 700  # 価格更新を700ページに拡大（約6年分）
+ *   node scripts/phase3_daily_update.js --no-preorder # 新規作品取得をスキップ
  */
 const path  = require('path');
 const fs    = require('fs');
@@ -39,6 +41,12 @@ const IS_CI = !!process.env.CI;
 
 // STEP2: 直近何ページ分の価格を毎日更新するか（1ページ=120件、30ページ=3600件）
 const PRICE_REFRESH_PAGES = 30;
+
+// ---- 引数パース ----
+const _args = process.argv.slice(2);
+const _pagesIdx = _args.indexOf('--pages');
+const PRICE_REFRESH_PAGES_OVERRIDE = _pagesIdx !== -1 ? parseInt(_args[_pagesIdx + 1], 10) : null;
+const NO_PREORDER = _args.includes('--no-preorder');
 
 const MGS_COLUMNS = [
     'product_id','title','actresses','maker','label','duration_min',
@@ -174,8 +182,12 @@ async function main() {
     const startTime = Date.now();
     const newProducts = []; // Turso同期用
 
+    if (NO_PREORDER) {
+        console.log('[STEP 1] 新規作品取得: スキップ (--no-preorder)\n');
+    }
+
     try {
-        while (true) {
+      if (!NO_PREORDER) while (true) {
             const url = buildSearchUrl(currentPage, ITEMS_PER_PAGE);
             console.log(`[ページ ${currentPage}] 新着チェック...`);
 
@@ -313,12 +325,13 @@ async function main() {
         }
 
         // ---- STEP 2: 価格更新 ----
+        const effectivePages = PRICE_REFRESH_PAGES_OVERRIDE ?? PRICE_REFRESH_PAGES;
         let priceMap = new Map();
         let saleCount = 0;
         let step2Error = null;
         try {
-            console.log(`[STEP 2] 価格更新: 直近${PRICE_REFRESH_PAGES}ページ (${PRICE_REFRESH_PAGES * ITEMS_PER_PAGE}件)`);
-            priceMap = await buildPriceMap(PRICE_REFRESH_PAGES);
+            console.log(`[STEP 2] 価格更新: 直近${effectivePages}ページ (${effectivePages * ITEMS_PER_PAGE}件)`);
+            priceMap = await buildPriceMap(effectivePages);
             for (const v of priceMap.values()) {
                 if (v.discount_pct > 0) saleCount++;
             }
