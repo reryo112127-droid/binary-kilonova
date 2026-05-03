@@ -1,0 +1,41 @@
+name: 週次価格更新（直近6年）
+
+on:
+  schedule:
+    - cron: '0 16 * * 6'   # 土曜 01:00 JST (= 16:00 UTC 金曜)
+  workflow_dispatch:         # 手動実行
+
+concurrency:
+  group: weekly-price-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  price-refresh:
+    name: FANZA 価格更新（72ヶ月）
+    runs-on: ubuntu-latest
+    timeout-minutes: 180   # 最大3時間
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 直近72ヶ月（6年）の価格・セール情報を更新
+      # 予約商品取得はスキップ（daily-updateで実施済み）
+      - name: Refresh prices (直近6年)
+        run: node scripts/fanza_daily_update.js --months 72 --no-preorder
+        env:
+          DMM_API_ID:        ${{ secrets.DMM_API_ID }}
+          DMM_AFFILIATE_ID:  ${{ secrets.DMM_AFFILIATE_ID }}
+          DMM_AFFILIATE_IDS: ${{ secrets.DMM_AFFILIATE_IDS }}
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}

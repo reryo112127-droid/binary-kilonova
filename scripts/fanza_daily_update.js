@@ -8,6 +8,7 @@
  *   node scripts/fanza_daily_update.js              # デフォルト: 明日〜2ヶ月先
  *   node scripts/fanza_daily_update.js --ahead 3    # 3ヶ月先まで
  *   node scripts/fanza_daily_update.js --no-price   # 価格更新スキップ
+ *   node scripts/fanza_daily_update.js --months 72  # 価格更新を直近72ヶ月（6年）に拡大
  *   node scripts/fanza_daily_update.js --dry-run    # 件数確認のみ（DB書き込みなし）
  */
 
@@ -35,8 +36,11 @@ const FLOORS = ['videoa', 'videoc'];
 const args      = process.argv.slice(2);
 const aheadArg  = args.indexOf('--ahead');
 const MONTHS_AHEAD = aheadArg !== -1 ? parseInt(args[aheadArg + 1], 10) : 2; // 予約商品は約1ヶ月前に登録されるため2ヶ月先まで
-const DRY_RUN   = args.includes('--dry-run');
-const NO_PRICE  = args.includes('--no-price');
+const monthsArg = args.indexOf('--months');
+const PRICE_REFRESH_MONTHS_OVERRIDE = monthsArg !== -1 ? parseInt(args[monthsArg + 1], 10) : null;
+const DRY_RUN      = args.includes('--dry-run');
+const NO_PRICE     = args.includes('--no-price');
+const NO_PREORDER  = args.includes('--no-preorder');
 
 // ---- ユーティリティ ----
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -266,8 +270,9 @@ async function fetchPreorders(gteDateStr, lteDateStr) {
 //  STEP 2: 価格更新（直近12ヶ月の既存作品）— 全floor対応
 // ============================================================
 async function refreshPrices() {
-    const months = getPastMonths(PRICE_REFRESH_MONTHS);
-    console.log(`\n[STEP 2] 価格更新: 直近${PRICE_REFRESH_MONTHS}ヶ月 (${months[0]} 〜 ${months[months.length - 1]}) floor: ${FLOORS.join(', ')}`);
+    const effectiveMonths = PRICE_REFRESH_MONTHS_OVERRIDE ?? PRICE_REFRESH_MONTHS;
+    const months = getPastMonths(effectiveMonths);
+    console.log(`\n[STEP 2] 価格更新: 直近${effectiveMonths}ヶ月 (${months[0]} 〜 ${months[months.length - 1]}) floor: ${FLOORS.join(', ')}`);
 
     // product_id → 価格情報 のマップ
     const priceMap = new Map(); // product_id -> { listPrice, currentPrice, discountPct }
@@ -369,11 +374,13 @@ async function main() {
     console.log('  FANZA 日次アップデート');
     console.log('========================================');
     console.log(`  予約商品期間: ${gteDateStr} 〜 ${lteDateStr} (${MONTHS_AHEAD}ヶ月先まで)`);
-    console.log(`  価格更新: 直近${PRICE_REFRESH_MONTHS}ヶ月${NO_PRICE ? ' [スキップ]' : ''}`);
+    const effectiveMonths = PRICE_REFRESH_MONTHS_OVERRIDE ?? PRICE_REFRESH_MONTHS;
+    console.log(`  価格更新: 直近${effectiveMonths}ヶ月${NO_PRICE ? ' [スキップ]' : ''}`);
+    if (NO_PREORDER) console.log('  予約商品取得: [スキップ]');
     if (DRY_RUN) console.log('  [DRY RUN] DB書き込みなし');
 
     // ---- STEP 1: 予約商品取得 ----
-    const newItems = await fetchPreorders(gteDateStr, lteDateStr);
+    const newItems = NO_PREORDER ? [] : await fetchPreorders(gteDateStr, lteDateStr);
 
     // ---- STEP 2: 価格更新 ----
     const priceMap = NO_PRICE ? new Map() : await refreshPrices();
