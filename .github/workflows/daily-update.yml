@@ -60,7 +60,7 @@ jobs:
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
 
       - name: Build for Cloudflare Workers
-        run: cd site && npx opennextjs-cloudflare build
+        run: cd site && npm run build:cf
         env:
           TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
@@ -68,7 +68,7 @@ jobs:
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
 
       - name: Deploy to Cloudflare Workers
-        run: cd site && npx opennextjs-cloudflare deploy
+        run: cd site && npm run deploy:cf:only
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -126,7 +126,7 @@ jobs:
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
 
       - name: Build for Cloudflare Workers
-        run: cd site && npx opennextjs-cloudflare build
+        run: cd site && npm run build:cf
         env:
           TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
@@ -134,7 +134,7 @@ jobs:
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
 
       - name: Deploy to Cloudflare Workers
-        run: cd site && npx opennextjs-cloudflare deploy
+        run: cd site && npm run deploy:cf:only
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

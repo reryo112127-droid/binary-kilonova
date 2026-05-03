@@ -5,24 +5,31 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cf": "opennextjs-cloudflare build",
+    "deploy:cf": "opennextjs-cloudflare build && wrangler pages deploy",
+    "deploy:cf:only": "opennextjs-cloudflare deploy",
     "start": "next start",
-    "lint": "eslint"
+    "preview": "wrangler pages dev",
+    "lint": "eslint",
+    "postinstall": "node scripts/patch-hrana.js"
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",
     "lucide-react": "^0.577.0",
-    "next": "16.1.6",
+    "next": "^15.5.15",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "sql.js": "^1.14.1",
     "yet-another-react-lightbox": "^3.29.1"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.19.5",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "typescript": "^5"
+    "eslint-config-next": "^15.5.15",
+    "typescript": "^5",
+    "wrangler": "^4.87.0"
   }
 }
