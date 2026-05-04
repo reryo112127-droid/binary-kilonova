@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 
 export const dynamic = 'force-dynamic';
@@ -17,12 +16,18 @@ export async function GET(request: NextRequest) {
     const ua = request.headers.get('user-agent') || '';
     const isMobile = MOBILE_UA.test(ua);
 
+    // 身体的特徴パラメータを読み取る
+    const reqUrl = new URL(request.url);
+    const filterHeight = reqUrl.searchParams.get('height') || '';
+    const filterCup    = reqUrl.searchParams.get('cup')    || '';
+    const filterAge    = reqUrl.searchParams.get('ageMin') || '';
+
     const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'ranking.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', 'actress-ranking-2026.html');
+        ? '/design/ranking.html'
+        : '/design/web/actress-ranking-2026.html';
 
     try {
-        let html = fs.readFileSync(htmlFile, 'utf-8');
+        let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html, 'ranking', true) : injectWebLayout(html);
         if (isMobile) {
             // Stitchのプレースホルダー画像・テキストを削除（データ読み込み前に表示されないように）
@@ -35,14 +40,46 @@ export async function GET(request: NextRequest) {
             // 作品ランキングスクリプトとの競合を防ぐフラグを head に注入
             html = html.replace('</head>', `<script>window.__ACTRESS_RANKING=true;</script></head>`);
             html = html.replace('</header>', `</header>\n${rankingTabBar('actresses')}`);
+
+            // 身体的特徴フィルタのAPIクエリ文字列を組み立て
+            const apiParams = new URLSearchParams({ limit: '12', fromDate: '2026-01-01', toDate: '2026-12-31' });
+            if (filterHeight) apiParams.set('height', filterHeight);
+            if (filterCup)    apiParams.set('cup', filterCup);
+            if (filterAge)    apiParams.set('ageMin', filterAge);
+
+            // フィルタバッジのラベル生成
+            const filterLabels: string[] = [];
+            if (filterHeight) filterLabels.push(`身長${filterHeight.replace('-999', 'cm以上')}`);
+            if (filterCup)    filterLabels.push(`${filterCup}カップ以上`);
+            if (filterAge)    filterLabels.push(`${filterAge}歳以上`);
+            const filterBadgeHtml = filterLabels.length
+                ? `<div id="physical-filter-bar" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;background:#fff7ed;border-bottom:1px solid #fed7aa;">`
+                  + filterLabels.map(l => `<span style="background:#f97316;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;">${l}</span>`).join('')
+                  + `<a href="/ranking/actress" style="margin-left:auto;font-size:11px;color:#9ca3af;text-decoration:none;">クリア</a></div>`
+                : '';
+
             html = html.replace('</body>', `<script>
 (function(){
+  var FILTER_BADGE = ${JSON.stringify(filterBadgeHtml)};
+  var API_PARAMS   = ${JSON.stringify(apiParams.toString())};
+
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function aurl(n){return '/actress/'+encodeURIComponent(n);}
+
+  // フィルタバッジを挿入（タブバーの直下）
+  if(FILTER_BADGE){
+    var tabBar=document.getElementById('ranking-tab-bar')||document.querySelector('[class*="sticky"][class*="top"]');
+    if(tabBar&&tabBar.parentNode){
+      var div=document.createElement('div');div.innerHTML=FILTER_BADGE;
+      tabBar.parentNode.insertBefore(div.firstChild,tabBar.nextSibling);
+    }
+  }
+
   document.querySelectorAll('.material-symbols-outlined').forEach(function(el){
     if(el.textContent.trim()==='tune'){el.style.cursor='pointer';el.addEventListener('click',function(){location.href='/ranking/custom';});}
   });
-  fetch('/api/ranking/actress?limit=12&fromDate=2026-01-01&toDate=2026-12-31')
+
+  fetch('/api/ranking/actress?'+API_PARAMS)
     .then(function(r){return r.json();})
     .then(function(data){
       if(!Array.isArray(data)||!data.length)return;
@@ -52,13 +89,8 @@ export async function GET(request: NextRequest) {
         var card=document.getElementById('rank-'+n+'-card');
         if(!a)return;
         if(img){
-          // コンテナを 3:4矩形 → 正円に変更
           var wrap=img.parentElement;
-          if(wrap){
-            wrap.style.borderRadius='50%';
-            wrap.style.aspectRatio='1/1';
-            img.style.objectPosition='center top';
-          }
+          if(wrap){wrap.style.borderRadius='50%';wrap.style.aspectRatio='1/1';img.style.objectPosition='center top';}
           if(a.image_url){
             img.src=a.image_url;img.alt=esc(a.name||'');
           } else {
@@ -98,7 +130,7 @@ export async function GET(request: NextRequest) {
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'private, max-age=60',
             },
         });
     } catch {

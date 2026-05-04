@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readHtml } from '../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
 
 const MOBILE_UA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
@@ -240,11 +239,11 @@ export async function GET(request: NextRequest) {
     const type = params.get('type') || 'new';
 
     const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'products.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', type === 'pre-order' ? 'pre-order.html' : 'new-products.html');
+        ? '/design/products.html'
+        : `/design/web/${type === 'pre-order' ? 'pre-order.html' : 'new-products.html'}`;
 
     try {
-        let html = fs.readFileSync(htmlFile, 'utf-8');
+        let html = await readHtml(request.url, htmlFile);
 
         if (isMobile) {
             // ヘッダーボタンにIDを付与
@@ -284,7 +283,7 @@ export async function GET(request: NextRequest) {
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'private, max-age=60',
             },
         });
     } catch {

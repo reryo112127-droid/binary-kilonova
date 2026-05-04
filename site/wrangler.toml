@@ -1,0 +1,15 @@
+name = "avrankings"
+main = ".open-next/worker.js"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+assets = { directory = ".open-next/assets", binding = "ASSETS" }
+
+# cross-fetch を Workers ネイティブの fetch にエイリアス
+# @libsql/hrana-client が cross-fetch を使うが、Workers では node-fetch → https.request が使えないため
+[alias]
+"cross-fetch" = "./cf-cross-fetch-shim.js"
+
+[vars]
+# 環境変数はCloudflareダッシュボードの「Workers & Pages」→「avrankings」→「Settings」→「Variables」から設定する
+# TURSO_FANZA_URL, TURSO_FANZA_TOKEN, TURSO_MGS_URL, TURSO_MGS_TOKEN

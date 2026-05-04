@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+// NOTE: fs/path は Cloudflare Workers で使用不可のため動的 require + try-catch で使用
 import { getMgsClient, getFanzaClient } from './turso';
 import { getCached, setCached } from './apiCache';
 
@@ -25,6 +24,10 @@ export async function getSearchOptions(): Promise<SearchOptions> {
 
     // suggest_cache.json から読み込む（Turso不要）
     try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const fs = require('fs') as typeof import('fs');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const path = require('path') as typeof import('path');
         const filePath = path.join(process.cwd(), 'data', 'suggest_cache.json');
         const raw = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as {
             actresses?: string[];

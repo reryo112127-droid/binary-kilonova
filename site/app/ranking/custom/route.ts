@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 
 export const dynamic = 'force-dynamic';
@@ -59,6 +58,17 @@ const CUSTOM_RANKING_SCRIPT = `<script>
         if(em){p.set('fromDate',em.from);p.set('toDate',em.to);}
       }
 
+      // 身体的特徴が指定されていたら出演者ランキングへ
+      var hasPhysical=p.has('height')||p.has('cup')||p.has('ageMin');
+      if(hasPhysical){
+        var rp=new URLSearchParams();
+        if(p.has('height'))rp.set('height',p.get('height'));
+        if(p.has('cup'))rp.set('cup',p.get('cup'));
+        if(p.has('ageMin'))rp.set('ageMin',p.get('ageMin'));
+        location.href='/ranking/actress?'+rp.toString();
+        return;
+      }
+
       p.set('sort','wish_count');
       location.href='/search?'+p.toString();
     });
@@ -71,11 +81,11 @@ export async function GET(request: NextRequest) {
     const isMobile = MOBILE_UA.test(ua);
 
     const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'custom-ranking-create.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', 'custom-ranking-create.html');
+        ? '/design/custom-ranking-create.html'
+        : '/design/web/custom-ranking-create.html';
 
     try {
-        let html = fs.readFileSync(htmlFile, 'utf-8');
+        let html = await readHtml(request.url, htmlFile);
         if (isMobile) {
             // skipHeader: Stitch独自ヘッダーをそのまま使う
             // skipBottomNav: Stitch固定フッターボタン（この条件でランキングを作成）をそのまま使う
@@ -87,7 +97,7 @@ export async function GET(request: NextRequest) {
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'private, max-age=60',
             },
         });
     } catch {

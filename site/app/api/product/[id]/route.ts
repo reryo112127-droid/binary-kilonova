@@ -115,9 +115,13 @@ export async function GET(
             (primary.maker as string | null) || null,
             (primary.genres as string | null) || null
         ),
-        sample_images: primary.sample_images_json
-            ? JSON.parse(String(primary.sample_images_json))
-            : [],
+        sample_images: (() => {
+            try {
+                return primary.sample_images_json ? JSON.parse(String(primary.sample_images_json)) : [];
+            } catch {
+                return [];
+            }
+        })(),
     };
     setCached(cacheKey, responseData);
     return NextResponse.json(responseData);

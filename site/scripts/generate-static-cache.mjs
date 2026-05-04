@@ -44,11 +44,40 @@ function poster(url) {
     return url;
 }
 
-const BEST = ['%BEST%','%ベスト%','%総集編%','%コレクション%','%Best%'];
+const BEST = ['%BEST%','%ベスト%','%総集編%','%コレクション%','%Best%','%リマスター%','%AIリマスター%'];
 const bestConds = BEST.map(() => 'title NOT LIKE ?').join(' AND ');
 const bestArgs  = BEST;
 
 const today = new Date().toISOString().slice(0, 10);
+
+// ── ホーム画面掲載メーカーリスト（予約・セール共通） ──────────────
+const HOME_MAKERS = [
+    'エスワン',
+    'ムーディーズ',
+    'アイデアポケット',
+    'OPPAI',
+    'E-BODY',
+    'Fitch',
+    'マドンナ',
+    '本中',
+    'ダスッ',
+    'kawaii',
+    'Hunter',
+    'ワンズファクトリー',
+    'SODクリエイト',
+    'FALENO',
+    'TAMEIKE',
+    'million',
+    'プレミアム',
+    'DAHLIA',
+];
+
+// MGS用メーカー条件（maker列）
+const mgsMakerCond  = HOME_MAKERS.map(() => 'maker LIKE ?').join(' OR ');
+const mgsMakerArgs  = HOME_MAKERS.map(m => `%${m}%`);
+// FANZA用メーカー条件（label列 OR maker列）
+const fanzaMakerCond = HOME_MAKERS.map(() => '(label LIKE ? OR maker LIKE ?)').join(' OR ');
+const fanzaMakerArgs = HOME_MAKERS.flatMap(m => [`%${m}%`, `%${m}%`]);
 
 // ── 新着作品 ──────────────────────────────────────────────────────
 async function genNewProducts() {
@@ -209,20 +238,79 @@ async function genActressRanking2026() {
         }));
 }
 
+// ── 予約作品（特定メーカーのみ・Best/総集編/リマスター除外） ────
+async function genPreorderProducts() {
+    console.log('[予約作品] 取得中...');
+    const [mgsRows, fanzaRows] = await Promise.all([
+        mgs.execute({
+            sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date,
+                         0 AS discount_pct, NULL AS list_price, NULL AS current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag, NULL AS sale_end_date
+                  FROM products
+                  WHERE REPLACE(sale_start_date,'/','-') > ?
+                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND (${mgsMakerCond})
+                    AND ${bestConds}
+                  ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 60`,
+            args: [today, ...mgsMakerArgs, ...bestArgs],
+        }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
+        fanza.execute({
+            sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
+                         COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag,0) AS vr_flag, sale_end_date
+                  FROM products
+                  WHERE SUBSTR(sale_start_date,1,10) > ?
+                    AND (${fanzaMakerCond})
+                    AND ${bestConds}
+                  ORDER BY SUBSTR(sale_start_date,1,10) DESC LIMIT 60`,
+            args: [today, ...fanzaMakerArgs, ...bestArgs],
+        }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
+    ]);
+
+    const combined = [];
+    const maxLen = Math.max(mgsRows.length, fanzaRows.length);
+    for (let i = 0; i < maxLen; i++) {
+        if (mgsRows[i])   combined.push({ ...mgsRows[i],   main_image_url: poster(mgsRows[i].main_image_url),   source: 'mgs' });
+        if (fanzaRows[i]) combined.push({ ...fanzaRows[i], main_image_url: poster(fanzaRows[i].main_image_url), source: 'fanza' });
+    }
+
+    return combined.slice(0, 60);
+}
+
+// ── セール作品（特定メーカーのみ・Best/総集編/リマスター除外） ───
+async function genSaleProducts() {
+    console.log('[セール作品] 取得中...');
+    // セールはFANZAのみ（MGSにはセール情報なし）
+    const rows = await fanza.execute({
+        sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
+                     COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag,0) AS vr_flag, sale_end_date
+              FROM products
+              WHERE discount_pct >= 1
+                AND (${fanzaMakerCond})
+                AND ${bestConds}
+              ORDER BY discount_pct DESC, sale_start_date DESC LIMIT 120`,
+        args: [...fanzaMakerArgs, ...bestArgs],
+    }).then(r => r.rows).catch(e => { console.error('FANZA sale error:', e.message); return []; });
+
+    return rows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'fanza' }));
+}
+
 // ── メイン ────────────────────────────────────────────────────────
 async function main() {
     const dataDir = path.join(ROOT, 'data');
 
-    const [newProds, popularProds, ranking2026, actressRanking2026] = await Promise.all([
+    const [newProds, popularProds, ranking2026, actressRanking2026, preorderProds, saleProds] = await Promise.all([
         genNewProducts(),
         genPopularProducts(),
         genRanking2026(),
         genActressRanking2026(),
+        genPreorderProducts(),
+        genSaleProducts(),
     ]);
 
     const write = (filename, data) => {
         const p = path.join(dataDir, filename);
+        const pubP = path.join(ROOT, 'public', 'data', filename);
         fs.writeFileSync(p, JSON.stringify(data, null, 0));
+        if (fs.existsSync(path.dirname(pubP))) fs.writeFileSync(pubP, JSON.stringify(data, null, 0));
         console.log(`✓ ${filename} (${data.length}件)`);
     };
 
@@ -230,9 +318,11 @@ async function main() {
     write('products_popular_cache.json',       popularProds);
     write('ranking_2026_cache.json',           ranking2026);
     write('actress_ranking_2026_cache.json',   actressRanking2026);
+    write('home_preorder_cache.json',          preorderProds);
+    write('sale_cache.json',                   saleProds);
 
     console.log('\n完了！次のコマンドでデプロイしてください:');
-    console.log('  npx vercel deploy --prod --yes');
+    console.log('  cd site && npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy');
 
     process.exit(0);
 }

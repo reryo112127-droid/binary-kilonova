@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { filterActresses } from '../../../lib/actressFilter';
@@ -130,11 +129,11 @@ export async function GET(
     const isMobile = MOBILE_UA.test(ua);
 
     const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'product-detail.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', 'product-detail.html');
+        ? '/design/product-detail.html'
+        : '/design/web/product-detail.html';
 
     try {
-        let html = fs.readFileSync(htmlFile, 'utf-8');
+        let html = await readHtml(request.url, htmlFile);
 
         // 作品データ取得
         const product = await fetchProduct(id);
@@ -159,7 +158,7 @@ export async function GET(
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'private, max-age=60',
             },
         });
     } catch {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readHtml } from '../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
 
 export const dynamic = 'force-dynamic';
@@ -12,11 +11,11 @@ export async function GET(request: NextRequest) {
     const isMobile = MOBILE_UA.test(ua);
 
     const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'login.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', 'register.html');
+        ? '/design/login.html'
+        : '/design/web/register.html';
 
     try {
-        let html = fs.readFileSync(htmlFile, 'utf-8');
+        let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
         return new NextResponse(html, {
             headers: {

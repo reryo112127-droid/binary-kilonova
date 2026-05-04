@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 
 export const dynamic = 'force-dynamic';
@@ -22,11 +21,11 @@ export async function GET(
     const isMobile = MOBILE_UA.test(ua);
 
     const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'search-actress.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', 'search-actress.html');
+        ? '/design/search-actress.html'
+        : '/design/web/search-actress.html';
 
     try {
-        let html = fs.readFileSync(htmlFile, 'utf-8');
+        let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html, 'search') : injectWebLayout(html);
 
         // SEO meta: canonical + title + description + JSON-LD
@@ -55,7 +54,7 @@ export async function GET(
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'private, max-age=60',
             },
         });
     } catch {

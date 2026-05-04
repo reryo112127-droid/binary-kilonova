@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readHtml } from '../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
 import { ssrFetchRanking, ssrFetchActressRanking, injectSsrScript } from '../../lib/ssrFetch';
 
@@ -19,11 +18,11 @@ export async function GET(request: NextRequest) {
     const isMobile = MOBILE_UA.test(ua);
 
     const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'ranking.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', 'ranking.html');
+        ? '/design/ranking.html'
+        : '/design/web/ranking.html';
 
     try {
-        let html = fs.readFileSync(htmlFile, 'utf-8');
+        let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html, 'ranking', true) : injectWebLayout(html);
         if (isMobile) {
             html = html.replace('</header>', `</header>\n${rankingTabBar('products')}`);
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest) {
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'private, max-age=60',
             },
         });
     } catch {

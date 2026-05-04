@@ -1,7 +1,5 @@
 // 素人作品かどうかの判定や、女優名フィルタリングを行うユーティリティ
-
-import fs from 'fs';
-import path from 'path';
+// NOTE: fs/path は Cloudflare Workers で使用不可のため動的 require + try-catch で囲む
 
 let knownActresses: Set<string> | null = null;
 
@@ -9,6 +7,10 @@ function getKnownActresses(): Set<string> {
     if (knownActresses) return knownActresses;
     knownActresses = new Set<string>();
     try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const fs = require('fs') as typeof import('fs');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const path = require('path') as typeof import('path');
         const filePath = path.join(process.cwd(), 'data', 'actresses_all.json');
         if (fs.existsSync(filePath)) {
             const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
@@ -23,7 +25,10 @@ function getKnownActresses(): Set<string> {
             });
         }
     } catch (e) {
-        console.error('Failed to load known actresses', e);
+        // Cloudflare Workers など fs が使えない環境では空セットで続行
+        if (process.env.NODE_ENV !== 'production') {
+            console.error('Failed to load known actresses', e);
+        }
     }
     return knownActresses;
 }

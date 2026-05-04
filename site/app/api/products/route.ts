@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { filterActresses } from '../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { getCached, setCached } from '../../../lib/apiCache';
-import { readStaticCache } from '../../../lib/staticCache';
+import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../lib/staticCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +22,29 @@ export async function GET(request: NextRequest) {
     if (noFilter && offset === 0) {
         const file = sort === 'wish_count' ? 'products_popular_cache.json'
                    : sort === 'new'        ? 'products_new_cache.json'
+                   : sort === 'pre-order'  ? 'home_preorder_cache.json'
                    : null;
         if (file) {
-            const cached = readStaticCache<unknown[]>(file);
-            if (cached && cached.length > 0) return NextResponse.json(cached.slice(0, limit));
+            const cached = await readStaticCache<unknown[]>(file);
+            if (cached && cached.length > 0) return NextResponse.json(
+                cached.slice(0, limit),
+                { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
+            );
+        }
+    }
+
+    // セール: sort=discount, offset=0 → 静的キャッシュ（sourceなし時のみ。source指定時はDBから取得してsale_end_dateを含める）
+    if (sort === 'discount' && offset === 0 && !searchParams.get('source')) {
+        const saleCached = await readStaticCache<unknown[]>('sale_cache.json');
+        if (saleCached && saleCached.length > 0) {
+            const minD = parseInt(searchParams.get('minDiscount') || '0', 10);
+            const filtered = minD > 0
+                ? (saleCached as Array<Record<string, unknown>>).filter(p => Number(p.discount_pct) >= minD)
+                : saleCached;
+            return NextResponse.json(
+                filtered.slice(0, limit),
+                { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
+            );
         }
     }
 
@@ -40,7 +57,7 @@ export async function GET(request: NextRequest) {
             .map(([k, v]) => `${k}=${v}`)
             .join('&');
         const hit = getCached<unknown[]>(cacheKey, PRODUCTS_TTL);
-        if (hit) return NextResponse.json(hit);
+        if (hit) return NextResponse.json(hit, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(300, 600) } });
 
         // 結果取得後にキャッシュ（後続の処理で設定）
         (request as NextRequest & { _cacheKey?: string })._cacheKey = cacheKey;
@@ -71,9 +88,8 @@ export async function GET(request: NextRequest) {
     let actressList = [actress];
     if (actress) {
         try {
-            const aliasPath = path.join(process.cwd(), 'data', 'actress_aliases.json');
-            if (fs.existsSync(aliasPath)) {
-                const aliasesData = JSON.parse(fs.readFileSync(aliasPath, 'utf-8'));
+            const aliasesData = await readStaticCache<string[][]>('actress_aliases.json');
+            if (aliasesData) {
                 const entry = aliasesData.find((a: string[]) => a.includes(actress));
                 if (entry) actressList = entry;
             }
@@ -95,9 +111,8 @@ export async function GET(request: NextRequest) {
     if (cup || heightRange || (cupSet && cupSet.size > 0) || ageMin || ageMax) {
         hasProfileFilter = true;
         try {
-            const profilesPath = path.join(process.cwd(), 'data', 'actress_profiles.json');
-            if (fs.existsSync(profilesPath)) {
-                const profiles = JSON.parse(fs.readFileSync(profilesPath, 'utf-8'));
+            const profiles = await readStaticCache<Record<string, { cup?: string; height?: number; birthday?: string }>>('actress_profiles.json');
+            if (profiles) {
                 for (const name of Object.keys(profiles)) {
                     if (name.startsWith('NOT_FOUND_')) continue;
                     const p = profiles[name];
@@ -142,18 +157,34 @@ export async function GET(request: NextRequest) {
         const args: (string | number)[] = [];
 
         if (q) {
-            // title・actresses は FTS5、product_id は LIKE（OR結合）
-            const qMatch = `{title actresses} : "${esc5(q)}"`;
-            conditions.push(`(${FTS_IN} OR product_id LIKE ?)`);
-            args.push(qMatch, `%${q}%`);
+            // FTS5 trigram は3文字以上必要。短いキーワードは LIKE にフォールバック
+            if (q.length >= 3) {
+                const qMatch = `{title actresses} : "${esc5(q)}"`;
+                conditions.push(`(${FTS_IN} OR product_id LIKE ?)`);
+                args.push(qMatch, `%${q}%`);
+            } else {
+                conditions.push(`(title LIKE ? OR actresses LIKE ? OR product_id LIKE ?)`);
+                args.push(`%${q}%`, `%${q}%`, `%${q}%`);
+            }
         }
         if (genre) {
             // カンマ区切りで複数ジャンルOR対応
+            // FTS5 trigram は3文字以上必要。短いジャンル名は LIKE にフォールバック
             const genreList = genre.split(',').map(s => s.trim()).filter(Boolean);
             if (genreList.length > 0) {
-                const escaped = genreList.map(g => `"${esc5(g)}"`).join(' OR ');
-                conditions.push(FTS_IN);
-                args.push(`genres : (${escaped})`);
+                const longGenres = genreList.filter(g => g.length >= 3);
+                const shortGenres = genreList.filter(g => g.length < 3);
+                const subConds: string[] = [];
+                if (longGenres.length > 0) {
+                    const escaped = longGenres.map(g => `"${esc5(g)}"`).join(' OR ');
+                    subConds.push(FTS_IN);
+                    args.push(`genres : (${escaped})`);
+                }
+                shortGenres.forEach(g => {
+                    subConds.push('genres LIKE ?');
+                    args.push(`%${g}%`);
+                });
+                conditions.push(`(${subConds.join(' OR ')})`);
             }
         }
         if (maker) {
@@ -175,35 +206,56 @@ export async function GET(request: NextRequest) {
             args.push(`%${excludeLabel}%`);
         }
         if (actress) {
-            const escaped = actressList.map(a => `"${esc5(a)}"`).join(' OR ');
-            conditions.push(FTS_IN);
-            args.push(`actresses : (${escaped})`);
+            // FTS5 trigram は3文字以上必要。短い名前は LIKE にフォールバック
+            const longActresses = actressList.filter(a => a.length >= 3);
+            const shortActresses = actressList.filter(a => a.length < 3);
+            const actSubConds: string[] = [];
+            if (longActresses.length > 0) {
+                const escaped = longActresses.map(a => `"${esc5(a)}"`).join(' OR ');
+                actSubConds.push(FTS_IN);
+                args.push(`actresses : (${escaped})`);
+            }
+            shortActresses.forEach(a => {
+                actSubConds.push('actresses LIKE ?');
+                args.push(`%${a}%`);
+            });
+            if (actSubConds.length > 0) conditions.push(`(${actSubConds.join(' OR ')})`);
         }
         if (hasProfileFilter) {
-            const escaped = profileActresses.map(a => `"${esc5(a)}"`).join(' OR ');
-            conditions.push(FTS_IN);
-            args.push(`actresses : (${escaped})`);
+            const longProfiles = profileActresses.filter(a => a.length >= 3);
+            const shortProfiles = profileActresses.filter(a => a.length < 3);
+            const profSubConds: string[] = [];
+            if (longProfiles.length > 0) {
+                const escaped = longProfiles.map(a => `"${esc5(a)}"`).join(' OR ');
+                profSubConds.push(FTS_IN);
+                args.push(`actresses : (${escaped})`);
+            }
+            shortProfiles.forEach(a => {
+                profSubConds.push('actresses LIKE ?');
+                args.push(`%${a}%`);
+            });
+            if (profSubConds.length > 0) conditions.push(`(${profSubConds.join(' OR ')})`);
         }
         const today = new Date().toISOString().slice(0, 10);
         if (sort === 'pre-order') {
             // 未配信作品のみ（今日より後）
-            // MGS: YYYY/MM/DD（スラッシュ） → REPLACE で正規化してから比較
-            // FANZA: YYYY-MM-DD（ハイフン） → そのまま比較可能
-            conditions.push("REPLACE(sale_start_date, '/', '-') > ?");
+            // MGS: YYYY/MM/DD（スラッシュ） → REPLACE で正規化
+            // FANZA: YYYY-MM-DD HH:MM:SS（タイムスタンプ） → SUBSTR で日付部分のみ取得
+            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') > ?" : "SUBSTR(sale_start_date, 1, 10) > ?");
             args.push(today);
         }
         if (sort === 'new') {
             // 配信済み作品のみ（今日以前）
             conditions.push("sale_start_date IS NOT NULL");
-            conditions.push("REPLACE(sale_start_date, '/', '-') <= ?");
+            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') <= ?" : "SUBSTR(sale_start_date, 1, 10) <= ?");
             args.push(today);
         }
         if (fromDate) {
-            conditions.push('sale_start_date >= ?');
+            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') >= ?" : "SUBSTR(sale_start_date, 1, 10) >= ?");
             args.push(fromDate);
         }
         if (toDate) {
-            conditions.push('sale_start_date <= ?');
+            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') <= ?" : "SUBSTR(sale_start_date, 1, 10) <= ?");
             args.push(toDate);
         }
         if (makers) {
@@ -272,7 +324,7 @@ export async function GET(request: NextRequest) {
                          ${isMgs ? 'wish_count,' : '0 AS wish_count,'}
                          genres, maker, duration_min, sale_start_date,
                          sample_video_url,
-                         ${isMgs ? '0 AS discount_pct, NULL AS list_price, NULL AS current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag' : 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag, 0) AS vr_flag'}
+                         ${isMgs ? '0 AS discount_pct, NULL AS list_price, NULL AS current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag, NULL AS sale_end_date' : 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag, 0) AS vr_flag, sale_end_date'}
                          FROM products ${where} ${orderBy} LIMIT ${perLimit} OFFSET ${perOffset}`;
 
             const result = await client.execute({ sql, args });
@@ -311,5 +363,5 @@ export async function GET(request: NextRequest) {
     const result = combined.slice(0, limit);
     const cacheKey = (request as NextRequest & { _cacheKey?: string })._cacheKey;
     if (cacheKey) setCached(cacheKey, result);
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(60, 300) } });
 }

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readHtml } from '../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../lib/injectLayout';
 import {
     ssrFetchFanzaPreOrders,
@@ -18,11 +17,11 @@ export async function GET(request: NextRequest) {
     const isMobile = MOBILE_UA.test(ua);
 
     const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'home.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', 'home.html');
+        ? '/design/home.html'
+        : '/design/web/home.html';
 
     try {
-        let html = fs.readFileSync(htmlFile, 'utf-8');
+        let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html, 'home') : injectWebLayout(html);
 
         // SSRデータ取得・注入（失敗してもクライアントfetchにフォールバック）
@@ -40,7 +39,7 @@ export async function GET(request: NextRequest) {
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'private, max-age=60',
             },
         });
     } catch {

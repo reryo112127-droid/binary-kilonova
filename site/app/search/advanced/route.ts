@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 import { getSearchOptions, getContextualSearchOptions } from '../../../lib/searchOptions';
 
@@ -338,6 +337,20 @@ const ADVANCED_SEARCH_SCRIPT = `<script>
         if(r){ if(r[0])p.set('fromDate',r[0]); if(r[1])p.set('toDate',r[1]); }
       }
 
+      // 身体的特徴が含まれている場合の振り分け
+      var hasPhysical = p.has('height') || p.has('cup') || p.has('ageMin');
+      var hasOther    = p.has('makers') || p.has('actress') || p.has('genre') || p.has('source') || p.has('fromDate') || p.has('toDate');
+
+      if(hasPhysical && !hasOther){
+        // 身体的特徴のみ → 出演者ランキングへ
+        var rp = new URLSearchParams();
+        if(p.has('height'))  rp.set('height',  p.get('height'));
+        if(p.has('cup'))     rp.set('cup',     p.get('cup'));
+        if(p.has('ageMin'))  rp.set('ageMin',  p.get('ageMin'));
+        location.href = '/ranking/actress?' + rp.toString();
+        return;
+      }
+
       location.href = '/search?' + p.toString();
     });
   }
@@ -349,11 +362,11 @@ export async function GET(request: NextRequest) {
     const isMobile = MOBILE_UA.test(ua);
 
     const htmlFile = isMobile
-        ? path.join(process.cwd(), 'public', 'design', 'advanced-search.html')
-        : path.join(process.cwd(), 'public', 'design', 'web', 'advanced-search.html');
+        ? '/design/advanced-search.html'
+        : '/design/web/advanced-search.html';
 
     try {
-        let html = fs.readFileSync(htmlFile, 'utf-8');
+        let html = await readHtml(request.url, htmlFile);
         html = isMobile
             ? injectMobileLayout(html, 'search', { skipClean: true, skipHeader: true, skipBottomNav: true })
             : injectWebLayout(html);
@@ -382,7 +395,7 @@ export async function GET(request: NextRequest) {
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'private, max-age=60',
             },
         });
     } catch {

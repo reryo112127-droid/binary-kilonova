@@ -4,7 +4,7 @@ import { initSiteSchema } from '../../../lib/siteDb';
 import { computeProductScore, PRODUCT_SCORE } from '../../../lib/scoring';
 import { filterActresses } from '../../../lib/actressFilter';
 import { getCached, setCached } from '../../../lib/apiCache';
-import { readStaticCache } from '../../../lib/staticCache';
+import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../lib/staticCache';
 
 const CANDIDATE_LIMIT = 300; // スコア計算用候補数
 const RANKING_TTL = 30 * 60 * 1000; // 30分
@@ -19,8 +19,11 @@ export async function GET(request: NextRequest) {
     // 2026年デフォルトクエリは静的JSONから返す
     if (fromDate === '2026-01-01' && toDate === '2026-12-31') {
         const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
-        const cached = readStaticCache<unknown[]>('ranking_2026_cache.json');
-        if (cached && cached.length > 0) return NextResponse.json(cached.slice(0, limit));
+        const cached = await readStaticCache<unknown[]>('ranking_2026_cache.json');
+        if (cached && cached.length > 0) return NextResponse.json(
+            cached.slice(0, limit),
+            { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
+        );
     }
 
     const cacheKey = 'ranking_' + Array.from(searchParams.entries())
@@ -28,7 +31,7 @@ export async function GET(request: NextRequest) {
         .map(([k, v]) => `${k}=${v}`)
         .join('&');
     const hit = getCached<unknown[]>(cacheKey, RANKING_TTL);
-    if (hit) return NextResponse.json(hit);
+    if (hit) return NextResponse.json(hit, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(300, 600) } });
     const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
     const excludeBest = searchParams.get('excludeBest') === '1';
 
@@ -249,5 +252,5 @@ export async function GET(request: NextRequest) {
 
     const finalResult = result.slice(0, limit);
     setCached(cacheKey, finalResult);
-    return NextResponse.json(finalResult);
+    return NextResponse.json(finalResult, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(120, 600) } });
 }

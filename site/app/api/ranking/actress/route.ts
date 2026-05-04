@@ -1,25 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readHtml } from '../../../../lib/readHtml';
 import { getMgsClient, getFanzaClient, getSiteClient } from '../../../../lib/turso';
 import { initSiteSchema } from '../../../../lib/siteDb';
 import { filterActresses } from '../../../../lib/actressFilter';
 import { getCached, setCached } from '../../../../lib/apiCache';
-import { readStaticCache } from '../../../../lib/staticCache';
+import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../../lib/staticCache';
 
 const CANDIDATE_LIMIT = 500;
 const ACTRESS_RANKING_TTL = 30 * 60 * 1000; // 30分
 
 export const revalidate = 300; // 5分キャッシュ
 
+// actress_profiles.json から身体的特徴でフィルタした出演者名セットを返す
+async function getPhysicalFilterSet(
+    cup: string,
+    heightRange: string,
+    ageMin: number,
+): Promise<Set<string> | null> {
+    if (!cup && !heightRange && !ageMin) return null;
+
+    const profiles = await readStaticCache<Record<string, { cup?: string; height?: number; birthday?: string }>>('actress_profiles.json');
+    if (!profiles) return null;
+
+    function calcAge(birthday: string): number {
+        const d = new Date(birthday), t = new Date();
+        let a = t.getFullYear() - d.getFullYear();
+        if (t.getMonth() < d.getMonth() || (t.getMonth() === d.getMonth() && t.getDate() < d.getDate())) a--;
+        return a;
+    }
+
+    const CUP_ORDER = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
+
+    const matched = new Set<string>();
+    for (const [name, p] of Object.entries(profiles)) {
+        let ok = true;
+        if (cup) {
+            if (!p.cup) { ok = false; }
+            else {
+                const minIdx = CUP_ORDER.indexOf(cup);
+                const pIdx   = CUP_ORDER.indexOf(p.cup);
+                if (minIdx < 0 || pIdx < minIdx) ok = false;
+            }
+        }
+        if (ok && heightRange) {
+            const [min, max] = heightRange.split('-').map(Number);
+            if (!p.height || p.height < min || (max && p.height >= max)) ok = false;
+        }
+        if (ok && ageMin) {
+            if (!p.birthday) { ok = false; }
+            else if (calcAge(p.birthday) < ageMin) ok = false;
+        }
+        if (ok) matched.add(name);
+    }
+    return matched;
+}
+
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
-    const fromDate = searchParams.get('fromDate') || '';
-    const toDate   = searchParams.get('toDate')   || '';
+    const fromDate  = searchParams.get('fromDate')  || '';
+    const toDate    = searchParams.get('toDate')    || '';
+    const cup       = searchParams.get('cup')       || '';
+    const heightRange = searchParams.get('height')  || '';
+    const ageMin    = parseInt(searchParams.get('ageMin') || '0', 10);
 
-    // 2026年デフォルトクエリは静的JSONから返す
-    if (fromDate === '2026-01-01' && toDate === '2026-12-31') {
+    const hasPhysical = !!(cup || heightRange || ageMin);
+
+    // 2026年デフォルトクエリ（身体的特徴フィルタなし時のみ静的JSONを使用）
+    if (!hasPhysical && fromDate === '2026-01-01' && toDate === '2026-12-31') {
         const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
-        const cached = readStaticCache<unknown[]>('actress_ranking_2026_cache.json');
-        if (cached && cached.length > 0) return NextResponse.json(cached.slice(0, limit));
+        const cached = await readStaticCache<unknown[]>('actress_ranking_2026_cache.json');
+        if (cached && cached.length > 0) return NextResponse.json(
+            cached.slice(0, limit),
+            { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
+        );
     }
 
     const cacheKey = 'actress_ranking_' + Array.from(searchParams.entries())
@@ -27,7 +80,7 @@ export async function GET(request: NextRequest) {
         .map(([k, v]) => `${k}=${v}`)
         .join('&');
     const hit = getCached<unknown[]>(cacheKey, ACTRESS_RANKING_TTL);
-    if (hit) return NextResponse.json(hit);
+    if (hit) return NextResponse.json(hit, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(300, 600) } });
     const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
 
     const mgsClient = getMgsClient();
@@ -126,10 +179,18 @@ export async function GET(request: NextRequest) {
     processRows(mgsRows);
     processRows(fanzaRows);
 
+    // ─── Step 2.5: 身体的特徴フィルタ ───────────────────────────
+    const physicalFilterSet = await getPhysicalFilterSet(cup, heightRange, ageMin);
+
     // ─── Step 3: サイトDBから女優いいね取得 ──────────────────
-    const topEntries = Array.from(actressMap.values())
-        .sort((a, b) => b.wishScore - a.wishScore)
-        .slice(0, limit * 2); // いいね取得用に多めに取る
+    const allEntries = Array.from(actressMap.values())
+        .sort((a, b) => b.wishScore - a.wishScore);
+
+    const filteredEntries = physicalFilterSet
+        ? allEntries.filter(e => physicalFilterSet.has(e.name))
+        : allEntries;
+
+    const topEntries = filteredEntries.slice(0, limit * 2); // いいね取得用に多めに取る
 
     const actressLikesMap = new Map<string, number>();
 
@@ -189,5 +250,5 @@ export async function GET(request: NextRequest) {
 
     const finalScored = scored.slice(0, limit);
     setCached(cacheKey, finalScored);
-    return NextResponse.json(finalScored);
+    return NextResponse.json(finalScored, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(120, 600) } });
 }

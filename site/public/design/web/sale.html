@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>セール作品 | AVランキング</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        'brand-orange': '#ec5b13',
+        'brand-red': '#dc2626',
+      },
+      fontFamily: { sans: ['Inter', 'Noto Sans JP', 'sans-serif'] },
+      borderRadius: { 'custom': '4px' }
+    }
+  }
+}
+</script>
+<style>
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+body { background-color: #ffffff; color: #1a1a1a; }
+section { border-bottom: 1px solid #f3f4f6; }
+.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+</style>
+</head>
+<body class="font-sans antialiased text-gray-900">
+<header></header>
+
+<main>
+<!-- ヒーローバナー -->
+<div class="bg-gradient-to-r from-red-700 via-red-600 to-red-500 py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+        <span class="material-symbols-outlined text-white text-4xl" style="font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">local_offer</span>
+      </div>
+      <div>
+        <h1 class="text-white font-black text-3xl leading-none">セール作品</h1>
+        <p class="text-red-100 text-sm mt-1">FANZA割引中の作品 · 最大<span id="max-discount">50</span>% OFF</p>
+      </div>
+    </div>
+    <div class="text-right">
+      <p class="text-white font-black text-4xl leading-none" id="total-count">-</p>
+      <p class="text-red-100 text-sm">件の作品</p>
+    </div>
+  </div>
+</div>
+
+<!-- フィルターバー -->
+<div class="sticky top-14 z-40 bg-white border-b border-gray-100 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3 overflow-x-auto no-scrollbar">
+    <span class="text-xs font-bold text-gray-500 shrink-0">割引率：</span>
+    <button id="filter-all" onclick="setDiscount(0)" class="flex-none px-4 py-1.5 rounded-full text-xs font-bold bg-red-500 text-white transition-all">すべて</button>
+    <button id="filter-10" onclick="setDiscount(10)" class="flex-none px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-500 transition-all">10%以上</button>
+    <button id="filter-20" onclick="setDiscount(20)" class="flex-none px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-500 transition-all">20%以上</button>
+    <button id="filter-30" onclick="setDiscount(30)" class="flex-none px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-500 transition-all">30%以上</button>
+    <button id="filter-50" onclick="setDiscount(50)" class="flex-none px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-500 transition-all">50%以上</button>
+  </div>
+</div>
+
+<!-- 作品グリッド -->
+<section class="py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="sale-grid">
+      <div class="animate-pulse"><div class="aspect-[3/4] rounded-custom bg-gray-200 mb-2"></div><div class="h-3 bg-gray-200 rounded w-3/4 mb-1"></div><div class="h-2.5 bg-gray-200 rounded w-1/2"></div></div>
+      <div class="animate-pulse"><div class="aspect-[3/4] rounded-custom bg-gray-200 mb-2"></div><div class="h-3 bg-gray-200 rounded w-3/4 mb-1"></div><div class="h-2.5 bg-gray-200 rounded w-1/2"></div></div>
+      <div class="animate-pulse"><div class="aspect-[3/4] rounded-custom bg-gray-200 mb-2"></div><div class="h-3 bg-gray-200 rounded w-3/4 mb-1"></div><div class="h-2.5 bg-gray-200 rounded w-1/2"></div></div>
+      <div class="animate-pulse"><div class="aspect-[3/4] rounded-custom bg-gray-200 mb-2"></div><div class="h-3 bg-gray-200 rounded w-3/4 mb-1"></div><div class="h-2.5 bg-gray-200 rounded w-1/2"></div></div>
+      <div class="animate-pulse"><div class="aspect-[3/4] rounded-custom bg-gray-200 mb-2"></div><div class="h-3 bg-gray-200 rounded w-3/4 mb-1"></div><div class="h-2.5 bg-gray-200 rounded w-1/2"></div></div>
+      <div class="animate-pulse"><div class="aspect-[3/4] rounded-custom bg-gray-200 mb-2"></div><div class="h-3 bg-gray-200 rounded w-3/4 mb-1"></div><div class="h-2.5 bg-gray-200 rounded w-1/2"></div></div>
+    </div>
+    <!-- もっと見る -->
+    <div class="flex justify-center mt-8">
+      <button id="load-more-btn" onclick="fetchMore()" style="display:none"
+        class="px-8 py-2.5 border border-gray-200 rounded-custom text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+        もっと見る
+      </button>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- Footer -->
+<footer class="bg-[#f9f9f9] border-t border-gray-200 py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <div class="flex justify-center space-x-6 mb-4">
+      <a class="text-[11px] font-bold text-gray-600 hover:text-black transition-colors" href="/terms">利用規約</a>
+      <a class="text-[11px] font-bold text-gray-600 hover:text-black transition-colors" href="/privacy">プライバシーポリシー</a>
+    </div>
+    <p class="text-[10px] text-gray-400">当サイトはアフィリエイトプログラムにより収益を得ています</p>
+    <p class="text-[10px] text-gray-400 mt-2">© 2026 AVランキング. All Rights Reserved.</p>
+  </div>
+</footer>
+
+<script>(function(){
+var g = document.getElementById('sale-grid');
+if (!g) return;
+var LIMIT = 60, fetchOffset = 0, isLoading = false, currentDiscount = 0;
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function poster(url) {
+  if (!url) return '';
+  if (url.includes('pb_e_')) return url.replace('pb_e_','pf_e_');
+  if (url.includes('/digital/amateur/') && url.endsWith('jm.jpg')) return url.replace('jm.jpg','jp-001.jpg');
+  return url;
+}
+function setLoadMoreBtn(v) { var b = document.getElementById('load-more-btn'); if (b) b.style.display = v ? 'block' : 'none'; }
+
+function discountBadgeClass(d) {
+  if (d >= 50) return 'bg-red-600';
+  if (d >= 30) return 'bg-red-500';
+  if (d >= 20) return 'bg-orange-500';
+  return 'bg-orange-400';
+}
+
+function fmtEndDate(s) {
+  if (!s) return '';
+  var d = new Date(s.replace(' ', 'T'));
+  if (isNaN(d)) return '';
+  var now = new Date();
+  var diff = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+  var label = (d.getMonth()+1) + '/' + d.getDate() + 'まで';
+  if (diff <= 1) return '<span class="text-red-600 font-black text-[10px]">本日終了</span>';
+  if (diff <= 3) return '<span class="text-red-500 font-bold text-[10px]">⏰ ' + label + '</span>';
+  return '<span class="text-gray-400 text-[10px]">' + label + '</span>';
+}
+
+function cardHtml(p) {
+  var img = poster(p.main_image_url || '');
+  var disc = parseInt(p.discount_pct) || 0;
+  var listP = parseInt(p.list_price) || 0;
+  var curP = parseInt(p.current_price) || 0;
+  var actress = (p.actresses || '').split(',')[0].trim();
+  var pid = encodeURIComponent(p.product_id || '');
+  var endLabel = fmtEndDate(p.sale_end_date || '');
+  return '<a href="/product/' + pid + '" class="group block">'
+    + '<div class="aspect-[3/4] overflow-hidden rounded-custom bg-gray-100 relative mb-2">'
+    + (img ? '<img src="' + esc(img) + '" alt="' + esc(p.title||'') + '" class="w-full h-full object-cover object-right transition-transform group-hover:scale-105"/>' : '')
+    + (disc ? '<span class="absolute top-2 left-2 ' + discountBadgeClass(disc) + ' text-white text-[9px] font-black px-1.5 py-1 rounded-sm leading-none text-center">' + disc + '%<br>OFF</span>' : '')
+    + '<div class="absolute bottom-2 right-2 flex gap-1">'
+    + '  <button data-like-pid="'+esc(p.product_id||'')+'" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-red-500 hover:bg-red-500 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">favorite</span></button>'
+    + '</div>'
+    + '</div>'
+    + (curP ? '<p class="text-sm font-black text-red-500 leading-none flex items-baseline gap-1.5 flex-wrap">¥' + curP.toLocaleString()
+        + (listP && listP !== curP ? '<span class="text-[10px] font-normal text-gray-400 line-through">¥' + listP.toLocaleString() + '</span>' : '')
+        + (endLabel ? endLabel : '')
+        + '</p>' : '')
+    + '<h5 class="text-xs font-bold line-clamp-2 mt-1 leading-snug">' + esc(p.title||'') + '</h5>'
+    + (actress ? '<p class="text-[10px] text-gray-400 truncate mt-0.5">' + esc(actress) + '</p>' : '')
+    + '</a>';
+}
+
+function buildUrl(offset) {
+  var u = '/api/products?sort=discount&source=fanza&limit=' + (LIMIT+1) + '&offset=' + offset;
+  if (currentDiscount > 0) u += '&minDiscount=' + currentDiscount;
+  return u;
+}
+
+var skeletonHtml = [1,2,3,4,5,6,7,8,9,10,11,12].map(function(){
+  return '<div class="animate-pulse"><div class="aspect-[3/4] rounded-custom bg-gray-200 mb-2"></div><div class="h-3 bg-gray-200 rounded w-3/4 mb-1"></div><div class="h-2.5 bg-gray-200 rounded w-1/2"></div></div>';
+}).join('');
+
+function load() {
+  fetchOffset = 0;
+  g.innerHTML = skeletonHtml;
+  setLoadMoreBtn(false);
+  fetch(buildUrl(0))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var hasMore = data && data.length > LIMIT;
+      if (hasMore) data = data.slice(0, LIMIT);
+      if (!data || !data.length) {
+        g.innerHTML = '<p class="col-span-6 text-center text-gray-400 py-16 text-sm">セール作品がありません</p>';
+        return;
+      }
+      var maxD = data.reduce(function(m, p){ return Math.max(m, parseInt(p.discount_pct)||0); }, 0);
+      var el = document.getElementById('max-discount');
+      if (el && maxD) el.textContent = maxD;
+      var cnt = document.getElementById('total-count');
+      if (cnt) cnt.textContent = (hasMore ? LIMIT + '+' : data.length);
+      g.innerHTML = data.map(cardHtml).join('');
+      if(window.restoreLikes)window.restoreLikes();
+      fetchOffset = LIMIT;
+      setLoadMoreBtn(hasMore);
+    })
+    .catch(function() { g.innerHTML = '<p class="col-span-6 text-center text-gray-400 py-16 text-sm">読み込みエラー</p>'; });
+}
+
+window.fetchMore = function() {
+  if (isLoading) return;
+  isLoading = true;
+  var btn = document.getElementById('load-more-btn');
+  if (btn) { btn.textContent = '読み込み中...'; btn.disabled = true; }
+  fetch(buildUrl(fetchOffset))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var hasMore = data && data.length > LIMIT;
+      if (hasMore) data = data.slice(0, LIMIT);
+      if (data && data.length) g.insertAdjacentHTML('beforeend', data.map(cardHtml).join(''));
+      fetchOffset += LIMIT;
+      setLoadMoreBtn(hasMore);
+    })
+    .catch(function(){})
+    .finally(function() { isLoading = false; if (btn) { btn.textContent = 'もっと見る'; btn.disabled = false; } });
+};
+
+window.setDiscount = function(d) {
+  currentDiscount = d;
+  ['all','10','20','30','50'].forEach(function(k) {
+    var btn = document.getElementById('filter-' + k);
+    if (!btn) return;
+    var active = (k === 'all' && d === 0) || (k !== 'all' && parseInt(k) === d);
+    btn.className = 'flex-none px-4 py-1.5 rounded-full text-xs font-bold transition-all '
+      + (active ? 'bg-red-500 text-white' : 'border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-500');
+  });
+  load();
+};
+
+load();
+})();
+</script>
+</body>
+</html>

@@ -1,31 +1,15 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  turbopack: {
-    root: path.resolve(__dirname),
-  },
-  // サーバーレス関数のバンドルに必要なファイルのみ含める
-  // 女優プロフィールはTursoに移行済みのためファイルバンドル不要
+  // @libsql/isomorphic-ws の workerd 向け web.mjs が file tracing に含まれないため手動で追加
   outputFileTracingIncludes: {
-    '/':             ['./public/design/**/*', './data/*_cache.json'],
-    '/product/[id]': ['./public/design/**/*'],
-    '/ranking':        ['./public/design/**/*'],
-    '/ranking/custom': ['./public/design/**/*'],
-    '/ranking/actress':['./public/design/**/*'],
-    '/new':          ['./public/design/**/*'],
-    '/pre-order':    ['./public/design/**/*'],
-    '/products':     ['./public/design/**/*'],
-    '/search':       ['./public/design/**/*'],
-    '/actress/[name]': ['./public/design/**/*'],
-    '/review/add/[id]': ['./public/design/**/*'],
-    '/api/products':          ['./data/*_cache.json'],
-    '/api/ranking':           ['./data/*_cache.json'],
-    '/api/ranking/actress':   ['./data/*_cache.json'],
-    '/api/search-options':    ['./data/suggest_cache.json'],
+    '/**': [
+      './node_modules/@libsql/isomorphic-ws/web.mjs',
+      './node_modules/@libsql/isomorphic-ws/web.cjs',
+    ],
   },
   images: {
     remotePatterns: [

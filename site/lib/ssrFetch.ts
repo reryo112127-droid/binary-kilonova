@@ -6,7 +6,7 @@
 
 import { getMgsClient, getFanzaClient } from './turso';
 import { filterActresses } from './actressFilter';
-import { readStaticCache } from './staticCache';
+import { readStaticCacheAsync as readStaticCache } from './staticCache';
 import { getCached, setCached } from './apiCache';
 
 const SSR_PAGE_TTL = 5 * 60 * 1000; // 5分
@@ -46,7 +46,7 @@ function addMakersFanza(conds: string[], args: (string | number)[], makers: stri
 
 /** ホーム用: FANZA予約作品（配信日降順） */
 export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
-    const cached = readStaticCache<Row[]>('home_preorder_cache.json');
+    const cached = await readStaticCache<Row[]>('home_preorder_cache.json');
     if (cached && cached.length > 0) return cached.slice(0, limit);
     const client = getFanzaClient();
     if (!client) return [];
@@ -69,7 +69,7 @@ export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
 
 /** ホーム用: FANZA新作（当日→直近3日フォールバック） */
 export async function ssrFetchFanzaNewProducts(limit: number): Promise<Row[]> {
-    const cached = readStaticCache<Row[]>('products_new_cache.json');
+    const cached = await readStaticCache<Row[]>('products_new_cache.json');
     if (cached && cached.length > 0) return cached.slice(0, limit);
     const client = getFanzaClient();
     if (!client) return [];
@@ -100,7 +100,7 @@ export async function ssrFetchFanzaNewProducts(limit: number): Promise<Row[]> {
 
 /** ランキング: MGS(wish_count) + FANZA(review) 2:1インターリーブ */
 export async function ssrFetchRanking(limit: number): Promise<Row[]> {
-    const cached = readStaticCache<Row[]>('ranking_2026_cache.json');
+    const cached = await readStaticCache<Row[]>('ranking_2026_cache.json');
     if (cached && cached.length > 0) return cached.slice(0, limit);
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
@@ -143,7 +143,7 @@ export async function ssrFetchRanking(limit: number): Promise<Row[]> {
 
 /** 女優ランキング: wish_count集計 + プロフィール画像 */
 export async function ssrFetchActressRanking(limit: number): Promise<Row[]> {
-    const cached = readStaticCache<Row[]>('actress_ranking_2026_cache.json');
+    const cached = await readStaticCache<Row[]>('actress_ranking_2026_cache.json');
     if (cached && cached.length > 0) return cached.slice(0, limit);
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
