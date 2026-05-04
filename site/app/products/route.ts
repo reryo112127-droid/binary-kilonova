@@ -246,35 +246,8 @@ export async function GET(request: NextRequest) {
         let html = await readHtml(request.url, htmlFile);
 
         if (isMobile) {
-            // ヘッダーボタンにIDを付与
-            html = html.replace(
-                '<button class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">\n<span class="material-symbols-outlined">arrow_back_ios</span>',
-                '<button id="btn-back" class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">\n<span class="material-symbols-outlined">arrow_back_ios</span>'
-            );
-            html = html.replace(
-                '<button class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">\n<span class="material-symbols-outlined">search</span>',
-                '<button id="btn-search-hdr" class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">\n<span class="material-symbols-outlined">search</span>'
-            );
-            // BEST/総集編・VRボタンにIDを付与
-            html = html.replace(
-                '<span class="text-xs font-medium">BEST/総集編</span>',
-                '<span id="btn-best" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1"><span class="text-xs font-medium">BEST/総集編</span>'
-            );
-            // 簡易的なID付与: ボタン全体を置換
-            html = html.replace(
-                /<button class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">\s*<span class="text-xs font-medium">BEST\/総集編<\/span>/,
-                '<button id="btn-best" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1"><span class="text-xs font-medium">BEST/総集編</span>'
-            );
-            html = html.replace(
-                /<button class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">\s*<span class="text-xs font-medium">VR作品<\/span>/,
-                '<button id="btn-vr" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1"><span class="text-xs font-medium">VR作品</span>'
-            );
-            // products-grid ID付与
-            html = html.replace(
-                'class="grid grid-cols-3 gap-x-2 gap-y-4 px-4 pb-24"',
-                'id="products-grid" class="grid grid-cols-3 gap-x-2 gap-y-4 px-4 pb-24"',
-            );
-            html = injectMobileLayout(html, '');
+            // IDs are already embedded in products.html directly
+            html = injectMobileLayout(html, '', { skipHeader: true });
             html = html.replace('</body>', PRODUCTS_SCRIPT + '\n</body>');
         } else {
             html = injectWebLayout(html);

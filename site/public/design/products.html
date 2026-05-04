@@ -43,13 +43,13 @@
 <div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
 <header class="sticky top-0 z-50 flex items-center bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-3 border-b border-slate-100 dark:border-slate-800">
 <div class="flex w-10 items-center justify-start">
-<button class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">
+<button id="btn-back" class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">
 <span class="material-symbols-outlined">arrow_back_ios</span>
 </button>
 </div> <!-- Spacer for centering -->
 <h1 class="flex-1 text-center text-lg font-bold leading-tight tracking-tight">作品一覧</h1>
 <div class="flex w-10 items-center justify-end">
-<button class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">
+<button id="btn-search-hdr" class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">
 <span class="material-symbols-outlined">search</span>
 </button>
 </div>
@@ -76,11 +76,11 @@
 <span class="material-symbols-outlined text-[16px]">expand_more</span>
 </button>
 <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0"></div>
-<button class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
+<button id="btn-best" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
 <span class="text-xs font-medium">BEST/総集編</span>
 <span class="material-symbols-outlined text-[18px] text-primary">toggle_on</span>
 </button>
-<button class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
+<button id="btn-vr" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
 <span class="text-xs font-medium">VR作品</span>
 <span class="material-symbols-outlined text-[18px] text-slate-400">toggle_off</span>
 </button>
@@ -113,7 +113,7 @@
 </div>
 </div>
 <!-- 5. 下部の作品グリッド (3列維持) -->
-<div class="grid grid-cols-3 gap-x-2 gap-y-4 px-4 pb-24">
+<div id="products-grid" class="grid grid-cols-3 gap-x-2 gap-y-4 px-4 pb-24">
 </div>
 </main>
 <nav class="fixed bottom-0 left-0 right-0 z-50 flex border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md px-2 pb-6 pt-2">
