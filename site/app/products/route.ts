@@ -78,7 +78,7 @@ const PRODUCTS_SCRIPT = `<script>
         ?'<img class="h-full w-full object-cover object-right" src="'+esc(img)+'" alt="'+esc(p.title)+'" loading="lazy"/>'
         :'<div class="h-full w-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center"><span class="material-symbols-outlined text-slate-400 text-3xl">movie</span></div>';
       var actHtml=p.actresses?'<p class="text-[10px] text-slate-400 truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'';
-      return '<div class="flex flex-col gap-1" style="cursor:pointer" onclick="location.href=\'/product/\'+encodeURIComponent(\''+esc(p.product_id)+'\')">'
+      return '<div class="flex flex-col gap-1" style="cursor:pointer" onclick="location.href=\\'/product/\\'+encodeURIComponent(\\'' + esc(p.product_id) + '\\')">'
         +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-700">'+imgHtml+'</div>'
         +'<p class="line-clamp-2 text-[11px] font-bold leading-tight">'+esc(p.title)+'</p>'
         +actHtml
