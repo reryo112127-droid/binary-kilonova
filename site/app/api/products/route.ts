@@ -19,17 +19,21 @@ export async function GET(request: NextRequest) {
         && !searchParams.get('maker') && !searchParams.get('fromDate') && !searchParams.get('source')
         && !searchParams.get('cup') && !searchParams.get('height') && !searchParams.get('vr');
 
-    if (noFilter && offset === 0) {
+    if (noFilter) {
         const file = sort === 'wish_count' ? 'products_popular_cache.json'
                    : sort === 'new'        ? 'products_new_cache.json'
                    : sort === 'pre-order'  ? 'home_preorder_cache.json'
                    : null;
         if (file) {
             const cached = await readStaticCache<unknown[]>(file);
-            if (cached && cached.length > 0) return NextResponse.json(
-                cached.slice(0, limit),
-                { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
-            );
+            if (cached && cached.length > 0) {
+                const page = cached.slice(offset, offset + limit);
+                // offset がキャッシュ範囲内なら返す（空でも終端として返す）
+                if (offset < cached.length) return NextResponse.json(
+                    page,
+                    { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
+                );
+            }
         }
     }
 
@@ -311,7 +315,7 @@ export async function GET(request: NextRequest) {
 
     function buildOrderBy(isMgs: boolean) {
         if (sort === 'new') return 'ORDER BY sale_start_date DESC';          // 配信日が新しい順
-        if (sort === 'pre-order') return isMgs ? 'ORDER BY REPLACE(sale_start_date,\'/\',\'-\') ASC' : 'ORDER BY SUBSTR(sale_start_date,1,10) ASC';  // 配信日が近い順
+        if (sort === 'pre-order') return isMgs ? 'ORDER BY REPLACE(sale_start_date,\'/\',\'-\') DESC' : 'ORDER BY SUBSTR(sale_start_date,1,10) DESC';  // 配信日が遠い順
         if (sort === 'random') return 'ORDER BY RANDOM()';
         if (sort === 'discount') return 'ORDER BY discount_pct DESC';         // 割引率が高い順
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';

@@ -253,7 +253,7 @@ async function genPreorderProducts() {
                   WHERE REPLACE(sale_start_date,'/','-') > ?
                     AND (duration_min IS NULL OR duration_min < 600)
                     AND ${bestConds}
-                  ORDER BY REPLACE(sale_start_date,'/','-') ASC LIMIT 300`,
+                  ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 300`,
             args: [today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
         fanza.execute({
@@ -262,7 +262,7 @@ async function genPreorderProducts() {
                   FROM products
                   WHERE SUBSTR(sale_start_date,1,10) > ?
                     AND ${bestConds}
-                  ORDER BY SUBSTR(sale_start_date,1,10) ASC LIMIT 300`,
+                  ORDER BY SUBSTR(sale_start_date,1,10) DESC LIMIT 300`,
             args: [today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
