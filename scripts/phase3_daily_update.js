@@ -246,10 +246,13 @@ async function main() {
                         const detailHtml = await fetchPage(buildDetailUrl(product.product_id));
                         const detail = parseDetailPage(detailHtml);
                         if (!IS_CI) db.updateProductDetail(product.product_id, detail);
-                        productRow.maker         = detail.maker || null;
-                        productRow.label         = detail.label || null;
-                        productRow.duration_min  = detail.duration_min || null;
-                        productRow.detail_scraped = 1;
+                        productRow.maker           = detail.maker || null;
+                        productRow.label           = detail.label || null;
+                        productRow.duration_min    = detail.duration_min || null;
+                        productRow.genres          = detail.genres || null;
+                        productRow.sale_start_date = detail.sale_start_date || null;
+                        if (detail.actresses)      productRow.actresses = detail.actresses;
+                        productRow.detail_scraped  = 1;
                         // 詳細ページの価格で上書き（より正確）
                         if (detail.list_price != null)    productRow.list_price    = detail.list_price;
                         if (detail.current_price != null) productRow.current_price = detail.current_price;
