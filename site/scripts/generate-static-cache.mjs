@@ -310,7 +310,9 @@ async function main() {
         const p = path.join(dataDir, filename);
         const pubP = path.join(ROOT, 'public', 'data', filename);
         fs.writeFileSync(p, JSON.stringify(data, null, 0));
-        if (fs.existsSync(path.dirname(pubP))) fs.writeFileSync(pubP, JSON.stringify(data, null, 0));
+        // public/data/ は Cloudflare ASSETS に含めるため常に書き込む
+        fs.mkdirSync(path.dirname(pubP), { recursive: true });
+        fs.writeFileSync(pubP, JSON.stringify(data, null, 0));
         console.log(`✓ ${filename} (${data.length}件)`);
     };
 

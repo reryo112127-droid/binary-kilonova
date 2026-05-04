@@ -29,7 +29,7 @@ const { createClient } = require('@libsql/client');
 // 設定
 // ==============================
 
-const SITE_BASE_URL = 'https://lunar-zodiac.vercel.app';
+const SITE_BASE_URL = 'https://avrankings.com';
 
 // Blueskyアカウント設定
 const BSKY_ACCOUNTS = {
@@ -103,11 +103,35 @@ const GENRE_CONFIG = {
 // Tursoクライアント
 // ==============================
 
+function getSiteClient() {
+    return createClient({ url: process.env.TURSO_SITE_URL, authToken: process.env.TURSO_SITE_TOKEN });
+}
 function getMgsClient() {
     return createClient({ url: process.env.TURSO_MGS_URL, authToken: process.env.TURSO_MGS_TOKEN });
 }
 function getFanzaClient() {
     return createClient({ url: process.env.TURSO_FANZA_URL, authToken: process.env.TURSO_FANZA_TOKEN });
+}
+
+// ==============================
+// siteDb キューヘルパー
+// ==============================
+
+async function ensurePostedBskyColumn(siteDb) {
+    try { await siteDb.execute(`ALTER TABLE x_post_decisions ADD COLUMN posted_bsky_at TEXT`); } catch { /* already exists */ }
+}
+
+async function fetchNextPendingBsky(siteDb) {
+    const result = await siteDb.execute(
+        `SELECT id, product_id, new_genre FROM x_post_decisions
+         WHERE decision = 'approve' AND posted_bsky_at IS NULL
+         ORDER BY decided_at ASC LIMIT 1`
+    );
+    return result.rows[0] || null;
+}
+
+async function markBskyPosted(siteDb, id) {
+    await siteDb.execute({ sql: `UPDATE x_post_decisions SET posted_bsky_at = datetime('now') WHERE id = ?`, args: [id] });
 }
 
 // ==============================
@@ -299,50 +323,44 @@ async function postToBluesky(agent, text, ogCard, isAdult) {
 
 async function main() {
     console.log('========================================');
-    console.log('  Bluesky 自動投稿');
+    console.log('  Bluesky 自動投稿（キューモード）');
     console.log('========================================\n');
 
-    // 引数パース
-    const getArg = (name) => {
-        const a = process.argv.find(a => a.startsWith(`--${name}=`));
-        return a ? a.split('=')[1] : null;
-    };
+    const siteDb = getSiteClient();
+    await ensurePostedBskyColumn(siteDb);
 
-    const accountKey = getArg('account') || 'main';
-    const genre      = getArg('genre');
-    const sourceOverride = getArg('source');
-
-    if (!genre || !GENRE_CONFIG[genre]) {
-        console.error(`❌ --genre を指定してください: ${Object.keys(GENRE_CONFIG).join(', ')}`);
-        process.exit(1);
-    }
-
-    const genreConf = GENRE_CONFIG[genre];
-    const source = sourceOverride || genreConf.source;
-    const isMgs = source === 'mgs';
-
-    console.log(`アカウント: ${accountKey}  ジャンル: ${genreConf.label}  ソース: ${source.toUpperCase()}`);
-
-    // DB作品取得
-    const dbClient = isMgs ? getMgsClient() : getFanzaClient();
-    const queryStr = genreConf.query(isMgs);
-    const sql = `SELECT product_id, title, actresses FROM products WHERE ${queryStr} LIMIT 1`;
-    const result = await dbClient.execute(sql);
-
-    if (!result.rows.length) {
-        console.log(`[INFO] 作品が見つかりませんでした (${genre})`);
+    // キューから次の未投稿作品を取得
+    const pending = await fetchNextPendingBsky(siteDb);
+    if (!pending) {
+        console.log('[INFO] 投稿待ちの作品がありません（管理画面で作品を承認してください）');
         return;
     }
 
-    const product = result.rows[0];
-    console.log(`[抽出] ${product.product_id} : ${product.title}`);
+    const { id, product_id, new_genre } = pending;
+    const genre = new_genre || 'ranking';
+    console.log(`[キュー] ID:${id}  作品:${product_id}  ジャンル:${genre}`);
+
+    // FANZA DBから作品詳細取得
+    const fanzaDb = getFanzaClient();
+    const productResult = await fanzaDb.execute({
+        sql: `SELECT product_id, title, actresses FROM products WHERE product_id = ? LIMIT 1`,
+        args: [product_id],
+    });
+
+    if (!productResult.rows.length) {
+        console.error(`[ERROR] 作品が見つかりません: ${product_id}`);
+        return;
+    }
+
+    const product = productResult.rows[0];
+    console.log(`[作品] ${product.product_id} : ${product.title}`);
 
     // URL & テキスト生成
-    const cushionUrl = buildCushionUrl(product.product_id, source);
-    const actressNames = buildActressHashtags(product.actresses, source);
+    const cushionUrl = buildCushionUrl(product.product_id, 'fanza');
+    const actressNames = buildActressHashtags(product.actresses, 'fanza');
     const postText = await buildPostText(genre, product, actressNames);
 
-    // OGカード取得（dry-runでも取得して確認できるよう）
+    // OGカード取得
     console.log('[OGカード取得中...]');
     const ogCard = await fetchOgCard(cushionUrl);
 
@@ -350,11 +368,9 @@ async function main() {
     const agent = new AtpAgent({ service: 'https://bsky.social' });
 
     if (!isDryRun) {
-        const creds = BSKY_ACCOUNTS[accountKey];
+        const creds = BSKY_ACCOUNTS['main'];
         if (!creds?.identifier || !creds?.password) {
-            throw new Error(
-                `BSKY_${accountKey.toUpperCase()}_IDENTIFIER / BSKY_${accountKey.toUpperCase()}_PASSWORD が .env.local に未設定です`
-            );
+            throw new Error('BSKY_MAIN_IDENTIFIER / BSKY_MAIN_PASSWORD が .env.local に未設定です');
         }
         await agent.login({ identifier: creds.identifier, password: creds.password });
         console.log(`[ログイン] ${creds.identifier}`);
@@ -363,7 +379,9 @@ async function main() {
     // 投稿（アダルトラベル付き）
     const posted = await postToBluesky(agent, postText, ogCard, true);
     console.log(`[投稿URI] ${posted.uri}`);
-    console.log(`✅ 完了 (${accountKey} / ${genreConf.label})`);
+
+    if (!isDryRun) await markBskyPosted(siteDb, id);
+    console.log(`✅ 完了 (Bluesky / ${genre})`);
 }
 
 main().catch(err => {

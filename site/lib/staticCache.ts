@@ -22,12 +22,28 @@ export function readStaticCache<T>(filename: string): T | null {
 export async function preloadStaticCache(filename: string): Promise<void> {
     if (_mem.has(filename)) return;
     try {
+        // Cloudflare Workers: ASSETS バインディングから取得
         const { env } = await getCloudflareContext({ async: true });
         const assets = (env as unknown as { ASSETS: { fetch: (r: Request) => Promise<Response> } }).ASSETS;
         const res = await assets.fetch(new Request(`https://assets.internal/data/${filename}`));
         if (!res.ok) return;
         const data = await res.json();
         _mem.set(filename, data);
+        return;
+    } catch {
+        // ignore - Node.js フォールバックへ
+    }
+    try {
+        // Node.js フォールバック（Vercel・ローカル開発）
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const fs = require('fs') as typeof import('fs');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const path = require('path') as typeof import('path');
+        const p = path.join(process.cwd(), 'data', filename);
+        if (fs.existsSync(p)) {
+            const data = JSON.parse(fs.readFileSync(p, 'utf-8'));
+            _mem.set(filename, data);
+        }
     } catch {
         // ignore - Turso にフォールバック
     }

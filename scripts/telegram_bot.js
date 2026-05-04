@@ -25,16 +25,17 @@ const { createClient } = require('@libsql/client');
 // 設定
 // ==============================
 
-const SITE_BASE_URL = 'https://lunar-zodiac.vercel.app';
+const SITE_BASE_URL = 'https://avrankings.com';
 
 const BOT_TOKEN      = process.env.TELEGRAM_BOT_TOKEN;
-const CH_NEW         = process.env.TELEGRAM_CHANNEL_NEW;    // @handle or -100xxxx
-const CH_SALE        = process.env.TELEGRAM_CHANNEL_SALE;   // 任意
+const CH_NEW         = process.env.TELEGRAM_CHANNEL;    // @handle or -100xxxx
+const CH_SALE        = process.env.TELEGRAM_CHANNEL;    // 同じチャンネルに投稿
 
 // ==============================
 // Tursoクライアント
 // ==============================
 
+const getSiteClient  = () => createClient({ url: process.env.TURSO_SITE_URL,  authToken: process.env.TURSO_SITE_TOKEN });
 const getMgsClient   = () => createClient({ url: process.env.TURSO_MGS_URL,   authToken: process.env.TURSO_MGS_TOKEN });
 const getFanzaClient = () => createClient({ url: process.env.TURSO_FANZA_URL, authToken: process.env.TURSO_FANZA_TOKEN });
 
@@ -320,52 +321,71 @@ function startBotMode() {
 // 📢 NOTIFY モード（日次バッチ用）
 // ==============================
 
-async function runNotifyMode(genre, count, isDryRun) {
+async function runNotifyMode(isDryRun) {
     if (!BOT_TOKEN && !isDryRun) {
         console.error('❌ TELEGRAM_BOT_TOKEN が未設定です');
         process.exit(1);
     }
 
-    const bot = isDryRun ? null : new Telegraf(BOT_TOKEN);
-    let items = [];
-    let channelId = '';
-
-    if (genre === 'new') {
-        channelId = CH_NEW;
-        items = await getNewReleases(count, 'fanza');
-        console.log(`[新作通知] ${items.length}件取得 → チャンネル: ${channelId}`);
-    } else if (genre === 'sale') {
-        channelId = CH_SALE || CH_NEW;
-        items = await getSaleItems(count);
-        console.log(`[セール通知] ${items.length}件取得 → チャンネル: ${channelId}`);
-    } else {
-        console.error(`❌ --genre=${genre} は未対応です (new | sale)`);
+    const channelId = CH_NEW || '@dry_run_channel';
+    if (!CH_NEW && !isDryRun) {
+        console.error('❌ TELEGRAM_CHANNEL が未設定です');
         process.exit(1);
     }
 
-    if (!channelId && !isDryRun) {
-        console.error('❌ チャンネルIDが未設定です（TELEGRAM_CHANNEL_NEW）');
+    // siteDb キューから未投稿作品を取得
+    const siteDb = getSiteClient();
+    try { await siteDb.execute(`ALTER TABLE x_post_decisions ADD COLUMN posted_tg_at TEXT`); } catch { /* already exists */ }
+
+    const result = await siteDb.execute(
+        `SELECT id, product_id, new_genre FROM x_post_decisions
+         WHERE decision = 'approve' AND posted_tg_at IS NULL
+         ORDER BY decided_at ASC LIMIT 1`
+    );
+    const pending = result.rows[0] || null;
+
+    if (!pending) {
+        console.log('[INFO] 投稿待ちの作品がありません');
+        process.exit(0);
+    }
+
+    const { id, product_id } = pending;
+    console.log(`[キュー] ID:${id}  作品:${product_id}  チャンネル:${channelId}`);
+
+    // FANZA DBから作品詳細取得
+    const fanzaDb = getFanzaClient();
+    const productResult = await fanzaDb.execute({
+        sql: `SELECT product_id, title, actresses, main_image_url, sample_video_url,
+                     affiliate_url, current_price, discount_pct, sale_start_date
+              FROM products WHERE product_id = ? LIMIT 1`,
+        args: [product_id],
+    });
+
+    if (!productResult.rows.length) {
+        console.error(`[ERROR] 作品が見つかりません: ${product_id}`);
         process.exit(1);
     }
-    if (!channelId) channelId = '@dry_run_channel';
 
-    for (const product of items) {
-        if (isDryRun) {
-            console.log('\n[DRY RUN] チャンネル投稿シミュレーション');
-            console.log('─'.repeat(40));
-            console.log('チャンネル:', channelId);
-            console.log('タイトル:', product.title);
-            console.log('価格:', product.current_price, '/ 割引:', product.discount_pct, '%');
-            console.log('作品詳細URL:', cushionUrl(product.product_id, product.source));
-            console.log('─'.repeat(40));
-        } else {
-            await sendToChannel(bot, channelId, product);  // eslint-disable-line
-            // 投稿間隔（Telegram: 30件/秒まで許可だが余裕を持つ）
-            await new Promise(r => setTimeout(r, 1500));
-        }
+    const product = { ...productResult.rows[0], source: 'fanza' };
+    console.log(`[作品] ${product.title}`);
+
+    if (isDryRun) {
+        console.log('\n[DRY RUN] チャンネル投稿シミュレーション');
+        console.log('─'.repeat(40));
+        console.log('チャンネル:', channelId);
+        console.log('タイトル:', product.title);
+        console.log('価格:', product.current_price, '/ 割引:', product.discount_pct, '%');
+        console.log('─'.repeat(40));
+        console.log(`✅ DryRun完了`);
+        process.exit(0);
     }
 
-    console.log(`✅ notify完了 (${genre}: ${items.length}件)`);
+    const bot = new Telegraf(BOT_TOKEN);
+    await sendToChannel(bot, channelId, product);
+
+    // 投稿済みマーク
+    await siteDb.execute({ sql: `UPDATE x_post_decisions SET posted_tg_at = datetime('now') WHERE id = ?`, args: [id] });
+    console.log(`✅ Telegram投稿完了`);
     process.exit(0);
 }
 
@@ -379,12 +399,10 @@ const getArg = (name) => {
 };
 
 const mode     = getArg('mode')  || 'bot';
-const genre    = getArg('genre') || 'new';
-const count    = parseInt(getArg('count') || '5', 10);
 const isDryRun = process.argv.includes('--dry-run');
 
 if (mode === 'notify') {
-    runNotifyMode(genre, count, isDryRun).catch(err => {
+    runNotifyMode(isDryRun).catch(err => {
         console.error('❌ エラー:', err.message);
         process.exit(1);
     });

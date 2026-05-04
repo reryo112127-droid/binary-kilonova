@@ -185,8 +185,8 @@
       +'<div class="relative w-full aspect-[3/4] overflow-hidden rounded-md bg-gray-100">'
       +(img?'<img class="w-full h-full object-cover object-right block" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
       +'<div class="absolute bottom-1 right-1 flex gap-1">'
-      +(noAct?'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">add</span></button>':'')
-      +'<button class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[12px]">favorite</span></button>'
+      +(noAct?'<button data-pid="'+esc(p.product_id)+'" class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)"><span class="material-symbols-outlined text-[12px]">add</span></button>':'')
+      +'<button data-like-pid="'+esc(p.product_id)+'" class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)"><span class="material-symbols-outlined text-[12px]">favorite</span></button>'
       +'</div></div>'
       +'<p class="line-clamp-2 text-[10px] font-bold leading-tight">'+esc(p.title||'')+'</p>'
       +(p.actresses?'<p class="text-[9px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
@@ -209,6 +209,7 @@
       return;
     }
     grid.innerHTML = items.map(cardHtml).join('');
+    if(window.restoreLikes)window.restoreLikes();
     setLoadMoreBtn(serverHasMore);
   }
 

@@ -20,38 +20,21 @@
                         "silver": "#C0C0C0",
                         "bronze": "#CD7F32",
                     },
-                    fontFamily: {
-                        "display": ["Public Sans", "sans-serif"]
-                    },
-                    borderRadius: {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "full": "9999px"
-                    },
+                    fontFamily: { "display": ["Public Sans", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
                 },
             },
         }
     </script>
 <style>
-        body {
-            min-height: 100dvh;
-        }
+        body { min-height: 100dvh; }
         .podium-gradient-1 { background: linear-gradient(180deg, rgba(236,91,19,0.15) 0%, rgba(236,91,19,0) 100%); }
-        .shine-effect {
-            position: relative;
-            overflow: hidden;
-        }
+        .shine-effect { position: relative; overflow: hidden; }
         .shine-effect::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
+            content: ''; position: absolute; top: -50%; left: -50%;
+            width: 200%; height: 200%;
             background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-            transform: rotate(45deg);
-            animation: shine 3s infinite;
+            transform: rotate(45deg); animation: shine 3s infinite;
         }
         @keyframes shine {
             0% { transform: translateX(-100%) rotate(45deg); }
@@ -61,11 +44,7 @@
             background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
         }
-        .sparkle {
-            position: absolute;
-            pointer-events: none;
-            animation: sparkle-anim 2s infinite ease-in-out;
-        }
+        .sparkle { position: absolute; pointer-events: none; animation: sparkle-anim 2s infinite ease-in-out; }
         @keyframes sparkle-anim {
             0%, 100% { opacity: 0; transform: scale(0.5); }
             50% { opacity: 1; transform: scale(1.2); }
@@ -77,280 +56,289 @@
 <header class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10">
 <div class="flex items-center p-3 justify-between">
 <div class="flex w-8 shrink-0 items-center justify-start">
-<span class="material-symbols-outlined text-xl" style="">arrow_back</span>
+<span class="material-symbols-outlined text-xl">arrow_back</span>
 </div>
-<h1 class="text-base font-bold leading-tight tracking-tight flex-1 text-center" style="">2026年総合ランキング</h1>
+<h1 class="text-base font-bold leading-tight tracking-tight flex-1 text-center">人気ランキング</h1>
 <div class="flex w-8 shrink-0 items-center justify-end">
-<button class="text-primary flex items-center justify-center p-1 rounded-full hover:bg-primary/10 transition-colors" style="">
-<span class="material-symbols-outlined text-xl" style="">search</span>
+<button class="text-primary flex items-center justify-center p-1 rounded-full hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-xl">search</span>
 </button>
 </div>
 </div>
 <div class="px-4">
 <div class="flex border-b border-primary/10 justify-between">
-<a class="flex flex-col items-center justify-center border-b-2 border-primary text-primary pb-2 pt-1 flex-1 transition-all" href="#" style="">
-<p class="text-xs font-bold" style="">作品</p>
+<a data-tab="works" class="flex flex-col items-center justify-center border-b-2 border-primary text-primary pb-2 pt-1 flex-1 transition-all cursor-pointer">
+<p class="text-xs font-bold">作品</p>
 </a>
-<a class="flex flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-2 pt-1 flex-1 transition-all" href="#" style="">
-<p class="text-xs font-bold" style="">出演者</p>
+<a data-tab="actress" class="flex flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-2 pt-1 flex-1 transition-all cursor-pointer">
+<p class="text-xs font-bold">出演者</p>
 </a>
 </div>
 </div>
 </header>
+
 <main class="flex-1 pb-24">
-<!-- Enhanced Podium Layout -->
+
+<!-- ===== 作品ランキング ===== -->
+<div id="works-section">
+<!-- Podium Layout -->
 <section class="p-4 podium-gradient-1 relative">
 <div class="flex items-center gap-2 mb-2">
-<span class="material-symbols-outlined text-primary text-sm fill-current" style="">emoji_events</span>
-<h2 class="text-sm font-bold tracking-tight" style="">TOP 3</h2><span class="material-symbols-outlined text-sm text-slate-900 dark:text-slate-100" style="">tune</span>
+<span class="material-symbols-outlined text-primary text-sm">emoji_events</span>
+<h2 class="text-sm font-bold tracking-tight">TOP 3</h2>
 </div>
-<!-- Podium Visual -->
 <div class="flex items-end justify-center gap-1.5 h-72 relative">
 <!-- 2nd Place -->
 <div id="rank-2-card" class="flex flex-col items-center flex-1 max-w-[100px] z-10 cursor-pointer">
-<span class="text-slate-500 font-bold text-sm mb-1" style="">2位</span>
-<div class="relative w-full aspect-[3/4] rounded-lg overflow-hidden mb-0.5 shadow-lg border-2 border-silver/30 shine-effect">
-<img id="rank-2-img" alt="Ranking 2" class="w-full h-full object-cover object-right" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_GHUXoR8ulZgshfsLkUlKik5Lo9TB3tLjjPAv5qacvHNMLEiK8XcW51-arPRJzsZbV_YNqyi855OgIZi-uzaw8B4w8668fE_VSkTdqFrX7rPT81ACyDr1sUDylcN8zKTvE4kcCUxW6ae58a0fwtOstG2M_yRGxkqGm8e0ELMVfPIUnumedsQ2om8oEZVl10s1PkrCmclmC2eYL2Xhus4C2Du5_ADiDfUB_2fLtAswSy1DY5Ng5S4jFFGqRl1Z1XOsRF3Ft1K_bwE" style=""/>
+<span class="text-slate-500 font-bold text-sm mb-1">2位</span>
+<div class="relative w-full aspect-[3/4] rounded-lg overflow-hidden mb-0.5 shadow-lg border-2 border-silver/30 shine-effect bg-gray-100 animate-pulse">
+<img id="rank-2-img" alt="" class="w-full h-full object-cover object-right" src=""/>
 </div>
-<!-- 2nd Step -->
 <div class="podium-step w-full h-10 flex flex-col items-center justify-center rounded-t-sm mb-2">
 <div class="flex items-center gap-1 px-1">
-<span class="material-symbols-outlined text-slate-400 text-sm fill-current" style="">workspace_premium</span>
-<p id="rank-2-title" class="text-[10px] font-bold text-slate-800 line-clamp-1" style="">名作シネマ B</p>
+<span class="material-symbols-outlined text-slate-400 text-sm">workspace_premium</span>
+<p id="rank-2-title" class="text-[10px] font-bold text-slate-800 line-clamp-1"></p>
 </div>
 </div>
 </div>
 <!-- 1st Place -->
 <div id="rank-1-card" class="flex flex-col items-center flex-1 max-w-[110px] z-20 relative cursor-pointer">
-<span class="text-gold font-bold text-base mb-1" style="">1位</span>
-<!-- Sparkles for 1st place -->
-<span class="material-symbols-outlined sparkle text-gold text-xs top-6 left-0" style="">auto_awesome</span>
-<span class="material-symbols-outlined sparkle text-gold text-xs top-2 right-2" style="">auto_awesome</span>
-<span class="material-symbols-outlined sparkle text-gold text-xs top-14 -right-2" style="">auto_awesome</span>
-<div class="relative w-full aspect-[3/4] rounded-lg overflow-hidden mb-0.5 shadow-[0_10px_25px_-5px_rgba(236,91,19,0.5)] border-2 border-gold shine-effect scale-105">
-<img id="rank-1-img" alt="Ranking 1" class="w-full h-full object-cover object-right" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6-ql6h-snGXUGqJewGnsmrSaXyrdLCd3gU2PWwADCe-EDv8Iph13LUna8xo9WE6pVPgw-Z90g16Iq8T3m7QuZHEjqoNLtsCTXIlrUYRGjur5Tgf6WRIrm3gux7lnhi4gC1b7ZRRLTdTkwDpqtEA5tTwJS6SMzZy3OPb2akqDg0eDcwvBBBrun6LO5QQHlByzrDAkORkP-3IIY6GSJnzL8f6hnEy5UQWtScUDVnwIeWWJoNk7M8hAAo88ydeMYU3ne18nYgUtyghw" style=""/>
+<span class="text-gold font-bold text-base mb-1">1位</span>
+<span class="material-symbols-outlined sparkle text-gold text-xs top-6 left-0">auto_awesome</span>
+<span class="material-symbols-outlined sparkle text-gold text-xs top-2 right-2">auto_awesome</span>
+<span class="material-symbols-outlined sparkle text-gold text-xs top-14 -right-2">auto_awesome</span>
+<div class="relative w-full aspect-[3/4] rounded-lg overflow-hidden mb-0.5 shadow-[0_10px_25px_-5px_rgba(236,91,19,0.5)] border-2 border-gold shine-effect scale-105 bg-gray-100 animate-pulse">
+<img id="rank-1-img" alt="" class="w-full h-full object-cover object-right" src=""/>
 </div>
-<!-- 1st Step -->
 <div class="podium-step w-full h-16 flex flex-col items-center justify-center rounded-t-sm mb-2 border-x-2 border-slate-100">
 <div class="flex items-center gap-1 px-1">
-<span class="material-symbols-outlined text-gold text-base fill-current" style="">workspace_premium</span>
-<p id="rank-1-title" class="text-[11px] font-bold text-black line-clamp-1" style="">話題の新作 A</p>
+<span class="material-symbols-outlined text-gold text-base">workspace_premium</span>
+<p id="rank-1-title" class="text-[11px] font-bold text-black line-clamp-1"></p>
 </div>
 </div>
 </div>
 <!-- 3rd Place -->
 <div id="rank-3-card" class="flex flex-col items-center flex-1 max-w-[100px] z-10 cursor-pointer">
-<span class="text-orange-800 font-bold text-sm mb-1" style="">3位</span>
-<div class="relative w-full aspect-[3/4] rounded-lg overflow-hidden mb-0.5 shadow-lg border-2 border-bronze/30 shine-effect">
-<img id="rank-3-img" alt="Ranking 3" class="w-full h-full object-cover object-right" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBu1frKBpv91Nb2011kUCuuwm9i-wmKRCjpy116ZEj-84uTXAnA0U9_NPLlSuQYMOwte4L7AawiFKBVeWr-bylcXttYyhA65yUdycmL7aJLhnmO0QoBiSoAucOjLkGQ0atd6-nILMFvbsf1hmwbw6NV-AdebJnsBUKL8vOFomWqJsvvh5BR8ud-i5CwV8IDFO1inMBoAI1hVK5-BXoK_LDkFVcJjYV3cFsu_oDj2ZzzrhezBROhLvV-QxHnWdaFSUx360L90VtTGI4" style=""/>
+<span class="text-orange-800 font-bold text-sm mb-1">3位</span>
+<div class="relative w-full aspect-[3/4] rounded-lg overflow-hidden mb-0.5 shadow-lg border-2 border-bronze/30 shine-effect bg-gray-100 animate-pulse">
+<img id="rank-3-img" alt="" class="w-full h-full object-cover object-right" src=""/>
 </div>
-<!-- 3rd Step -->
 <div class="podium-step w-full h-8 flex flex-col items-center justify-center rounded-t-sm mb-2">
 <div class="flex items-center gap-1 px-1">
-<span class="material-symbols-outlined text-orange-700 text-sm fill-current" style="">workspace_premium</span>
-<p id="rank-3-title" class="text-[10px] font-bold text-slate-800 line-clamp-1" style="">感動の大作 C</p>
+<span class="material-symbols-outlined text-orange-700 text-sm">workspace_premium</span>
+<p id="rank-3-title" class="text-[10px] font-bold text-slate-800 line-clamp-1"></p>
 </div>
 </div>
 </div>
 </div>
 </section>
-<!-- 3-Column Grid for 4th Place Onwards -->
+<!-- Grid 4-12 -->
 <section class="px-4 py-2">
 <div class="flex items-center justify-between mb-3">
-<h2 class="text-sm font-bold" style="">4位 〜 12位</h2>
-<span id="ranking-update-date" class="text-[10px] text-slate-500" style="">更新: 05/20</span>
+<h2 class="text-sm font-bold">4位 〜 12位</h2>
+<span id="ranking-update-date" class="text-[10px] text-slate-500"></span>
 </div>
 <div id="ranking-grid" class="grid grid-cols-3 gap-2">
-<div class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">
-<div class="relative">
-<div class="w-full aspect-square rounded-md overflow-hidden mb-1.5">
-<img alt="Work 4" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhn0yi1LIjakaI6AcVl9UB-F69QwDNTHN-48X2u7N1tVvXutKw8qDQLsxrfciaHkxtOEcntN401Pdr-ormBP6P65f9p5KcHIw64I-Ak-jl381rNoKi8at8UT9rzDe-gKDgzqduEfqMVwSozHN_CekOBgBXcEDrXoRE2V3t1PKfxNNSOA3IH5LtmxcL4Bi4rUEHeYEPCtaFkYfvzicsA7TgUGo_NYtrCRmuths5WAoReQDIad7cbp1QY_Z135NOJbp06RLICOfdniA" style=""/>
+<!-- skeleton -->
+<div class="flex flex-col bg-white p-1.5 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-full aspect-[3/4] rounded-md bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col bg-white p-1.5 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-full aspect-[3/4] rounded-md bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col bg-white p-1.5 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-full aspect-[3/4] rounded-md bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col bg-white p-1.5 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-full aspect-[3/4] rounded-md bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col bg-white p-1.5 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-full aspect-[3/4] rounded-md bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col bg-white p-1.5 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-full aspect-[3/4] rounded-md bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col bg-white p-1.5 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-full aspect-[3/4] rounded-md bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col bg-white p-1.5 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-full aspect-[3/4] rounded-md bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col bg-white p-1.5 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-full aspect-[3/4] rounded-md bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
 </div>
-<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold" style="">4</span>
-</div>
-<h3 class="font-bold text-[10px] line-clamp-1" style="">アクション・リベンジ</h3>
-<div class="flex items-center gap-0.5 mt-0.5">
-<span class="material-symbols-outlined text-[10px] text-primary fill-current" style="">star</span>
-<span class="text-[9px] font-bold" style="">4.8</span>
-</div>
-</div>
-<div class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">
-<div class="relative">
-<div class="w-full aspect-square rounded-md overflow-hidden mb-1.5">
-<img alt="Work 5" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBf1HMcMcrcniESb3wZxm_XcEWtz_B9Czj9eMZkdSkwzGNm5yfuSjlBOx3I7CCOX02dn-71gM1MsgNYL_yJ6oR20szzbQJuggN2VAs8I8UxaVw62y2vCT3eizoiObBNRpAKrafI8NoumJclnkCKSxQiewvahIZbolclVCVWCAxhoXXl40FpeLJmlIv4KGcbbzFBSBDAU53MVEIgbQtBqvet0MjnuG0cewpwNrpfl4FwbpnZTQYXgAIS_34pNJ7hrRA1bTWTWtPiBVc" style=""/>
-</div>
-<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold" style="">5</span>
-</div>
-<h3 class="font-bold text-[10px] line-clamp-1" style="">ミステリー・ナイト</h3>
-<div class="flex items-center gap-0.5 mt-0.5">
-<span class="material-symbols-outlined text-[10px] text-primary fill-current" style="">star</span>
-<span class="text-[9px] font-bold" style="">4.7</span>
-</div>
-</div>
-<div class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">
-<div class="relative">
-<div class="w-full aspect-square rounded-md overflow-hidden mb-1.5">
-<img alt="Work 6" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3IqG6RQShnZ9VgWxfoifg5ifzuFpJL5MAV2PIJrLw26ZFWP-_r_hUS4TpR09JXj0UN9_N9KxTUk_hQnt-cIpr-UXYU4PLCZNsS1X3W4vd3647lzHd_DSiMnIQn2STbn3qEafO2IxQ3B_BPxp-V5PKBy7Gx3hB3CX7_4mSl7amJkSM1_-4QH_WX13Tj80QBOPNibk5Y2ktiRi4jHCbwnReVhWn-nbMz6b1GDJZizbOEWgsxf_6TVWmhvjIiG_MstL2ecSO21ggvLc" style=""/>
-</div>
-<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold" style="">6</span>
-</div>
-<h3 class="font-bold text-[10px] line-clamp-1" style="">青春のページ</h3>
-<div class="flex items-center gap-0.5 mt-0.5">
-<span class="material-symbols-outlined text-[10px] text-primary fill-current" style="">star</span>
-<span class="text-[9px] font-bold" style="">4.6</span>
-</div>
-</div>
-<div class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">
-<div class="relative">
-<div class="w-full aspect-square rounded-md overflow-hidden mb-1.5">
-<img alt="Work 7" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCb5GTXgCUsWlhIVaBVfkaBcJZuAtfzeiBf918oA2rJRJcPSKr4opKyjniO2S4FEu9WN7BCltWHkvOj7n-kihwusqKan-5mtVY6RJd1kfTAcLYBdt1x4S9SPeA2-xhsNTY8dGUPcBDlmiasz47csyO-fguWJenkvLY7gNXlU7BT6Gu00YmeAP8UviVVsJTAWy61NyJFGU6JvrFWUTiPFJ_hNyrDQqvJHIbWGIVpxaXD_-MV897F-5dtkX7Eyd8-102319IGFZRtkH4" style=""/>
-</div>
-<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold" style="">7</span>
-</div>
-<h3 class="font-bold text-[10px] line-clamp-1" style="">SF オデッセイ 2024</h3>
-<div class="flex items-center gap-0.5 mt-0.5">
-<span class="material-symbols-outlined text-[10px] text-primary fill-current" style="">star</span>
-<span class="text-[9px] font-bold" style="">4.5</span>
-</div>
-</div>
-<div class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">
-<div class="relative">
-<div class="w-full aspect-square rounded-md overflow-hidden mb-1.5 flex items-center justify-center bg-slate-200 dark:bg-slate-800">
-<span class="material-symbols-outlined text-slate-400" style="">movie</span>
-</div>
-<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold" style="">8</span>
-</div>
-<h3 class="font-bold text-[10px] line-clamp-1" style="">ラブ・ストーリー</h3>
-<div class="flex items-center gap-0.5 mt-0.5">
-<span class="material-symbols-outlined text-[10px] text-primary fill-current" style="">star</span>
-<span class="text-[9px] font-bold" style="">4.4</span>
-</div>
-</div>
-<div class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">
-<div class="relative">
-<div class="w-full aspect-square rounded-md overflow-hidden mb-1.5 flex items-center justify-center bg-slate-200 dark:bg-slate-800">
-<span class="material-symbols-outlined text-slate-400" style="">movie</span>
-</div>
-<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold" style="">9</span>
-</div>
-<h3 class="font-bold text-[10px] line-clamp-1" style="">歴史の影で</h3>
-<div class="flex items-center gap-0.5 mt-0.5">
-<span class="material-symbols-outlined text-[10px] text-primary fill-current" style="">star</span>
-<span class="text-[9px] font-bold" style="">4.3</span>
-</div>
-</div>
-<div class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">
-<div class="relative">
-<div class="w-full aspect-square rounded-md overflow-hidden mb-1.5 flex items-center justify-center bg-slate-200 dark:bg-slate-800">
-<span class="material-symbols-outlined text-slate-400" style="">movie</span>
-</div>
-<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold" style="">10</span>
-</div>
-<h3 class="font-bold text-[10px] line-clamp-1" style="">コメディ・キングダム</h3>
-<div class="flex items-center gap-0.5 mt-0.5">
-<span class="material-symbols-outlined text-[10px] text-primary fill-current" style="">star</span>
-<span class="text-[9px] font-bold" style="">4.2</span>
-</div>
-</div>
-<div class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">
-<div class="relative">
-<div class="w-full aspect-square rounded-md overflow-hidden mb-1.5 flex items-center justify-center bg-slate-200 dark:bg-slate-800">
-<span class="material-symbols-outlined text-slate-400" style="">movie</span>
-</div>
-<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold" style="">11</span>
-</div>
-<h3 class="font-bold text-[10px] line-clamp-1" style="">深夜の特急</h3>
-<div class="flex items-center gap-0.5 mt-0.5">
-<span class="material-symbols-outlined text-[10px] text-primary fill-current" style="">star</span>
-<span class="text-[9px] font-bold" style="">4.1</span>
-</div>
-</div>
-<div class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">
-<div class="relative">
-<div class="w-full aspect-square rounded-md overflow-hidden mb-1.5 flex items-center justify-center bg-slate-200 dark:bg-slate-800">
-<span class="material-symbols-outlined text-slate-400" style="">movie</span>
-</div>
-<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold" style="">12</span>
-</div>
-<h3 class="font-bold text-[10px] line-clamp-1" style="">空飛ぶクジラ</h3>
-<div class="flex items-center gap-0.5 mt-0.5">
-<span class="material-symbols-outlined text-[10px] text-primary fill-current" style="">star</span>
-<span class="text-[9px] font-bold" style="">4.1</span>
-</div>
-</div>
-</div>
-<button class="w-full mt-6 py-2.5 bg-primary/10 text-primary text-xs font-bold rounded-full hover:bg-primary/20 transition-colors flex items-center justify-center gap-2" style="">
-<span class="" style="">もっと見る</span>
-<span class="material-symbols-outlined text-sm" style="">expand_more</span>
+<button onclick="location.href='/ranking/2026'" class="w-full mt-6 py-2.5 bg-primary/10 text-primary text-xs font-bold rounded-full hover:bg-primary/20 transition-colors flex items-center justify-center gap-2">
+<span>もっと見る</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
 </button>
 </section>
+</div>
+
+<!-- ===== 出演者ランキング ===== -->
+<div id="actress-section" class="hidden">
+<!-- Actress Podium -->
+<section class="p-4 podium-gradient-1 relative">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary text-sm">person</span>
+<h2 class="text-sm font-bold tracking-tight">TOP 3</h2>
+</div>
+<div class="flex items-end justify-center gap-2 pt-4 pb-2">
+<!-- 2nd Place -->
+<div id="cast-rank-2-card" class="flex flex-col items-center flex-1 max-w-[100px] z-10 cursor-pointer">
+<span class="text-slate-500 font-bold text-sm mb-2">2位</span>
+<div class="w-20 h-20 rounded-full overflow-hidden shrink-0 bg-gray-100 animate-pulse border-2 border-silver/50 shadow-lg">
+<img id="cast-rank-2-img" alt="" class="w-full h-full object-cover object-top" src=""/>
+</div>
+<div class="podium-step w-full h-12 flex items-center justify-center rounded-t-sm mt-3 mb-2 px-2">
+<p id="cast-rank-2-title" class="text-[10px] font-bold text-slate-800 text-center line-clamp-1"></p>
+</div>
+</div>
+<!-- 1st Place -->
+<div id="cast-rank-1-card" class="flex flex-col items-center flex-1 max-w-[110px] z-20 relative cursor-pointer">
+<span class="text-gold font-bold text-base mb-2">1位</span>
+<span class="material-symbols-outlined sparkle text-gold text-xs top-6 left-0">auto_awesome</span>
+<span class="material-symbols-outlined sparkle text-gold text-xs top-2 right-2">auto_awesome</span>
+<div class="w-24 h-24 rounded-full overflow-hidden shrink-0 bg-gray-100 animate-pulse border-[3px] border-gold shadow-[0_10px_25px_-5px_rgba(234,179,8,0.5)] scale-105">
+<img id="cast-rank-1-img" alt="" class="w-full h-full object-cover object-top" src=""/>
+</div>
+<div class="podium-step w-full h-16 flex items-center justify-center rounded-t-sm mt-5 mb-2 border-x-2 border-slate-100 px-2">
+<p id="cast-rank-1-title" class="text-[11px] font-bold text-black text-center line-clamp-1"></p>
+</div>
+</div>
+<!-- 3rd Place -->
+<div id="cast-rank-3-card" class="flex flex-col items-center flex-1 max-w-[100px] z-10 cursor-pointer">
+<span class="text-orange-800 font-bold text-sm mb-2">3位</span>
+<div class="w-20 h-20 rounded-full overflow-hidden shrink-0 bg-gray-100 animate-pulse border-2 border-bronze/50 shadow-lg">
+<img id="cast-rank-3-img" alt="" class="w-full h-full object-cover object-top" src=""/>
+</div>
+<div class="podium-step w-full h-8 flex items-center justify-center rounded-t-sm mt-3 mb-2 px-2">
+<p id="cast-rank-3-title" class="text-[10px] font-bold text-slate-800 text-center line-clamp-1"></p>
+</div>
+</div>
+</div>
+</section>
+<!-- Actress List 4-12 -->
+<section class="px-4 py-3">
+<h2 class="text-sm font-bold mb-2">4位以下</h2>
+<div id="actress-list" class="grid grid-cols-3 gap-2">
+<!-- skeleton -->
+<div class="flex flex-col items-center bg-white p-2 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-16 h-16 rounded-full bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col items-center bg-white p-2 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-16 h-16 rounded-full bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-2/3"></div></div>
+<div class="flex flex-col items-center bg-white p-2 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-16 h-16 rounded-full bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col items-center bg-white p-2 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-16 h-16 rounded-full bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-2/3"></div></div>
+<div class="flex flex-col items-center bg-white p-2 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-16 h-16 rounded-full bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-3/4"></div></div>
+<div class="flex flex-col items-center bg-white p-2 rounded-lg border border-primary/5 shadow-sm animate-pulse"><div class="w-16 h-16 rounded-full bg-gray-100 mb-1.5"></div><div class="h-2 bg-gray-100 rounded w-2/3"></div></div>
+</div>
+<button onclick="location.href='/ranking/actress'" class="w-full mt-6 py-2.5 bg-primary/10 text-primary text-xs font-bold rounded-full hover:bg-primary/20 transition-colors flex items-center justify-center gap-2">
+<span>もっと見る</span>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</section>
+</div>
+
 </main>
+
 <nav class="fixed bottom-0 w-full bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-primary/10 px-4 pb-6 pt-2 z-50">
 <div class="flex gap-2 max-w-md mx-auto">
-<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-500 dark:text-slate-400" href="#" style="">
-<span class="material-symbols-outlined text-xl" style="">home</span>
-<p class="text-[9px] font-medium" style="">ホーム</p>
+<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-500 dark:text-slate-400" href="/">
+<span class="material-symbols-outlined text-xl">home</span>
+<p class="text-[9px] font-medium">ホーム</p>
 </a>
-<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-500 dark:text-slate-400" href="#" style="">
-<span class="material-symbols-outlined text-xl" style="">search</span>
-<p class="text-[9px] font-medium" style="">検索</p>
+<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-500 dark:text-slate-400" href="/search">
+<span class="material-symbols-outlined text-xl">search</span>
+<p class="text-[9px] font-medium">検索</p>
 </a>
-<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-primary" href="#" style="">
-<span class="material-symbols-outlined text-xl fill-current" style="">emoji_events</span>
-<p class="text-[9px] font-bold" style="">ランキング</p>
+<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-primary" href="/ranking">
+<span class="material-symbols-outlined text-xl fill-current">emoji_events</span>
+<p class="text-[9px] font-bold">ランキング</p>
 </a>
-<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-500 dark:text-slate-400" href="#" style="">
-<span class="material-symbols-outlined text-xl" style="">movie</span>
-<p class="text-[9px] font-medium" style="">動画</p>
+<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-500 dark:text-slate-400" href="/video">
+<span class="material-symbols-outlined text-xl">movie</span>
+<p class="text-[9px] font-medium">動画</p>
 </a>
-<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-500 dark:text-slate-400" href="#" style="">
-<span class="material-symbols-outlined text-xl" style="">person</span>
-<p class="text-[9px] font-medium" style="">マイ</p>
+<a class="flex flex-1 flex-col items-center justify-center gap-0.5 text-slate-500 dark:text-slate-400" href="/mypage">
+<span class="material-symbols-outlined text-xl">person</span>
+<p class="text-[9px] font-medium">マイ</p>
 </a>
 </div>
 </nav>
 </div>
+
 <script>
 (function(){
-  // 女優ランキングページでは作品ランキングスクリプトをスキップ
-  if (window.__ACTRESS_RANKING) return;
+  // Tab switching
+  var worksSection = document.getElementById('works-section');
+  var actressSection = document.getElementById('actress-section');
+  document.querySelectorAll('[data-tab]').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      var t = tab.getAttribute('data-tab');
+      document.querySelectorAll('[data-tab]').forEach(function(tt){
+        var active = tt === tab;
+        tt.classList.toggle('border-primary', active);
+        tt.classList.toggle('text-primary', active);
+        tt.classList.toggle('border-transparent', !active);
+        tt.classList.toggle('text-slate-500', !active);
+      });
+      worksSection.classList.toggle('hidden', t !== 'works');
+      actressSection.classList.toggle('hidden', t !== 'actress');
+    });
+  });
+
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;}
   function purl(id){return '/product/'+encodeURIComponent(id);}
-  function setCard(n,p){
-    var img=document.getElementById('rank-'+n+'-img');
-    var ttl=document.getElementById('rank-'+n+'-title');
-    var card=document.getElementById('rank-'+n+'-card');
-    if(!p)return;
-    var ps=poster(p.main_image_url);
-    if(img&&ps){img.src=ps;img.alt=p.title||'';}
-    if(ttl)ttl.textContent=p.title||'';
-    if(card)card.onclick=function(){location.href=purl(p.product_id);};
+  function aurl(name){return '/actress/'+encodeURIComponent(name);}
+
+  // Works ranking
+  function setWorksCard(n, p){
+    var img = document.getElementById('rank-'+n+'-img');
+    var ttl = document.getElementById('rank-'+n+'-title');
+    var card = document.getElementById('rank-'+n+'-card');
+    if (!p) return;
+    var ps = poster(p.main_image_url);
+    if (img && ps){ img.src = ps; img.alt = p.title||''; img.parentElement.classList.remove('animate-pulse'); }
+    if (ttl) ttl.textContent = p.title||'';
+    if (card) card.onclick = function(){ location.href = purl(p.product_id); };
   }
+
   (window.__SSR_RANKING_DATA__
-    ?Promise.resolve(window.__SSR_RANKING_DATA__)
-    :fetch('/api/ranking?limit=12&excludeBest=1&fromDate=2026-01-01&toDate=2026-12-31').then(function(r){return r.json();}))
+    ? Promise.resolve(window.__SSR_RANKING_DATA__)
+    : fetch('/api/ranking?limit=12&excludeBest=1').then(function(r){return r.json();}))
     .then(function(data){
-      if(!Array.isArray(data)||!data.length)return;
-      setCard(1,data[0]);setCard(2,data[1]);setCard(3,data[2]);
-      var grid=document.getElementById('ranking-grid');
-      if(grid&&data.length>3){
-        grid.innerHTML=data.slice(3).map(function(p,i){
-          var rank=i+4;
-          var ps=poster(p.main_image_url);
-          var img=ps?'<img class="w-full h-full object-cover object-right block" src="'+esc(ps)+'" alt="'+rank+'" />'
-            :'';
+      if (!Array.isArray(data) || !data.length) return;
+      setWorksCard(1, data[0]); setWorksCard(2, data[1]); setWorksCard(3, data[2]);
+      var grid = document.getElementById('ranking-grid');
+      if (grid && data.length > 3){
+        grid.innerHTML = data.slice(3).map(function(p, i){
+          var rank = i+4;
+          var ps = poster(p.main_image_url);
+          var img = ps ? '<img class="w-full h-full object-cover object-right block" src="'+esc(ps)+'" alt="'+rank+'"/>' : '';
           return '<a href="'+purl(p.product_id)+'" class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">'
             +'<div class="relative"><div class="w-full aspect-[3/4] overflow-hidden rounded-md mb-1.5">'+img+'</div>'
             +'<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold">'+rank+'</span></div>'
-            +'<h3 class="font-bold text-[10px] line-clamp-1">'+esc(p.title||'')+'</h3></a>';
+            +'<h3 class="font-bold text-[10px] line-clamp-2">'+esc(p.title||'')+'</h3></a>';
         }).join('');
       }
-      var d=new Date();
-      var el=document.getElementById('ranking-update-date');
-      if(el)el.textContent='更新: '+(d.getMonth()+1)+'/'+(d.getDate());
+      var el = document.getElementById('ranking-update-date');
+      if (el){ var d=new Date(); el.textContent='更新: '+(d.getMonth()+1)+'/'+(d.getDate()); }
     })
-    .catch(function(e){console.error('ranking load error',e);});
+    .catch(function(e){ console.error('works ranking error', e); });
+
+  // Actress ranking
+  function setCastCard(n, a){
+    var img = document.getElementById('cast-rank-'+n+'-img');
+    var ttl = document.getElementById('cast-rank-'+n+'-title');
+    var card = document.getElementById('cast-rank-'+n+'-card');
+    if (!a) return;
+    if (img && a.image_url){ img.src = a.image_url; img.alt = a.name||''; img.parentElement.classList.remove('animate-pulse'); }
+    if (ttl) ttl.textContent = a.name||'';
+    if (card) card.onclick = function(){ location.href = aurl(a.name); };
+  }
+
+  (window.__SSR_ACTRESS_RANKING_DATA__
+    ? Promise.resolve(window.__SSR_ACTRESS_RANKING_DATA__)
+    : fetch('/api/ranking/actress?limit=12').then(function(r){return r.json();}))
+    .then(function(data){
+      if (!Array.isArray(data) || !data.length) return;
+      setCastCard(1, data[0]); setCastCard(2, data[1]); setCastCard(3, data[2]);
+      var list = document.getElementById('actress-list');
+      if (list && data.length > 3){
+        list.innerHTML = data.slice(3).map(function(a, i){
+          var rank = i+4;
+          var img = a.image_url ? '<img class="w-full h-full object-cover object-top block" src="'+esc(a.image_url)+'" alt="'+rank+'"/>' : '';
+          return '<a href="'+aurl(a.name)+'" class="flex flex-col items-center bg-white p-2 rounded-lg border border-primary/5 shadow-sm">'
+            +'<div class="relative w-full flex justify-center mb-1.5">'
+            +'<div class="w-16 h-16 rounded-full overflow-hidden bg-gray-100">'+img+'</div>'
+            +'<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold">'+rank+'</span>'
+            +'</div>'
+            +'<p class="text-[10px] font-bold text-center line-clamp-1 w-full">'+esc(a.name||'')+'</p></a>';
+        }).join('');
+      }
+    })
+    .catch(function(e){ console.error('actress ranking error', e); });
 })();
 </script>
 </body></html>

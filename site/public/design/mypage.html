@@ -55,26 +55,38 @@
 </div>
 </div>
 <!-- Navigation Tabs -->
-<div class="sticky top-[73px] z-10 bg-white/95 dark:bg-background-dark/95 backdrop-blur-sm">
-<div class="flex border-b border-slate-100 dark:border-primary/10 px-2 overflow-x-hidden">
-<a class="flex flex-1 flex-col items-center justify-center border-b-2 border-primary text-primary pb-3 pt-4 px-1 transition-colors" href="#">
+<div class="sticky top-[49px] z-10 bg-white/95 dark:bg-background-dark/95 backdrop-blur-sm">
+<div class="flex border-b border-slate-100 dark:border-primary/10 px-2">
+<a id="tab-likes" class="flex flex-1 flex-col items-center justify-center border-b-2 border-primary text-primary pb-3 pt-4 px-1 transition-colors cursor-pointer" href="#">
 <p class="text-[11px] font-bold tracking-tight text-center">いいね作品</p>
 </a>
-<a class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors" href="#">
+<a id="tab-reviews" class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors cursor-pointer" href="#">
 <p class="text-[11px] font-bold tracking-tight text-center">レビュー</p>
 </a>
-<a class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors" href="#">
+<a id="tab-actress" class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors cursor-pointer" href="#">
 <p class="text-[11px] font-bold tracking-tight text-center">いいね女優</p>
 </a>
-<a class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors" href="#">
-<p class="text-[11px] font-bold tracking-tight text-center">おすすめ</p>
-</a>
-<a id="tab-contrib" class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors" href="#">
+<a id="tab-contrib" class="flex flex-1 flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-4 px-1 hover:text-primary transition-colors cursor-pointer" href="#">
 <p class="text-[11px] font-bold tracking-tight text-center">貢献</p>
 </a>
 </div>
 </div>
-<!-- 貢献タブコンテンツ（初期非表示） -->
+<!-- いいね作品パネル -->
+<div id="panel-likes" class="flex-1 p-3">
+<div id="likes-grid" class="grid grid-cols-3 gap-2"></div>
+<div id="likes-empty" class="hidden py-16 text-center text-xs text-slate-400">いいねした作品がありません</div>
+</div>
+<!-- レビューパネル -->
+<div id="panel-reviews" class="flex-1 p-4 space-y-3" style="display:none">
+<div id="reviews-list"></div>
+<div id="reviews-empty" class="hidden py-16 text-center text-xs text-slate-400">まだレビューがありません</div>
+</div>
+<!-- いいね女優パネル -->
+<div id="panel-actress" class="flex-1 p-3" style="display:none">
+<div id="actress-grid" class="grid grid-cols-3 gap-3"></div>
+<div id="actress-empty" class="hidden py-16 text-center text-xs text-slate-400">いいねした女優がいません</div>
+</div>
+<!-- 貢献パネル -->
 <div id="contrib-panel" class="flex-1 p-4 space-y-4" style="display:none">
 <!-- バッジカード -->
 <div id="contrib-badge-card" class="rounded-2xl bg-gradient-to-br from-primary/10 to-amber-50 dark:from-primary/20 dark:to-slate-800 border border-primary/20 p-5 flex items-center gap-4">
@@ -120,102 +132,8 @@
 <!-- 最近の貢献作品 -->
 <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-2">最近の貢献</div>
 <div id="contrib-recent" class="space-y-2"></div>
-<!-- ランキングへのリンク -->
-<a href="/ranking/contributor" class="flex items-center justify-center gap-2 w-full py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:border-primary hover:text-primary transition-colors mt-2">
-<span class="material-symbols-outlined text-base">leaderboard</span>
-貢献者ランキングを見る
-</a>
 </div>
-<!-- Content Section: 3-column Grid -->
-<div id="main-grid-panel" class="flex-1 p-3">
-<div class="grid grid-cols-3 gap-3">
-<!-- Grid Item 1 -->
-<div class="flex flex-col gap-2">
-<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
-<img alt="Work 1" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA3JVccAqM_3qMPlH1jn4Ho7w_lYYWyz0RLXbw7IjJ-cOhjzw2OiBBJWCM_c5NW2j_OzEOYMFSgR9MvDUaezqHpLwzpbJEoy66xhjW-Xc8yTxApvAlORIzFl8Pnnee4SDEwZ2hdUBPKjjtvzNfJ68h4AR2WW8WFskaK1sthLinLefMkTVo7xZuRgIAMBQXPnvrpPTGHEDhXQZDVNuRNUr1LKWocQ6S8AlRowys7YmcRUYxwUaS5pXq-NXuIr92WJUggkUI1E89l2Y"/>
-<div class="absolute bottom-2 right-2 flex gap-1">
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
-</div>
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
-</div>
-</div></div>
-<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]"></p>
-</div>
-<!-- Grid Item 2 -->
-<div class="flex flex-col gap-2">
-<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
-<img alt="Work 2" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAs9_DEqExn4Jlarw3oli5I1fb8K-Iu5r-i9dZciCrTLnif4jq4LotDmEpjP_jX8HxpM3J3tLWVcVRt4aOAi05eZEathDGI-pKz_EYHfbnmstwxOf_Ujfmten3dt862x7xLTQNtUt-yiMAhkcIDwJ4QYGtPjDtm7KifYe10rlVWLqVqwCedDRLRJbTn4Gtu39D63I_W4Zksv8VtCyirKcSGVFn2niEhxs9qsw4XiTvInY_2Atqvd9rRWLJknJC8_xHaMvbZ0AcCLUo"/>
-<div class="absolute bottom-2 right-2 flex gap-1">
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
-</div>
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
-</div>
-</div></div>
-<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]"></p>
-</div>
-<!-- Grid Item 3 -->
-<div class="flex flex-col gap-2">
-<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
-<img alt="Work 3" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyjgrmEFwNMcC5jPiG1WhQRgPgSjH9QW8jgjtkvw9O1L-OS4ut8pafNKoLJXGi4dg2y2fCcD0GkqUaEI89Rq5GvYYWeEP6g4gDhj5uqnF1HLdvH-9Sgoc0rwhbjSlkTBxweakQMd8qCYEPUjYWGN3lvKb1d-ukHNa68BqKCERZnTJCiFWV1mdMCKiJ7TYJFIodqGF95Z0tCeLGgVye3Z5OOTuulpuG_ieAUUt4szrLKUfZefMEKgkNpbMqnipCrfz_Nbpd-WYriEE"/>
-<div class="absolute bottom-2 right-2 flex gap-1">
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
-</div>
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
-</div>
-</div></div>
-<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]"></p>
-</div>
-<!-- Grid Item 4 -->
-<div class="flex flex-col gap-2">
-<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
-<img alt="Work 4" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAY51ycx-Bmc3GjaJN-pgFDh8VKht0i7P0pK5jfq3HhjIt7KVYO7dlndffDEqgi5PS5z6KC00V-F9r8M_dl2P6Q6MNvYCCaHiJF8TeH3vTrliZMxB18de1UtcAQNhxRpBPlNMF8nJDRBSa7aLz2xB0-l-6sMeFwdnNVlO3mexhV-rbnImLNojXOjWyYBXmv4kr8HpdH9qTmqp8Fd6m3ggh_YESSGpjRQDbVPFTvYloFhc2VCMlBgmSNWb7GmqrtVKUo65RnZIOzQEo"/>
-<div class="absolute bottom-2 right-2 flex gap-1">
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
-</div>
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
-</div>
-</div></div>
-<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]"></p>
-</div>
-<!-- Grid Item 5 -->
-<div class="flex flex-col gap-2">
-<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
-<img alt="Work 5" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDs0gz8ByZVtCMXUQQSHU2S2E391VQmU7JeTrTSG9tycyPn_jfbgqXkOzS-LeiKPC_kktuf1OO71IOJoAy49672ygilDhyZ-XnlzpeRzq_aGt7LMwxfilxAUjCqUojMQulUip41gaR0AquflonTgcb1wb3bbrP_v9pMONlNIIEKYZiViR_15F6FWGGjIY78ZxLqHPUmIGEsQOQ1uKpJoHbfHTZit-RsDersKVpx7bWQYyDjVod2-vYwksr_iiEh-GhO56Yjp6_gy7g"/>
-<div class="absolute bottom-2 right-2 flex gap-1">
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
-</div>
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
-</div>
-</div></div>
-<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]"></p>
-</div>
-<!-- Grid Item 6 -->
-<div class="flex flex-col gap-2">
-<div class="aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 relative">
-<img alt="Work 6" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdghFMx-7nkSte0a9eU-wEG38_pv6wZmtTAJlsZmHryf5eY1mkHRjoVOQDZVdGFZ4cxb0riV7Fvc7riqcgsEingwo7OAYTV0Ys3kiwW_SHuNlUB5mKecWS0X7IbfDMFDd1eqvIf4wIZ9eQQyOOdr2xTs8MA7Umorif755PfcgkhqO85XtL3SjMIkw5_2VTuOYZdO3hT4LCUMYYTai11wyx1SZYGXMaJ93DhSAoTJVGTHbAp6nC8vofmJaPm6AopJmD7pu-kwGy79w"/>
-<div class="absolute bottom-2 right-2 flex gap-1">
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-slate-700 dark:text-slate-200 font-bold">add</span>
-</div>
-<div class="bg-white/90 dark:bg-slate-900/90 rounded-full p-1 shadow-sm flex items-center justify-center">
-<span class="material-symbols-outlined text-sm text-red-500 font-bold fill-1">favorite</span>
-</div>
-</div></div>
-<p class="text-[10px] font-bold leading-tight line-clamp-2 min-h-[2.5em]"></p>
-</div>
-</div>
-</div>
-<div class="h-24"></div> <!-- Spacer for Bottom Nav -->
+<div class="h-24"></div>
 <!-- Bottom Navigation Bar -->
 <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-20">
 <div class="flex gap-2 border-t border-slate-100 dark:border-primary/10 bg-white dark:bg-background-dark px-4 pb-6 pt-2 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
@@ -254,64 +172,162 @@
 </div>
 <script>
 (function(){
-  // ─── セッションID取得 ───────────────────────────────────────
-  function getSessionId(){
+  // ─── セッションID ────────────────────────────────────────────
+  var SID=(function(){
     var s=localStorage.getItem('_sid');
     if(!s){s=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem('_sid',s);}
     return s;
-  }
-  var SID=getSessionId();
+  })();
 
-  // ─── 貢献タブの切り替え ────────────────────────────────────
-  var tabBtn=document.getElementById('tab-contrib');
-  var mainGrid=document.getElementById('main-grid-panel');
-  var contribPanel=document.getElementById('contrib-panel');
-  if(tabBtn){
-    tabBtn.addEventListener('click',function(e){
-      e.preventDefault();
-      // 全タブのアクティブ解除
-      document.querySelectorAll('[class*="border-b-2"]').forEach(function(el){
-        el.classList.remove('border-primary','text-primary');
-        el.classList.add('border-transparent','text-slate-500');
-      });
-      tabBtn.classList.add('border-primary','text-primary');
-      tabBtn.classList.remove('border-transparent','text-slate-500');
-      if(mainGrid) mainGrid.style.display='none';
-      if(contribPanel){ contribPanel.style.display=''; loadContrib(); }
+  function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function poster(url){
+    if(!url)return '';
+    if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');
+    return url;
+  }
+
+  // ─── タブ切り替え ──────────────────────────────────────────
+  var TABS=[
+    {id:'tab-likes',   panel:'panel-likes',   load:loadLikes},
+    {id:'tab-reviews', panel:'panel-reviews', load:loadReviews},
+    {id:'tab-actress', panel:'panel-actress', load:loadActress},
+    {id:'tab-contrib', panel:'contrib-panel', load:loadContrib},
+  ];
+  var currentTab=TABS[0];
+
+  function switchTab(tab){
+    if(currentTab===tab)return;
+    // アクティブ解除
+    TABS.forEach(function(t){
+      var btn=document.getElementById(t.id);
+      if(!btn)return;
+      btn.classList.remove('border-primary','text-primary');
+      btn.classList.add('border-transparent','text-slate-500');
+      var panel=document.getElementById(t.panel);
+      if(panel)panel.style.display='none';
     });
+    // アクティブ設定
+    var activeBtn=document.getElementById(tab.id);
+    if(activeBtn){
+      activeBtn.classList.add('border-primary','text-primary');
+      activeBtn.classList.remove('border-transparent','text-slate-500');
+    }
+    var activePanel=document.getElementById(tab.panel);
+    if(activePanel)activePanel.style.display='';
+    currentTab=tab;
+    tab.load();
   }
 
-  // ─── 貢献データ読み込み ────────────────────────────────────
+  TABS.forEach(function(tab){
+    var btn=document.getElementById(tab.id);
+    if(btn)btn.addEventListener('click',function(e){e.preventDefault();switchTab(tab);});
+  });
+
+  // ─── いいね作品 ───────────────────────────────────────────
+  var likesLoaded=false;
+  function loadLikes(){
+    if(likesLoaded)return;
+    likesLoaded=true;
+    var grid=document.getElementById('likes-grid');
+    var empty=document.getElementById('likes-empty');
+    if(!grid)return;
+    grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-slate-400">読み込み中...</div>';
+    fetch('/api/mypage/likes?sessionId='+encodeURIComponent(SID))
+      .then(function(r){return r.json();})
+      .then(function(products){
+        if(!products||!products.length){
+          grid.innerHTML='';
+          if(empty)empty.classList.remove('hidden');
+          return;
+        }
+        grid.innerHTML=products.map(function(p){
+          var img=poster(p.main_image_url||'');
+          var actress=(p.actresses||'').split(',')[0].trim();
+          var pid=encodeURIComponent(p.product_id||'');
+          return '<a href="/product/'+pid+'" class="group block">'
+            +'<div class="aspect-[3/4] overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 relative mb-1.5 shadow-sm">'
+            +(img?'<img src="'+esc(img)+'" alt="" class="w-full h-full object-cover object-right block"/>':'')
+            +'<div class="absolute bottom-1 right-1">'
+            +'<button data-like-pid="'+esc(p.product_id||'')+'" class="bg-white/90 rounded-full p-0.5 shadow-sm text-red-500" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)">'
+            +'<span class="material-symbols-outlined text-[11px]">favorite</span></button>'
+            +'</div></div>'
+            +'<h3 class="text-[10px] font-bold line-clamp-2 leading-tight mb-0.5">'+esc(p.title||'')+'</h3>'
+            +(actress?'<p class="text-[9px] text-slate-400 truncate">'+esc(actress)+'</p>':'')
+            +'</a>';
+        }).join('');
+        if(window.restoreLikes)window.restoreLikes();
+      })
+      .catch(function(){
+        grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-slate-400">読み込みエラー</div>';
+      });
+  }
+
+  // ─── レビュー ──────────────────────────────────────────────
+  var reviewsLoaded=false;
+  function loadReviews(){
+    if(reviewsLoaded)return;
+    reviewsLoaded=true;
+    var empty=document.getElementById('reviews-empty');
+    if(empty)empty.classList.remove('hidden');
+  }
+
+  // ─── いいね女優 ───────────────────────────────────────────
+  var actressLoaded=false;
+  function loadActress(){
+    if(actressLoaded)return;
+    actressLoaded=true;
+    var grid=document.getElementById('actress-grid');
+    var empty=document.getElementById('actress-empty');
+    if(!grid)return;
+    grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-slate-400">読み込み中...</div>';
+    fetch('/api/mypage/actress-likes?sessionId='+encodeURIComponent(SID))
+      .then(function(r){return r.json();})
+      .then(function(items){
+        if(!items||!items.length){
+          grid.innerHTML='';
+          if(empty)empty.classList.remove('hidden');
+          return;
+        }
+        grid.innerHTML=items.map(function(a){
+          var encName=encodeURIComponent(a.name||'');
+          return '<a href="/actress/'+encName+'" class="group flex flex-col items-center gap-1">'
+            +'<div class="w-full aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm">'
+            +(a.image_url?'<img src="'+esc(a.image_url)+'" alt="" class="w-full h-full object-cover object-top block"/>':'<div class="w-full h-full flex items-center justify-center"><span class="material-symbols-outlined text-slate-300 text-3xl">person</span></div>')
+            +'</div>'
+            +'<p class="text-[10px] font-bold text-center line-clamp-1 w-full">'+esc(a.name||'')+'</p>'
+            +'</a>';
+        }).join('');
+      })
+      .catch(function(){
+        grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-slate-400">読み込みエラー</div>';
+      });
+  }
+
+  // ─── 貢献 ──────────────────────────────────────────────────
   var contribLoaded=false;
   function loadContrib(){
     if(contribLoaded)return;
     contribLoaded=true;
+    var BADGES=[
+      {min:100,label:'殿堂入り',emoji:'🏆'},
+      {min:50, label:'プラチナ', emoji:'💎'},
+      {min:20, label:'ゴールド', emoji:'🥇'},
+      {min:5,  label:'シルバー', emoji:'🥈'},
+      {min:1,  label:'ブロンズ', emoji:'🥉'},
+    ];
     fetch('/api/mypage/contributions',{headers:{'x-session-id':SID}})
       .then(function(r){return r.json();})
       .then(function(d){
         var count=d.count||0;
-        var badge=d.badge;
-        var BADGES=[
-          {min:100,label:'殿堂入り',emoji:'🏆'},
-          {min:50, label:'プラチナ', emoji:'💎'},
-          {min:20, label:'ゴールド', emoji:'🥇'},
-          {min:5,  label:'シルバー', emoji:'🥈'},
-          {min:1,  label:'ブロンズ', emoji:'🥉'},
-        ];
-        // 現在バッジ
         var cur=BADGES.find(function(b){return count>=b.min;})||null;
         var emojiEl=document.getElementById('contrib-badge-emoji');
         var labelEl=document.getElementById('contrib-badge-label');
         var countEl=document.getElementById('contrib-count');
-        if(emojiEl) emojiEl.textContent=cur?cur.emoji:'—';
-        if(labelEl) labelEl.textContent=cur?cur.label:'まだバッジなし';
-        if(countEl) countEl.textContent=String(count);
-
-        // 次のバッジまで
+        if(emojiEl)emojiEl.textContent=cur?cur.emoji:'—';
+        if(labelEl)labelEl.textContent=cur?cur.label:'まだバッジなし';
+        if(countEl)countEl.textContent=String(count);
         var nextBadge=null;
-        for(var i=BADGES.length-1;i>=0;i--){
-          if(count<BADGES[i].min){nextBadge=BADGES[i];break;}
-        }
+        for(var i=BADGES.length-1;i>=0;i--){if(count<BADGES[i].min){nextBadge=BADGES[i];break;}}
         var nextEl=document.getElementById('contrib-next');
         var barEl=document.getElementById('contrib-progress-bar');
         var pctEl=document.getElementById('contrib-progress-pct');
@@ -319,34 +335,35 @@
         if(nextBadge){
           var prev=cur?cur.min:0;
           var pct=Math.round((count-prev)/(nextBadge.min-prev)*100);
-          if(nextEl) nextEl.textContent=nextBadge.emoji+' '+nextBadge.label+'まであと'+(nextBadge.min-count)+'件';
-          if(barEl) barEl.style.width=Math.min(pct,100)+'%';
-          if(pctEl) pctEl.textContent=pct+'%';
-          if(lblEl) lblEl.textContent=nextBadge.label+'まで';
-        } else {
-          if(nextEl) nextEl.textContent='🎉 最高ランク達成！';
-          if(barEl) barEl.style.width='100%';
-          if(document.getElementById('contrib-progress-wrap'))
-            document.getElementById('contrib-progress-wrap').style.display='none';
+          if(nextEl)nextEl.textContent=nextBadge.emoji+' '+nextBadge.label+'まであと'+(nextBadge.min-count)+'件';
+          if(barEl)barEl.style.width=Math.min(pct,100)+'%';
+          if(pctEl)pctEl.textContent=pct+'%';
+          if(lblEl)lblEl.textContent=nextBadge.label+'まで';
+        }else{
+          if(nextEl)nextEl.textContent='🎉 最高ランク達成！';
+          if(barEl)barEl.style.width='100%';
+          var wrap=document.getElementById('contrib-progress-wrap');
+          if(wrap)wrap.style.display='none';
         }
-
-        // 最近の貢献作品
         var recentEl=document.getElementById('contrib-recent');
         if(recentEl&&d.recent&&d.recent.length){
           recentEl.innerHTML=d.recent.map(function(r){
             var dt=new Date(r.created_at);
-            var ds=isNaN(dt)?'':((dt.getMonth()+1)+'/'+dt.getDate());
+            var ds=isNaN(dt.getTime())?'':((dt.getMonth()+1)+'/'+dt.getDate());
             return '<a href="/product/'+encodeURIComponent(r.product_id)+'" class="flex items-center gap-3 py-2.5 border-b border-slate-100 dark:border-slate-800 hover:text-primary transition-colors">'
               +'<span class="material-symbols-outlined text-primary text-sm">person_add</span>'
-              +'<span class="flex-1 text-xs font-bold uppercase">'+r.product_id+'</span>'
+              +'<span class="flex-1 text-xs font-bold uppercase">'+esc(r.product_id)+'</span>'
               +(ds?'<span class="text-[10px] text-slate-400">'+ds+'</span>':'')
               +'</a>';
           }).join('');
-        } else if(recentEl){
+        }else if(recentEl){
           recentEl.innerHTML='<p class="text-xs text-slate-400 py-2">まだ貢献がありません。作品ページの「出演者を追加」ボタンで女優を特定しましょう！</p>';
         }
       }).catch(function(){});
   }
+
+  // 初期タブ（いいね作品）を読み込む
+  loadLikes();
 })();
 </script>
 </body></html>

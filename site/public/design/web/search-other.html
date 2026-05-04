@@ -367,8 +367,8 @@
       +'<div class="bg-gray-50 relative overflow-hidden aspect-[3/4]">'
       +(img?'<img class="w-full h-full object-cover object-right group-hover:scale-105 transition-transform" src="'+esc(img)+'" alt="" loading="lazy"/>':'')
       +'<div class="absolute bottom-2 right-2 flex gap-1">'
-      +(noAct?'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
-      +'<button class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation()"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
+      +(noAct?'<button data-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
+      +'<button data-like-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
       +'</div></div>'
       +'<div class="p-3 flex flex-col flex-1">'
       +'<p class="text-xs font-bold line-clamp-2 mb-1">'+esc(p.title||'')+'</p>'
@@ -398,6 +398,7 @@
     if (!filtered.length) { grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">絞り込み結果がありません</div>'; renderPagination(0); return; }
     var start=(currentPage-1)*ITEMS_PER_PAGE,page=filtered.slice(start,start+ITEMS_PER_PAGE);
     grid.innerHTML = page.map(cardHtml).join('');
+    if(window.restoreLikes)window.restoreLikes();
     renderPagination(filtered.length);
   }
   window.srchPage=function(p){if(p<1)return;currentPage=p;window.scrollTo(0,200);renderFiltered();};

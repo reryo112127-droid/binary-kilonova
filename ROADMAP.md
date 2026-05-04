@@ -1,6 +1,6 @@
 # AVコンシェルジュ — ロードマップ
 
-> 作成: 2026-03-17 / 最終更新: 2026-04-09
+> 作成: 2026-03-17 / 最終更新: 2026-04-18
 
 ---
 
@@ -61,7 +61,7 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
   - カスタムランキングページ: ボトムナビ削除、「この条件でランキングを作成」ボタン表示
   - 詳細検索・カスタムランキングのプラットフォームデフォルトを「両方」に変更
   - PC版詳細検索: プラットフォーム・ジャンル・カップ数の選択枠をオレンジ色に修正
-### [x] Turso読み取り削減（2026-04-08）
+### [x] Turso読み取り削減 フェーズ1（2026-04-08）
   - `lib/apiCache.ts` 新規: 共通TTLインメモリキャッシュ（最大100エントリ）
   - `searchOptions.ts`: getSearchOptions()をTurso不要化（suggest_cache.json読み込み）、SAMPLE 15000→3000削減
   - `getContextualSearchOptions()` に5分キャッシュ追加
@@ -69,6 +69,56 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
   - `/api/ranking` `/api/ranking/actress`: 30分インメモリキャッシュ
   - `scripts/generate-static-cache.mjs` 新規: 静的JSONキャッシュ生成スクリプト
   - 静的JSON優先配信: 新着・人気作品・2026ランキング・女優ランキングはTurso読み取りゼロ化（Turso解除後に有効化）
+### [x] Turso読み取り削減 フェーズ2（2026-04-17）
+  - **ローカルSQLiteから静的キャッシュ生成**: Turso未接続時でもキャッシュ更新可能に
+    - `scripts/generate-static-cache-local.mjs` 新規: ローカルfanza.db/mgs.dbから生成
+    - `data/home_preorder_cache.json` / `data/sale_cache.json` 新規追加
+  - **SSRデータの静的JSON優先化** (`lib/ssrFetch.ts`):
+    - `ssrFetchFanzaPreOrders` / `ssrFetchFanzaNewProducts` / `ssrFetchRanking` / `ssrFetchActressRanking`
+    - 各関数で静的JSONを優先読み込み → Tursoブロック中でもホームページが正常表示
+  - **APIの静的キャッシュ拡張** (`/api/products`):
+    - `sort=pre-order` → `home_preorder_cache.json`
+    - `sort=discount` → `sale_cache.json`（minDiscountフィルタも対応）
+  - **Vercel CDN キャッシュ実装** (`lib/staticCache.ts` に `cacheHeaders()` 追加):
+    - 静的キャッシュ経由レスポンス: `s-maxage=3600, stale-while-revalidate=86400`（1時間CDNキャッシュ）
+    - インメモリキャッシュ経由: `s-maxage=300`
+    - Turso直接クエリ: `s-maxage=60`
+    - ページHTML: `/sale` `/ranking/2026` `s-maxage=3600` / `/ranking` `/products` `s-maxage=600` / `/` `s-maxage=60`
+    - 効果: 同一URLの2回目以降はTurso呼び出しゼロ
+  - **セールページ実装** (`/sale`):
+    - モバイル `public/design/sale.html` / PC `public/design/web/sale.html`
+    - 割引率フィルター（10%/20%/30%/50%以上）
+    - ボトムナビ「動画」→「セール」に差し替え / PCナビに「セール」追加
+    - ホームページにセールカルーセルセクション追加（モバイル・PC両対応）
+### [x] GitHub・Vercel・SNS設定・自動投稿キュー連携（2026-04-18 後半）
+  - リポジトリをPublicに変更（GitHub Actions無制限化）
+  - GitHub Secrets 7件確認済み（DMM_API_ID / DMM_AFFILIATE_ID / DMM_AFFILIATE_IDS / TURSO_FANZA_URL / TURSO_FANZA_TOKEN / TURSO_MGS_URL / TURSO_MGS_TOKEN）
+  - Vercel環境変数 確認済み（ADMIN_KEY / NEXT_PUBLIC_SITE_URL / TURSO_SITE_URL / TURSO_SITE_TOKEN）
+  - Blueskyアカウント登録（`avrankings.bsky.social`）・App Password設定済み
+  - Telegramアカウント・Bot作成・チャンネル（`@avrankings`）設定済み
+  - 全SNSスクリプトの `SITE_BASE_URL` を `avrankings.com` に統一
+  - Telegram・Bluesky・Xスクリプトを管理画面キュー（`x_post_decisions`）連動に改修
+    - 管理画面で承認 → `decision='approve'` 登録 → スクリプトが自動投稿
+    - 重複投稿防止: `posted_at` / `posted_bsky_at` / `posted_tg_at` カラムで管理
+  - `/admin/x-post` をデザインエクスポート（`x-post-select.html`）のカードレイアウトに刷新
+    - ヘッダーは現行の管理画面ヘッダーを維持
+    - ジャンル別アクセントカラー・Public Sansフォント・レスポンシブグリッド
+  - Telegramスクリプト: `TELEGRAM_CHANNEL_NEW` / `TELEGRAM_CHANNEL_SALE` → `TELEGRAM_CHANNEL` 1本化
+
+### [x] 管理画面・出演者追加・セールページ改善（2026-04-18）
+  - 管理画面パスワード設定（`ADMIN_KEY` を `.env.local` で管理）
+  - カスタムランキング・詳細検索: 身体的特徴（身長・カップ・年齢）指定時に出演者ランキングへ振り分け
+  - `/api/ranking/actress` に height/cup/ageMin フィルター追加（actress_profiles.json 参照）
+  - 出演者ランキングページ: 身体的特徴フィルターバッジ表示・フィルター付きAPI呼び出し対応
+  - セールページ（PC・モバイル）: 終了日表示（`sale_end_date`）実装
+    - FANZAのAPIが `campaign.date_end` を返す作品のみ表示（現状は全件NULL）
+    - **Turso読み取り制限解除（2026-05-01）後に `fanza_daily_update.js` を再実行すること**
+  - 出演者情報追加ページ（`/cast/register/[id]`）: 横長パッケージ画像表示・フォーム送信実装
+  - 出演者情報追加完了ページ（`/cast/complete`）: 新規ルート作成（`cast-add-complete.html` 配信）
+  - **⚠️ 管理画面の動作確認は Turso 読み取り制限解除（2026-05-01）後に行うこと**
+    - 現在ローカル開発サーバーから Turso への読み取りがブロック中
+    - コード自体は正しく実装済み。制限解除後に投稿データ確認・動作検証を行う
+
 ### [x] スマホヘッダー検索欄修正・ボトムナビリンク修正（2026-03-26）
   - MOBILE_SEARCH_SCRIPT: `/api/suggest?q=` 形式に更新（旧: 全件取得→クライアントフィルタ、新: サーバーサイドフィルタ）
   - 女優は文字列配列 / メーカーも表示
@@ -192,6 +242,8 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
 | 🔴 高 | OGP画像の非露骨化（SNS Phase A） | 未着手 |
 | 🔴 高 | Blueskyアカウント登録・`.env`設定 | 未着手 |
 | 🔴 高 | Telegram Botアカウント登録・`.env`設定 | 未着手 |
+| ⏳ 待機 | **管理画面・投稿データ動作確認**（Turso解除後 05/01〜） | 待機中 |
+| ⏳ 待機 | **fanza_daily_update.js 再実行 → sale_end_date 取得確認**（05/01〜） | 待機中 |
 | ⏳ 待機 | avwikiデータ統合（スクレイプ完了後 〜04/09） | スクレイプ中 |
 | ⏳ 待機 | avwiki品番DB反映確認（〜04/12） | スクレイプ中 |
 | 🟡 中 | セールページ実装 | 未着手 |
@@ -213,8 +265,15 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
 ## 🗒️ メモ
 
 - DMM API レート制限: 1リクエスト/秒（`RATE_LIMIT_MS = 1200ms` で対応）
-- Turso 無料プラン制限: 読み取り上限は月次リセット（毎月1日）。2026-04-08現在ブロック中
-  - ブロック解除後は `node scripts/generate-static-cache.mjs` を実行して静的JSONを生成すること
+- Turso 無料プラン制限: 読み取り上限は月次リセット（毎月1日）。2026-04-18現在ブロック中（解除: 2026-05-01）
+  - ブロック解除後にやること（順番通りに実行）:
+    1. `node scripts/generate-static-cache.mjs` → 静的JSONキャッシュ生成
+    2. `cd site && npx vercel deploy --prod --yes` → 本番デプロイ
+    3. `node scripts/fanza_daily_update.js` → sale_end_date 取得（campaign.date_end が入れば表示されるようになる）
+    4. 管理画面（`/admin/x-post`）で投稿データ（出演者追加・SNS・改名）の動作確認
+    5. `node scripts/x_autopost.js --dry-run` → X投稿dry-run確認
+    6. `node scripts/bluesky_autopost.js --dry-run` → Bluesky投稿dry-run確認
+    7. `node scripts/telegram_bot.js --mode=notify --dry-run` → Telegram投稿dry-run確認
   - ホーム・ランキング・新着など主要エンドポイントはJSONから配信されTurso読み取りゼロになる
 - `suggest_cache.json` は日次更新時に自動再生成される
 - `site/.env.local` に Turso 接続情報が入っている（Gitに含めないこと）
