@@ -245,8 +245,11 @@ export async function GET(request: NextRequest) {
             args.push(today);
         }
         if (sort === 'new') {
-            // 配信済み作品のみ（今日以前）
+            // 直近2週間の配信済み作品のみ
+            const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
             conditions.push("sale_start_date IS NOT NULL");
+            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') >= ?" : "SUBSTR(sale_start_date, 1, 10) >= ?");
+            args.push(twoWeeksAgo);
             conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') <= ?" : "SUBSTR(sale_start_date, 1, 10) <= ?");
             args.push(today);
         }
@@ -308,7 +311,7 @@ export async function GET(request: NextRequest) {
 
     function buildOrderBy(isMgs: boolean) {
         if (sort === 'new') return 'ORDER BY sale_start_date DESC';          // 配信日が新しい順
-        if (sort === 'pre-order') return 'ORDER BY sale_start_date DESC';      // 配信日が遠い順（最も先の日付が先頭）
+        if (sort === 'pre-order') return isMgs ? 'ORDER BY REPLACE(sale_start_date,\'/\',\'-\') ASC' : 'ORDER BY SUBSTR(sale_start_date,1,10) ASC';  // 配信日が近い順
         if (sort === 'random') return 'ORDER BY RANDOM()';
         if (sort === 'discount') return 'ORDER BY discount_pct DESC';         // 割引率が高い順
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';

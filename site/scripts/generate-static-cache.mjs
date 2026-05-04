@@ -49,6 +49,7 @@ const bestConds = BEST.map(() => 'title NOT LIKE ?').join(' AND ');
 const bestArgs  = BEST;
 
 const today = new Date().toISOString().slice(0, 10);
+const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 // ── ホーム画面掲載メーカーリスト（予約・セール共通） ──────────────
 const HOME_MAKERS = [
@@ -87,19 +88,22 @@ async function genNewProducts() {
             sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date
                   FROM products
                   WHERE sale_start_date IS NOT NULL
+                    AND REPLACE(sale_start_date,'/','-') >= ?
                     AND REPLACE(sale_start_date,'/','-') <= ?
                     AND (duration_min IS NULL OR duration_min < 600)
                     AND ${bestConds}
-                  ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 60`,
-            args: [today, ...bestArgs],
+                  ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 300`,
+            args: [twoWeeksAgo, today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
         fanza.execute({
             sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date
                   FROM products
-                  WHERE sale_start_date IS NOT NULL AND sale_start_date <= ?
+                  WHERE sale_start_date IS NOT NULL
+                    AND SUBSTR(sale_start_date,1,10) >= ?
+                    AND SUBSTR(sale_start_date,1,10) <= ?
                     AND ${bestConds}
-                  ORDER BY sale_start_date DESC LIMIT 60`,
-            args: [today, ...bestArgs],
+                  ORDER BY sale_start_date DESC LIMIT 300`,
+            args: [twoWeeksAgo, today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
@@ -110,7 +114,7 @@ async function genNewProducts() {
         if (fanzaRows[i]) combined.push({ ...fanzaRows[i], main_image_url: poster(fanzaRows[i].main_image_url), source: 'fanza' });
     }
 
-    return combined.slice(0, 60);
+    return combined;
 }
 
 // ── 人気作品 ──────────────────────────────────────────────────────
@@ -248,20 +252,18 @@ async function genPreorderProducts() {
                   FROM products
                   WHERE REPLACE(sale_start_date,'/','-') > ?
                     AND (duration_min IS NULL OR duration_min < 600)
-                    AND (${mgsMakerCond})
                     AND ${bestConds}
-                  ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 60`,
-            args: [today, ...mgsMakerArgs, ...bestArgs],
+                  ORDER BY REPLACE(sale_start_date,'/','-') ASC LIMIT 300`,
+            args: [today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
         fanza.execute({
             sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
                          COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag,0) AS vr_flag, sale_end_date
                   FROM products
                   WHERE SUBSTR(sale_start_date,1,10) > ?
-                    AND (${fanzaMakerCond})
                     AND ${bestConds}
-                  ORDER BY SUBSTR(sale_start_date,1,10) DESC LIMIT 60`,
-            args: [today, ...fanzaMakerArgs, ...bestArgs],
+                  ORDER BY SUBSTR(sale_start_date,1,10) ASC LIMIT 300`,
+            args: [today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
@@ -272,7 +274,7 @@ async function genPreorderProducts() {
         if (fanzaRows[i]) combined.push({ ...fanzaRows[i], main_image_url: poster(fanzaRows[i].main_image_url), source: 'fanza' });
     }
 
-    return combined.slice(0, 60);
+    return combined;
 }
 
 // ── セール作品（特定メーカーのみ・Best/総集編/リマスター除外） ───
