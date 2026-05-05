@@ -117,8 +117,7 @@ export default function HomePageMobile() {
     const [newArrivals, setNewArrivals] = useState<Product[]>([]);
     const [preorder, setPreorder] = useState<Product[]>([]);
 
-    const HOME_MAKERS = 'S1,MOODYZ,アイデアポケット,E-BODY,OPPAI,Fitch,Madonna,痴女ヘブン,kawaii,million,本中,ダスッ,Hunter,ワンズファクトリー,TAMEIKE,プレミアム,SOD,FALENO,DAHLIA,プレステージ,Jackson,シロウトTV,ナンパTV,ラグジュTV,DOC,ARA,KANBi,黒船,NTR.net,ドキュメンTV';
-    const mkParam = '&excludeBest=1&makers=' + encodeURIComponent(HOME_MAKERS);
+    const mkParam = '&excludeBest=1';
 
     useEffect(() => {
         // 予約作品: FANZAのみ・配信日が遠い順
