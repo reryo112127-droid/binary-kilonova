@@ -242,7 +242,7 @@ async function genActressRanking2026() {
         }));
 }
 
-// ── 予約作品（特定メーカーのみ・Best/総集編/リマスター除外） ────
+// ── 予約作品・全メーカー（予約ページ用） ────────────────────────
 async function genPreorderProducts() {
     console.log('[予約作品] 取得中...');
     const [mgsRows, fanzaRows] = await Promise.all([
@@ -264,6 +264,43 @@ async function genPreorderProducts() {
                     AND ${bestConds}
                   ORDER BY SUBSTR(sale_start_date,1,10) DESC LIMIT 300`,
             args: [today, ...bestArgs],
+        }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
+    ]);
+
+    const combined = [];
+    const maxLen = Math.max(mgsRows.length, fanzaRows.length);
+    for (let i = 0; i < maxLen; i++) {
+        if (mgsRows[i])   combined.push({ ...mgsRows[i],   main_image_url: poster(mgsRows[i].main_image_url),   source: 'mgs' });
+        if (fanzaRows[i]) combined.push({ ...fanzaRows[i], main_image_url: poster(fanzaRows[i].main_image_url), source: 'fanza' });
+    }
+
+    return combined;
+}
+
+// ── 予約作品・厳選メーカー（ホーム画面用） ──────────────────────
+async function genHomePreorderCurated() {
+    console.log('[ホーム予約・厳選] 取得中...');
+    const [mgsRows, fanzaRows] = await Promise.all([
+        mgs.execute({
+            sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date,
+                         0 AS discount_pct, NULL AS list_price, NULL AS current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag, NULL AS sale_end_date
+                  FROM products
+                  WHERE REPLACE(sale_start_date,'/','-') > ?
+                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND (${mgsMakerCond})
+                    AND ${bestConds}
+                  ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 60`,
+            args: [today, ...mgsMakerArgs, ...bestArgs],
+        }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
+        fanza.execute({
+            sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
+                         COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag,0) AS vr_flag, sale_end_date
+                  FROM products
+                  WHERE SUBSTR(sale_start_date,1,10) > ?
+                    AND (${fanzaMakerCond})
+                    AND ${bestConds}
+                  ORDER BY SUBSTR(sale_start_date,1,10) DESC LIMIT 60`,
+            args: [today, ...fanzaMakerArgs, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
@@ -299,12 +336,13 @@ async function genSaleProducts() {
 async function main() {
     const dataDir = path.join(ROOT, 'data');
 
-    const [newProds, popularProds, ranking2026, actressRanking2026, preorderProds, saleProds] = await Promise.all([
+    const [newProds, popularProds, ranking2026, actressRanking2026, preorderProds, homePreorderCurated, saleProds] = await Promise.all([
         genNewProducts(),
         genPopularProducts(),
         genRanking2026(),
         genActressRanking2026(),
         genPreorderProducts(),
+        genHomePreorderCurated(),
         genSaleProducts(),
     ]);
 
@@ -323,6 +361,7 @@ async function main() {
     write('ranking_2026_cache.json',           ranking2026);
     write('actress_ranking_2026_cache.json',   actressRanking2026);
     write('home_preorder_cache.json',          preorderProds);
+    write('home_preorder_curated_cache.json', homePreorderCurated);
     write('sale_cache.json',                   saleProds);
 
     console.log('\n完了！次のコマンドでデプロイしてください:');

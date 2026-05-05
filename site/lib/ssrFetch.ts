@@ -31,9 +31,9 @@ function addBestExcl(conds: string[], args: (string | number)[]) {
     conds.push('(duration_min IS NULL OR duration_min <= 200)');
 }
 
-/** ホーム用: FANZA予約作品（配信日降順） */
+/** ホーム用: 予約作品（厳選メーカー・配信日降順） */
 export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
-    const cached = await readStaticCache<Row[]>('home_preorder_cache.json');
+    const cached = await readStaticCache<Row[]>('home_preorder_curated_cache.json');
     if (cached && cached.length > 0) return cached.slice(0, limit);
     const client = getFanzaClient();
     if (!client) return [];
