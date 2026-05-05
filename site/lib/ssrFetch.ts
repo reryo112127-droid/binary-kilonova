@@ -11,12 +11,6 @@ import { getCached, setCached } from './apiCache';
 
 const SSR_PAGE_TTL = 5 * 60 * 1000; // 5分
 
-const HOME_MAKERS = [
-    'S1','MOODYZ','アイデアポケット','E-BODY','OPPAI','Fitch','Madonna','痴女ヘブン',
-    'kawaii','million','本中','ダスッ','Hunter','ワンズファクトリー','TAMEIKE',
-    'プレミアム','SOD','FALENO','DAHLIA','プレステージ','Jackson','シロウトTV',
-    'ナンパTV','ラグジュTV','DOC','ARA','KANBi','黒船','NTR.net','ドキュメンTV',
-];
 const BEST_EXCL = ['%BEST%','%ベスト%','%総集編%','%コレクション%','%Best%'];
 
 type Row = Record<string, unknown>;
@@ -37,13 +31,6 @@ function addBestExcl(conds: string[], args: (string | number)[]) {
     conds.push('(duration_min IS NULL OR duration_min <= 200)');
 }
 
-function addMakersFanza(conds: string[], args: (string | number)[], makers: string[]) {
-    if (!makers.length) return;
-    const c = makers.map(() => '(label LIKE ? OR maker LIKE ?)').join(' OR ');
-    conds.push(`(${c})`);
-    makers.forEach(m => { args.push(`%${m}%`, `%${m}%`); });
-}
-
 /** ホーム用: FANZA予約作品（配信日降順） */
 export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
     const cached = await readStaticCache<Row[]>('home_preorder_cache.json');
@@ -54,7 +41,6 @@ export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
     const conds = ['sale_start_date > ?', "label NOT LIKE '%LadyHunter%'"];
     const args: (string | number)[] = [today];
     addBestExcl(conds, args);
-    addMakersFanza(conds, args, HOME_MAKERS);
     try {
         const r = await client.execute({
             sql: `SELECT product_id, title, actresses, main_image_url, genres, maker, sale_start_date,
@@ -80,7 +66,6 @@ export async function ssrFetchFanzaNewProducts(limit: number): Promise<Row[]> {
         const conds = ['sale_start_date IS NOT NULL', 'sale_start_date >= ?', 'sale_start_date <= ?', "label NOT LIKE '%LadyHunter%'"];
         const args: (string | number)[] = [from, to];
         addBestExcl(conds, args);
-        addMakersFanza(conds, args, HOME_MAKERS);
         try {
             const r = await client!.execute({
                 sql: `SELECT product_id, title, actresses, main_image_url, genres, maker, sale_start_date,
