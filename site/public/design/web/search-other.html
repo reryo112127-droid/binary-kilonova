@@ -328,7 +328,8 @@
   function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;}
 
   var ITEMS_PER_PAGE=40,currentPage=1,filteredCache=[],fetchOffset=0;
-  var filters = { contentType:'all', sortOrder:'new', source:'', showBest:false, vrOnly:false, fromDate:'', toDate:'', subMaker:'', subGenres:[] };
+  var urlSort = ps.get('sort') || '';
+  var filters = { contentType:'all', sortOrder: urlSort === 'wish_count' ? 'popular' : 'new', source:'', showBest:false, vrOnly:false, fromDate:'', toDate:'', subMaker:'', subGenres:[] };
   var FETCH_LIMIT=200;
 
   function buildUrl(off){
@@ -543,7 +544,10 @@
 
   // Sort select
   var sortSel=document.getElementById('sf-sort-sel');
-  if(sortSel) sortSel.addEventListener('change',function(){ filters.sortOrder=sortSel.value==='新着順'?'new':'popular'; fetchAndRender(); });
+  if(sortSel) {
+    if(filters.sortOrder !== 'new') sortSel.value = '人気順';
+    sortSel.addEventListener('change',function(){ filters.sortOrder=sortSel.value==='新着順'?'new':'popular'; fetchAndRender(); });
+  }
 
   // Clear sub-filters
   var clearBtn = document.getElementById('sf-clear-btn');

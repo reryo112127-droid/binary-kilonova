@@ -134,7 +134,8 @@
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;}
 
-  var filters = { contentType:'all', sortOrder:'new', source:'', showBest:false, vrOnly:false, fromDate:'', toDate:'' };
+  var urlSort = ps.get('sort') || '';
+  var filters = { contentType:'all', sortOrder: urlSort === 'wish_count' ? 'popular' : 'new', source:'', showBest:false, vrOnly:false, fromDate:'', toDate:'' };
   var LIMIT = 60;
   var fetchOffset = 0;
   var isLoading = false;
@@ -255,6 +256,7 @@
   });
   // Sort order radios
   document.querySelectorAll('input[name="sort-order"]').forEach(function(r){
+    if (filters.sortOrder === 'popular') r.checked = (r.value === 'popular');
     r.addEventListener('change',function(){ filters.sortOrder=r.value==='popular'?'popular':'new'; fetchAndRender(); });
   });
   // BEST toggle（クライアントサイドフィルター）

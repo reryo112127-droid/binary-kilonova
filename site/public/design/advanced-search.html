@@ -180,8 +180,8 @@
         <div>
           <label class="text-[11px] text-gray-500 mb-2 block">並び替え</label>
           <select id="as-sort" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#ec5b13]">
-            <option value="wish_count">人気順</option>
             <option value="new">新着順</option>
+            <option value="wish_count">人気順</option>
             <option value="pre-order">予約順</option>
           </select>
         </div>
@@ -309,7 +309,7 @@
     aMin.value = 18; aMax.value = 60; updateAge();
     updateCupLabel();
     document.getElementById('as-exclude-best').checked = false;
-    document.getElementById('as-sort').value = 'wish_count';
+    document.getElementById('as-sort').value = 'new';
   });
 
   document.getElementById('as-submit').addEventListener('click', function(){
