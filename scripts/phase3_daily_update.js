@@ -36,6 +36,7 @@ async function sendDiscord(content) {
 }
 
 const ACTRESS_INDEX_FILE = path.join(__dirname, '..', 'data', 'mgs_actress_index.json');
+const KNOWN_IDS_CACHE    = path.join(__dirname, '..', 'data', 'known_ids_mgs_cache.json');
 
 const IS_CI = !!process.env.CI;
 
@@ -152,11 +153,29 @@ async function main() {
             process.exit(1);
         }
         tursoShared = createClient({ url: tursoUrl, authToken: tursoToken });
-        const r = await tursoShared.execute(
-            'SELECT product_id FROM products ORDER BY scraped_at DESC LIMIT 3000'
-        );
-        r.rows.forEach(row => knownIds.add(String(row[0])));
-        console.log(`[CI] Tursoから既知ID ${knownIds.size}件取得`);
+
+        // ローカルキャッシュ優先、差分のみTursoから取得
+        let cacheUpdatedAt = null;
+        if (fs.existsSync(KNOWN_IDS_CACHE)) {
+            try {
+                const cache = JSON.parse(fs.readFileSync(KNOWN_IDS_CACHE, 'utf-8'));
+                (cache.ids || []).forEach(id => knownIds.add(id));
+                cacheUpdatedAt = cache.updated_at || null;
+                console.log(`[CI] キャッシュ: ${knownIds.size.toLocaleString()}件 (${(cacheUpdatedAt || '').slice(0, 10)})`);
+            } catch (e) {
+                console.warn('[CI] キャッシュ読み込み失敗 → Tursoから全件取得');
+            }
+        }
+        {
+            const sql  = cacheUpdatedAt
+                ? 'SELECT product_id FROM products WHERE scraped_at > ?'
+                : 'SELECT product_id FROM products ORDER BY scraped_at DESC LIMIT 3000';
+            const args = cacheUpdatedAt ? [cacheUpdatedAt] : [];
+            const r = await tursoShared.execute({ sql, args });
+            let delta = 0;
+            r.rows.forEach(row => { if (!knownIds.has(String(row[0]))) { knownIds.add(String(row[0])); delta++; } });
+            console.log(`[CI] Turso差分: ${delta}件追加 / 合計: ${knownIds.size.toLocaleString()}件`);
+        }
     } else {
         await db.init();
     }
@@ -385,7 +404,24 @@ async function main() {
                 console.log(`[Turso] 新規${filteredNewProducts.length}件 同期中...`);
                 try {
                     await tursoUpsertBatch(turso, filteredNewProducts);
-                    console.log(`[Turso] ✅ 新規${newProducts.length}件 同期完了`);
+                    console.log(`[Turso] ✅ 新規${filteredNewProducts.length}件 同期完了`);
+                    // FTS5差分更新（全件rebuildの代わりに新規分のみ）
+                    const newIds = filteredNewProducts.map(p => p.product_id);
+                    const CHUNK = 100;
+                    for (let ci = 0; ci < newIds.length; ci += CHUNK) {
+                        const chunk = newIds.slice(ci, ci + CHUNK);
+                        await turso.execute({
+                            sql: `INSERT OR IGNORE INTO products_fts(rowid, product_id, title, actresses, genres)
+                                  SELECT rowid, product_id, title, actresses, genres FROM products
+                                  WHERE product_id IN (${chunk.map(() => '?').join(',')})`,
+                            args: chunk,
+                        });
+                    }
+                    // キャッシュ更新（新規IDを追加）
+                    try {
+                        filteredNewProducts.forEach(p => knownIds.add(String(p.product_id)));
+                        fs.writeFileSync(KNOWN_IDS_CACHE, JSON.stringify({ updated_at: new Date().toISOString(), ids: [...knownIds] }));
+                    } catch {}
                 } catch (e) {
                     console.error('[Turso] 新規同期エラー:', e.message);
                 }
@@ -436,20 +472,13 @@ async function main() {
                     const expired = all.rows.filter(r => String(r.sale_end_date || '').replace(/\//g, '-') < nowIso);
                     if (expired.length > 0) {
                         // FTS5 UPDATEトリガーを一時削除してからUPDATE（トリガーがlibsql経由でエラーになるため）
-                        await turso.execute('DROP TRIGGER IF EXISTS products_au');
                         for (const row of expired) {
                             await turso.execute({
                                 sql: 'UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL WHERE product_id=?',
                                 args: [String(row.product_id)],
                             });
                         }
-                        await turso.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
-                        await turso.execute(`CREATE TRIGGER IF NOT EXISTS products_au AFTER UPDATE ON products BEGIN
-                            INSERT INTO products_fts(products_fts, rowid, product_id, title, actresses, genres)
-                            VALUES('delete', old.rowid, old.product_id, old.title, old.actresses, old.genres);
-                            INSERT INTO products_fts(rowid, product_id, title, actresses, genres)
-                            VALUES (new.rowid, new.product_id, new.title, new.actresses, new.genres);
-                        END`);
+                        // FTS5はprice/discount_pctをインデックスしないためrebuild不要
                         console.log(`[Turso] 🧹 期限切れセール ${expired.length}件 クリア`);
                     } else {
                         console.log('[Turso] 期限切れセールなし');

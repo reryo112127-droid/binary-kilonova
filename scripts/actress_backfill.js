@@ -35,6 +35,7 @@ const SINCE_DATE   = getArg('--since') || null;
 const DRY_RUN      = hasFlag('--dry-run');
 
 const ACTRESS_INDEX_FILE = path.join(__dirname, '..', 'data', 'mgs_actress_index.json');
+const KNOWN_IDS_CACHE    = path.join(__dirname, '..', 'data', 'known_ids_mgs_cache.json');
 const ITEMS_PER_PAGE = 120;
 const KNOWN_THRESHOLD = 30; // 女優別スキャンは閾値を低めに
 
@@ -213,13 +214,36 @@ async function main() {
 
     const turso = createClient({ url: tursoUrl, authToken: tursoToken });
 
-    // Tursoから既知ID取得
-    console.log('Tursoから既知ID取得中...');
-    const r = await turso.execute(
-        'SELECT product_id FROM products ORDER BY scraped_at DESC LIMIT 5000'
-    );
-    const knownIds = new Set(r.rows.map(row => String(row[0])));
-    console.log(`既知ID: ${knownIds.size.toLocaleString()}件\n`);
+    // ---- 既知ID取得（ローカルキャッシュ優先 + Turso差分） ----
+    const knownIds = new Set();
+    let cacheUpdatedAt = null;
+
+    if (fs.existsSync(KNOWN_IDS_CACHE)) {
+        try {
+            const cache = JSON.parse(fs.readFileSync(KNOWN_IDS_CACHE, 'utf-8'));
+            (cache.ids || []).forEach(id => knownIds.add(id));
+            cacheUpdatedAt = cache.updated_at || null;
+            console.log(`ローカルキャッシュ: ${knownIds.size.toLocaleString()}件 (${(cacheUpdatedAt || '').slice(0, 10)})`);
+        } catch (e) {
+            console.warn('キャッシュ読み込み失敗 → Tursoから全件取得:', e.message);
+        }
+    }
+
+    {
+        const sql  = cacheUpdatedAt
+            ? 'SELECT product_id FROM products WHERE scraped_at > ?'
+            : 'SELECT product_id FROM products ORDER BY scraped_at DESC LIMIT 5000';
+        const args = cacheUpdatedAt ? [cacheUpdatedAt] : [];
+        const r = await turso.execute({ sql, args });
+        let delta = 0;
+        r.rows.forEach(row => { if (!knownIds.has(String(row[0]))) { knownIds.add(String(row[0])); delta++; } });
+        console.log(`Turso差分: ${delta}件追加 / 合計既知ID: ${knownIds.size.toLocaleString()}件\n`);
+    }
+
+    // キャッシュ保存
+    try {
+        fs.writeFileSync(KNOWN_IDS_CACHE, JSON.stringify({ updated_at: new Date().toISOString(), ids: [...knownIds] }));
+    } catch (e) { console.warn('キャッシュ保存失敗:', e.message); }
 
     if (DRY_RUN) console.log('=== DRY RUN（追加は行いません）===\n');
 
@@ -277,6 +301,7 @@ async function main() {
     // ---- スキャン実行 ----
     let totalNew = 0;
     let totalInserted = 0;
+    const allInsertedIds = []; // FTS5差分更新用
     const startTime = Date.now();
 
     for (let i = 0; i < targets.length; i++) {
@@ -301,6 +326,7 @@ async function main() {
         if (!DRY_RUN && newProducts.length > 0) {
             const inserted = await tursoUpsertBatch(turso, newProducts);
             totalInserted += inserted;
+            newProducts.forEach(p => allInsertedIds.push(p.product_id));
             console.log(`  → Turso登録: ${inserted}件`);
         }
 
@@ -309,13 +335,23 @@ async function main() {
         }
     }
 
-    // ---- FTS5再構築（追加があった場合） ----
-    if (!DRY_RUN && totalInserted > 0) {
+    // ---- FTS5差分更新（全件rebuildの代わりに新規分のみ挿入） ----
+    if (!DRY_RUN && allInsertedIds.length > 0) {
         try {
-            await turso.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
-            console.log('\nFTS5再構築完了');
+            const CHUNK = 100;
+            for (let i = 0; i < allInsertedIds.length; i += CHUNK) {
+                const chunk = allInsertedIds.slice(i, i + CHUNK);
+                const phs = chunk.map(() => '?').join(',');
+                await turso.execute({
+                    sql: `INSERT OR IGNORE INTO products_fts(rowid, product_id, title, actresses, genres)
+                          SELECT rowid, product_id, title, actresses, genres FROM products
+                          WHERE product_id IN (${phs})`,
+                    args: chunk,
+                });
+            }
+            console.log(`\nFTS5差分更新完了 (${allInsertedIds.length}件)`);
         } catch (e) {
-            console.warn('\nFTS5再構築スキップ:', e.message);
+            console.warn('\nFTS5更新スキップ:', e.message);
         }
     }
 
