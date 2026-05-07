@@ -95,8 +95,11 @@ function parsePrice(item) {
         ? Math.round((listPrice - currentPrice) / listPrice * 100)
         : 0;
 
-    // セール終了日時 (DMM API: campaign.date_end)
-    const saleEndDate = target.campaign?.date_end || null;
+    // セール終了日時: item level → prices level → delivery level の順で探す
+    const saleEndDate = item.campaign?.date_end
+                     || item.prices?.campaign?.date_end
+                     || target.campaign?.date_end
+                     || null;
 
     return { listPrice, currentPrice, discountPct, saleEndDate };
 }
@@ -529,6 +532,31 @@ async function main() {
                 process.stdout.write(`  価格更新Turso: ${tUpdated}/${entries.length}\r`);
             }
             console.log(`\n  価格: ${tUpdated.toLocaleString()}件 Turso更新完了`);
+        }
+
+        // スキャン対象外（12ヶ月超）の古いセール情報をクリア
+        {
+            const effectiveMo = PRICE_REFRESH_MONTHS_OVERRIDE ?? PRICE_REFRESH_MONTHS;
+            const cutoff = new Date();
+            cutoff.setMonth(cutoff.getMonth() - effectiveMo);
+            const cutoffIso = cutoff.toISOString();
+            try {
+                const staleResult = await turso.execute({
+                    sql: 'SELECT COUNT(*) as cnt FROM products WHERE discount_pct > 0 AND price_updated_at < ?',
+                    args: [cutoffIso],
+                });
+                const staleCount = Number(staleResult.rows[0].cnt);
+                if (staleCount > 0) {
+                    await turso.execute({
+                        sql: `UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL, updated_at=?
+                              WHERE discount_pct > 0 AND price_updated_at < ?`,
+                        args: [new Date().toISOString(), cutoffIso],
+                    });
+                    console.log(`  🧹 古いセール情報クリア: ${staleCount}件 (${effectiveMo}ヶ月スキャン対象外)`);
+                }
+            } catch (e) {
+                console.warn('  ⚠️ 古いセールクリア失敗:', e.message);
+            }
         }
 
         turso.close();
