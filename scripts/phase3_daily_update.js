@@ -356,17 +356,22 @@ async function main() {
         const tursoUrl   = process.env.TURSO_MGS_URL;
         const tursoToken = process.env.TURSO_MGS_TOKEN;
 
-        if (newProducts.length === 0 && priceMap.size === 0) {
+        // 30分未満の作品はTursoに登録しない
+        const filteredNewProducts = newProducts.filter(p => p.duration_min === null || p.duration_min >= 30);
+        const shortSkipped = newProducts.length - filteredNewProducts.length;
+        if (shortSkipped > 0) console.log(`[Turso] 30分未満スキップ: ${shortSkipped}件`);
+
+        if (filteredNewProducts.length === 0 && priceMap.size === 0) {
             console.log('[Turso] 更新なし — スキップ');
         } else if (!tursoUrl || !tursoToken) {
             console.warn('[Turso] TURSO_MGS_URL/TOKEN 未設定 — スキップ');
         } else {
             const turso = tursoShared || createClient({ url: tursoUrl, authToken: tursoToken });
             // 新規作品 upsert
-            if (newProducts.length > 0) {
-                console.log(`[Turso] 新規${newProducts.length}件 同期中...`);
+            if (filteredNewProducts.length > 0) {
+                console.log(`[Turso] 新規${filteredNewProducts.length}件 同期中...`);
                 try {
-                    await tursoUpsertBatch(turso, newProducts);
+                    await tursoUpsertBatch(turso, filteredNewProducts);
                     console.log(`[Turso] ✅ 新規${newProducts.length}件 同期完了`);
                 } catch (e) {
                     console.error('[Turso] 新規同期エラー:', e.message);

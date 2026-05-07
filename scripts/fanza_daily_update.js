@@ -383,7 +383,12 @@ async function main() {
     if (DRY_RUN) console.log('  [DRY RUN] DB書き込みなし');
 
     // ---- STEP 1: 予約商品取得 ----
-    const newItems = NO_PREORDER ? [] : await fetchPreorders(gteDateStr, lteDateStr);
+    const rawNewItems = NO_PREORDER ? [] : await fetchPreorders(gteDateStr, lteDateStr);
+
+    // 30分未満の作品はDBに登録しない
+    const newItems = rawNewItems.filter(p => p.duration_min === null || p.duration_min >= 30);
+    const shortSkipped = rawNewItems.length - newItems.length;
+    if (shortSkipped > 0) console.log(`  30分未満スキップ: ${shortSkipped}件`);
 
     // ---- STEP 2: 価格更新 ----
     const priceMap = NO_PRICE ? new Map() : await refreshPrices();
