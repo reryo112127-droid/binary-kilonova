@@ -65,9 +65,32 @@ export async function GET(request: NextRequest) {
 
     const hasPhysical = !!(cup || heightRange || ageMin);
 
+    // Cloudflare Cache API（isolate間共有・身体的フィルタなし時のみ有効）
+    const cfCache = (!hasPhysical && typeof caches !== 'undefined')
+        ? (caches as unknown as { default: Cache }).default : null;
+    let cfCacheKey: Request | null = null;
+    if (cfCache) {
+        const normUrl = new URL(request.url);
+        const sorted = Array.from(normUrl.searchParams.entries()).sort(([a], [b]) => a.localeCompare(b));
+        normUrl.search = new URLSearchParams(sorted).toString();
+        cfCacheKey = new Request(normUrl.toString());
+        const cfHit = await cfCache.match(cfCacheKey);
+        if (cfHit) return cfHit as unknown as NextResponse;
+    }
+
+    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
+
+    // 日付範囲なし・身体的フィルタなし → 静的キャッシュから返す
+    if (!hasPhysical && !fromDate && !toDate) {
+        const cached = await readStaticCache<unknown[]>('actress_ranking_default_cache.json');
+        if (cached && cached.length > 0) return NextResponse.json(
+            cached.slice(0, limit),
+            { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
+        );
+    }
+
     // 2026年デフォルトクエリ（身体的特徴フィルタなし時のみ静的JSONを使用）
     if (!hasPhysical && fromDate === '2026-01-01' && toDate === '2026-12-31') {
-        const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
         const cached = await readStaticCache<unknown[]>('actress_ranking_2026_cache.json');
         if (cached && cached.length > 0) return NextResponse.json(
             cached.slice(0, limit),
@@ -81,7 +104,6 @@ export async function GET(request: NextRequest) {
         .join('&');
     const hit = getCached<unknown[]>(cacheKey, ACTRESS_RANKING_TTL);
     if (hit) return NextResponse.json(hit, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(300, 600) } });
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
 
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
@@ -250,5 +272,12 @@ export async function GET(request: NextRequest) {
 
     const finalScored = scored.slice(0, limit);
     setCached(cacheKey, finalScored);
-    return NextResponse.json(finalScored, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(120, 600) } });
+
+    const res = NextResponse.json(finalScored, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(120, 600) } });
+    if (cfCache && cfCacheKey) {
+        await cfCache.put(cfCacheKey, new Response(JSON.stringify(finalScored), {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120' },
+        }));
+    }
+    return res;
 }

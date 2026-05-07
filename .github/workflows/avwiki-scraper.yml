@@ -31,7 +31,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -66,6 +66,15 @@ jobs:
         run: timeout 3h node scripts/scrape_avwiki_products.js --interval 15 || true
         env:
           CI: ''
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+
+      # タイムアウト強制終了時でもFTS5を確実に再構築（女優名検索に反映させる）
+      - name: Apply avwiki product map to DB + rebuild FTS5
+        run: node scripts/scrape_avwiki_products.js --apply || echo "apply failed (non-fatal)"
+        env:
           TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
           TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
@@ -106,3 +115,29 @@ jobs:
             git pull --rebase origin main || git rebase --abort || true
             git push || echo "Push failed (non-fatal, will retry next run)"
           fi
+
+      # Turso更新後にサイトを再ビルド・デプロイ（女優ランキング画像を即時反映）
+      - name: Install site dependencies
+        run: cd site && npm ci
+
+      - name: Generate static JSON cache
+        run: cd site && node scripts/generate-static-cache.mjs
+        env:
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+
+      - name: Build for Cloudflare Workers
+        run: cd site && npm run build:cf
+        env:
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+
+      - name: Deploy to Cloudflare Workers
+        run: cd site && npm run deploy:cf:only
+        env:
+          CLOUDFLARE_API_TOKEN:  ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

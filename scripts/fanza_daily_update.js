@@ -292,10 +292,13 @@ async function refreshPrices() {
 
                     for (const item of items) {
                         const { listPrice, currentPrice, discountPct, saleEndDate } = parsePrice(item);
+                        // Best版・総集編は評価データを上書きしない（価格のみ更新）
+                        // COALESCE(null, review_count) により既存値が保持される
+                        const isBestOrCollect = /BEST|ベスト|総集編|コレクション/i.test(item.title || '');
                         priceMap.set(item.content_id, {
                             listPrice, currentPrice, discountPct, saleEndDate,
-                            reviewCount:   item.review?.count != null ? Number(item.review.count) : null,
-                            reviewAverage: item.review?.average != null ? parseFloat(item.review.average) : null,
+                            reviewCount:   !isBestOrCollect && item.review?.count != null ? Number(item.review.count) : null,
+                            reviewAverage: !isBestOrCollect && item.review?.average != null ? parseFloat(item.review.average) : null,
                             price_updated_at: new Date().toISOString(),
                         });
                     }
@@ -583,6 +586,43 @@ async function main() {
             console.log(`  ${fetched}名のプロフィールをTursoに保存`);
         } catch (e) {
             console.warn('  ⚠️ プロフィール更新失敗:', e.message);
+        }
+    }
+
+    // ---- 期限切れセール情報クリア（Turso FANZA） ----
+    {
+        const tursoUrl   = process.env.TURSO_FANZA_URL;
+        const tursoToken = process.env.TURSO_FANZA_TOKEN;
+        if (tursoUrl && tursoToken) {
+            try {
+                const turso = createClient({ url: tursoUrl, authToken: tursoToken });
+                const nowIso = new Date().toISOString().replace('T', ' ').slice(0, 16);
+                const all = await turso.execute('SELECT product_id, sale_end_date FROM products WHERE discount_pct > 0 AND sale_end_date IS NOT NULL');
+                const expired = all.rows.filter(r => String(r.sale_end_date || '') < nowIso);
+                if (expired.length > 0) {
+                    // FTS5 UPDATEトリガーを一時削除してからUPDATE
+                    await turso.execute('DROP TRIGGER IF EXISTS products_au');
+                    for (const row of expired) {
+                        await turso.execute({
+                            sql: 'UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL WHERE product_id=?',
+                            args: [String(row.product_id)],
+                        });
+                    }
+                    await turso.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
+                    await turso.execute(`CREATE TRIGGER IF NOT EXISTS products_au AFTER UPDATE ON products BEGIN
+                        INSERT INTO products_fts(products_fts, rowid, product_id, title, actresses, genres)
+                        VALUES('delete', old.rowid, old.product_id, old.title, old.actresses, old.genres);
+                        INSERT INTO products_fts(rowid, product_id, title, actresses, genres)
+                        VALUES (new.rowid, new.product_id, new.title, new.actresses, new.genres);
+                    END`);
+                    console.log(`[Turso] 🧹 期限切れセール ${expired.length}件 クリア`);
+                } else {
+                    console.log('[Turso] 期限切れセールなし');
+                }
+                turso.close();
+            } catch (e) {
+                console.warn('[Turso] 期限切れクリアエラー:', e.message);
+            }
         }
     }
 

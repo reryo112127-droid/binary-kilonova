@@ -83,6 +83,7 @@ jobs:
             site/data/ranking_2026_cache.json \
             site/data/actress_ranking_2026_cache.json \
             site/data/home_preorder_cache.json \
+            site/data/home_preorder_curated_cache.json \
             site/data/sale_cache.json \
             || true
           if ! git diff --staged --quiet; then
@@ -113,6 +114,14 @@ jobs:
         env:
           TURSO_MGS_URL:   ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN: ${{ secrets.TURSO_MGS_TOKEN }}
+
+      - name: Build suggest cache (Turso)
+        run: node scripts/build_suggest_cache.js
+        env:
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
 
       - name: Install site dependencies
         run: cd site && npm ci
@@ -149,6 +158,7 @@ jobs:
             site/data/ranking_2026_cache.json \
             site/data/actress_ranking_2026_cache.json \
             site/data/home_preorder_cache.json \
+            site/data/home_preorder_curated_cache.json \
             site/data/sale_cache.json \
             || true
           if ! git diff --staged --quiet; then

@@ -16,9 +16,31 @@ export async function GET(request: NextRequest) {
     const fromDate = searchParams.get('fromDate') || '';
     const toDate   = searchParams.get('toDate')   || '';
 
+    // Cloudflare Cache API（isolate間共有・最も効果的なキャッシュ層）
+    const cfCache = typeof caches !== 'undefined' ? (caches as unknown as { default: Cache }).default : null;
+    let cfCacheKey: Request | null = null;
+    if (cfCache) {
+        const normUrl = new URL(request.url);
+        const sorted = Array.from(normUrl.searchParams.entries()).sort(([a], [b]) => a.localeCompare(b));
+        normUrl.search = new URLSearchParams(sorted).toString();
+        cfCacheKey = new Request(normUrl.toString());
+        const cfHit = await cfCache.match(cfCacheKey);
+        if (cfHit) return cfHit as unknown as NextResponse;
+    }
+
+    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
+
+    // 日付範囲なし（デフォルト）→ 静的キャッシュから返す
+    if (!fromDate && !toDate && !searchParams.get('excludeBest')) {
+        const cached = await readStaticCache<unknown[]>('ranking_default_cache.json');
+        if (cached && cached.length > 0) return NextResponse.json(
+            cached.slice(0, limit),
+            { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
+        );
+    }
+
     // 2026年デフォルトクエリは静的JSONから返す
     if (fromDate === '2026-01-01' && toDate === '2026-12-31') {
-        const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
         const cached = await readStaticCache<unknown[]>('ranking_2026_cache.json');
         if (cached && cached.length > 0) return NextResponse.json(
             cached.slice(0, limit),
@@ -32,7 +54,6 @@ export async function GET(request: NextRequest) {
         .join('&');
     const hit = getCached<unknown[]>(cacheKey, RANKING_TTL);
     if (hit) return NextResponse.json(hit, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(300, 600) } });
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
     const excludeBest = searchParams.get('excludeBest') === '1';
 
     const mgsClient = getMgsClient();
@@ -94,7 +115,7 @@ export async function GET(request: NextRequest) {
                                COALESCE(review_average, 0) AS review_average
                         FROM products
                         ${fanzaConds.conds.length ? 'WHERE ' + fanzaConds.conds.join(' AND ') : ''}
-                        ORDER BY COALESCE(review_count,0) * COALESCE(review_average,0) DESC, sale_start_date DESC
+                        ORDER BY review_count DESC, sale_start_date DESC
                         LIMIT ${CANDIDATE_LIMIT}`,
                   args: fanzaConds.args,
               }).then(r => r.rows).catch(() => [])
@@ -252,5 +273,13 @@ export async function GET(request: NextRequest) {
 
     const finalResult = result.slice(0, limit);
     setCached(cacheKey, finalResult);
-    return NextResponse.json(finalResult, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(120, 600) } });
+
+    const res = NextResponse.json(finalResult, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(120, 600) } });
+    // CF Cache APIに保存（2分TTL・isolate間共有）
+    if (cfCache && cfCacheKey) {
+        await cfCache.put(cfCacheKey, new Response(JSON.stringify(finalResult), {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120' },
+        }));
+    }
+    return res;
 }

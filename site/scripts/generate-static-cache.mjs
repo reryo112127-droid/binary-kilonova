@@ -126,7 +126,7 @@ async function genPopularProducts() {
                   FROM products
                   WHERE (duration_min IS NULL OR duration_min < 600)
                     AND ${bestConds}
-                  ORDER BY wish_count DESC LIMIT 60`,
+                  ORDER BY wish_count DESC LIMIT 200`,
             args: bestArgs,
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
         fanza.execute({
@@ -134,7 +134,7 @@ async function genPopularProducts() {
                          COALESCE(review_count,0) AS review_count, COALESCE(review_average,0) AS review_average
                   FROM products
                   WHERE ${bestConds}
-                  ORDER BY COALESCE(review_count,0)*COALESCE(review_average,0) DESC, sale_start_date DESC LIMIT 60`,
+                  ORDER BY review_count DESC, sale_start_date DESC LIMIT 200`,
             args: bestArgs,
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
@@ -146,7 +146,7 @@ async function genPopularProducts() {
         if (fanzaRows[i]) combined.push({ ...fanzaRows[i], main_image_url: poster(fanzaRows[i].main_image_url), source: 'fanza' });
     }
 
-    return combined.slice(0, 60);
+    return combined.slice(0, 200);
 }
 
 // ── 作品ランキング (2026) ─────────────────────────────────────────
@@ -175,6 +175,43 @@ async function genRanking2026() {
     ]);
 
     // MGS: wish_count順 / FANZA: review score順 で 2:1インターリーブ
+    const mgsPool   = mgsRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'mgs' }));
+    const fanzaPool = fanzaRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'fanza' }));
+
+    const result = [];
+    let mi = 0, fi = 0;
+    while (result.length < 100 && (mi < mgsPool.length || fi < fanzaPool.length)) {
+        for (let k = 0; k < 2 && mi < mgsPool.length && result.length < 100; k++) result.push(mgsPool[mi++]);
+        if (fi < fanzaPool.length && result.length < 100) result.push(fanzaPool[fi++]);
+    }
+    return result;
+}
+
+// ── 作品ランキング（日付範囲なし・デフォルト） ───────────────────
+async function genRankingDefault() {
+    console.log('[作品ランキング デフォルト] 取得中...');
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const [mgsRows, fanzaRows] = await Promise.all([
+        mgs.execute({
+            sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date
+                  FROM products
+                  WHERE (duration_min IS NULL OR duration_min < 600)
+                    AND REPLACE(sale_start_date,'/','-') >= ?
+                    AND ${bestConds}
+                  ORDER BY wish_count DESC LIMIT 300`,
+            args: [oneYearAgo, ...bestArgs],
+        }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
+        fanza.execute({
+            sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
+                         COALESCE(review_count,0) AS review_count, COALESCE(review_average,0) AS review_average
+                  FROM products
+                  WHERE sale_start_date >= ?
+                    AND ${bestConds}
+                  ORDER BY review_count DESC, sale_start_date DESC LIMIT 300`,
+            args: [oneYearAgo, ...bestArgs],
+        }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
+    ]);
+
     const mgsPool   = mgsRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'mgs' }));
     const fanzaPool = fanzaRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'fanza' }));
 
@@ -227,6 +264,61 @@ async function genActressRanking2026() {
     };
     processRows(mgsRows, true);
     processRows(fanzaRows, false);
+
+    const profileMap = new Map(profileRows.map(r => [String(r.name), String(r.image_url)]));
+
+    return Array.from(actressMap.values())
+        .sort((a, b) => b.wishScore - a.wishScore)
+        .slice(0, 50)
+        .map(e => ({
+            name: e.name,
+            score: e.wishScore,
+            work_count: e.workCount,
+            image_url: profileMap.get(e.name) || null,
+            sample_image: e.sampleImage,
+        }));
+}
+
+// ── 女優ランキング（日付範囲なし・デフォルト） ──────────────────
+async function genActressRankingDefault() {
+    console.log('[女優ランキング デフォルト] 取得中...');
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const [mgsRows, fanzaRows, profileRows] = await Promise.all([
+        mgs.execute({
+            sql: `SELECT actresses, main_image_url, wish_count, genres, maker, product_id
+                  FROM products
+                  WHERE (duration_min IS NULL OR duration_min < 600)
+                    AND REPLACE(sale_start_date,'/','-') >= ?
+                  ORDER BY wish_count DESC LIMIT 500`,
+            args: [oneYearAgo],
+        }).then(r => r.rows).catch(() => []),
+        fanza.execute({
+            sql: `SELECT actresses, main_image_url, 0 AS wish_count, genres, maker, product_id
+                  FROM products WHERE sale_start_date >= ?
+                  ORDER BY sale_start_date DESC LIMIT 500`,
+            args: [oneYearAgo],
+        }).then(r => r.rows).catch(() => []),
+        fanza.execute(
+            `SELECT name, image_url FROM actress_profiles WHERE image_url IS NOT NULL LIMIT 2000`
+        ).then(r => r.rows).catch(() => []),
+    ]);
+
+    const actressMap = new Map();
+    const processRows = (rows) => {
+        for (const row of rows) {
+            if (!row.actresses) continue;
+            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean);
+            const wishCount = Number(row.wish_count ?? 0);
+            for (const name of names) {
+                const e = actressMap.get(name);
+                if (e) { e.wishScore += wishCount; e.workCount++; }
+                else   { actressMap.set(name, { name, wishScore: wishCount, workCount: 1, sampleImage: poster(String(row.main_image_url ?? '')) }); }
+            }
+        }
+    };
+    processRows(mgsRows);
+    processRows(fanzaRows);
 
     const profileMap = new Map(profileRows.map(r => [String(r.name), String(r.image_url)]));
 
@@ -314,33 +406,52 @@ async function genHomePreorderCurated() {
     return combined;
 }
 
-// ── セール作品（特定メーカーのみ・Best/総集編/リマスター除外） ───
+// ── セール作品（FANZA + MGS・Best/総集編/リマスター除外） ───────
 async function genSaleProducts() {
     console.log('[セール作品] 取得中...');
-    // セールはFANZAのみ（MGSにはセール情報なし）
-    const rows = await fanza.execute({
-        sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
-                     COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag,0) AS vr_flag, sale_end_date
-              FROM products
-              WHERE discount_pct >= 1
-                AND (${fanzaMakerCond})
-                AND ${bestConds}
-              ORDER BY discount_pct DESC, sale_start_date DESC LIMIT 120`,
-        args: [...fanzaMakerArgs, ...bestArgs],
-    }).then(r => r.rows).catch(e => { console.error('FANZA sale error:', e.message); return []; });
+    const [fanzaRows, mgsRows] = await Promise.all([
+        fanza.execute({
+            sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
+                         COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag,0) AS vr_flag, sale_end_date
+                  FROM products
+                  WHERE discount_pct >= 1
+                    AND (${fanzaMakerCond})
+                    AND ${bestConds}
+                  ORDER BY discount_pct DESC, sale_start_date DESC LIMIT 120`,
+            args: [...fanzaMakerArgs, ...bestArgs],
+        }).then(r => r.rows).catch(e => { console.error('FANZA sale error:', e.message); return []; }),
+        mgs.execute({
+            sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date,
+                         COALESCE(discount_pct,0) AS discount_pct, list_price, current_price,
+                         NULL AS series_name, NULL AS series_id, 0 AS vr_flag, sale_end_date
+                  FROM products
+                  WHERE discount_pct >= 1
+                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND ${bestConds}
+                  ORDER BY discount_pct DESC, REPLACE(sale_start_date,'/','-') DESC LIMIT 60`,
+            args: bestArgs,
+        }).then(r => r.rows).catch(e => { console.error('MGS sale error:', e.message); return []; }),
+    ]);
 
-    return rows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'fanza' }));
+    const combined = [
+        ...fanzaRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'fanza' })),
+        ...mgsRows.map(r  => ({ ...r, main_image_url: poster(r.main_image_url),  source: 'mgs'   })),
+    ];
+    combined.sort((a, b) => Number(b.discount_pct) - Number(a.discount_pct));
+    return combined;
 }
 
 // ── メイン ────────────────────────────────────────────────────────
 async function main() {
     const dataDir = path.join(ROOT, 'data');
 
-    const [newProds, popularProds, ranking2026, actressRanking2026, preorderProds, homePreorderCurated, saleProds] = await Promise.all([
+    const [newProds, popularProds, ranking2026, rankingDefault, actressRanking2026, actressRankingDefault, preorderProds, homePreorderCurated, saleProds] = await Promise.all([
         genNewProducts(),
         genPopularProducts(),
         genRanking2026(),
+        genRankingDefault(),
         genActressRanking2026(),
+        genActressRankingDefault(),
         genPreorderProducts(),
         genHomePreorderCurated(),
         genSaleProducts(),
@@ -356,13 +467,15 @@ async function main() {
         console.log(`✓ ${filename} (${data.length}件)`);
     };
 
-    write('products_new_cache.json',           newProds);
-    write('products_popular_cache.json',       popularProds);
-    write('ranking_2026_cache.json',           ranking2026);
-    write('actress_ranking_2026_cache.json',   actressRanking2026);
-    write('home_preorder_cache.json',          preorderProds);
-    write('home_preorder_curated_cache.json', homePreorderCurated);
-    write('sale_cache.json',                   saleProds);
+    write('products_new_cache.json',              newProds);
+    write('products_popular_cache.json',          popularProds);
+    write('ranking_2026_cache.json',              ranking2026);
+    write('ranking_default_cache.json',           rankingDefault);
+    write('actress_ranking_2026_cache.json',      actressRanking2026);
+    write('actress_ranking_default_cache.json',   actressRankingDefault);
+    write('home_preorder_cache.json',             preorderProds);
+    write('home_preorder_curated_cache.json',     homePreorderCurated);
+    write('sale_cache.json',                      saleProds);
 
     console.log('\n完了！次のコマンドでデプロイしてください:');
     console.log('  cd site && npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy');

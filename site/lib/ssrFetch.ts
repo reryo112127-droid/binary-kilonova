@@ -13,6 +13,16 @@ const SSR_PAGE_TTL = 5 * 60 * 1000; // 5分
 
 const BEST_EXCL = ['%BEST%','%ベスト%','%総集編%','%コレクション%','%Best%'];
 
+// ホーム画面予約作品の厳選メーカーリスト（generate-static-cache.mjs の HOME_MAKERS と同期）
+const HOME_MAKERS = [
+    'エスワン', 'ムーディーズ', 'アイデアポケット', 'OPPAI', 'E-BODY', 'Fitch',
+    'マドンナ', '本中', 'ダスッ', 'kawaii', 'Hunter', 'ワンズファクトリー',
+    'SODクリエイト', 'FALENO', 'TAMEIKE', 'million', 'プレミアム', 'DAHLIA',
+];
+// FANZA用メーカー条件（label列 OR maker列）
+const FANZA_MAKER_COND = HOME_MAKERS.map(() => '(label LIKE ? OR maker LIKE ?)').join(' OR ');
+const FANZA_MAKER_ARGS = HOME_MAKERS.flatMap(m => [`%${m}%`, `%${m}%`]);
+
 type Row = Record<string, unknown>;
 
 function mapRow(row: Row, source: string): Row {
@@ -38,8 +48,8 @@ export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
     const client = getFanzaClient();
     if (!client) return [];
     const today = new Date().toISOString().slice(0, 10);
-    const conds = ['sale_start_date > ?', "label NOT LIKE '%LadyHunter%'"];
-    const args: (string | number)[] = [today];
+    const conds = ['sale_start_date > ?', "label NOT LIKE '%LadyHunter%'", `(${FANZA_MAKER_COND})`];
+    const args: (string | number)[] = [today, ...FANZA_MAKER_ARGS];
     addBestExcl(conds, args);
     try {
         const r = await client.execute({

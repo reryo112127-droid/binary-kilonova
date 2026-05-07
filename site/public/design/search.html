@@ -69,7 +69,7 @@
 <div class="h-4 w-px bg-gray-200 shrink-0"></div>
 <button id="sf-best-btn" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
 <span class="text-[11px] font-medium text-gray-600">BEST/総集編</span>
-<span id="sf-best-icon" class="material-symbols-outlined text-[18px] text-primary">toggle_on</span>
+<span id="sf-best-icon" class="material-symbols-outlined text-[18px] text-gray-300">toggle_off</span>
 </button>
 <button id="sf-vr-btn" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-gray-200 px-3 py-1">
 <span class="text-[11px] font-medium text-gray-600">VR作品</span>
@@ -134,7 +134,7 @@
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;}
 
-  var filters = { contentType:'all', sortOrder:'new', source:'', showBest:true, vrOnly:false, fromDate:'', toDate:'' };
+  var filters = { contentType:'all', sortOrder:'new', source:'', showBest:false, vrOnly:false, fromDate:'', toDate:'' };
   var LIMIT = 60;
   var fetchOffset = 0;
   var isLoading = false;
@@ -145,7 +145,8 @@
     var p = new URLSearchParams();
     p.set('limit', String(LIMIT + 1)); // +1 でhasMore判定
     p.set('offset', String(off || 0));
-    // 注: VR除外・BEST除外・sourceはクライアントサイドフィルター
+    // 注: VR除外・sourceはクライアントサイドフィルター
+    if (!filters.showBest) p.set('excludeBest','1');
     if (actress) p.set('actress',actress);
     else if (maker) p.set('maker',maker);
     else if (label) p.set('label',label);

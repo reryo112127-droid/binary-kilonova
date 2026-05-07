@@ -406,6 +406,43 @@ async function main() {
             if (!tursoShared) turso.close();
         }
 
+        // ---- 期限切れセール情報クリア（Turso MGS） ----
+        {
+            const tursoUrl   = process.env.TURSO_MGS_URL;
+            const tursoToken = process.env.TURSO_MGS_TOKEN;
+            if (tursoUrl && tursoToken) {
+                try {
+                    const turso = tursoShared || createClient({ url: tursoUrl, authToken: tursoToken });
+                    const nowIso = new Date().toISOString().replace('T', ' ').slice(0, 16);
+                    const all = await turso.execute('SELECT product_id, sale_end_date FROM products WHERE discount_pct > 0 AND sale_end_date IS NOT NULL');
+                    const expired = all.rows.filter(r => String(r.sale_end_date || '').replace(/\//g, '-') < nowIso);
+                    if (expired.length > 0) {
+                        // FTS5 UPDATEトリガーを一時削除してからUPDATE（トリガーがlibsql経由でエラーになるため）
+                        await turso.execute('DROP TRIGGER IF EXISTS products_au');
+                        for (const row of expired) {
+                            await turso.execute({
+                                sql: 'UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL WHERE product_id=?',
+                                args: [String(row.product_id)],
+                            });
+                        }
+                        await turso.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
+                        await turso.execute(`CREATE TRIGGER IF NOT EXISTS products_au AFTER UPDATE ON products BEGIN
+                            INSERT INTO products_fts(products_fts, rowid, product_id, title, actresses, genres)
+                            VALUES('delete', old.rowid, old.product_id, old.title, old.actresses, old.genres);
+                            INSERT INTO products_fts(rowid, product_id, title, actresses, genres)
+                            VALUES (new.rowid, new.product_id, new.title, new.actresses, new.genres);
+                        END`);
+                        console.log(`[Turso] 🧹 期限切れセール ${expired.length}件 クリア`);
+                    } else {
+                        console.log('[Turso] 期限切れセールなし');
+                    }
+                    if (!tursoShared) turso.close();
+                } catch (e) {
+                    console.warn('[Turso] 期限切れクリアエラー:', e.message);
+                }
+            }
+        }
+
         if (tursoShared) { tursoShared.close(); tursoShared = null; }
         if (!IS_CI) db.close();
 

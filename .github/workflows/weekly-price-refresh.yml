@@ -2,21 +2,34 @@ name: 週次価格更新（直近6年）
 
 on:
   schedule:
-    - cron: '0 16 * * 6'   # 土曜 01:00 JST (= 16:00 UTC 金曜)
-  workflow_dispatch:         # 手動実行
+    - cron: '0 14 * * 4'   # 木曜 23:00 JST (= 14:00 UTC) — FANZA
+    - cron: '0 6 * * 5'    # 金曜 15:00 JST (= 06:00 UTC) — MGS
+  workflow_dispatch:
+    inputs:
+      target:
+        description: '実行対象 (fanza / mgs / both)'
+        required: false
+        default: 'both'
 
 concurrency:
-  group: weekly-price-refresh
+  group: weekly-price-${{ github.event.schedule || inputs.target || 'manual' }}
   cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  price-refresh:
+  # ----------------------------------------------------------------
+  #  FANZA: 木曜 23:00 JST に実行
+  # ----------------------------------------------------------------
+  fanza-price-refresh:
     name: FANZA 価格更新（72ヶ月）
     runs-on: ubuntu-latest
     timeout-minutes: 180   # 最大3時間
+    if: >-
+      github.event.schedule == '0 14 * * 4' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (inputs.target == 'fanza' || inputs.target == 'both'))
 
     steps:
       - uses: actions/checkout@v4
@@ -29,8 +42,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # FANZA: 直近72ヶ月（6年）の価格・セール情報を更新
+      # 直近72ヶ月（6年）の価格・セール・評価情報を更新
       # 予約商品取得はスキップ（daily-updateで実施済み）
+      # Best版・総集編は評価更新をスキップし価格のみ更新
       - name: FANZA 価格更新 (直近6年)
         run: node scripts/fanza_daily_update.js --months 72 --no-preorder
         env:
@@ -40,7 +54,31 @@ jobs:
           TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
 
-      # MGS: 直近700ページ（約6年分）の価格・セール情報を更新
+  # ----------------------------------------------------------------
+  #  MGS: 金曜 15:00 JST に実行（FANZAセール開始翌日）
+  # ----------------------------------------------------------------
+  mgs-price-refresh:
+    name: MGS 価格更新（700ページ）
+    runs-on: ubuntu-latest
+    timeout-minutes: 120   # 最大2時間
+
+    if: >-
+      github.event.schedule == '0 6 * * 5' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (inputs.target == 'mgs' || inputs.target == 'both'))
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 直近700ページ（約6年分）の価格・セール情報を更新
       - name: MGS 価格更新 (直近6年)
         run: node scripts/phase3_daily_update.js --pages 700 --no-preorder
         env:

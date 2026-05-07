@@ -26,12 +26,16 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at    TEXT DEFAULT (datetime('now','localtime'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_sale_date ON products(sale_start_date);
+CREATE INDEX IF NOT EXISTS idx_sale_date ON products(sale_start_date DESC);
 CREATE INDEX IF NOT EXISTS idx_maker ON products(maker);
 CREATE INDEX IF NOT EXISTS idx_label ON products(label);
 CREATE INDEX IF NOT EXISTS idx_discount ON products(discount_pct);
 CREATE INDEX IF NOT EXISTS idx_series ON products(series_name);
 CREATE INDEX IF NOT EXISTS idx_vr ON products(vr_flag);
+-- ランキングクエリ用（review_count * review_average の並び替えに使用）
+CREATE INDEX IF NOT EXISTS idx_review_count ON products(review_count DESC);
+-- サンプル動画フィルター用
+CREATE INDEX IF NOT EXISTS idx_sample_video ON products(sample_video_url) WHERE sample_video_url IS NOT NULL;
 
 -- 取得進捗管理
 CREATE TABLE IF NOT EXISTS fetch_progress (

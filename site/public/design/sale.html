@@ -42,7 +42,7 @@ body { font-family: 'Public Sans', sans-serif; }
     <span class="material-symbols-outlined text-white text-[22px] active-icon">local_offer</span>
     <div>
       <p class="text-white font-black text-base leading-none">セール中</p>
-      <p class="text-red-100 text-[10px] mt-0.5">FANZA割引作品 最大<span id="max-discount">50</span>% OFF</p>
+      <p id="hero-sub" class="text-red-100 text-[10px] mt-0.5">FANZA割引作品 最大<span id="max-discount">50</span>% OFF</p>
     </div>
   </div>
   <div class="text-right">
@@ -51,13 +51,19 @@ body { font-family: 'Public Sans', sans-serif; }
   </div>
 </div>
 
-<!-- フィルター: 割引率 -->
-<div class="flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar">
-  <button id="filter-all" onclick="setDiscount(0)" class="flex-none h-8 px-3 rounded-full text-xs font-bold bg-red-500 text-white transition-all">すべて</button>
-  <button id="filter-10" onclick="setDiscount(10)" class="flex-none h-8 px-3 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-600 transition-all">10%以上</button>
-  <button id="filter-20" onclick="setDiscount(20)" class="flex-none h-8 px-3 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-600 transition-all">20%以上</button>
-  <button id="filter-30" onclick="setDiscount(30)" class="flex-none h-8 px-3 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-600 transition-all">30%以上</button>
-  <button id="filter-50" onclick="setDiscount(50)" class="flex-none h-8 px-3 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-600 transition-all">50%以上</button>
+<!-- フィルターバー -->
+<div class="flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar items-center">
+  <button id="src-fanza" class="flex-none h-8 px-3 rounded-full text-xs font-bold bg-red-500 text-white transition-all">FANZA</button>
+  <button id="src-mgs"   class="flex-none h-8 px-3 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-600 transition-all">MGS</button>
+  <div class="w-px bg-slate-200 self-stretch mx-1"></div>
+  <button id="sf-best-btn" class="flex h-8 shrink-0 items-center gap-1 rounded-full border border-gray-200 px-3">
+    <span class="text-[10px] font-bold text-slate-600">BEST除外</span>
+    <span id="sf-best-icon" class="material-symbols-outlined text-[18px] text-gray-300">toggle_off</span>
+  </button>
+  <button id="sf-vr-btn" class="flex h-8 shrink-0 items-center gap-1 rounded-full border border-gray-200 px-3">
+    <span class="text-[10px] font-bold text-slate-600">VR除外</span>
+    <span id="sf-vr-icon" class="material-symbols-outlined text-[18px] text-gray-300">toggle_off</span>
+  </button>
 </div>
 
 <!-- 作品グリッド -->
@@ -85,7 +91,8 @@ body { font-family: 'Public Sans', sans-serif; }
 <script>(function(){
 var g = document.getElementById('sale-grid');
 if (!g) return;
-var LIMIT = 60, fetchOffset = 0, isLoading = false, currentDiscount = 0;
+var LIMIT = 60, fetchOffset = 0, isLoading = false;
+var filters = { source: 'fanza', excludeBest: false, excludeVr: false };
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function poster(url) {
@@ -94,7 +101,6 @@ function poster(url) {
   if (url.includes('/digital/amateur/') && url.endsWith('jm.jpg')) return url.replace('jm.jpg','jp-001.jpg');
   return url;
 }
-function purl(id) { return '/product/' + encodeURIComponent(id); }
 function setLoadMoreBtn(v) { var b = document.getElementById('load-more-btn'); if (b) b.style.display = v ? 'flex' : 'none'; }
 
 function discountColor(d) {
@@ -136,11 +142,49 @@ function cardHtml(p) {
     + '</a>';
 }
 
+function applyFilters(data) {
+  return data.filter(function(p) {
+    if (filters.excludeVr && p.genres && /\bVR\b|VR専用/i.test(p.genres)) return false;
+    return true;
+  });
+}
+
 function buildUrl(offset) {
-  var u = '/api/products?sort=discount&source=fanza&limit=' + (LIMIT+1) + '&offset=' + offset;
-  if (currentDiscount > 0) u += '&minDiscount=' + currentDiscount;
+  var sort = 'discount';
+  var u = '/api/products?sort=' + sort + '&source=' + filters.source + '&limit=' + (LIMIT+1) + '&offset=' + offset;
+  if (filters.excludeBest) u += '&excludeBest=1';
   return u;
 }
+
+var srcActCls = 'flex-none h-8 px-3 rounded-full text-xs font-bold bg-red-500 text-white transition-all';
+var srcInaCls = 'flex-none h-8 px-3 rounded-full text-xs font-bold bg-white border border-slate-200 text-slate-600 transition-all';
+var srcFanzaBtn = document.getElementById('src-fanza');
+var srcMgsBtn   = document.getElementById('src-mgs');
+var bestBtn  = document.getElementById('sf-best-btn');
+var bestIcon = document.getElementById('sf-best-icon');
+var vrBtn    = document.getElementById('sf-vr-btn');
+var vrIcon   = document.getElementById('sf-vr-icon');
+
+function updateSourceBtns() {
+  if (srcFanzaBtn) srcFanzaBtn.className = filters.source === 'fanza' ? srcActCls : srcInaCls;
+  if (srcMgsBtn)   srcMgsBtn.className   = filters.source === 'mgs'   ? srcActCls : srcInaCls;
+  // ヒーローバナーのサブタイトル
+  var sub = document.getElementById('hero-sub');
+  if (sub) sub.textContent = filters.source === 'mgs' ? 'MGS人気作品' : 'FANZA割引作品 最大' + document.getElementById('max-discount').textContent + '% OFF';
+}
+
+if (srcFanzaBtn) srcFanzaBtn.addEventListener('click', function() { filters.source = 'fanza'; updateSourceBtns(); load(); });
+if (srcMgsBtn)   srcMgsBtn.addEventListener('click',   function() { filters.source = 'mgs';   updateSourceBtns(); load(); });
+if (bestBtn) bestBtn.addEventListener('click', function() {
+  filters.excludeBest = !filters.excludeBest;
+  if (bestIcon) { bestIcon.textContent = filters.excludeBest ? 'toggle_on' : 'toggle_off'; bestIcon.className = 'material-symbols-outlined text-[18px] ' + (filters.excludeBest ? 'text-primary' : 'text-gray-300'); }
+  load();
+});
+if (vrBtn) vrBtn.addEventListener('click', function() {
+  filters.excludeVr = !filters.excludeVr;
+  if (vrIcon) { vrIcon.textContent = filters.excludeVr ? 'toggle_on' : 'toggle_off'; vrIcon.className = 'material-symbols-outlined text-[18px] ' + (filters.excludeVr ? 'text-primary' : 'text-gray-300'); }
+  load();
+});
 
 function load() {
   fetchOffset = 0;
@@ -153,14 +197,16 @@ function load() {
     .then(function(data) {
       var hasMore = data && data.length > LIMIT;
       if (hasMore) data = data.slice(0, LIMIT);
-      if (!data || !data.length) {
-        g.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-12 text-xs">セール作品がありません</p>';
+      data = applyFilters(data || []);
+      if (!data.length) {
+        g.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-12 text-xs">作品がありません</p>';
         return;
       }
-      // バナーの最大割引率を更新
-      var maxD = data.reduce(function(m, p){ return Math.max(m, parseInt(p.discount_pct)||0); }, 0);
-      var el = document.getElementById('max-discount');
-      if (el && maxD) el.textContent = maxD;
+      if (filters.source === 'fanza') {
+        var maxD = data.reduce(function(m, p){ return Math.max(m, parseInt(p.discount_pct)||0); }, 0);
+        var el = document.getElementById('max-discount');
+        if (el && maxD) el.textContent = maxD;
+      }
       var cnt = document.getElementById('total-count');
       if (cnt) cnt.textContent = (hasMore ? LIMIT + '+' : data.length);
       g.innerHTML = data.map(cardHtml).join('');
@@ -180,24 +226,13 @@ window.fetchMore = function() {
     .then(function(data) {
       var hasMore = data && data.length > LIMIT;
       if (hasMore) data = data.slice(0, LIMIT);
-      if (data && data.length) g.insertAdjacentHTML('beforeend', data.map(cardHtml).join(''));
+      data = applyFilters(data || []);
+      if (data.length) g.insertAdjacentHTML('beforeend', data.map(cardHtml).join(''));
       fetchOffset += LIMIT;
       setLoadMoreBtn(hasMore);
     })
     .catch(function(){})
     .finally(function(){ isLoading = false; if (btn) { btn.textContent = 'もっと見る'; btn.disabled = false; } });
-};
-
-window.setDiscount = function(d) {
-  currentDiscount = d;
-  ['all','10','20','30','50'].forEach(function(k) {
-    var btn = document.getElementById('filter-' + k);
-    if (!btn) return;
-    var active = (k === 'all' && d === 0) || (k !== 'all' && parseInt(k) === d);
-    btn.className = 'flex-none h-8 px-3 rounded-full text-xs font-bold transition-all '
-      + (active ? 'bg-red-500 text-white' : 'bg-white border border-slate-200 text-slate-600');
-  });
-  load();
 };
 
 load();

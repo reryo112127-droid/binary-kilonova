@@ -30,6 +30,12 @@ CREATE INDEX IF NOT EXISTS idx_scraped_at ON products(scraped_at);
 CREATE INDEX IF NOT EXISTS idx_maker ON products(maker);
 CREATE INDEX IF NOT EXISTS idx_duration ON products(duration_min);
 CREATE INDEX IF NOT EXISTS idx_discount ON products(discount_pct);
+-- ランキング・新着ソートで頻繁に使用
+CREATE INDEX IF NOT EXISTS idx_wish_count ON products(wish_count DESC);
+-- sale_start_date はMGSが YYYY/MM/DD 形式のため関数インデックスで正規化済み値を索引化
+CREATE INDEX IF NOT EXISTS idx_sale_date_norm ON products(REPLACE(sale_start_date, '/', '-') DESC);
+-- サンプル動画フィルター用
+CREATE INDEX IF NOT EXISTS idx_sample_video ON products(sample_video_url) WHERE sample_video_url IS NOT NULL;
 
 -- スクレイピング進捗管理テーブル
 CREATE TABLE IF NOT EXISTS scrape_progress (

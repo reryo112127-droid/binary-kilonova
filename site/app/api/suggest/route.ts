@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFanzaClient } from '../../../lib/turso';
+import { readStaticCacheAsync } from '../../../lib/staticCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,41 +10,11 @@ type SuggestCache = {
     genres: string[];
 };
 
-// インメモリキャッシュ（最大5分）
-let cachedData: SuggestCache | null = null;
-let cacheLoadedAt = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
 async function loadDataIfNeeded(): Promise<SuggestCache | null> {
-    const now = Date.now();
-    if (cachedData && now - cacheLoadedAt < CACHE_TTL_MS) return cachedData;
-
-    const db = getFanzaClient();
-    if (!db) {
-        console.warn('[Suggest API] Turso接続情報がありません');
-        return cachedData; // 古いキャッシュをフォールバック
-    }
-
-    try {
-        const row = await db.execute("SELECT data FROM suggest_cache WHERE key = 'main'")
-            .then(r => r.rows[0]).catch(() => null);
-        if (!row?.data) {
-            console.warn('[Suggest API] suggest_cache テーブルにデータがありません');
-            return cachedData;
-        }
-        const raw = JSON.parse(String(row.data)) as SuggestCache & { generated_at?: string };
-        cachedData = {
-            actresses: raw.actresses || [],
-            makers:    raw.makers    || [],
-            labels:    raw.labels    || [],
-            genres:    raw.genres    || [],
-        };
-        cacheLoadedAt = now;
-        console.log(`[Suggest API] キャッシュ読み込み完了: 女優${cachedData.actresses.length} / メーカー${cachedData.makers.length}`);
-    } catch (e) {
-        console.error('[Suggest API] キャッシュ読み込みエラー:', e);
-    }
-    return cachedData;
+    // suggest_cache.json はビルド時に生成される静的ファイル（Turso不要）
+    const raw = await readStaticCacheAsync<SuggestCache>('suggest_cache.json');
+    if (raw) return raw;
+    return null;
 }
 
 export async function GET(request: NextRequest) {

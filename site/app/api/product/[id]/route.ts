@@ -21,6 +21,7 @@ export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    try {
     const { id } = await params;
 
     const cacheKey = `product_${id}`;
@@ -125,4 +126,8 @@ export async function GET(
     };
     setCached(cacheKey, responseData);
     return NextResponse.json(responseData);
+    } catch (err: unknown) {
+        console.error('Product API error:', err);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 }

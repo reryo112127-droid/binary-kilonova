@@ -57,6 +57,32 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// ========== FTS5トリガー管理 ==========
+// libsql HTTP経由のUPDATEではproducts_auトリガーがSQLITE_UNKNOWNを引き起こすため、
+// トリガーを一時停止 → バッチUPDATE → FTS5再構築 → トリガー復元 の順で実行する。
+const TRIGGER_DDL = `CREATE TRIGGER IF NOT EXISTS products_au AFTER UPDATE ON products BEGIN
+    INSERT INTO products_fts(products_fts, rowid, product_id, title, actresses, genres)
+    VALUES('delete', old.rowid, old.product_id, old.title, old.actresses, old.genres);
+    INSERT INTO products_fts(rowid, product_id, title, actresses, genres)
+    VALUES (new.rowid, new.product_id, new.title, new.actresses, new.genres);
+END`;
+
+async function managedBatchUpdate(client, statements) {
+    if (statements.length === 0) return 0;
+    await client.execute('DROP TRIGGER IF EXISTS products_au');
+    const results = await client.batch(statements, 'write');
+    const updated = results.reduce((acc, r) => acc + (r.rowsAffected || 0), 0);
+    await client.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
+    await client.execute(TRIGGER_DDL);
+    return updated;
+}
+
+async function rebuildFts5(client) {
+    await client.execute('DROP TRIGGER IF EXISTS products_au');
+    await client.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
+    await client.execute(TRIGGER_DDL);
+}
+
 // ========== Turso ==========
 function createClients() {
     const mgs = createClient({
@@ -212,12 +238,10 @@ async function updateDbs(clients, entries) {
     }
 
     if (mgsStatements.length > 0) {
-        const results = await clients.mgs.batch(mgsStatements, 'write');
-        mgsUpdated = results.reduce((acc, r) => acc + (r.rowsAffected || 0), 0);
+        mgsUpdated = await managedBatchUpdate(clients.mgs, mgsStatements);
     }
     if (fanzaStatements.length > 0) {
-        const results = await clients.fanza.batch(fanzaStatements, 'write');
-        fanzaUpdated = results.reduce((acc, r) => acc + (r.rowsAffected || 0), 0);
+        fanzaUpdated = await managedBatchUpdate(clients.fanza, fanzaStatements);
     }
 
     return { mgsUpdated, fanzaUpdated };
@@ -303,6 +327,8 @@ async function applyToVideoc(clients) {
     let totalUpdated = 0;
     const now = new Date().toISOString();
 
+    // トリガー一時停止 → 全バッチ更新 → FTS5再構築 → トリガー復元
+    await clients.fanza.execute('DROP TRIGGER IF EXISTS products_au');
     for (let i = 0; i < matched.length; i += BATCH) {
         const chunk = matched.slice(i, i + BATCH);
         const statements = chunk.map(e => ({
@@ -313,6 +339,8 @@ async function applyToVideoc(clients) {
         totalUpdated += results.reduce((acc, r) => acc + (r.rowsAffected || 0), 0);
         process.stdout.write(`  ${Math.min(i + BATCH, matched.length)}/${matched.length} 処理 | 更新: ${totalUpdated}\r`);
     }
+    await clients.fanza.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
+    await clients.fanza.execute(TRIGGER_DDL);
 
     const afterResult = await clients.fanza.execute(
         'SELECT COUNT(*) as cnt FROM products WHERE actresses IS NULL OR actresses = \'\''
@@ -396,6 +424,9 @@ async function scrapeVideocDirect(clients) {
         return;
     }
 
+    // トリガーを一時停止（個別executeでのSQLITE_UNKNOWN回避）
+    await clients.fanza.execute('DROP TRIGGER IF EXISTS products_au');
+
     await sendDiscord(
         `🔍 **avwiki videoc 直接スクレイプ 開始** (${nowJST()})\n` +
         `対象: **${targets.length.toLocaleString()}件** (avwiki×FANZA女優不明の交差)\n` +
@@ -463,6 +494,10 @@ async function scrapeVideocDirect(clients) {
         fs.appendFileSync(CHECKED_FILE, newlyChecked.join('\n') + '\n');
     }
     fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+
+    // FTS5再構築 + トリガー復元
+    console.log('\n  FTS5インデックス再構築中...');
+    await rebuildFts5(clients.fanza);
 
     const afterResult = await clients.fanza.execute(
         "SELECT COUNT(*) as cnt FROM products WHERE actresses IS NULL OR actresses = ''"
@@ -532,6 +567,9 @@ async function scrapeSearchAll(clients) {
         `対象: **${todo.length.toLocaleString()}件** (FANZA女優不明全量)\n` +
         `並列: ${CONCURRENCY} / 推定: 約${etaH}時間${etaM}分`
     );
+
+    // トリガーを一時停止（個別executeでトリガーが発火するとSQLITE_UNKNOWNになるため）
+    await clients.fanza.execute('DROP TRIGGER IF EXISTS products_au');
 
     const newlyChecked = [];
     let sessionChecked = 0, sessionFound = 0, sessionUpdated = 0;
@@ -628,6 +666,10 @@ async function scrapeSearchAll(clients) {
 
     // 最終保存
     await flushChecked();
+
+    // FTS5再構築 + トリガー復元
+    console.log('\n  FTS5インデックス再構築中...');
+    await rebuildFts5(clients.fanza);
 
     const remaining = await clients.fanza.execute(
         "SELECT COUNT(*) as c FROM products WHERE actresses IS NULL OR actresses = ''"
@@ -734,26 +776,14 @@ async function scrapeMakerPage(clients, makerSlug) {
 
     console.log(`\n\n  取得完了: ${allEntries.length}件 → Turso更新中...`);
 
-    // ⑤ Turso 一括更新
+    // ⑤ Turso 一括更新（トリガー一時停止 → バッチ → FTS5再構築 → トリガー復元）
     const now = new Date().toISOString();
-    for (const { fanzaPid, actresses } of allEntries) {
-        const actressStr = actresses.join(', ');
-        try {
-            const res = await clients.fanza.execute({
-                sql: "UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')",
-                args: [actressStr, now, fanzaPid],
-            });
-            if (res.rowsAffected > 0) {
-                totalUpdated++;
-                if (totalUpdated <= 10 || totalUpdated % 100 === 0) {
-                    process.stdout.write(`\n  [更新] ${fanzaPid}: ${actressStr.substring(0, 50)}\n`);
-                }
-            }
-            totalFound++;
-        } catch (e) {
-            console.warn(`  [error] update ${fanzaPid}:`, e.message);
-        }
-    }
+    const updateStatements = allEntries.map(({ fanzaPid, actresses }) => ({
+        sql:  "UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')",
+        args: [actresses.join(', '), now, fanzaPid],
+    }));
+    totalUpdated = await managedBatchUpdate(clients.fanza, updateStatements);
+    totalFound   = allEntries.length;
 
     const remaining = await clients.fanza.execute(
         "SELECT COUNT(*) as c FROM products WHERE actresses IS NULL OR actresses = ''"
@@ -856,6 +886,9 @@ async function searchByLabel(clients, targetSlug) {
         fs.writeFileSync(CHECKED_FILE, JSON.stringify(checkedState, null, 2));
     }
 
+    // トリガーを一時停止（個別executeでのSQLITE_UNKNOWN回避）
+    await clients.fanza.execute('DROP TRIGGER IF EXISTS products_au');
+
     for (const prefix of targetPrefixes) {
         const pidsForLabel = (prefixMap.get(prefix) || []).filter(pid => !checkedSet.has(pid));
         if (pidsForLabel.length === 0) continue;
@@ -923,6 +956,10 @@ async function searchByLabel(clients, targetSlug) {
         saveProgress();
         console.log(`\n  ${prefix} 完了: 発見:${labelFound}件 / 更新:${labelUpdated}件`);
     }
+
+    // FTS5再構築 + トリガー復元
+    console.log('\n  FTS5インデックス再構築中...');
+    await rebuildFts5(clients.fanza);
 
     const afterResult = await clients.fanza.execute(
         "SELECT COUNT(*) as c FROM products WHERE actresses IS NULL OR actresses = ''"

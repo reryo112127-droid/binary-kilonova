@@ -14,6 +14,19 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
 
+    // Cloudflare Cache API — エッジでDBクエリ結果を共有キャッシュ
+    const cfCache = typeof caches !== 'undefined' ? caches.default : null;
+    let cfCacheKey: Request | null = null;
+    if (cfCache) {
+        const normUrl = new URL(request.url);
+        const sorted = Array.from(normUrl.searchParams.entries())
+            .sort(([a], [b]) => a.localeCompare(b));
+        normUrl.search = new URLSearchParams(sorted).toString();
+        cfCacheKey = new Request(normUrl.toString());
+        const cfHit = await cfCache.match(cfCacheKey);
+        if (cfHit) return cfHit as unknown as NextResponse;
+    }
+
     // フィルターなし・offset=0 のみ静的JSONを使用
     const noFilter = !searchParams.get('q') && !searchParams.get('genre') && !searchParams.get('actress')
         && !searchParams.get('maker') && !searchParams.get('fromDate') && !searchParams.get('source')
@@ -161,7 +174,6 @@ export async function GET(request: NextRequest) {
         const args: (string | number)[] = [];
 
         if (q) {
-            // FTS5 trigram は3文字以上必要。短いキーワードは LIKE にフォールバック
             if (q.length >= 3) {
                 const qMatch = `{title actresses} : "${esc5(q)}"`;
                 conditions.push(`(${FTS_IN} OR product_id LIKE ?)`);
@@ -173,7 +185,6 @@ export async function GET(request: NextRequest) {
         }
         if (genre) {
             // カンマ区切りで複数ジャンルOR対応
-            // FTS5 trigram は3文字以上必要。短いジャンル名は LIKE にフォールバック
             const genreList = genre.split(',').map(s => s.trim()).filter(Boolean);
             if (genreList.length > 0) {
                 const longGenres = genreList.filter(g => g.length >= 3);
@@ -192,8 +203,15 @@ export async function GET(request: NextRequest) {
             }
         }
         if (maker) {
-            conditions.push('maker LIKE ?');
-            args.push(`%${maker}%`);
+            if (isMgs) {
+                // MGS: maker列にブランド名が入っている
+                conditions.push('maker LIKE ?');
+                args.push(`%${maker}%`);
+            } else {
+                // FANZA: maker列は親会社名、label列がブランド名 → 両方チェック
+                conditions.push('(label LIKE ? OR maker LIKE ?)');
+                args.push(`%${maker}%`, `%${maker}%`);
+            }
         }
         if (label) {
             conditions.push('label LIKE ?');
@@ -210,7 +228,6 @@ export async function GET(request: NextRequest) {
             args.push(`%${excludeLabel}%`);
         }
         if (actress) {
-            // FTS5 trigram は3文字以上必要。短い名前は LIKE にフォールバック
             const longActresses = actressList.filter(a => a.length >= 3);
             const shortActresses = actressList.filter(a => a.length < 3);
             const actSubConds: string[] = [];
@@ -249,11 +266,8 @@ export async function GET(request: NextRequest) {
             args.push(today);
         }
         if (sort === 'new') {
-            // 直近2週間の配信済み作品のみ
-            const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            // 配信済み作品のみ（予約作品を除く）
             conditions.push("sale_start_date IS NOT NULL");
-            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') >= ?" : "SUBSTR(sale_start_date, 1, 10) >= ?");
-            args.push(twoWeeksAgo);
             conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') <= ?" : "SUBSTR(sale_start_date, 1, 10) <= ?");
             args.push(today);
         }
@@ -298,10 +312,7 @@ export async function GET(request: NextRequest) {
         if (vrOnly && !isMgs) {
             conditions.push('vr_flag = 1');
         }
-        if (sort === 'discount' && isMgs) {
-            conditions.push('1=0'); // MGSにはセール情報なし
-        }
-        if (!isMgs && (sort === 'discount' || minDiscount > 0)) {
+        if (sort === 'discount' || minDiscount > 0) {
             const threshold = minDiscount > 0 ? minDiscount : 1;
             conditions.push('discount_pct >= ?');
             args.push(threshold);
@@ -314,8 +325,9 @@ export async function GET(request: NextRequest) {
     }
 
     function buildOrderBy(isMgs: boolean) {
-        if (sort === 'new') return 'ORDER BY sale_start_date DESC';          // 配信日が新しい順
-        if (sort === 'pre-order') return isMgs ? 'ORDER BY REPLACE(sale_start_date,\'/\',\'-\') DESC' : 'ORDER BY SUBSTR(sale_start_date,1,10) DESC';  // 配信日が遠い順
+        // MGSは YYYY/MM/DD 形式のため REPLACE で正規化 → 関数インデックス idx_sale_date_norm が効く
+        if (sort === 'new') return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY sale_start_date DESC';
+        if (sort === 'pre-order') return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY SUBSTR(sale_start_date,1,10) DESC';
         if (sort === 'random') return 'ORDER BY RANDOM()';
         if (sort === 'discount') return 'ORDER BY discount_pct DESC';         // 割引率が高い順
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';
@@ -331,7 +343,7 @@ export async function GET(request: NextRequest) {
                          ${isMgs ? 'wish_count,' : '0 AS wish_count,'}
                          genres, maker, duration_min, sale_start_date,
                          sample_video_url,
-                         ${isMgs ? '0 AS discount_pct, NULL AS list_price, NULL AS current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag, NULL AS sale_end_date' : 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag, 0) AS vr_flag, sale_end_date'}
+                         ${isMgs ? 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag, sale_end_date' : 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag, 0) AS vr_flag, sale_end_date'}
                          FROM products ${where} ${orderBy} LIMIT ${perLimit} OFFSET ${perOffset}`;
 
             const result = await client.execute({ sql, args });
@@ -370,5 +382,14 @@ export async function GET(request: NextRequest) {
     const result = combined.slice(0, limit);
     const cacheKey = (request as NextRequest & { _cacheKey?: string })._cacheKey;
     if (cacheKey) setCached(cacheKey, result);
+
+    // CF Cache API に保存（5分TTL）
+    if (cfCache && cfCacheKey) {
+        const cfResponse = new Response(JSON.stringify(result), {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
+        });
+        await cfCache.put(cfCacheKey, cfResponse);
+    }
+
     return NextResponse.json(result, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(60, 300) } });
 }
