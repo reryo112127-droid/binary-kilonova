@@ -195,6 +195,10 @@ async function main() {
             const { products } = parseSearchPage(html);
 
             if (products.length === 0) {
+                if (currentPage === 1) {
+                    // page 1 が空 = ブロック・メンテ・認証エラーの可能性
+                    throw new Error('ページ1の商品取得が0件 (ブロック・メンテ・認証エラーの可能性)');
+                }
                 console.log('  [終了] 商品なし');
                 break;
             }
@@ -296,6 +300,15 @@ async function main() {
         }
     } catch (error) {
         console.error(`\n[エラー] ${error.message}`);
+        // page 1 取得失敗はCIで致命的 → Discord通知後にexit 1
+        if (IS_CI && error.message.includes('ページ1の商品取得が0件')) {
+            await sendDiscord([
+                `🚨 **MGS動画 日次更新 失敗** (${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })})`,
+                `❌ MGSサイトへのアクセス失敗: ${error.message}`,
+                'GitHub ActionsのIPがMGSにブロックされている可能性があります。ローカルで手動実行してください: `CI=true node scripts/phase3_daily_update.js`',
+            ].join('\n'));
+            process.exit(1);
+        }
     } finally {
         if (!IS_CI) db.save();
 
