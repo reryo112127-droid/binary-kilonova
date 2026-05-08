@@ -108,7 +108,10 @@ export async function GET(
         current_price: currentPrice,
         sale_end_date: saleEndDate,
         actresses: filterActresses(
-            (primary.actresses as string | null) || null,
+            // MGS優先だが空の場合はFANZA側(AVWIKI補完済み)にフォールバック
+            (mgsProduct?.actresses as string | null)
+            || (fanzaProduct?.actresses as string | null)
+            || null,
             (primary.genres as string | null) || null,
             (primary.maker as string | null) || null
         ),
