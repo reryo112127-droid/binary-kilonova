@@ -56,14 +56,6 @@ function looksLikeDescription(name: string): boolean {
     return false;
 }
 
-// 「名前 + 年齢 + 職業」形式（例: "比奈 21歳 歯科医師"）から名前部分を抽出
-function extractNameFromDescription(entry: string): string | null {
-    // "名前 数字歳" の先頭トークンを名前として抽出
-    const m = entry.match(/^(\S+)\s+\d+歳/);
-    if (m && m[1].length >= 2) return m[1];
-    return null;
-}
-
 export function filterActresses(actressesStr: string | null, genres: string | null, maker: string | null): string | null {
     if (!actressesStr) return null;
 
@@ -78,8 +70,8 @@ export function filterActresses(actressesStr: string | null, genres: string | nu
         const processed = entries.map(entry => {
             // known女優はそのまま
             if (knownSet.has(entry)) return entry;
-            // 説明文形式 → 「名前 年齢 職業」パターンなら名前部分だけ抽出、それ以外はnull
-            if (looksLikeDescription(entry)) return extractNameFromDescription(entry);
+            // 説明文形式（役名・年齢・職業など）→ 特定できないためnull
+            if (looksLikeDescription(entry)) return null;
             // クリーンな名前（説明なし）はそのまま表示
             return entry;
         }).filter((a): a is string => !!a);
