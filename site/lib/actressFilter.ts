@@ -47,6 +47,8 @@ export function isAmateurWork(genres: string, maker: string): boolean {
 function looksLikeDescription(name: string): boolean {
     // 年齢パターン: 「23歳」「20歳」など
     if (/\d+歳/.test(name)) return true;
+    // 年月パターン: 「2024年1月」など（seesaawiki月別ページの誤スクレイプ対策）
+    if (/\d{4}年\d+月/.test(name)) return true;
     // 括弧パターン: 【...】や ASCII () — ※全角（）は女優の別名表記（例: Nia（伊東める））に使われるため除外
     if (/[【】\(\)]/.test(name)) return true;
     // 極端に長い名前（30文字超）は役名/説明文の可能性が高い
