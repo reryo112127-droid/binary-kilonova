@@ -29,8 +29,9 @@ const RATE_LIMIT_MS    = 1200;
 const PRICE_REFRESH_MONTHS = 12; // 直近何ヶ月分の価格を更新するか
 
 // FANZAデジタル動画のfloor一覧
-// videoa: ビデオ（一般AV）, videoc: 素人, vr: VR作品
-const FLOORS = ['videoa', 'videoc', 'vr'];
+// videoa: ビデオ（一般AV）, videoc: 素人
+// ※ vrはDMM APIのfloorパラメータとして無効(HTTP 400) → VR作品はvideoa内に含まれる
+const FLOORS = ['videoa', 'videoc'];
 
 // ---- 引数パース ----
 const args      = process.argv.slice(2);
@@ -543,14 +544,14 @@ async function main() {
             const staleCutoffStr = staleCutoff.toISOString().slice(0, 10); // YYYY-MM-DD
             try {
                 const staleResult = await turso.execute({
-                    sql: 'SELECT COUNT(*) as cnt FROM products WHERE discount_pct > 0 AND SUBSTR(sale_start_date,1,10) < ?',
+                    sql: 'SELECT COUNT(*) AS cnt FROM products WHERE discount_pct > 0 AND sale_start_date IS NOT NULL AND sale_start_date < ?',
                     args: [staleCutoffStr],
                 });
-                const staleCount = Number(staleResult.rows[0].cnt);
+                const staleCount = Number(staleResult.rows[0]?.[0] ?? staleResult.rows[0]?.cnt ?? 0);
                 if (staleCount > 0) {
                     await turso.execute({
                         sql: `UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL, updated_at=?
-                              WHERE discount_pct > 0 AND SUBSTR(sale_start_date,1,10) < ?`,
+                              WHERE discount_pct > 0 AND sale_start_date IS NOT NULL AND sale_start_date < ?`,
                         args: [new Date().toISOString(), staleCutoffStr],
                     });
                     console.log(`  🧹 スキャン窓外セール情報クリア: ${staleCount}件 (発売日 < ${staleCutoffStr})`);
