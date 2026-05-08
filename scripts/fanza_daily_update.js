@@ -2,13 +2,15 @@
  * FANZA 日次アップデートスクリプト
  *
  * 1. 予約商品取得: 明日以降にリリース予定の作品を DMM API から取得しローカルDB + Turso に追加
- * 2. 価格更新: 直近12ヶ月の既存作品の価格情報（セール検出）を更新
+ * 2. 価格更新: DB内の直近N年の全作品を cid[] 一括クエリでスキャンし差分適用
+ *    - スキャン中はDBを変更しない（空白期間なし）
+ *    - スキャン完了後: セール中→更新、非セールに変化→クリア、スキャン外の古いセール→クリア
  *
  * 実行:
- *   node scripts/fanza_daily_update.js              # デフォルト: 明日〜2ヶ月先
- *   node scripts/fanza_daily_update.js --ahead 3    # 3ヶ月先まで
+ *   node scripts/fanza_daily_update.js              # デフォルト: 直近2年
+ *   node scripts/fanza_daily_update.js --ahead 3    # 3ヶ月先まで予約商品取得
  *   node scripts/fanza_daily_update.js --no-price   # 価格更新スキップ
- *   node scripts/fanza_daily_update.js --months 72  # 価格更新を直近72ヶ月（6年）に拡大
+ *   node scripts/fanza_daily_update.js --years 3    # 価格更新を直近3年に拡大
  *   node scripts/fanza_daily_update.js --dry-run    # 件数確認のみ（DB書き込みなし）
  */
 
@@ -26,7 +28,7 @@ const DISCORD_WEBHOOK  = 'https://discord.com/api/webhooks/1485815872688885892/7
 const DB_PATH          = path.join(__dirname, '..', 'data', 'fanza.db');
 const HITS_PER_REQUEST = 100;
 const RATE_LIMIT_MS    = 1200;
-const PRICE_REFRESH_MONTHS = 12; // 直近何ヶ月分の価格を更新するか
+const PRICE_SCAN_YEARS_DEFAULT = 2; // cid[]スキャンで対象とする年数（デフォルト2年）
 
 // FANZAデジタル動画のfloor一覧
 // videoa: ビデオ（一般AV）, videoc: 素人
@@ -36,9 +38,9 @@ const FLOORS = ['videoa', 'videoc'];
 // ---- 引数パース ----
 const args      = process.argv.slice(2);
 const aheadArg  = args.indexOf('--ahead');
-const MONTHS_AHEAD = aheadArg !== -1 ? parseInt(args[aheadArg + 1], 10) : 2; // 予約商品は約1ヶ月前に登録されるため2ヶ月先まで
-const monthsArg = args.indexOf('--months');
-const PRICE_REFRESH_MONTHS_OVERRIDE = monthsArg !== -1 ? parseInt(args[monthsArg + 1], 10) : null;
+const MONTHS_AHEAD = aheadArg !== -1 ? parseInt(args[aheadArg + 1], 10) : 2;
+const yearsArg  = args.indexOf('--years');
+const PRICE_SCAN_YEARS = yearsArg !== -1 ? parseInt(args[yearsArg + 1], 10) : PRICE_SCAN_YEARS_DEFAULT;
 const DRY_RUN      = args.includes('--dry-run');
 const NO_PRICE     = args.includes('--no-price');
 const NO_PREORDER  = args.includes('--no-preorder');
@@ -271,66 +273,87 @@ async function fetchPreorders(gteDateStr, lteDateStr) {
 }
 
 // ============================================================
-//  STEP 2: 価格更新（直近12ヶ月の既存作品）— 全floor対応
+//  STEP 2: 価格更新（cid[]一括スキャン・差分適用方式）
+//
+//  流れ:
+//    1. TursoからN年以内の全product_idを取得
+//    2. 100件ずつ cid[] で DMM API に問い合わせ（両floor）
+//    3. スキャン完了後に差分適用（空白期間なし）
 // ============================================================
-async function refreshPrices() {
-    const effectiveMonths = PRICE_REFRESH_MONTHS_OVERRIDE ?? PRICE_REFRESH_MONTHS;
-    const months = getPastMonths(effectiveMonths);
-    console.log(`\n[STEP 2] 価格更新: 直近${effectiveMonths}ヶ月 (${months[0]} 〜 ${months[months.length - 1]}) floor: ${FLOORS.join(', ')}`);
+async function refreshPricesByCid(turso) {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - PRICE_SCAN_YEARS);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
 
-    // product_id → 価格情報 のマップ
-    const priceMap = new Map(); // product_id -> { listPrice, currentPrice, discountPct }
+    console.log(`\n[STEP 2] 価格更新 (cid[]方式): 直近${PRICE_SCAN_YEARS}年 (${cutoffStr} 〜 今日)`);
 
-    for (const floor of FLOORS) {
-        console.log(`  [${floor}] 価格更新中...`);
-        for (let mi = 0; mi < months.length; mi++) {
-            const ym = months[mi];
-            const { gte, lte } = getMonthRange(ym);
-            let offset = 1, monthTotal = null;
+    // 1. スキャン対象IDをTursoから取得
+    const idRows = (await turso.execute({
+        sql: 'SELECT product_id FROM products WHERE sale_start_date IS NOT NULL AND sale_start_date >= ?',
+        args: [cutoffStr],
+    })).rows;
+    const allIds = idRows.map(r => String(r.product_id));
+    console.log(`  スキャン対象: ${allIds.length.toLocaleString()}件`);
 
-            while (true) {
-                try {
-                    const { total, items } = await fetchPage(gte, lte, offset, floor);
-                    if (monthTotal === null) monthTotal = total;
-                    if (items.length === 0) break;
+    // 2. cid[]で100件ずつ両floorに問い合わせ
+    // product_id → 価格情報（セール中・非セール問わず全件）
+    const priceMap = new Map();
 
-                    for (const item of items) {
-                        const { listPrice, currentPrice, discountPct, saleEndDate } = parsePrice(item);
-                        // Best版・総集編は評価データを上書きしない（価格のみ更新）
-                        // COALESCE(null, review_count) により既存値が保持される
-                        const isBestOrCollect = /BEST|ベスト|総集編|コレクション/i.test(item.title || '');
-                        priceMap.set(item.content_id, {
-                            listPrice, currentPrice, discountPct, saleEndDate,
-                            reviewCount:   !isBestOrCollect && item.review?.count != null ? Number(item.review.count) : null,
-                            reviewAverage: !isBestOrCollect && item.review?.average != null ? parseFloat(item.review.average) : null,
-                            price_updated_at: new Date().toISOString(),
-                        });
-                    }
+    const totalBatches = Math.ceil(allIds.length / HITS_PER_REQUEST);
+    let batchDone = 0;
 
-                    if (items.length < HITS_PER_REQUEST) break;
-                    offset += HITS_PER_REQUEST;
-                    await sleep(RATE_LIMIT_MS);
-                } catch (e) {
-                    console.warn(`\n  [警告] ${floor}/${ym} 取得エラー: ${e.message}`);
-                    break;
+    for (let i = 0; i < allIds.length; i += HITS_PER_REQUEST) {
+        const chunk = allIds.slice(i, i + HITS_PER_REQUEST);
+        const now = new Date().toISOString();
+
+        for (const floor of FLOORS) {
+            try {
+                const params = new URLSearchParams({
+                    api_id:       DMM_API_ID,
+                    affiliate_id: DMM_AFFILIATE_ID,
+                    site:         'FANZA',
+                    service:      'digital',
+                    floor,
+                    hits:         String(HITS_PER_REQUEST),
+                    output:       'json',
+                });
+                chunk.forEach(id => params.append('cid[]', id));
+
+                const res = await fetch(`https://api.dmm.com/affiliate/v3/ItemList?${params}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                if (data.result?.status !== 200) continue;
+
+                for (const item of data.result.items || []) {
+                    const cid = item.content_id;
+                    if (priceMap.has(cid)) continue; // 先に見つかったfloorの結果を優先
+                    const { listPrice, currentPrice, discountPct, saleEndDate } = parsePrice(item);
+                    const isBest = /BEST|ベスト|総集編|コレクション/i.test(item.title || '');
+                    priceMap.set(cid, {
+                        listPrice, currentPrice, discountPct, saleEndDate,
+                        reviewCount:   !isBest && item.review?.count != null ? Number(item.review.count) : null,
+                        reviewAverage: !isBest && item.review?.average != null ? parseFloat(item.review.average) : null,
+                        price_updated_at: now,
+                    });
                 }
+
+                await sleep(RATE_LIMIT_MS);
+            } catch (e) {
+                console.warn(`\n  [警告] floor=${floor} offset=${i}: ${e.message}`);
             }
-
-            process.stdout.write(`  [${floor}] ${mi + 1}/${months.length} ${ym}: ${monthTotal ?? 0}件  \r`);
         }
-        console.log('');
+
+        batchDone++;
+        if (batchDone % 20 === 0) {
+            const saleCount = [...priceMap.values()].filter(v => v.discountPct > 0).length;
+            process.stdout.write(`  ${Math.min(i + HITS_PER_REQUEST, allIds.length)}/${allIds.length} 確認 セール: ${saleCount}件\r`);
+        }
     }
 
-    console.log(`  価格取得完了: ${priceMap.size.toLocaleString()} 件`);
+    const saleCount = [...priceMap.values()].filter(v => v.discountPct > 0).length;
+    console.log(`\n  スキャン完了: ${priceMap.size.toLocaleString()}件確認 / セール中: ${saleCount.toLocaleString()}件`);
 
-    // セール中の件数を集計
-    let saleCount = 0;
-    for (const v of priceMap.values()) {
-        if (v.discountPct > 0) saleCount++;
-    }
-    console.log(`  セール中: ${saleCount.toLocaleString()} 件 (割引率 > 0%)`);
-
-    return priceMap;
+    return { priceMap, cutoffStr };
 }
 
 // ============================================================
@@ -381,8 +404,7 @@ async function main() {
     console.log('  FANZA 日次アップデート');
     console.log('========================================');
     console.log(`  予約商品期間: ${gteDateStr} 〜 ${lteDateStr} (${MONTHS_AHEAD}ヶ月先まで)`);
-    const effectiveMonths = PRICE_REFRESH_MONTHS_OVERRIDE ?? PRICE_REFRESH_MONTHS;
-    console.log(`  価格更新: 直近${effectiveMonths}ヶ月${NO_PRICE ? ' [スキップ]' : ''}`);
+    console.log(`  価格更新: 直近${PRICE_SCAN_YEARS}年 (cid[]差分方式)${NO_PRICE ? ' [スキップ]' : ''}`);
     if (NO_PREORDER) console.log('  予約商品取得: [スキップ]');
     if (DRY_RUN) console.log('  [DRY RUN] DB書き込みなし');
 
@@ -394,8 +416,19 @@ async function main() {
     const shortSkipped = rawNewItems.length - newItems.length;
     if (shortSkipped > 0) console.log(`  30分未満スキップ: ${shortSkipped}件`);
 
-    // ---- STEP 2: 価格更新 ----
-    const priceMap = NO_PRICE ? new Map() : await refreshPrices();
+    // ---- STEP 2: 価格更新（Tursoが必要なためクライアントを先に作成） ----
+    const tursoUrl   = process.env.TURSO_FANZA_URL;
+    const tursoToken = process.env.TURSO_FANZA_TOKEN;
+    let scanResult = { priceMap: new Map(), cutoffStr: null };
+
+    if (!NO_PRICE && tursoUrl && tursoToken) {
+        const tursoForScan = createClient({ url: tursoUrl, authToken: tursoToken });
+        scanResult = await refreshPricesByCid(tursoForScan);
+        tursoForScan.close();
+    } else if (!NO_PRICE) {
+        console.warn('  ⚠️ TURSO_FANZA_URL/TOKEN 未設定 — 価格更新スキップ');
+    }
+    const { priceMap, cutoffStr } = scanResult;
 
     if (DRY_RUN) {
         console.log('\n[DRY RUN 完了] 書き込みなし');
@@ -482,13 +515,12 @@ async function main() {
         console.log('\n[STEP 3] CI環境 — ローカルDB スキップ');
     }
 
+    // セール件数はpriceMapから集計（CI環境ではローカルDBなし）
+    const saleCountFromScan = [...priceMap.values()].filter(v => v.discountPct > 0).length;
     console.log(`  予約商品追加: ${newCount}件 / 価格更新: ${priceUpdated.toLocaleString()}件`);
-    console.log(`  セール中: ${saleStats.cnt.toLocaleString()}件 (最大割引率: ${saleStats.max_disc ?? 0}%)`);
+    console.log(`  セール中: ${saleCountFromScan > 0 ? saleCountFromScan : saleStats.cnt}件 (最大割引率: ${saleStats.max_disc ?? 0}%)`);
 
     // ---- Turso 書き込み ----
-    const tursoUrl   = process.env.TURSO_FANZA_URL;
-    const tursoToken = process.env.TURSO_FANZA_TOKEN;
-
     if (!tursoUrl || !tursoToken) {
         console.warn('  ⚠️ TURSO_FANZA_URL/TOKEN 未設定 — Turso同期スキップ');
     } else {
@@ -535,29 +567,53 @@ async function main() {
             console.log(`\n  価格: ${tUpdated.toLocaleString()}件 Turso更新完了`);
         }
 
-        // スキャン対象外の古いセール情報をクリア
-        // sale_start_date が (12+1)ヶ月超の作品はスキャン窓に二度と入らないため削除
-        {
-            const effectiveMo = PRICE_REFRESH_MONTHS_OVERRIDE ?? PRICE_REFRESH_MONTHS;
-            const staleCutoff = new Date();
-            staleCutoff.setMonth(staleCutoff.getMonth() - (effectiveMo + 1));
-            const staleCutoffStr = staleCutoff.toISOString().slice(0, 10); // YYYY-MM-DD
+        // ---- 差分クリア ----
+        // [A] スキャン窓内でAPIに返ってこなかった作品（削除・取り扱い終了等）のセール情報をクリア
+        // [B] スキャン窓外（N年より古い）の残存セール情報をクリア
+        if (cutoffStr) {
+            const nowIso = new Date().toISOString();
             try {
+                // [A] スキャン窓内の「未返却作品」のセールクリア
+                // priceMapに含まれる作品はUPDATEで更新済み（discount_pct=0も含む）
+                // 含まれなかった作品＝APIに存在しない → セールのはずがない
+                const scannedIds = Array.from(priceMap.keys());
+                if (scannedIds.length > 0) {
+                    // 窓内でdiscount_pct>0 かつ 今回スキャンに引っかからなかった作品
+                    const inWindowOnSale = (await turso.execute({
+                        sql: 'SELECT product_id FROM products WHERE discount_pct > 0 AND sale_start_date >= ?',
+                        args: [cutoffStr],
+                    })).rows.map(r => String(r.product_id));
+
+                    const notFound = inWindowOnSale.filter(pid => !priceMap.has(pid));
+                    if (notFound.length > 0) {
+                        const CHUNK = 100;
+                        for (let i = 0; i < notFound.length; i += CHUNK) {
+                            const chunk = notFound.slice(i, i + CHUNK);
+                            const ph = chunk.map(() => '?').join(',');
+                            await turso.execute({
+                                sql: `UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL, updated_at=? WHERE product_id IN (${ph})`,
+                                args: [nowIso, ...chunk],
+                            });
+                        }
+                        console.log(`  🧹 窓内未返却セールクリア: ${notFound.length}件`);
+                    }
+                }
+
+                // [B] スキャン窓外（N年より古い）の残存セールクリア
                 const staleResult = await turso.execute({
                     sql: 'SELECT COUNT(*) AS cnt FROM products WHERE discount_pct > 0 AND sale_start_date IS NOT NULL AND sale_start_date < ?',
-                    args: [staleCutoffStr],
+                    args: [cutoffStr],
                 });
                 const staleCount = Number(staleResult.rows[0]?.[0] ?? staleResult.rows[0]?.cnt ?? 0);
                 if (staleCount > 0) {
                     await turso.execute({
-                        sql: `UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL, updated_at=?
-                              WHERE discount_pct > 0 AND sale_start_date IS NOT NULL AND sale_start_date < ?`,
-                        args: [new Date().toISOString(), staleCutoffStr],
+                        sql: `UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL, updated_at=? WHERE discount_pct > 0 AND sale_start_date IS NOT NULL AND sale_start_date < ?`,
+                        args: [nowIso, cutoffStr],
                     });
-                    console.log(`  🧹 スキャン窓外セール情報クリア: ${staleCount}件 (発売日 < ${staleCutoffStr})`);
+                    console.log(`  🧹 窓外古いセールクリア: ${staleCount}件 (発売日 < ${cutoffStr})`);
                 }
             } catch (e) {
-                console.warn('  ⚠️ 古いセールクリア失敗:', e.message);
+                console.warn('  ⚠️ 差分クリア失敗:', e.message);
             }
         }
 

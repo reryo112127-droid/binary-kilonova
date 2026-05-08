@@ -67,20 +67,40 @@ const TRIGGER_DDL = `CREATE TRIGGER IF NOT EXISTS products_au AFTER UPDATE ON pr
     VALUES (new.rowid, new.product_id, new.title, new.actresses, new.genres);
 END`;
 
+const withTimeout = (promise, ms, label) =>
+    Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout: ${label}`)), ms))]);
+
 async function managedBatchUpdate(client, statements) {
     if (statements.length === 0) return 0;
-    await client.execute('DROP TRIGGER IF EXISTS products_au');
+    // Drop trigger to avoid SQLITE_UNKNOWN from FTS5 trigger via libsql HTTP
+    try {
+        await withTimeout(client.execute('DROP TRIGGER IF EXISTS products_au'), 20000, 'DROP TRIGGER');
+    } catch (e) {
+        console.warn('  [DROP TRIGGER skipped]', e.message);
+        // Proceed anyway — if trigger is missing, updates will work; if present, may fail
+    }
     const results = await client.batch(statements, 'write');
     const updated = results.reduce((acc, r) => acc + (r.rowsAffected || 0), 0);
-    await client.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
-    await client.execute(TRIGGER_DDL);
+    // Recreate trigger (FTS5 rebuild omitted — let generate-static-cache handle it)
+    try {
+        await withTimeout(client.execute(TRIGGER_DDL), 20000, 'CREATE TRIGGER');
+    } catch (e) {
+        console.warn('  [CREATE TRIGGER skipped]', e.message);
+    }
     return updated;
 }
 
 async function rebuildFts5(client) {
-    await client.execute('DROP TRIGGER IF EXISTS products_au');
-    await client.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
-    await client.execute(TRIGGER_DDL);
+    try {
+        await withTimeout(client.execute('DROP TRIGGER IF EXISTS products_au'), 15000, 'DROP TRIGGER');
+        await withTimeout(
+            client.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')"),
+            30000, 'FTS5 rebuild'
+        );
+        await withTimeout(client.execute(TRIGGER_DDL), 15000, 'CREATE TRIGGER');
+    } catch (e) {
+        console.warn('  [rebuildFts5 error]', e.message);
+    }
 }
 
 // ========== Turso ==========
@@ -258,18 +278,90 @@ async function applyFromJsonl(clients) {
     const lines = fs.readFileSync(OUTPUT_JSONL, 'utf-8').split('\n').filter(l => l.trim());
     const entries = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
 
+    // Drop FTS5 triggers once before all batches to avoid SQLITE_UNKNOWN via libsql HTTP.
+    // FTS5 rebuild is skipped here — generate-static-cache.mjs will rebuild it on next deploy.
+    // If DROP TRIGGER fails/times out for a DB, skip ALL updates for that DB to avoid
+    // cascading timeouts from the libsql client's pending request queue.
+    console.log('  [setup] dropping FTS5 triggers...');
+    let mgsReady = false, fanzaReady = false;
+    try {
+        await withTimeout(clients.mgs.execute('DROP TRIGGER IF EXISTS products_au'), 60000, 'MGS DROP TRIGGER');
+        console.log('  [setup] MGS trigger dropped');
+        mgsReady = true;
+    } catch (e) {
+        console.warn('  [setup] MGS DROP TRIGGER failed:', e.message, '— skipping MGS updates');
+    }
+    try {
+        await withTimeout(clients.fanza.execute('DROP TRIGGER IF EXISTS products_au'), 60000, 'FANZA DROP TRIGGER');
+        console.log('  [setup] FANZA trigger dropped');
+        fanzaReady = true;
+    } catch (e) {
+        console.warn('  [setup] FANZA DROP TRIGGER failed:', e.message, '— skipping FANZA updates');
+    }
+    console.log(`  MGS updates: ${mgsReady ? 'enabled' : 'SKIPPED'} / FANZA updates: ${fanzaReady ? 'enabled' : 'SKIPPED'}\n`);
+
     const BATCH = 200;
     let totalMgs = 0, totalFanza = 0;
+    const now = new Date().toISOString();
 
     for (let i = 0; i < entries.length; i += BATCH) {
         const chunk = entries.slice(i, i + BATCH);
-        const { mgsUpdated, fanzaUpdated } = await updateDbs(clients, chunk);
-        totalMgs   += mgsUpdated;
-        totalFanza += fanzaUpdated;
+        const mgsStmts = [];
+        const fanzaStmts = [];
+
+        for (const entry of chunk) {
+            if (!entry.actresses || entry.actresses.length === 0) continue;
+            const actressStr = entry.actresses.join(', ');
+            if (entry.maker_pid) {
+                mgsStmts.push({
+                    sql:  `UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')`,
+                    args: [actressStr, now, entry.maker_pid],
+                });
+            }
+            if (entry.fanza_pid) {
+                fanzaStmts.push({
+                    sql:  `UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')`,
+                    args: [actressStr, now, entry.fanza_pid],
+                });
+            }
+        }
+
+        if (mgsReady && mgsStmts.length > 0) {
+            try {
+                const res = await withTimeout(clients.mgs.batch(mgsStmts, 'write'), 30000, 'MGS batch');
+                totalMgs += res.reduce((acc, r) => acc + (r.rowsAffected || 0), 0);
+            } catch (e) {
+                console.warn(`\n  [MGS batch ${i}] error: ${e.message}`);
+                mgsReady = false; // disable MGS on first batch failure to avoid cascading timeouts
+            }
+        }
+        if (fanzaReady && fanzaStmts.length > 0) {
+            try {
+                const res = await withTimeout(clients.fanza.batch(fanzaStmts, 'write'), 30000, 'FANZA batch');
+                totalFanza += res.reduce((acc, r) => acc + (r.rowsAffected || 0), 0);
+            } catch (e) {
+                console.warn(`\n  [FANZA batch ${i}] error: ${e.message}`);
+                fanzaReady = false; // disable FANZA on first batch failure
+            }
+        }
+
         process.stdout.write(`  ${Math.min(i + BATCH, entries.length)}/${entries.length} 処理 | MGS: ${totalMgs} FANZA: ${totalFanza}\r`);
     }
 
-    console.log(`\n✅ 適用完了 | MGS更新: ${totalMgs}件 / FANZA更新: ${totalFanza}件`);
+    // Recreate triggers after all updates
+    console.log('\n  [teardown] recreating triggers...');
+    try {
+        await withTimeout(clients.mgs.execute(TRIGGER_DDL), 20000, 'MGS CREATE TRIGGER');
+    } catch (e) {
+        console.warn('  [MGS trigger recreate skipped]', e.message);
+    }
+    try {
+        await withTimeout(clients.fanza.execute(TRIGGER_DDL), 20000, 'FANZA CREATE TRIGGER');
+    } catch (e) {
+        console.warn('  [FANZA trigger recreate skipped]', e.message);
+    }
+
+    console.log(`✅ 適用完了 | MGS更新: ${totalMgs}件 / FANZA更新: ${totalFanza}件`);
 }
 
 const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
