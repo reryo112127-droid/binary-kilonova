@@ -29,8 +29,8 @@ const RATE_LIMIT_MS    = 1200;
 const PRICE_REFRESH_MONTHS = 12; // 直近何ヶ月分の価格を更新するか
 
 // FANZAデジタル動画のfloor一覧
-// videoa: ビデオ（一般AV）, videoc: 素人
-const FLOORS = ['videoa', 'videoc'];
+// videoa: ビデオ（一般AV）, videoc: 素人, vr: VR作品
+const FLOORS = ['videoa', 'videoc', 'vr'];
 
 // ---- 引数パース ----
 const args      = process.argv.slice(2);
@@ -534,25 +534,26 @@ async function main() {
             console.log(`\n  価格: ${tUpdated.toLocaleString()}件 Turso更新完了`);
         }
 
-        // スキャン対象外（12ヶ月超）の古いセール情報をクリア
+        // スキャン対象外の古いセール情報をクリア
+        // sale_start_date が (12+1)ヶ月超の作品はスキャン窓に二度と入らないため削除
         {
             const effectiveMo = PRICE_REFRESH_MONTHS_OVERRIDE ?? PRICE_REFRESH_MONTHS;
-            const cutoff = new Date();
-            cutoff.setMonth(cutoff.getMonth() - effectiveMo);
-            const cutoffIso = cutoff.toISOString();
+            const staleCutoff = new Date();
+            staleCutoff.setMonth(staleCutoff.getMonth() - (effectiveMo + 1));
+            const staleCutoffStr = staleCutoff.toISOString().slice(0, 10); // YYYY-MM-DD
             try {
                 const staleResult = await turso.execute({
-                    sql: 'SELECT COUNT(*) as cnt FROM products WHERE discount_pct > 0 AND price_updated_at < ?',
-                    args: [cutoffIso],
+                    sql: 'SELECT COUNT(*) as cnt FROM products WHERE discount_pct > 0 AND SUBSTR(sale_start_date,1,10) < ?',
+                    args: [staleCutoffStr],
                 });
                 const staleCount = Number(staleResult.rows[0].cnt);
                 if (staleCount > 0) {
                     await turso.execute({
                         sql: `UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL, updated_at=?
-                              WHERE discount_pct > 0 AND price_updated_at < ?`,
-                        args: [new Date().toISOString(), cutoffIso],
+                              WHERE discount_pct > 0 AND SUBSTR(sale_start_date,1,10) < ?`,
+                        args: [new Date().toISOString(), staleCutoffStr],
                     });
-                    console.log(`  🧹 古いセール情報クリア: ${staleCount}件 (${effectiveMo}ヶ月スキャン対象外)`);
+                    console.log(`  🧹 スキャン窓外セール情報クリア: ${staleCount}件 (発売日 < ${staleCutoffStr})`);
                 }
             } catch (e) {
                 console.warn('  ⚠️ 古いセールクリア失敗:', e.message);
