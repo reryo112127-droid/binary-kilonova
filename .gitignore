@@ -24,10 +24,22 @@ data/fanza_actresses_raw.jsonl
 
 # ビルド出力
 site/.next/
+site/.open-next/
+site/.wrangler/
 site/tsconfig.tsbuildinfo
+.next/
+
+# ローカルDB（data/ 以外の場所）
+db/mgs.db
+mgs.db
 
 # ログ
 logs/
 
-# スクレイパーロックファイル（実行時一時ファイル）
+# スクレイパーロックファイル・デバッグ一時ファイル
 data/*.lock
+data/*.log
+data/*.html
+search_page_node.html
+scripts/fanza_review_checkpoint.json
+scripts/prefetch_mp4_progress.json

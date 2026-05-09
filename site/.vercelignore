@@ -1,0 +1,4 @@
+# Local SQLite DB files - not needed on Vercel
+data/*.db
+data/fanza.db
+data/mgs.db

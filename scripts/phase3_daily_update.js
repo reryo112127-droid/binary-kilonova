@@ -7,8 +7,10 @@
  * 更新後は Turso にも同期する。
  *
  * 使い方:
- *   node scripts/phase3_daily_update.js              # デフォルト
- *   node scripts/phase3_daily_update.js --pages 700  # 価格更新を700ページに拡大（約6年分）
+ *   node scripts/phase3_daily_update.js              # デフォルト（直近2年）
+ *   node scripts/phase3_daily_update.js --years 1    # 価格更新を直近1年に縮小
+ *   node scripts/phase3_daily_update.js --years 3    # 価格更新を直近3年に拡大
+ *   node scripts/phase3_daily_update.js --pages 700  # 価格更新を固定ページ数で指定
  *   node scripts/phase3_daily_update.js --no-preorder # 新規作品取得をスキップ
  */
 const path  = require('path');
@@ -40,12 +42,16 @@ const KNOWN_IDS_CACHE    = path.join(__dirname, '..', 'data', 'known_ids_mgs_cac
 
 const IS_CI = !!process.env.CI;
 
-// STEP2: 直近何ページ分の価格を毎日更新するか（1ページ=120件、30ページ=3600件）
-const PRICE_REFRESH_PAGES = 30;
+// STEP2: 1ページ=120件
+const _ITEMS_PER_PAGE = 120;
+const ITEMS_PER_YEAR_APPROX = 12000; // MGS年間新作数の概算（安全マージン込み）
 
 // ---- 引数パース ----
 const _args = process.argv.slice(2);
 const _pagesIdx = _args.indexOf('--pages');
+const _yearsIdx = _args.indexOf('--years');
+const PRICE_SCAN_YEARS = _yearsIdx !== -1 ? parseInt(_args[_yearsIdx + 1], 10) : 2; // デフォルト2年
+const PRICE_REFRESH_PAGES = Math.ceil(ITEMS_PER_YEAR_APPROX * PRICE_SCAN_YEARS / _ITEMS_PER_PAGE);
 const PRICE_REFRESH_PAGES_OVERRIDE = _pagesIdx !== -1 ? parseInt(_args[_pagesIdx + 1], 10) : null;
 const NO_PREORDER = _args.includes('--no-preorder');
 
@@ -365,7 +371,7 @@ async function main() {
         let saleCount = 0;
         let step2Error = null;
         try {
-            console.log(`[STEP 2] 価格更新: 直近${effectivePages}ページ (${effectivePages * ITEMS_PER_PAGE}件)`);
+            console.log(`[STEP 2] 価格更新: 直近${PRICE_SCAN_YEARS}年 / ${effectivePages}ページ (${effectivePages * ITEMS_PER_PAGE}件)`);
             priceMap = await buildPriceMap(effectivePages);
             for (const v of priceMap.values()) {
                 if (v.discount_pct > 0) saleCount++;
@@ -434,23 +440,30 @@ async function main() {
                 const entries = Array.from(priceMap.entries());
                 const BATCH = 50;
                 let tUpdated = 0;
+                let firstBatchError = null;
                 for (let i = 0; i < entries.length; i += BATCH) {
                     const batch = entries.slice(i, i + BATCH);
                     try {
                         await turso.batch(
                             batch.map(([pid, v]) => ({
                                 sql: updateSql,
-                                args: [v.list_price, v.current_price, v.discount_pct, v.sale_end_date, v.price_updated_at, v.price_updated_at, pid],
+                                args: [v.list_price ?? null, v.current_price ?? null, v.discount_pct ?? 0, v.sale_end_date ?? null, v.price_updated_at, v.price_updated_at, pid],
                             })),
                             'write'
                         );
                         tUpdated += batch.length;
-                    } catch {
+                    } catch (batchErr) {
+                        if (!firstBatchError) {
+                            firstBatchError = batchErr.message;
+                            console.warn(`\n  [価格batch失敗 offset=${i}] ${batchErr.message}`);
+                        }
                         for (const [pid, v] of batch) {
                             try {
-                                await turso.execute({ sql: updateSql, args: [v.list_price, v.current_price, v.discount_pct, v.sale_end_date, v.price_updated_at, v.price_updated_at, pid] });
+                                await turso.execute({ sql: updateSql, args: [v.list_price ?? null, v.current_price ?? null, v.discount_pct ?? 0, v.sale_end_date ?? null, v.price_updated_at, v.price_updated_at, pid] });
                                 tUpdated++;
-                            } catch {}
+                            } catch (execErr) {
+                                if (tUpdated === 0 && i === 0) console.warn(`  [価格exec失敗] ${pid}: ${execErr.message}`);
+                            }
                         }
                     }
                     process.stdout.write(`  価格Turso更新: ${tUpdated}/${entries.length}\r`);
@@ -467,9 +480,10 @@ async function main() {
             if (tursoUrl && tursoToken) {
                 try {
                     const turso = tursoShared || createClient({ url: tursoUrl, authToken: tursoToken });
-                    const nowIso = new Date().toISOString().replace('T', ' ').slice(0, 16);
+                    // JST で比較（sale_end_date は JST 形式 "YYYY/MM/DD HH:MM"）
+                    const nowJST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 16);
                     const all = await turso.execute('SELECT product_id, sale_end_date FROM products WHERE discount_pct > 0 AND sale_end_date IS NOT NULL');
-                    const expired = all.rows.filter(r => String(r.sale_end_date || '').replace(/\//g, '-') < nowIso);
+                    const expired = all.rows.filter(r => String(r.sale_end_date || '').replace(/\//g, '-') < nowJST);
                     if (expired.length > 0) {
                         // FTS5 UPDATEトリガーを一時削除してからUPDATE（トリガーがlibsql経由でエラーになるため）
                         for (const row of expired) {

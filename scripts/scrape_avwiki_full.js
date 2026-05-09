@@ -11,6 +11,7 @@
  *   node scripts/scrape_avwiki_full.js --fetch-urls  # URLリスト取得のみ
  *   node scripts/scrape_avwiki_full.js --dry-run     # 最初の3件だけ試す
  *   node scripts/scrape_avwiki_full.js --interval 60 # インターバルを60秒に変更
+ *   node scripts/scrape_avwiki_full.js --daily       # 日次: タグサイトマップ差分から改名・SNS更新（約30〜60分）
  *
  * 進捗は data/avwiki_full_progress.json に保存（Ctrl+Cで中断→再実行で続き）
  */
@@ -29,6 +30,7 @@ const args       = process.argv.slice(2);
 const FETCH_ONLY = args.includes('--fetch-urls');
 const DRY_RUN    = args.includes('--dry-run');
 const RESCAN     = args.includes('--rescan'); // 完了済みをリセットして全女優を再スキャン
+const DAILY      = args.includes('--daily');  // 日次: タグサイトマップ差分から改名・SNS更新
 const intIdx     = args.indexOf('--interval');
 const INTERVAL_MS = intIdx !== -1 ? parseInt(args[intIdx + 1], 10) * 1000 : 600_000; // デフォルト10分
 const maxIdx     = args.indexOf('--max');
@@ -252,6 +254,117 @@ function parseActressPage(html, pageUrl) {
     return result;
 }
 
+// ========== Discord通知 ==========
+const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
+async function sendDiscord(content) {
+    try {
+        await fetch(DISCORD_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content }),
+        });
+    } catch (e) {
+        console.warn('[Discord] 通知失敗:', e.message);
+    }
+}
+function nowJST() {
+    return new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+}
+
+// ========== --daily モード: タグサイトマップ差分から改名・SNS情報を更新 ==========
+async function dailyScrapeActresses() {
+    const DAILY_CHECKED_FILE = path.join(DATA_DIR, 'avwiki_actress_daily_checked.json');
+    const WAIT_MS = 2000;
+
+    console.log('══════════════════════════════════════════');
+    console.log('  avwiki 日次女優スクレイプ (改名・SNS更新)');
+    console.log('══════════════════════════════════════════\n');
+
+    // タグサイトマップから直近更新URLを取得（lastmod が昨日以降）
+    const since = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000); // 2日以内
+    console.log(`  対象: ${since.toISOString().slice(0, 10)} 以降に更新された女優ページ\n`);
+
+    const recentUrls = [];
+    for (let i = 1; i <= 15; i++) {
+        const sitemapUrl = i === 1
+            ? 'https://av-wiki.net/post_tag-sitemap.xml'
+            : `https://av-wiki.net/post_tag-sitemap${i}.xml`;
+        try {
+            const res = await fetch(sitemapUrl, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(15000) });
+            if (!res.ok) break;
+            const text = await res.text();
+            // <url><loc>...</loc><lastmod>...</lastmod></url> を抽出
+            const entries = [...text.matchAll(/<url>\s*<loc>(.*?)<\/loc>\s*<lastmod>(.*?)<\/lastmod>/g)];
+            for (const [, loc, lastmod] of entries) {
+                if (!loc.includes('/av-actress/')) continue;
+                if (new Date(lastmod) >= since) recentUrls.push(loc);
+            }
+        } catch (e) {
+            console.warn(`  [sitemap${i}] ${e.message}`);
+            break;
+        }
+        await sleep(1000);
+    }
+    console.log(`  サイトマップ新着: ${recentUrls.length}件`);
+
+    // 既チェック済みをスキップ
+    let checkedMap = {};
+    if (fs.existsSync(DAILY_CHECKED_FILE)) {
+        checkedMap = JSON.parse(fs.readFileSync(DAILY_CHECKED_FILE, 'utf-8'));
+    }
+    const todo = recentUrls.filter(u => !checkedMap[u]);
+    console.log(`  未処理: ${todo.length}件\n`);
+
+    if (todo.length === 0) {
+        console.log('✅ 新規更新ページなし');
+        await sendDiscord(`👩 **avwiki 日次女優スクレイプ** (${nowJST()})\n新規更新ページなし`);
+        return;
+    }
+
+    const outputStream = fs.createWriteStream(OUTPUT_JSONL, { flags: 'a' });
+    let found = 0, withSns = 0, withAliases = 0, errors = 0;
+    const newChecked = {};
+
+    for (const url of todo) {
+        try {
+            const html = await fetchHtml(url);
+            if (!html) { newChecked[url] = 1; continue; }
+            const data = parseActressPage(html, url);
+
+            if (data.name) {
+                found++;
+                if (data.twitter || data.instagram || data.tiktok) withSns++;
+                if (data.aliases?.length) withAliases++;
+                outputStream.write(JSON.stringify(data) + '\n');
+
+                const parts = [data.name];
+                if (data.aliases?.length) parts.push(`別名: ${data.aliases.join('/')}`);
+                if (data.twitter) parts.push(`@${data.twitter}`);
+                process.stdout.write(`  ✓ ${parts.join(' | ')}\n`);
+            }
+        } catch (e) {
+            errors++;
+            console.warn(`  [エラー] ${url}: ${e.message}`);
+        }
+        newChecked[url] = 1;
+        await sleep(WAIT_MS);
+    }
+
+    outputStream.end();
+
+    // チェック済み保存
+    fs.writeFileSync(DAILY_CHECKED_FILE, JSON.stringify({ ...checkedMap, ...newChecked }, null, 0));
+
+    console.log(`\n✅ 日次女優スクレイプ完了`);
+    console.log(`   処理: ${todo.length}件 | 取得: ${found}件 | SNSあり: ${withSns}件 | 別名あり: ${withAliases}件`);
+    console.log(`   → build_avwiki_profiles.js で Turso に反映してください`);
+
+    await sendDiscord(
+        `👩 **avwiki 日次女優スクレイプ完了** (${nowJST()})\n` +
+        `更新女優: **${found}件** | SNSあり: **${withSns}件** | 別名あり: **${withAliases}件**`
+    );
+}
+
 // ========== 進捗管理 ==========
 function loadProgress() {
     if (fs.existsSync(PROGRESS_FILE)) {
@@ -396,6 +509,12 @@ async function main() {
     console.log('══════════════════════════════════════');
     console.log(`  間隔: ${INTERVAL_MS / 1000}秒 (${(INTERVAL_MS / 60000).toFixed(1)}分)`);
     console.log('');
+
+    // --daily モード
+    if (DAILY) {
+        await dailyScrapeActresses();
+        return;
+    }
 
     // URLリスト取得
     let urls;

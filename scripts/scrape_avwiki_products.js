@@ -21,6 +21,8 @@
  *   node scripts/scrape_avwiki_products.js --scrape-all-makers        # fanza-video/fanza-shirouto/mgstage 全790メーカーを巡回（推定5時間）
  *   node scripts/scrape_avwiki_products.js --search-by-label           # 専用ページなしレーベルを品番プレフィックスでavwiki検索して女優特定
  *   node scripts/scrape_avwiki_products.js --search-by-label pwife     # 特定プレフィックスのみ検索
+ *   node scripts/scrape_avwiki_products.js --daily                     # RSSフィード新着から出演者情報を取得してDB更新（日次用）
+ *   node scripts/scrape_avwiki_products.js --daily --count 200         # 取得件数指定（デフォルト100）
  *
  * 進捗: data/avwiki_products_progress.json
  * 出力: data/avwiki_product_map.jsonl  (女優名-品番マッピング)
@@ -54,6 +56,9 @@ const MAKER_SLUG           = makerIdx !== -1 ? args[makerIdx + 1] : null;
 const SEARCH_BY_LABEL      = args.includes('--search-by-label');
 const labelIdx             = args.indexOf('--search-by-label');
 const LABEL_SLUG           = labelIdx !== -1 && args[labelIdx + 1] && !args[labelIdx + 1].startsWith('--') ? args[labelIdx + 1] : null;
+const DAILY                = args.includes('--daily');
+const countIdx             = args.indexOf('--count');
+const DAILY_COUNT          = countIdx !== -1 ? parseInt(args[countIdx + 1], 10) : 100;
 const intIdx        = args.indexOf('--interval');
 const INTERVAL_MS   = intIdx !== -1 ? parseInt(args[intIdx + 1], 10) * 1000 : 120_000; // デフォルト2分
 
@@ -962,6 +967,125 @@ async function scrapeSearchMgs(clients) {
     );
 }
 
+// ========== --daily モード ==========
+// avwiki RSSフィードから新着product URLを取得し、出演者情報をDB更新する。
+// 毎日1回実行することで新作の女優情報を自動取得する。
+async function dailyScrape(clients, count = 100) {
+    const CHECKED_FILE = path.join(DATA_DIR, 'avwiki_daily_checked.json');
+    const WAIT_MS      = 1500;
+
+    console.log('══════════════════════════════════════════');
+    console.log('  avwiki 日次スクレイプ (新着RSSから出演者取得)');
+    console.log('══════════════════════════════════════════\n');
+
+    // 既チェック済みURL読み込み
+    let checkedUrls = {};
+    if (fs.existsSync(CHECKED_FILE)) {
+        checkedUrls = JSON.parse(fs.readFileSync(CHECKED_FILE, 'utf-8'));
+    }
+
+    // RSSフィードから新着URL取得
+    console.log(`  RSSフィード取得中 (最大${count}件)...`);
+    const rssUrl = `https://av-wiki.net/feed/?posts_per_page=${count}`;
+    const rssHtml = await fetchHtml(rssUrl);
+    if (!rssHtml) {
+        console.error('❌ RSSフィード取得失敗');
+        return;
+    }
+
+    // <link> と <pubDate> を対で抽出
+    const items = [];
+    const itemMatches = [...rssHtml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
+    for (const m of itemMatches) {
+        const block = m[1];
+        const linkM = block.match(/<link>(https:\/\/av-wiki\.net\/[^<]+)<\/link>/);
+        const dateM = block.match(/<pubDate>([^<]+)<\/pubDate>/);
+        if (linkM) {
+            items.push({
+                url:     linkM[1].trim(),
+                pubDate: dateM ? new Date(dateM[1].trim()) : new Date(0),
+            });
+        }
+    }
+    console.log(`  RSS取得: ${items.length}件`);
+
+    // 未チェックのみ絞り込み
+    const todo = items.filter(item => !checkedUrls[item.url]);
+    console.log(`  既チェック済み: ${items.length - todo.length}件 / 新規: ${todo.length}件\n`);
+
+    if (todo.length === 0) {
+        console.log('✅ 新着なし（全件チェック済み）');
+        await sendDiscord(`📰 **avwiki 日次スクレイプ** (${nowJST()})\n新着なし（全件チェック済み）`);
+        return;
+    }
+
+    let fanzaUpdated = 0, mgsUpdated = 0, found = 0, errors = 0;
+    const now = new Date().toISOString();
+    const newChecked = {};
+
+    for (const { url, pubDate } of todo) {
+        try {
+            const html = await fetchHtml(url);
+            if (!html) {
+                newChecked[url] = 1;
+                continue;
+            }
+            const data = parseProductPage(html, url);
+
+            if (data.actresses && data.actresses.length > 0) {
+                found++;
+                const actressStr = data.actresses.join(', ');
+
+                // FANZA DB更新
+                if (data.fanza_pid) {
+                    const r = await clients.fanza.execute({
+                        sql:  `UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')`,
+                        args: [actressStr, now, data.fanza_pid],
+                    });
+                    fanzaUpdated += r.rowsAffected || 0;
+                }
+                // MGS DB更新
+                if (data.maker_pid) {
+                    const r = await clients.mgs.execute({
+                        sql:  `UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')`,
+                        args: [actressStr, now, data.maker_pid],
+                    });
+                    mgsUpdated += r.rowsAffected || 0;
+                }
+
+                // product_map.jsonl にも追記
+                fs.appendFileSync(OUTPUT_JSONL, JSON.stringify(data) + '\n');
+
+                if (fanzaUpdated + mgsUpdated > 0) {
+                    process.stdout.write(`\n  [更新] ${data.fanza_pid || data.maker_pid}: ${actressStr.substring(0, 50)}\n`);
+                }
+            }
+        } catch (e) {
+            errors++;
+            console.warn(`  [エラー] ${url}: ${e.message}`);
+        }
+
+        newChecked[url] = 1;
+        process.stdout.write(`  ${Object.keys(newChecked).length}/${todo.length} | FANZA+${fanzaUpdated} MGS+${mgsUpdated}\r`);
+        await sleep(WAIT_MS);
+    }
+
+    // 進捗保存（古いエントリは30日で削除）
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const merged = { ...checkedUrls, ...newChecked };
+    // checked fileのサイズ管理（古いURLは削除しないためシンプルに上書き）
+    fs.writeFileSync(CHECKED_FILE, JSON.stringify(merged, null, 0));
+
+    console.log(`\n\n✅ 日次スクレイプ完了`);
+    console.log(`   新着: ${todo.length}件 | 女優特定: ${found}件 | FANZA更新: ${fanzaUpdated}件 | MGS更新: ${mgsUpdated}件 | エラー: ${errors}件`);
+
+    await sendDiscord(
+        `📰 **avwiki 日次スクレイプ完了** (${nowJST()})\n` +
+        `新着: **${todo.length}件** | 女優特定: **${found}件**\n` +
+        `FANZA更新: **${fanzaUpdated}件** / MGS更新: **${mgsUpdated}件**`
+    );
+}
+
 // ========== --scrape-all-makers モード ==========
 // fanza-video-index / fanza-shirouto-index / mgstage-index の全メーカーページを巡回して
 // 品番・女優名を取得し FANZA / MGS Turso DB を更新する。
@@ -973,7 +1097,7 @@ async function scrapeAllMakers(clients) {
     const INDEX_PAGES = [
         { url: 'https://av-wiki.net/fanza-video-index/',    base: 'fanza-video',    dbType: 'fanza' },
         { url: 'https://av-wiki.net/fanza-shirouto-index/', base: 'fanza-shirouto', dbType: 'fanza' },
-        { url: 'https://av-wiki.net/mgstage-index/',        base: 'mgstage',        dbType: 'mgs'   },
+        { url: 'https://av-wiki.net/mgs-index/',             base: 'mgstage',        dbType: 'mgs'   },
     ];
 
     console.log('══════════════════════════════════════════');
@@ -1523,6 +1647,12 @@ async function main() {
     if (SCRAPE_MAKER) {
         if (!MAKER_SLUG) { console.error('❌ --scrape-maker の後にメーカースラグを指定してください (例: hunter)'); process.exit(1); }
         await scrapeMakerPage(clients, MAKER_SLUG);
+        return;
+    }
+
+    // --daily モード
+    if (DAILY) {
+        await dailyScrape(clients, DAILY_COUNT);
         return;
     }
 

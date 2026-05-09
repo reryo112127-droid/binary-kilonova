@@ -687,9 +687,10 @@ async function main() {
         if (tursoUrl && tursoToken) {
             try {
                 const turso = createClient({ url: tursoUrl, authToken: tursoToken });
-                const nowIso = new Date().toISOString().replace('T', ' ').slice(0, 16);
+                // JST で比較（DMM API の sale_end_date は JST 形式 "YYYY-MM-DD HH:MM:SS"）
+                const nowJST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 16);
                 const all = await turso.execute('SELECT product_id, sale_end_date FROM products WHERE discount_pct > 0 AND sale_end_date IS NOT NULL');
-                const expired = all.rows.filter(r => String(r.sale_end_date || '') < nowIso);
+                const expired = all.rows.filter(r => String(r.sale_end_date || '') < nowJST);
                 if (expired.length > 0) {
                     // FTS5 UPDATEトリガーを一時削除してからUPDATE
                     await turso.execute('DROP TRIGGER IF EXISTS products_au');
