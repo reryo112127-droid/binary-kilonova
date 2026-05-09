@@ -16,6 +16,7 @@
  *   node scripts/scrape_avwiki_products.js --apply-videoc # videoc(素人)の女優不明作品に限定して反映
  *   node scripts/scrape_avwiki_products.js --scrape-videoc-direct # FANZAのvideoc女優不明作品のproduct_idでavwikiを直接検索
  *   node scripts/scrape_avwiki_products.js --search-all          # FANZA女優不明の全品番をavwikiで直接検索（並列5、約5〜7時間）
+ *   node scripts/scrape_avwiki_products.js --search-mgs          # MGS女優不明の全品番をavwikiで直接検索（並列5、約30分）
  *   node scripts/scrape_avwiki_products.js --scrape-maker hunter       # avwiki fanza-video/fanza-shirouto メーカーページから女優情報を一括取得
  *   node scripts/scrape_avwiki_products.js --search-by-label           # 専用ページなしレーベルを品番プレフィックスでavwiki検索して女優特定
  *   node scripts/scrape_avwiki_products.js --search-by-label pwife     # 特定プレフィックスのみ検索
@@ -44,6 +45,7 @@ const APPLY_ONLY          = args.includes('--apply');
 const APPLY_VIDEOC        = args.includes('--apply-videoc');
 const SCRAPE_VIDEOC_DIRECT = args.includes('--scrape-videoc-direct');
 const SEARCH_ALL           = args.includes('--search-all');
+const SEARCH_MGS           = args.includes('--search-mgs');
 const SCRAPE_MAKER         = args.includes('--scrape-maker');
 const makerIdx             = args.indexOf('--scrape-maker');
 const MAKER_SLUG           = makerIdx !== -1 ? args[makerIdx + 1] : null;
@@ -661,7 +663,11 @@ async function scrapeSearchAll(clients) {
     );
 
     // トリガーを一時停止（個別executeでトリガーが発火するとSQLITE_UNKNOWNになるため）
-    await clients.fanza.execute('DROP TRIGGER IF EXISTS products_au');
+    try {
+        await withTimeout(clients.fanza.execute('DROP TRIGGER IF EXISTS products_au'), 30000, 'FANZA DROP TRIGGER');
+    } catch (e) {
+        console.warn('  [警告] FANZA DROP TRIGGER 失敗:', e.message, '— 更新時にエラーが出る可能性あり');
+    }
 
     const newlyChecked = [];
     let sessionChecked = 0, sessionFound = 0, sessionUpdated = 0;
@@ -775,6 +781,182 @@ async function scrapeSearchAll(clients) {
         `✅ **avwiki 全品番検索 完了** (${nowJST()})\n` +
         `チェック: **${sessionChecked.toLocaleString()}件** | 発見: **${sessionFound.toLocaleString()}件** | 更新: **${sessionUpdated.toLocaleString()}件**\n` +
         `女優不明 残: **${remaining.rows[0].c.toLocaleString()}件**`
+    );
+}
+
+// ========== --search-mgs モード ==========
+// MGS DB 女優不明の全品番を avwiki で直接 URL 試打して女優を特定する。
+// MGS品番 (例: SIRO-5674) を小文字化して https://av-wiki.net/siro-5674/ を試す。
+async function scrapeSearchMgs(clients) {
+    const CHECKED_FILE     = path.join(DATA_DIR, 'avwiki_search_mgs_checked.txt');
+    const STATS_FILE       = path.join(DATA_DIR, 'avwiki_search_mgs_stats.json');
+    const CONCURRENCY      = 5;
+    const WAIT_HIT_MS      = 1200;
+    const WAIT_MISS_MS     = 80;
+    const SAVE_INTERVAL    = 500;
+    const DISCORD_INTERVAL = 5000;
+
+    console.log('══════════════════════════════════════════');
+    console.log('  avwiki MGS品番検索 (search-mgs)');
+    console.log('══════════════════════════════════════════\n');
+
+    const checkedSet = new Set(
+        fs.existsSync(CHECKED_FILE)
+            ? fs.readFileSync(CHECKED_FILE, 'utf-8').split('\n').filter(Boolean)
+            : []
+    );
+    let stats = { checked: 0, found: 0, updated: 0, errors: 0 };
+    if (fs.existsSync(STATS_FILE)) Object.assign(stats, JSON.parse(fs.readFileSync(STATS_FILE, 'utf-8')));
+
+    // MGS DB 女優不明 product_id 取得
+    const emptyResult = await clients.mgs.execute(
+        "SELECT product_id FROM products WHERE actresses IS NULL OR actresses = ''"
+    );
+    const allPids = emptyResult.rows.map(r => String(r.product_id));
+    console.log(`  MGS 女優不明: ${allPids.length.toLocaleString()}件`);
+
+    const todo = allPids.filter(pid => !checkedSet.has(pid));
+    console.log(`  既チェック: ${checkedSet.size.toLocaleString()}件 / 残り: ${todo.length.toLocaleString()}件`);
+    console.log(`  発見済み: ${stats.found.toLocaleString()}件 / 更新済み: ${stats.updated.toLocaleString()}件`);
+
+    const etaSec = Math.round(todo.length * 0.1 / CONCURRENCY);
+    const etaH = Math.floor(etaSec / 3600);
+    const etaM = Math.floor((etaSec % 3600) / 60);
+    console.log(`  推定時間: 約 ${etaH}時間${etaM}分 (並列${CONCURRENCY}、404=80ms想定)\n`);
+
+    if (todo.length === 0) {
+        console.log('✅ 全対象スクレイプ済み');
+        return;
+    }
+
+    await sendDiscord(
+        `🔍 **avwiki MGS品番検索 開始** (${nowJST()})\n` +
+        `対象: **${todo.length.toLocaleString()}件** (MGS女優不明全量)\n` +
+        `並列: ${CONCURRENCY} / 推定: 約${etaH}時間${etaM}分`
+    );
+
+    // トリガーを一時停止
+    try {
+        await withTimeout(clients.mgs.execute('DROP TRIGGER IF EXISTS products_au'), 30000, 'MGS DROP TRIGGER');
+    } catch (e) {
+        console.warn('  [警告] MGS DROP TRIGGER 失敗:', e.message, '— 更新時にエラーが出る可能性あり');
+    }
+
+    const newlyChecked = [];
+    let sessionChecked = 0, sessionFound = 0, sessionUpdated = 0;
+    const startTime = Date.now();
+    let taskIdx = 0;
+
+    async function flushChecked() {
+        if (newlyChecked.length === 0) return;
+        fs.appendFileSync(CHECKED_FILE, newlyChecked.join('\n') + '\n');
+        fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+        newlyChecked.length = 0;
+    }
+
+    async function worker() {
+        while (true) {
+            const idx = taskIdx++;
+            if (idx >= todo.length) break;
+
+            const pid = todo[idx];
+            // MGS品番を小文字化してURLに変換 (SIRO-5674 → siro-5674)
+            const slug = pid.toLowerCase();
+            const url = `https://av-wiki.net/${slug}/`;
+            let hit = false;
+
+            try {
+                const html = await fetchHtml(url);
+                if (html) {
+                    const pageData = parseProductPage(html, url);
+                    if (pageData?.actresses?.length > 0) {
+                        hit = true;
+                        const actressStr = pageData.actresses.join(', ');
+                        // JSONL にも追記
+                        const entry = { url, scraped_at: new Date().toISOString(), slug,
+                            actresses: pageData.actresses, maker_pid: pid,
+                            fanza_pid: pageData.fanza_pid || null,
+                            maker: pageData.maker || null, sale_date: pageData.sale_date || null };
+                        fs.appendFileSync(OUTPUT_JSONL, JSON.stringify(entry) + '\n');
+
+                        try {
+                            const res = await clients.mgs.execute({
+                                sql: "UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')",
+                                args: [actressStr, new Date().toISOString(), pid],
+                            });
+                            if (res.rowsAffected > 0) {
+                                sessionUpdated++;
+                                stats.updated++;
+                                process.stdout.write(`\n  [発見] ${pid}: ${actressStr.substring(0, 50)}\n`);
+                            }
+                        } catch (e) {
+                            stats.errors++;
+                        }
+                        sessionFound++;
+                        stats.found++;
+                    }
+                }
+            } catch (e) {
+                stats.errors++;
+            }
+
+            checkedSet.add(pid);
+            newlyChecked.push(pid);
+            sessionChecked++;
+            stats.checked++;
+
+            if (sessionChecked % 100 === 0) {
+                const elapsed = (Date.now() - startTime) / 1000;
+                const rate = sessionChecked / elapsed;
+                const remaining = todo.length - sessionChecked;
+                const etaRemSec = Math.round(remaining / rate);
+                const etaRemH = Math.floor(etaRemSec / 3600);
+                const etaRemM = Math.floor((etaRemSec % 3600) / 60);
+                process.stdout.write(
+                    `  ${sessionChecked.toLocaleString()}/${todo.length.toLocaleString()} | 発見: ${sessionFound} | ETA: 約${etaRemH}h${etaRemM}m\r`
+                );
+            }
+
+            if (newlyChecked.length >= SAVE_INTERVAL) await flushChecked();
+
+            if (sessionChecked % DISCORD_INTERVAL === 0) {
+                await flushChecked();
+                const elapsed = (Date.now() - startTime) / 1000;
+                const rate = sessionChecked / elapsed;
+                const remaining = todo.length - sessionChecked;
+                const etaRemH = Math.floor(remaining / rate / 3600);
+                const etaRemM = Math.floor((remaining / rate % 3600) / 60);
+                await sendDiscord(
+                    `🔍 **avwiki MGS品番検索 進捗** (${nowJST()})\n` +
+                    `${sessionChecked.toLocaleString()}/${todo.length.toLocaleString()}件\n` +
+                    `発見: **${sessionFound.toLocaleString()}件** | 更新: **${sessionUpdated.toLocaleString()}件**\n` +
+                    `残り: 約${etaRemH}時間${etaRemM}分`
+                );
+            }
+
+            await sleep(hit ? WAIT_HIT_MS : WAIT_MISS_MS);
+        }
+    }
+
+    await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+    await flushChecked();
+
+    // FTS5再構築 + トリガー復元
+    console.log('\n  FTS5インデックス再構築中...');
+    await rebuildFts5(clients.mgs);
+
+    const remaining = await clients.mgs.execute(
+        "SELECT COUNT(*) as c FROM products WHERE actresses IS NULL OR actresses = ''"
+    );
+
+    console.log(`\n\n✅ search-mgs 完了`);
+    console.log(`   チェック: ${sessionChecked.toLocaleString()}件 / 発見: ${sessionFound.toLocaleString()}件 / 更新: ${sessionUpdated.toLocaleString()}件`);
+    console.log(`   MGS女優不明 残: ${remaining.rows[0].c.toLocaleString()}件`);
+
+    await sendDiscord(
+        `✅ **avwiki MGS品番検索 完了** (${nowJST()})\n` +
+        `チェック: **${sessionChecked.toLocaleString()}件** | 発見: **${sessionFound.toLocaleString()}件** | 更新: **${sessionUpdated.toLocaleString()}件**\n` +
+        `MGS女優不明 残: **${remaining.rows[0].c.toLocaleString()}件**`
     );
 }
 
@@ -1121,6 +1303,12 @@ async function main() {
     // --search-all モード
     if (SEARCH_ALL) {
         await scrapeSearchAll(clients);
+        return;
+    }
+
+    // --search-mgs モード
+    if (SEARCH_MGS) {
+        await scrapeSearchMgs(clients);
         return;
     }
 
