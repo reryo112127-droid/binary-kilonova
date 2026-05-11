@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { getMgsClient, getFanzaClient } from '../lib/turso';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://lunar-zodiac.vercel.app';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Static pages

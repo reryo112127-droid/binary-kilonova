@@ -341,10 +341,7 @@ var _sampleImgs = [];
       }
       var mkEl = document.getElementById('pd-maker');
       if (mkEl) {
-        // FANZAはmaker=親会社名（複数ブランド所有）のためlabelで絞る。MGSはmakerがブランド名。
-        var makerHref = (p.source === 'fanza' && p.label)
-          ? '/search?makers=' + encodeURIComponent(p.label)
-          : (p.maker ? '/search?maker=' + encodeURIComponent(p.maker) : null);
+        var makerHref = p.maker ? '/search?makers=' + encodeURIComponent(p.maker) : null;
         mkEl.innerHTML = p.maker ? (makerHref ? '<a href="'+makerHref+'" class="hover:underline">'+esc(p.maker)+'</a>' : esc(p.maker)) : '-';
       }
       var lbEl = document.getElementById('pd-label');

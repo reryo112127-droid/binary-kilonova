@@ -5,10 +5,12 @@
  * actress_profiles.json に hobby / prefectures / imageURL を追加する。
  *
  * 使い方:
- *   node scripts/fetch_fanza_actresses.js          # 全件取得・マージ
- *   node scripts/fetch_fanza_actresses.js --dry-run # 最初の200件のみ
+ *   node scripts/fetch_fanza_actresses.js             # 全件取得・マージ（約12分）
+ *   node scripts/fetch_fanza_actresses.js --dry-run   # 最初の200件のみ
+ *   node scripts/fetch_fanza_actresses.js --recent 500 # 最新登録500件のみ（デイリー用・約6秒）
  *
  * 所要時間: 約600リクエスト × 1.2秒 = 約12分
+ *           --recent 500 の場合: 5リクエスト × 1.2秒 = 約6秒
  */
 
 const fs   = require('fs');
@@ -27,11 +29,13 @@ const HITS       = 100;
 const RATE_MS    = 1200;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-const args    = process.argv.slice(2);
-const DRY_RUN = args.includes('--dry-run');
+const args      = process.argv.slice(2);
+const DRY_RUN   = args.includes('--dry-run');
+const recentIdx = args.indexOf('--recent');
+const RECENT_N  = recentIdx !== -1 ? parseInt(args[recentIdx + 1], 10) : null; // nullなら全件
 
 // ========== API取得 ==========
-async function fetchPage(offset) {
+async function fetchPage(offset, sort) {
     const params = new URLSearchParams({
         api_id:       DMM_API_ID,
         affiliate_id: DMM_AFFILIATE_ID,
@@ -39,6 +43,8 @@ async function fetchPage(offset) {
         offset:       offset.toString(),
         output:       'json',
     });
+    // --recent モード: 最新登録順で取得
+    if (sort) params.set('sort', sort);
     const res = await fetch(`https://api.dmm.com/affiliate/v3/ActressSearch?${params}`, {
         signal: AbortSignal.timeout(30_000),
     });
@@ -53,7 +59,8 @@ async function main() {
     console.log('══════════════════════════════════════════');
     console.log('  FANZA ActressSearch 全女優取得');
     console.log('══════════════════════════════════════════');
-    if (DRY_RUN) console.log('  [DRY RUN] 最初の200件のみ');
+    if (DRY_RUN)   console.log('  [DRY RUN] 最初の200件のみ');
+    if (RECENT_N)  console.log(`  [RECENT]  最新登録 ${RECENT_N}件のみ（デイリーモード）`);
     console.log('');
 
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -65,12 +72,13 @@ async function main() {
         console.log(`[既存] actress_profiles.json: ${Object.keys(profiles).length.toLocaleString()}件`);
     }
 
-    // 生データ出力ストリーム
-    const rawStream = fs.createWriteStream(RAW_FILE, { flags: 'w' });
+    // 生データ出力ストリーム（--recent モードは追記、通常は上書き）
+    const rawStream = fs.createWriteStream(RAW_FILE, { flags: RECENT_N ? 'a' : 'w' });
 
     // 1ページ目で総数確認
-    const first = await fetchPage(1);
-    const total = DRY_RUN ? 200 : first.total;
+    const sort  = RECENT_N ? '-designation' : undefined; // 最新登録順
+    const first = await fetchPage(1, sort);
+    const total = DRY_RUN ? 200 : (RECENT_N ? Math.min(RECENT_N, first.total) : first.total);
     const totalPages = Math.ceil(total / HITS);
 
     console.log(`[API] 総女優数: ${first.total.toLocaleString()}人`);
@@ -139,7 +147,7 @@ async function main() {
     for (let offset = HITS + 1; offset <= total; offset += HITS) {
         await sleep(RATE_MS);
         try {
-            const { actresses } = await fetchPage(offset);
+            const { actresses } = await fetchPage(offset, sort);
             if (actresses.length === 0) break;
             processActresses(actresses);
             process.stdout.write(`  offset=${offset} (${fetched.toLocaleString()}/${total.toLocaleString()}) 新規:${newAdded} 更新:${updated}\r`);

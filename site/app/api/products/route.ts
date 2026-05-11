@@ -40,12 +40,23 @@ export async function GET(request: NextRequest) {
         if (file) {
             const cached = await readStaticCache<unknown[]>(file);
             if (cached && cached.length > 0) {
-                const page = cached.slice(offset, offset + limit);
-                // offset がキャッシュ範囲内なら返す（空でも終端として返す）
-                if (offset < cached.length) return NextResponse.json(
-                    page,
-                    { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
-                );
+                // キャッシュから完全な1ページ分（limit件）が取得できる場合のみ返す。
+                // 最終バッチなど limit 未満しか残っていない場合は Turso にフォールスルーして
+                // hasMore 判定が正確に行われるようにする。
+                if (offset + limit <= cached.length) {
+                    const page = cached.slice(offset, offset + limit);
+                    const res = NextResponse.json(
+                        page,
+                        { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } }
+                    );
+                    // CF Cache API にも保存して次回 Turso クエリを防ぐ
+                    if (cfCache && cfCacheKey) {
+                        await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
+                            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+                        }));
+                    }
+                    return res;
+                }
             }
         }
     }
@@ -58,10 +69,18 @@ export async function GET(request: NextRequest) {
             const filtered = minD > 0
                 ? (saleCached as Array<Record<string, unknown>>).filter(p => Number(p.discount_pct) >= minD)
                 : saleCached;
-            return NextResponse.json(
-                filtered.slice(0, limit),
-                { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
+            const page = filtered.slice(0, limit);
+            const res = NextResponse.json(
+                page,
+                { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } }
             );
+            // CF Cache API にも保存
+            if (cfCache && cfCacheKey) {
+                await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+                }));
+            }
+            return res;
         }
     }
 

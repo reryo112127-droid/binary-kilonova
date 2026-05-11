@@ -5,7 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import AgeGate from '@/components/AgeGate';
 
 const SITE_NAME = 'AVコンシェルジュ';
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://lunar-zodiac.vercel.app';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 const DESCRIPTION = 'MGS動画11万件以上の作品情報を横断検索。女優・ジャンル・スリーサイズによる高精度フィルター搭載。期待度ランキング・新着・素人作品も完全網羅。';
 
 export const metadata: Metadata = {

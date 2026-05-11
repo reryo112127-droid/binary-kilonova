@@ -11,5 +11,7 @@ assets = { directory = ".open-next/assets", binding = "ASSETS" }
 "cross-fetch" = "./cf-cross-fetch-shim.js"
 
 [vars]
-# 環境変数はCloudflareダッシュボードの「Workers & Pages」→「avrankings」→「Settings」→「Variables」から設定する
+# サイトURL（サイトマップ・canonical タグで使用）
+NEXT_PUBLIC_SITE_URL = "https://avrankings.com"
+# その他の環境変数はCloudflareダッシュボードの「Workers & Pages」→「avrankings」→「Settings」→「Variables」から設定する
 # TURSO_FANZA_URL, TURSO_FANZA_TOKEN, TURSO_MGS_URL, TURSO_MGS_TOKEN

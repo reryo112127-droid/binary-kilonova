@@ -33,19 +33,25 @@ export async function GET(request: NextRequest) {
     // 日付範囲なし（デフォルト）→ 静的キャッシュから返す
     if (!fromDate && !toDate && !searchParams.get('excludeBest')) {
         const cached = await readStaticCache<unknown[]>('ranking_default_cache.json');
-        if (cached && cached.length > 0) return NextResponse.json(
-            cached.slice(0, limit),
-            { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
-        );
+        if (cached && cached.length > 0) {
+            const page = cached.slice(0, limit);
+            if (cfCache && cfCacheKey) await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+            }));
+            return NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } });
+        }
     }
 
     // 2026年デフォルトクエリは静的JSONから返す
     if (fromDate === '2026-01-01' && toDate === '2026-12-31') {
         const cached = await readStaticCache<unknown[]>('ranking_2026_cache.json');
-        if (cached && cached.length > 0) return NextResponse.json(
-            cached.slice(0, limit),
-            { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
-        );
+        if (cached && cached.length > 0) {
+            const page = cached.slice(0, limit);
+            if (cfCache && cfCacheKey) await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+            }));
+            return NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } });
+        }
     }
 
     const cacheKey = 'ranking_' + Array.from(searchParams.entries())

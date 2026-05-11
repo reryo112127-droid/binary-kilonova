@@ -51,7 +51,7 @@ async function fetchActressImageUrl(actressName: string): Promise<string | null>
     return null;
 }
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://lunar-zodiac.vercel.app';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 
 function injectSEOMeta(html: string, product: Record<string, unknown> | null, id: string, actressImageUrl: string | null): string {
     const displayId = id.toUpperCase();

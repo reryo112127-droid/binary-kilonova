@@ -83,19 +83,25 @@ export async function GET(request: NextRequest) {
     // 日付範囲なし・身体的フィルタなし → 静的キャッシュから返す
     if (!hasPhysical && !fromDate && !toDate) {
         const cached = await readStaticCache<unknown[]>('actress_ranking_default_cache.json');
-        if (cached && cached.length > 0) return NextResponse.json(
-            cached.slice(0, limit),
-            { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
-        );
+        if (cached && cached.length > 0) {
+            const page = cached.slice(0, limit);
+            if (cfCache && cfCacheKey) await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+            }));
+            return NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } });
+        }
     }
 
     // 2026年デフォルトクエリ（身体的特徴フィルタなし時のみ静的JSONを使用）
     if (!hasPhysical && fromDate === '2026-01-01' && toDate === '2026-12-31') {
         const cached = await readStaticCache<unknown[]>('actress_ranking_2026_cache.json');
-        if (cached && cached.length > 0) return NextResponse.json(
-            cached.slice(0, limit),
-            { headers: { 'Content-Type': 'application/json', ...cacheHeaders(3600, 86400) } }
-        );
+        if (cached && cached.length > 0) {
+            const page = cached.slice(0, limit);
+            if (cfCache && cfCacheKey) await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+            }));
+            return NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } });
+        }
     }
 
     const cacheKey = 'actress_ranking_' + Array.from(searchParams.entries())
