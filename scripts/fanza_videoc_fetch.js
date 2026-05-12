@@ -17,6 +17,7 @@
 
 const path = require('path');
 const { createClient } = require('@libsql/client');
+const Database = require('better-sqlite3');
 const fs = require('fs');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
@@ -26,6 +27,7 @@ const DMM_AFFILIATE_ID = process.env.DMM_AFFILIATE_ID;
 
 const DATA_DIR      = path.join(__dirname, '..', 'data');
 const PROGRESS_FILE = path.join(DATA_DIR, 'fanza_videoc_progress.json');
+const DB_PATH       = path.join(DATA_DIR, 'fanza.db');
 
 const HITS_PER_REQUEST   = 100;    // DMM API最大値
 const RATE_LIMIT_MS      = 1000;   // APIリクエスト間隔(ms)
@@ -210,6 +212,15 @@ async function tursoUpsertBatch(turso, rows) {
     }
 }
 
+// -------- ローカルDB UPSERT --------
+function localDbUpsertBatch(db, rows) {
+    const cols = ALL_COLUMNS.join(', ');
+    const vals = ALL_COLUMNS.map(c => `@${c}`).join(', ');
+    const stmt = db.prepare(`INSERT OR REPLACE INTO products (${cols}) VALUES (${vals})`);
+    const insertMany = db.transaction(rs => { for (const r of rs) stmt.run(r); });
+    insertMany(rows);
+}
+
 // -------- スキーマ確認・マイグレーション --------
 async function ensureSchema(turso) {
     // 基本スキーマ（既存でも IF NOT EXISTS で安全）
@@ -269,6 +280,20 @@ async function main() {
     });
 
     if (!DRY_RUN) await ensureSchema(turso);
+
+    // ローカルDB初期化
+    let localDb = null;
+    if (!DRY_RUN && !process.env.CI && fs.existsSync(DB_PATH)) {
+        localDb = new Database(DB_PATH);
+        // videoc 用カラム追加（古いスキーマ対応）
+        for (const sql of [
+            'ALTER TABLE products ADD COLUMN sale_end_date TEXT',
+            'ALTER TABLE products ADD COLUMN price_updated_at TEXT',
+            'ALTER TABLE products ADD COLUMN sample_video_url TEXT',
+        ]) {
+            try { localDb.prepare(sql).run(); } catch {}
+        }
+    }
 
     const countResult = await turso.execute('SELECT COUNT(*) as cnt FROM products');
     const initialCount = Number(countResult.rows[0].cnt);
@@ -336,11 +361,17 @@ async function main() {
                 await sleep(RATE_LIMIT_MS);
             }
 
-            // Turso投入
+            // Turso + ローカルDB投入
             if (monthItems.length > 0 && !DRY_RUN) {
                 process.stdout.write(`\n  Turso投入中... `);
                 await tursoUpsertBatch(turso, monthItems);
-                console.log(`${monthItems.length}件投入完了`);
+                process.stdout.write(`${monthItems.length}件`);
+                if (localDb) {
+                    process.stdout.write(` / ローカルDB投入中... `);
+                    localDbUpsertBatch(localDb, monthItems);
+                    process.stdout.write(`${monthItems.length}件`);
+                }
+                console.log(` 完了`);
             } else if (DRY_RUN && monthItems.length > 0) {
                 console.log(`\n  [DRY RUN] ${monthItems.length}件 (未書き込み)`);
             }
@@ -380,6 +411,7 @@ async function main() {
     }
 
     turso.close();
+    if (localDb) localDb.close();
 
     const finalCount = DRY_RUN ? '(dry run)' : await (async () => {
         const tc = createClient({ url: process.env.TURSO_FANZA_URL, authToken: process.env.TURSO_FANZA_TOKEN });

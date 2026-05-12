@@ -48,6 +48,8 @@ const APPLY_ONLY          = args.includes('--apply');
 const APPLY_VIDEOC        = args.includes('--apply-videoc');
 const SCRAPE_VIDEOC_DIRECT = args.includes('--scrape-videoc-direct');
 const SEARCH_ALL           = args.includes('--search-all');
+const prefixIdx            = args.indexOf('--prefix');
+const SEARCH_ALL_PREFIX    = prefixIdx !== -1 ? args[prefixIdx + 1] : null; // --search-all --prefix jul で特定ラベルのみ処理
 const SEARCH_MGS           = args.includes('--search-mgs');
 const SCRAPE_ALL_MAKERS    = args.includes('--scrape-all-makers');
 const SCRAPE_MAKER         = args.includes('--scrape-maker');
@@ -629,7 +631,9 @@ async function scrapeSearchAll(clients) {
     const DISCORD_INTERVAL = 10000;  // N件ごとにDiscord通知
 
     console.log('══════════════════════════════════════════');
-    console.log('  avwiki 全品番検索 (search-all)');
+    console.log(SEARCH_ALL_PREFIX
+        ? `  avwiki 全品番検索 (search-all --prefix ${SEARCH_ALL_PREFIX})`
+        : '  avwiki 全品番検索 (search-all)');
     console.log('══════════════════════════════════════════\n');
 
     // 既チェック読み込み
@@ -642,10 +646,18 @@ async function scrapeSearchAll(clients) {
     if (fs.existsSync(STATS_FILE)) Object.assign(stats, JSON.parse(fs.readFileSync(STATS_FILE, 'utf-8')));
 
     // FANZA DB 女優不明 product_id 取得
-    const emptyResult = await clients.fanza.execute(
-        "SELECT product_id FROM products WHERE actresses IS NULL OR actresses = ''"
-    );
+    const emptyResult = SEARCH_ALL_PREFIX
+        ? await clients.fanza.execute({
+            sql: "SELECT product_id FROM products WHERE (actresses IS NULL OR actresses = '') AND product_id LIKE ?",
+            args: [`${SEARCH_ALL_PREFIX}%`],
+          })
+        : await clients.fanza.execute(
+            "SELECT product_id FROM products WHERE actresses IS NULL OR actresses = ''"
+          );
     const allPids = emptyResult.rows.map(r => r.product_id);
+    if (SEARCH_ALL_PREFIX) {
+        console.log(`  プレフィックスフィルター: ${SEARCH_ALL_PREFIX}`);
+    }
     console.log(`  FANZA 女優不明: ${allPids.length.toLocaleString()}件`);
 
     const todo = allPids.filter(pid => !checkedSet.has(pid));
@@ -688,6 +700,14 @@ async function scrapeSearchAll(clients) {
         newlyChecked.length = 0;
     }
 
+    // avwikiはハイフン形式(jul-777)を使用する場合がある。標準形式(jul00777)が404の場合に試みる。
+    function toHyphenUrl(productId) {
+        const m = productId.match(/^([a-z]+?)0*(\d+)$/i);
+        if (!m) return null;
+        const slug = `${m[1].toLowerCase()}-${m[2]}`;
+        return slug !== productId ? `https://av-wiki.net/${slug}` : null;
+    }
+
     async function worker() {
         while (true) {
             const idx = taskIdx++;
@@ -698,9 +718,18 @@ async function scrapeSearchAll(clients) {
             let hit = false;
 
             try {
-                const html = await fetchHtml(url);
+                let html = await fetchHtml(url);
+                let usedUrl = url;
+                // 404の場合はハイフン形式(例: jul-777)でも試みる
+                if (!html) {
+                    const hyphenUrl = toHyphenUrl(pid);
+                    if (hyphenUrl) {
+                        html = await fetchHtml(hyphenUrl);
+                        if (html) usedUrl = hyphenUrl;
+                    }
+                }
                 if (html) {
-                    const pageData = parseProductPage(html, url);
+                    const pageData = parseProductPage(html, usedUrl);
                     if (pageData?.actresses?.length > 0) {
                         hit = true;
                         const actressStr = pageData.actresses.join(', ');
@@ -1097,7 +1126,7 @@ async function scrapeAllMakers(clients) {
     const INDEX_PAGES = [
         { url: 'https://av-wiki.net/fanza-video-index/',    base: 'fanza-video',    dbType: 'fanza' },
         { url: 'https://av-wiki.net/fanza-shirouto-index/', base: 'fanza-shirouto', dbType: 'fanza' },
-        { url: 'https://av-wiki.net/mgs-index/',             base: 'mgstage',        dbType: 'mgs'   },
+        { url: 'https://av-wiki.net/mgstage/',              base: 'mgstage',        dbType: 'mgs'   },
     ];
 
     console.log('══════════════════════════════════════════');
@@ -1220,7 +1249,11 @@ async function scrapeAllMakers(clients) {
             // Turso 更新
             if (allEntries.length > 0) {
                 const stmts = allEntries.map(({ pid, actresses }) => ({
-                    sql:  "UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')",
+                    // MGS: 疑似名（素人コンテンツ）を上書きするため actress IS NULL 条件なし
+                    // FANZA: 空のもののみ更新
+                    sql: dbType === 'mgs'
+                        ? "UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ?"
+                        : "UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')",
                     args: [actresses.join(', '), now, pid],
                 }));
                 if (dbType === 'fanza') {
@@ -1286,33 +1319,48 @@ async function scrapeAllMakers(clients) {
 }
 
 // ========== --scrape-maker モード ==========
-// avwiki のメーカーカテゴリページ（例: /fanza-video/hunter/）を全ページ巡回して
-// 品番・女優名を取得し FANZA Turso DB を更新する。
+// avwiki のメーカーカテゴリページを全ページ巡回して品番・女優名を取得し Turso DB を更新する。
+// /mgstage/{slug}/ → MGS DB 更新（product_id は MGS形式 例: 390JNT-119）
+// /fanza-video/{slug}/ or /fanza-shirouto/{slug}/ → FANZA DB 更新（product_id は FANZA形式 例: hunta00246）
 async function scrapeMakerPage(clients, makerSlug) {
-    // fanza-shirouto (videoc) か fanza-video (videoa) かを自動判定
+    const cheerio = require('cheerio');
+
+    // mgstage / fanza-shirouto / fanza-video の順に試す
+    // リダイレクト先がメーカーインデックスページかを確認するため res.url を検証
     async function resolveBaseUrl(slug) {
+        // 1) MGS動画メーカーページを優先チェック
+        const mgsUrl = `https://av-wiki.net/mgstage/${slug}/`;
+        const mgsRes = await fetch(mgsUrl, { headers: { 'User-Agent': UA } });
+        if (mgsRes.ok && mgsRes.url.includes(`/mgstage/${slug}`)) {
+            return { url: mgsUrl, isMgs: true };
+        }
+        // 2) FANZA系メーカーページ
         for (const base of ['fanza-shirouto', 'fanza-video']) {
             const url = `https://av-wiki.net/${base}/${slug}/`;
             const res = await fetch(url, { headers: { 'User-Agent': UA } });
-            if (res.ok) return url;
+            // リダイレクト先が同じパスならOK（製品ページへのリダイレクトは除外）
+            if (res.ok && res.url.includes(`/${base}/${slug}`)) {
+                return { url, isMgs: false };
+            }
         }
         return null;
     }
-    const resolvedUrl = await resolveBaseUrl(makerSlug);
-    if (!resolvedUrl) { console.error(`❌ avwiki にページが見つかりません: ${makerSlug}`); return; }
-    const BASE_URL    = resolvedUrl;
-    const WAIT_MS     = 1500;
-    const cheerio     = require('cheerio');
+
+    const resolved = await resolveBaseUrl(makerSlug);
+    if (!resolved) { console.error(`❌ avwiki にメーカーページが見つかりません: ${makerSlug}`); return; }
+    const { url: BASE_URL, isMgs } = resolved;
+    const WAIT_MS = 1500;
 
     console.log('══════════════════════════════════════════');
-    console.log(`  avwiki メーカーページ スクレイプ: ${makerSlug}`);
+    console.log(`  avwiki メーカーページ スクレイプ: ${makerSlug} (${isMgs ? 'MGS' : 'FANZA'})`);
     console.log('══════════════════════════════════════════\n');
+    console.log(`  URL: ${BASE_URL}`);
 
     // ① 1ページ目取得して総ページ数を確認
     const firstHtml = await fetchHtml(BASE_URL);
     if (!firstHtml) { console.error('❌ ページ取得失敗:', BASE_URL); return; }
 
-    const $first = require('cheerio').load(firstHtml);
+    const $first = cheerio.load(firstHtml);
     const pageNums = [];
     $first('.page-numbers').each((i, el) => {
         const n = parseInt($first(el).text());
@@ -1321,24 +1369,12 @@ async function scrapeMakerPage(clients, makerSlug) {
     const totalPages = pageNums.length > 0 ? Math.max(...pageNums) : 1;
     console.log(`  総ページ数: ${totalPages}`);
 
-    // ② 品番 → FANZA product_id 変換
-    //    例: HUNTA-246 → hunta00246 / HHKL-234 → hhkl00234
-    function makerCodeToProductId(code) {
-        const m = code.match(/^([A-Z0-9]+)-(\d+)$/i);
-        if (!m) return null;
-        const label = m[1].toLowerCase();
-        const num   = m[2].padStart(5, '0');
-        return label + num;
-    }
-
-    // ③ 1ページのアーティクル情報を抽出
+    // ② 1ページのアーティクル情報を抽出
     function parseArticles(html) {
         const $ = cheerio.load(html);
         const results = [];
         $('article').each((i, el) => {
-            // FANZA product_id: cid%3D の後ろ
-            const cidMatch = $(el).html().match(/cid(?:%3D|=)([a-z0-9_]+)/i);
-            const fanzaPid = cidMatch ? cidMatch[1].toLowerCase() : null;
+            const elHtml = $(el).html() || '';
 
             // 女優名: li.actress-name
             const actresses = [];
@@ -1346,18 +1382,28 @@ async function scrapeMakerPage(clients, makerSlug) {
                 const name = $(a).text().trim().replace(/^#/, '');
                 if (name) actresses.push(name);
             });
+            if (actresses.length === 0) return;
 
-            if (fanzaPid && actresses.length > 0) {
-                results.push({ fanzaPid, actresses });
+            let pid = null;
+            if (isMgs) {
+                // MGS: mgstage.com/product/product_detail/390JNT-119/ からproduct_idを取得
+                const m = elHtml.match(/product_detail\/([A-Z0-9]+-\d+)\//i);
+                pid = m ? m[1].toUpperCase() : null;
+            } else {
+                // FANZA: cid%3D or cid= からproduct_idを取得
+                const m = elHtml.match(/cid(?:%3D|=)([a-z0-9_]+)/i);
+                pid = m ? m[1].toLowerCase() : null;
             }
+
+            if (pid) results.push({ pid, actresses });
         });
         return results;
     }
 
-    let totalFound = 0, totalUpdated = 0;
+    let totalUpdated = 0;
     const allEntries = [];
 
-    // ④ 全ページ巡回
+    // ③ 全ページ巡回
     for (let page = 1; page <= totalPages; page++) {
         const url = page === 1 ? BASE_URL : `${BASE_URL}page/${page}/`;
         try {
@@ -1375,26 +1421,39 @@ async function scrapeMakerPage(clients, makerSlug) {
 
     console.log(`\n\n  取得完了: ${allEntries.length}件 → Turso更新中...`);
 
-    // ⑤ Turso 一括更新（トリガー一時停止 → バッチ → FTS5再構築 → トリガー復元）
+    // ④ Turso 一括更新
     const now = new Date().toISOString();
-    const updateStatements = allEntries.map(({ fanzaPid, actresses }) => ({
-        sql:  "UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')",
-        args: [actresses.join(', '), now, fanzaPid],
+    const db = isMgs ? clients.mgs : clients.fanza;
+    const updateStatements = allEntries.map(({ pid, actresses }) => ({
+        // MGS: 疑似名を上書きするため actresses 条件なし / FANZA: 空のもののみ更新
+        sql: isMgs
+            ? "UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ?"
+            : "UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')",
+        args: isMgs ? [actresses.join(', '), now, pid] : [actresses.join(', '), now, pid],
     }));
-    totalUpdated = await managedBatchUpdate(clients.fanza, updateStatements);
-    totalFound   = allEntries.length;
+    totalUpdated = await managedBatchUpdate(db, updateStatements);
+    const totalFound = allEntries.length;
 
-    const remaining = await clients.fanza.execute(
+    const remaining = await db.execute(
         "SELECT COUNT(*) as c FROM products WHERE actresses IS NULL OR actresses = ''"
     );
 
+    // scrape-all-makers の進捗ファイルにも記録（重複実行防止）
+    const ALL_MAKERS_PROGRESS = path.join(DATA_DIR, 'avwiki_makers_progress.json');
+    try {
+        let prog = fs.existsSync(ALL_MAKERS_PROGRESS) ? JSON.parse(fs.readFileSync(ALL_MAKERS_PROGRESS, 'utf-8')) : { completed: [] };
+        if (!prog.completed) prog.completed = [];
+        const key = `${isMgs ? 'mgstage' : 'fanza-video'}/${makerSlug}`;
+        if (!prog.completed.includes(key)) { prog.completed.push(key); fs.writeFileSync(ALL_MAKERS_PROGRESS, JSON.stringify(prog, null, 2)); }
+    } catch (e) { /* ignore */ }
+
     console.log(`\n✅ scrape-maker (${makerSlug}) 完了`);
-    console.log(`   取得: ${allEntries.length}件 | マッチ: ${totalFound}件 | 更新: ${totalUpdated}件`);
+    console.log(`   DB: ${isMgs ? 'MGS' : 'FANZA'} | 取得: ${allEntries.length}件 | 更新: ${totalUpdated}件`);
     console.log(`   女優不明 残: ${remaining.rows[0].c.toLocaleString()}件`);
 
     await sendDiscord(
         `✅ **avwiki メーカースクレイプ完了** (${nowJST()})\n` +
-        `メーカー: **${makerSlug}** (${totalPages}ページ)\n` +
+        `メーカー: **${makerSlug}** [${isMgs ? 'MGS' : 'FANZA'}] (${totalPages}ページ)\n` +
         `取得: **${allEntries.length}件** | 更新: **${totalUpdated}件**\n` +
         `女優不明 残: **${remaining.rows[0].c.toLocaleString()}件**`
     );
