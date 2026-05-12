@@ -100,7 +100,7 @@ async function genNewProducts() {
                     AND REPLACE(sale_start_date,'/','-') <= ?
                     AND (duration_min IS NULL OR duration_min < 600)
                     AND ${bestConds}
-                  ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 500`,
+                  ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 300`,
             args: [twoWeeksAgo, today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
         fanza.execute({
@@ -111,7 +111,7 @@ async function genNewProducts() {
                     AND SUBSTR(sale_start_date,1,10) >= ?
                     AND SUBSTR(sale_start_date,1,10) <= ?
                     AND ${bestConds}
-                  ORDER BY sale_start_date DESC LIMIT 500`,
+                  ORDER BY sale_start_date DESC LIMIT 300`,
             args: [twoWeeksAgo, today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
@@ -136,7 +136,7 @@ async function genPopularProducts() {
                   FROM products
                   WHERE (duration_min IS NULL OR duration_min < 600)
                     AND ${bestConds}
-                  ORDER BY wish_count DESC LIMIT 400`,
+                  ORDER BY wish_count DESC LIMIT 200`,
             args: bestArgs,
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
         fanza.execute({
@@ -145,7 +145,7 @@ async function genPopularProducts() {
                          COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, sale_end_date
                   FROM products
                   WHERE ${bestConds}
-                  ORDER BY review_count DESC, sale_start_date DESC LIMIT 400`,
+                  ORDER BY review_count DESC, sale_start_date DESC LIMIT 200`,
             args: bestArgs,
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
@@ -172,7 +172,7 @@ async function genRanking2026() {
                   WHERE (duration_min IS NULL OR duration_min < 600)
                     AND REPLACE(sale_start_date,'/','-') >= ? AND REPLACE(sale_start_date,'/','-') <= ?
                     AND ${bestConds}
-                  ORDER BY wish_count DESC LIMIT 300`,
+                  ORDER BY wish_count DESC LIMIT 200`,
             args: [FROM, TO, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
         fanza.execute({
@@ -182,7 +182,7 @@ async function genRanking2026() {
                   FROM products
                   WHERE sale_start_date >= ? AND sale_start_date <= ?
                     AND ${bestConds}
-                  ORDER BY COALESCE(review_count,0)*COALESCE(review_average,0) DESC, sale_start_date DESC LIMIT 300`,
+                  ORDER BY COALESCE(review_count,0)*COALESCE(review_average,0) DESC, sale_start_date DESC LIMIT 200`,
             args: [FROM, TO, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
@@ -212,7 +212,7 @@ async function genRankingDefault() {
                   WHERE (duration_min IS NULL OR duration_min < 600)
                     AND REPLACE(sale_start_date,'/','-') >= ?
                     AND ${bestConds}
-                  ORDER BY wish_count DESC LIMIT 300`,
+                  ORDER BY wish_count DESC LIMIT 200`,
             args: [oneYearAgo, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
         fanza.execute({

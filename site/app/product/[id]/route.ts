@@ -3,6 +3,7 @@ import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { filterActresses } from '../../../lib/actressFilter';
+import { readStaticCacheAsync as readStaticCache } from '../../../lib/staticCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,16 +38,12 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
     return null;
 }
 
-// OGP用: 女優プロフィール画像（非露骨）を取得
+// OGP用: 女優プロフィール画像をASSETS静的JSONから取得（Tursoクエリ廃止）
 async function fetchActressImageUrl(actressName: string): Promise<string | null> {
-    const fanzaClient = getFanzaClient();
-    if (!fanzaClient || !actressName) return null;
+    if (!actressName) return null;
     try {
-        const r = await fanzaClient.execute({
-            sql: 'SELECT image_url FROM actress_profiles WHERE name = ? AND image_url IS NOT NULL LIMIT 1',
-            args: [actressName],
-        });
-        if (r.rows.length > 0) return String(r.rows[0].image_url || '');
+        const profiles = await readStaticCache<Record<string, { image_url?: string }>>('actress_profiles.json');
+        return profiles?.[actressName]?.image_url ?? null;
     } catch { /* ignore */ }
     return null;
 }

@@ -6,7 +6,7 @@ import { filterActresses } from '../../../lib/actressFilter';
 import { getCached, setCached } from '../../../lib/apiCache';
 import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../lib/staticCache';
 
-const CANDIDATE_LIMIT = 300; // スコア計算用候補数
+const CANDIDATE_LIMIT = 200; // スコア計算用候補数
 const RANKING_TTL = 30 * 60 * 1000; // 30分
 
 export const revalidate = 300; // 5分キャッシュ

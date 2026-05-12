@@ -6,7 +6,7 @@ import { filterActresses } from '../../../../lib/actressFilter';
 import { getCached, setCached } from '../../../../lib/apiCache';
 import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../../lib/staticCache';
 
-const CANDIDATE_LIMIT = 500;
+const CANDIDATE_LIMIT = 300;
 const ACTRESS_RANKING_TTL = 30 * 60 * 1000; // 30分
 
 export const revalidate = 300; // 5分キャッシュ
