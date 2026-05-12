@@ -1,6 +1,7 @@
 // NOTE: fs/path は Cloudflare Workers で使用不可のため動的 require + try-catch で使用
 import { getMgsClient, getFanzaClient } from './turso';
 import { getCached, setCached } from './apiCache';
+import { readStaticCacheAsync } from './staticCache';
 
 export type OptionItem = { name: string; count: number };
 export type SearchOptions = { makers: OptionItem[]; genres: OptionItem[]; actresses: OptionItem[] };
@@ -22,29 +23,26 @@ export async function getSearchOptions(): Promise<SearchOptions> {
     const cached = getCached<SearchOptions>(SEARCH_OPTIONS_CACHE_KEY, SEARCH_OPTIONS_TTL);
     if (cached) return cached;
 
-    // suggest_cache.json から読み込む（Turso不要）
+    // suggest_cache.json から読み込む（ASSETS経由・CF Workers/Node.js両対応）
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const fs = require('fs') as typeof import('fs');
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const path = require('path') as typeof import('path');
-        const filePath = path.join(process.cwd(), 'data', 'suggest_cache.json');
-        const raw = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as {
+        const raw = await readStaticCacheAsync<{
             actresses?: string[];
             makers?: string[];
             labels?: string[];
             genres?: string[];
-        };
+        }>('suggest_cache.json');
 
-        const actresses: OptionItem[] = (raw.actresses || []).map((name, i) => ({ name, count: Math.max(1, 10000 - i) }));
-        const makers: OptionItem[] = (raw.makers || []).map((name, i) => ({ name, count: Math.max(1, 10000 - i) }));
-        const genres: OptionItem[] = (raw.genres || [])
-            .filter(name => !EXCLUDE_GENRES.has(name))
-            .map((name, i) => ({ name, count: Math.max(1, 10000 - i) }));
+        if (raw) {
+            const actresses: OptionItem[] = (raw.actresses || []).map((name, i) => ({ name, count: Math.max(1, 10000 - i) }));
+            const makers: OptionItem[] = (raw.makers || []).map((name, i) => ({ name, count: Math.max(1, 10000 - i) }));
+            const genres: OptionItem[] = (raw.genres || [])
+                .filter(name => !EXCLUDE_GENRES.has(name))
+                .map((name, i) => ({ name, count: Math.max(1, 10000 - i) }));
 
-        const result: SearchOptions = { actresses, makers, genres };
-        setCached(SEARCH_OPTIONS_CACHE_KEY, result);
-        return result;
+            const result: SearchOptions = { actresses, makers, genres };
+            setCached(SEARCH_OPTIONS_CACHE_KEY, result);
+            return result;
+        }
     } catch (e) {
         console.error('[searchOptions] suggest_cache.json 読み込み失敗、Tursoにフォールバック:', e);
     }
@@ -121,7 +119,7 @@ export async function getContextualSearchOptions(filter: ContextualFilter): Prom
 
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
-    const LIMIT = 3000;
+    const LIMIT = 1500;
 
     // SQL条件とargsを構築
     function buildWhere(f: ContextualFilter): { where: string; args: string[] } {

@@ -1,22 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFanzaClient } from '../../../../lib/turso';
 import { getCached, setCached } from '../../../../lib/apiCache';
+import { cacheHeaders } from '../../../../lib/staticCache';
 
 const ACTRESS_TTL = 30 * 60 * 1000; // 30分
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-    _req: NextRequest,
+    req: NextRequest,
     { params }: { params: Promise<{ name: string }> }
 ) {
     const { name } = await params;
     const actressName = decodeURIComponent(name);
     const nameNoSpace = actressName.replace(/\s+/g, '');
 
+    // in-memoryキャッシュ（アイソレート内）
     const cacheKey = `actress_${actressName}`;
     const cached = getCached<object>(cacheKey, ACTRESS_TTL);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: cacheHeaders(1800, 300) });
+
+    // Cloudflare Cache API（アイソレート間共有）
+    const cfCache = typeof caches !== 'undefined' ? (caches as unknown as { default: Cache }).default : null;
+    let cfCacheKey: Request | null = null;
+    if (cfCache) {
+        const normUrl = new URL(req.url);
+        cfCacheKey = new Request(normUrl.toString());
+        const cfHit = await cfCache.match(cfCacheKey);
+        if (cfHit) return cfHit as unknown as NextResponse;
+    }
 
     const db = getFanzaClient();
     if (!db) {
@@ -75,5 +87,12 @@ export async function GET(
     };
 
     setCached(cacheKey, profile);
-    return NextResponse.json(profile);
+
+    const res = NextResponse.json(profile, { headers: cacheHeaders(1800, 300) });
+    if (cfCache && cfCacheKey) {
+        await cfCache.put(cfCacheKey, new Response(JSON.stringify(profile), {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+        }));
+    }
+    return res;
 }
