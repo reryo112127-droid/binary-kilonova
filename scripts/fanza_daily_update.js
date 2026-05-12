@@ -634,11 +634,19 @@ async function main() {
                 }
             }
 
-            // Tursoに存在しない女優のみ対象
-            const existing = await profilesDb.execute({
-                sql: `SELECT name FROM actress_profiles WHERE name IN (${[...newNames].map(() => '?').join(',')})`,
-                args: [...newNames],
-            }).then(r => new Set(r.rows.map(row => row.name))).catch(() => new Set());
+            // ローカル actress_profiles.json に存在しない女優のみ対象（Turso行読み取り削減）
+            const localProfilesPath = path.join(__dirname, '..', 'data', 'actress_profiles.json');
+            let existing = new Set();
+            if (require('fs').existsSync(localProfilesPath)) {
+                const localProfiles = JSON.parse(require('fs').readFileSync(localProfilesPath, 'utf-8'));
+                existing = new Set(Object.keys(localProfiles));
+            } else {
+                // フォールバック: Tursoから確認
+                existing = await profilesDb.execute({
+                    sql: `SELECT name FROM actress_profiles WHERE name IN (${[...newNames].map(() => '?').join(',')})`,
+                    args: [...newNames],
+                }).then(r => new Set(r.rows.map(row => row.name))).catch(() => new Set());
+            }
 
             const missing = [...newNames].filter(n => !existing.has(n));
             console.log(`  新出演女優: ${newNames.size}名 / 未取得: ${missing.length}名`);

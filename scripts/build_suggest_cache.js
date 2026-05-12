@@ -67,9 +67,18 @@ async function extractFromTurso(mgsDb, fanzaDb) {
         return [...set];
     };
 
-    // 女優名は actress_profiles テーブルから（高速）
-    const actRows  = await fanzaDb.execute("SELECT name FROM actress_profiles").then(r => r.rows);
-    const actresses = actRows.map(r => r.name).filter(Boolean).sort();
+    // 女優名はローカル actress_profiles.json から（Turso行読み取り削減）
+    let actresses = [];
+    const profilesPath = path.join(DATA_DIR, 'actress_profiles.json');
+    if (fs.existsSync(profilesPath)) {
+        const profiles = JSON.parse(fs.readFileSync(profilesPath, 'utf-8'));
+        actresses = Object.keys(profiles).filter(Boolean).sort();
+        console.log(`  actress_profiles.json: ${actresses.length.toLocaleString()}名`);
+    } else {
+        // フォールバック: Tursoから取得
+        const actRows = await fanzaDb.execute("SELECT name FROM actress_profiles").then(r => r.rows);
+        actresses = actRows.map(r => r.name).filter(Boolean).sort();
+    }
 
     // メーカー・レーベル
     const [mgsMk, fanzaMk, mgsLb, fanzaLb] = await Promise.all([

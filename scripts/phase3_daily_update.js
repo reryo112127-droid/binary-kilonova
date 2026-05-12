@@ -482,10 +482,14 @@ async function main() {
                     const turso = tursoShared || createClient({ url: tursoUrl, authToken: tursoToken });
                     // JST で比較（sale_end_date は JST 形式 "YYYY/MM/DD HH:MM"）
                     const nowJST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 16);
-                    const all = await turso.execute('SELECT product_id, sale_end_date FROM products WHERE discount_pct > 0 AND sale_end_date IS NOT NULL');
-                    const expired = all.rows.filter(r => String(r.sale_end_date || '').replace(/\//g, '-') < nowJST);
+                    // DB側でフィルタ（全件取得→JS側フィルタを廃止し行読み取り削減）
+                    // MGSの sale_end_date は "YYYY/MM/DD HH:MM" 形式なのでREPLACEで正規化
+                    const expiredRes = await turso.execute({
+                        sql: "SELECT product_id FROM products WHERE discount_pct > 0 AND sale_end_date IS NOT NULL AND REPLACE(sale_end_date, '/', '-') <= ? LIMIT 500",
+                        args: [nowJST],
+                    });
+                    const expired = expiredRes.rows;
                     if (expired.length > 0) {
-                        // FTS5 UPDATEトリガーを一時削除してからUPDATE（トリガーがlibsql経由でエラーになるため）
                         for (const row of expired) {
                             await turso.execute({
                                 sql: 'UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL WHERE product_id=?',
