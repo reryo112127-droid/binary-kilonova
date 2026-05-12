@@ -64,10 +64,15 @@ if "%DOW%"=="0" (
 )
 echo [6/8] done: %errorlevel% at %time% >> "%LOG_FILE%"
 
-REM === [7] actress_profiles.json → Turso 同期 ===
+REM === [7] actress_profiles.json → Turso 同期（日曜のみ・毎日実行するとTurso行読み取りを消費するため） ===
 echo [7/8] actress profiles sync to Turso: %time% >> "%LOG_FILE%"
-"%NODE%" "%PROJECT_DIR%\scripts\migrate_actress_profiles_to_turso.js" >> "%LOG_FILE%" 2>&1
-echo [7/8] done: %errorlevel% at %time% >> "%LOG_FILE%"
+if "%DOW%"=="0" (
+    echo [7/8] Sunday: full sync >> "%LOG_FILE%"
+    "%NODE%" "%PROJECT_DIR%\scripts\migrate_actress_profiles_to_turso.js" >> "%LOG_FILE%" 2>&1
+    echo [7/8] done: %errorlevel% at %time% >> "%LOG_FILE%"
+) else (
+    echo [7/8] skipped ^(weekday: Turso sync runs on Sunday only^) >> "%LOG_FILE%"
+)
 
 REM === [8] キャッシュ再生成 & デプロイ ===
 REM NOTE: generate-static-cache は Turso 行読み取りを大量消費するため毎日1回のみ実行

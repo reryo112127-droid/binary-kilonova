@@ -240,18 +240,16 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    // ─── Step 4: 女優プロフィール画像を取得（顔写真・非露骨）──
+    // ─── Step 4: 女優プロフィール画像を取得（ASSETSの静的JSONから・Tursoクエリ廃止）──
     const actressImageMap = new Map<string, string>();
-    if (fanzaClient && topEntries.length > 0) {
+    {
         try {
-            const names = topEntries.map(e => e.name);
-            const placeholders = names.map(() => '?').join(',');
-            const imgRes = await fanzaClient.execute({
-                sql: `SELECT name, image_url FROM actress_profiles WHERE name IN (${placeholders}) AND image_url IS NOT NULL`,
-                args: names,
-            });
-            for (const row of imgRes.rows) {
-                if (row.image_url) actressImageMap.set(String(row.name), String(row.image_url));
+            const profiles = await readStaticCache<Record<string, { image_url?: string }>>('actress_profiles.json');
+            if (profiles) {
+                for (const e of topEntries) {
+                    const img = profiles[e.name]?.image_url;
+                    if (img) actressImageMap.set(e.name, img);
+                }
             }
         } catch { /* ignore */ }
     }

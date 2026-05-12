@@ -37,6 +37,13 @@ if (!process.env.TURSO_MGS_URL || !process.env.TURSO_FANZA_URL) {
 const mgs   = createClient({ url: process.env.TURSO_MGS_URL,   authToken: process.env.TURSO_MGS_TOKEN });
 const fanza = createClient({ url: process.env.TURSO_FANZA_URL,  authToken: process.env.TURSO_FANZA_TOKEN });
 
+// ローカルの actress_profiles.json を読み込む（Turso クエリを廃止し行読み取りを削減）
+function loadLocalProfiles() {
+    const p = path.join(ROOT, '..', 'data', 'actress_profiles.json');
+    if (!fs.existsSync(p)) return {};
+    try { return JSON.parse(fs.readFileSync(p, 'utf-8')); } catch { return {}; }
+}
+
 function poster(url) {
     if (!url) return '';
     if (url.includes('pb_e_')) return url.replace('pb_e_', 'pf_e_');
@@ -237,7 +244,7 @@ async function genActressRanking2026() {
     console.log('[女優ランキング2026] 取得中...');
     const FROM = '2026-01-01', TO = '2026-12-31';
 
-    const [mgsRows, fanzaRows, profileRows] = await Promise.all([
+    const [mgsRows, fanzaRows] = await Promise.all([
         mgs.execute({
             sql: `SELECT actresses, main_image_url, wish_count, genres, maker, product_id
                   FROM products
@@ -252,10 +259,10 @@ async function genActressRanking2026() {
                   ORDER BY sale_start_date DESC LIMIT 500`,
             args: [FROM, TO],
         }).then(r => r.rows).catch(() => []),
-        fanza.execute(
-            `SELECT name, image_url FROM actress_profiles WHERE image_url IS NOT NULL LIMIT 2000`
-        ).then(r => r.rows).catch(() => []),
     ]);
+
+    // actress_profiles はローカルJSONから読む（Tursoクエリ廃止）
+    const localProfiles = loadLocalProfiles();
 
     const actressMap = new Map();
     const processRows = (rows, isMgs) => {
@@ -273,7 +280,7 @@ async function genActressRanking2026() {
     processRows(mgsRows, true);
     processRows(fanzaRows, false);
 
-    const profileMap = new Map(profileRows.map(r => [String(r.name), String(r.image_url)]));
+    const profileMap = new Map(Object.entries(localProfiles).map(([n, p]) => [n, p?.image_url]).filter(([,v]) => v));
 
     return Array.from(actressMap.values())
         .sort((a, b) => b.wishScore - a.wishScore)
@@ -292,7 +299,7 @@ async function genActressRankingDefault() {
     console.log('[女優ランキング デフォルト] 取得中...');
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-    const [mgsRows, fanzaRows, profileRows] = await Promise.all([
+    const [mgsRows, fanzaRows] = await Promise.all([
         mgs.execute({
             sql: `SELECT actresses, main_image_url, wish_count, genres, maker, product_id
                   FROM products
@@ -307,10 +314,10 @@ async function genActressRankingDefault() {
                   ORDER BY sale_start_date DESC LIMIT 500`,
             args: [oneYearAgo],
         }).then(r => r.rows).catch(() => []),
-        fanza.execute(
-            `SELECT name, image_url FROM actress_profiles WHERE image_url IS NOT NULL LIMIT 2000`
-        ).then(r => r.rows).catch(() => []),
     ]);
+
+    // actress_profiles はローカルJSONから読む（Tursoクエリ廃止）
+    const localProfiles = loadLocalProfiles();
 
     const actressMap = new Map();
     const processRows = (rows) => {
@@ -328,7 +335,7 @@ async function genActressRankingDefault() {
     processRows(mgsRows);
     processRows(fanzaRows);
 
-    const profileMap = new Map(profileRows.map(r => [String(r.name), String(r.image_url)]));
+    const profileMap = new Map(Object.entries(localProfiles).map(([n, p]) => [n, p?.image_url]).filter(([,v]) => v));
 
     return Array.from(actressMap.values())
         .sort((a, b) => b.wishScore - a.wishScore)
