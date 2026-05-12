@@ -456,11 +456,35 @@ async function genSaleProducts() {
     return combined;
 }
 
+// ── サイトマップ用URLキャッシュ ────────────────────────────────────
+async function genSitemapCache() {
+    console.log('[サイトマップキャッシュ] 取得中...');
+    const [actressRows, mgsRows, fanzaRows] = await Promise.all([
+        fanza.execute(
+            'SELECT name FROM actress_profiles WHERE image_url IS NOT NULL ORDER BY name LIMIT 5000'
+        ).then(r => r.rows).catch(() => []),
+        mgs.execute(
+            'SELECT product_id FROM products WHERE (duration_min IS NULL OR duration_min != 1) ORDER BY wish_count DESC LIMIT 5000'
+        ).then(r => r.rows).catch(() => []),
+        fanza.execute(
+            'SELECT product_id FROM products ORDER BY sale_start_date DESC LIMIT 5000'
+        ).then(r => r.rows).catch(() => []),
+    ]);
+
+    const actresses = actressRows.map(r => String(r.name));
+    const seen = new Set();
+    const products = [];
+    for (const r of mgsRows)  { const p = String(r.product_id); if (!seen.has(p)) { seen.add(p); products.push(p); } }
+    for (const r of fanzaRows) { const p = String(r.product_id); if (!seen.has(p)) { seen.add(p); products.push(p); } }
+
+    return { actresses, products };
+}
+
 // ── メイン ────────────────────────────────────────────────────────
 async function main() {
     const dataDir = path.join(ROOT, 'data');
 
-    const [newProds, popularProds, ranking2026, rankingDefault, actressRanking2026, actressRankingDefault, preorderProds, homePreorderCurated, saleProds] = await Promise.all([
+    const [newProds, popularProds, ranking2026, rankingDefault, actressRanking2026, actressRankingDefault, preorderProds, homePreorderCurated, saleProds, sitemapData] = await Promise.all([
         genNewProducts(),
         genPopularProducts(),
         genRanking2026(),
@@ -470,6 +494,7 @@ async function main() {
         genPreorderProducts(),
         genHomePreorderCurated(),
         genSaleProducts(),
+        genSitemapCache(),
     ]);
 
     const write = (filename, data) => {
@@ -491,6 +516,14 @@ async function main() {
     write('home_preorder_cache.json',             preorderProds);
     write('home_preorder_curated_cache.json',     homePreorderCurated);
     write('sale_cache.json',                      saleProds);
+
+    // サイトマップキャッシュ（オブジェクトなので件数表示を調整）
+    const sitemapPath    = path.join(dataDir, 'sitemap_cache.json');
+    const sitemapPubPath = path.join(ROOT, 'public', 'data', 'sitemap_cache.json');
+    const sitemapJson = JSON.stringify(sitemapData, null, 0);
+    fs.writeFileSync(sitemapPath, sitemapJson);
+    fs.writeFileSync(sitemapPubPath, sitemapJson);
+    console.log(`✓ sitemap_cache.json (女優:${sitemapData.actresses.length}件, 作品:${sitemapData.products.length}件)`);
 
     console.log('\n完了！次のコマンドでデプロイしてください:');
     console.log('  cd site && npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy');

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSiteClient, getFanzaClient } from '../../../../lib/turso';
+import { getSiteClient } from '../../../../lib/turso';
 import { initSiteSchema } from '../../../../lib/siteDb';
+import { readStaticCacheAsync as readStaticCache } from '../../../../lib/staticCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,21 +23,17 @@ export async function GET(request: NextRequest) {
     const names = likesRes.rows.map(r => String(r.actress_name));
     if (names.length === 0) return NextResponse.json([]);
 
-    const fanzaClient = getFanzaClient();
+    // actress_profiles はASSETSの静的JSONから取得（Tursoクエリ廃止）
     const profileMap = new Map<string, string>();
-
-    if (fanzaClient && names.length > 0) {
-        try {
-            const placeholders = names.map(() => '?').join(',');
-            const imgRes = await fanzaClient.execute({
-                sql: `SELECT name, image_url FROM actress_profiles WHERE name IN (${placeholders}) AND image_url IS NOT NULL`,
-                args: names,
-            });
-            for (const row of imgRes.rows) {
-                if (row.image_url) profileMap.set(String(row.name), String(row.image_url));
+    try {
+        const profiles = await readStaticCache<Record<string, { image_url?: string }>>('actress_profiles.json');
+        if (profiles) {
+            for (const name of names) {
+                const img = profiles[name]?.image_url;
+                if (img) profileMap.set(name, img);
             }
-        } catch { /* ignore */ }
-    }
+        }
+    } catch { /* ignore */ }
 
     const result = names.map(name => ({
         name,

@@ -689,24 +689,20 @@ async function main() {
                 const turso = createClient({ url: tursoUrl, authToken: tursoToken });
                 // JST で比較（DMM API の sale_end_date は JST 形式 "YYYY-MM-DD HH:MM:SS"）
                 const nowJST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 16);
-                const all = await turso.execute('SELECT product_id, sale_end_date FROM products WHERE discount_pct > 0 AND sale_end_date IS NOT NULL');
-                const expired = all.rows.filter(r => String(r.sale_end_date || '') < nowJST);
+                // sale_end_date <= nowJST の条件をDB側で絞る（全件取得→JS側フィルタを廃止）
+                const expiredRes = await turso.execute({
+                    sql: 'SELECT product_id FROM products WHERE discount_pct > 0 AND sale_end_date IS NOT NULL AND sale_end_date <= ? LIMIT 500',
+                    args: [nowJST],
+                });
+                const expired = expiredRes.rows;
                 if (expired.length > 0) {
-                    // FTS5 UPDATEトリガーを一時削除してからUPDATE
-                    await turso.execute('DROP TRIGGER IF EXISTS products_au');
+                    // discount_pct/price 系のみ更新 → FTS5インデックス(title/actresses/genres)は変わらないため rebuild 不要
                     for (const row of expired) {
                         await turso.execute({
                             sql: 'UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL WHERE product_id=?',
                             args: [String(row.product_id)],
                         });
                     }
-                    await turso.execute("INSERT INTO products_fts(products_fts) VALUES('rebuild')");
-                    await turso.execute(`CREATE TRIGGER IF NOT EXISTS products_au AFTER UPDATE ON products BEGIN
-                        INSERT INTO products_fts(products_fts, rowid, product_id, title, actresses, genres)
-                        VALUES('delete', old.rowid, old.product_id, old.title, old.actresses, old.genres);
-                        INSERT INTO products_fts(rowid, product_id, title, actresses, genres)
-                        VALUES (new.rowid, new.product_id, new.title, new.actresses, new.genres);
-                    END`);
                     console.log(`[Turso] 🧹 期限切れセール ${expired.length}件 クリア`);
                 } else {
                     console.log('[Turso] 期限切れセールなし');
