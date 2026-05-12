@@ -484,18 +484,18 @@ async function genSitemapCache() {
 async function main() {
     const dataDir = path.join(ROOT, 'data');
 
-    const [newProds, popularProds, ranking2026, rankingDefault, actressRanking2026, actressRankingDefault, preorderProds, homePreorderCurated, saleProds, sitemapData] = await Promise.all([
-        genNewProducts(),
-        genPopularProducts(),
-        genRanking2026(),
-        genRankingDefault(),
-        genActressRanking2026(),
-        genActressRankingDefault(),
-        genPreorderProducts(),
-        genHomePreorderCurated(),
-        genSaleProducts(),
-        genSitemapCache(),
-    ]);
+    // 順次実行 + クエリ間300ms待機（Tursoレート制限 "fetch failed" を防ぐ）
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const newProds            = await genNewProducts();            await wait(300);
+    const popularProds        = await genPopularProducts();        await wait(300);
+    const ranking2026         = await genRanking2026();            await wait(300);
+    const rankingDefault      = await genRankingDefault();         await wait(300);
+    const actressRanking2026  = await genActressRanking2026();     await wait(300);
+    const actressRankingDefault = await genActressRankingDefault(); await wait(300);
+    const preorderProds       = await genPreorderProducts();       await wait(300);
+    const homePreorderCurated = await genHomePreorderCurated();    await wait(300);
+    const saleProds           = await genSaleProducts();           await wait(300);
+    const sitemapData         = await genSitemapCache();
 
     const write = (filename, data) => {
         const p = path.join(dataDir, filename);
