@@ -527,6 +527,9 @@ async function main() {
         console.log('\n[STEP 4] Turso 同期...');
         const turso = createClient({ url: tursoUrl, authToken: tursoToken });
 
+        // FTS5トリガーをDROP（libsql HTTP越しではUPDATE時にSQL logic errorが発生するため）
+        try { await turso.execute('DROP TRIGGER IF EXISTS products_au'); } catch {}
+
         // 新作 upsert
         if (newItems.length > 0) {
             await tursoUpsertBatch(turso, newItems, allColumns);

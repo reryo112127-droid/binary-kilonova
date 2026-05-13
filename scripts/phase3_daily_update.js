@@ -405,6 +405,8 @@ async function main() {
             console.warn('[Turso] TURSO_MGS_URL/TOKEN 未設定 — スキップ');
         } else {
             const turso = tursoShared || createClient({ url: tursoUrl, authToken: tursoToken });
+            // FTS5トリガーをDROP（libsql HTTP越しのUPDATEでSQL logic errorが発生するため）
+            try { await turso.execute('DROP TRIGGER IF EXISTS products_au'); } catch {}
             // 新規作品 upsert
             if (filteredNewProducts.length > 0) {
                 console.log(`[Turso] 新規${filteredNewProducts.length}件 同期中...`);
