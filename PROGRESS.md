@@ -1,6 +1,6 @@
 # AVコンシェルジュ — 進捗記録
 
-> 最終更新: 2026-04-01
+> 最終更新: 2026-05-13
 
 ---
 
@@ -151,6 +151,37 @@
 - **素人カテゴリ (`floor=videoc`) 追加**
 - **MGS日次更新バグ修正** — スキーマ適用順序の問題解消（24日間停止を解消）
 
+### Phase 16 — DB最適化・不要データ削除・デイリーフィルター強化（2026-05-13）
+
+#### FANZA videoc（素人）DB取り込み
+- **`scripts/fanza_videoc_fetch.js`** — FANZA videoc (floor=videoc) の全作品をTurso + ローカルfanza.dbに取り込み
+  - Turso FANZA DBに追加（素人カテゴリ）
+  - ローカルfanza.dbへの書き込み追加（better-sqlite3、価格スキャン用）
+- **`scripts/scrape_avwiki_products.js`** — `fanza-shirouto-index` のコメントを外して素人系女優情報のスクレイピングを有効化
+
+#### Best/総集編/オムニバス/リマスター削除
+- **`scripts/delete_compilations.js`** 新規作成（`--dry-run`対応）
+  - FANZA Turso / MGS Turso / ローカルfanza.db から一括削除
+  - 削除件数: FANZA ~27,000件 / MGS ~5,000件 / ローカル ~27,000件
+- **デイリーフィルター追加**: `COMPILATION_RE = /BEST|ベスト|総集編|オムニバス|リマスター/i` を両日次スクリプトに追加
+
+#### 低品質メーカー削除（30メーカー）
+- **`data/blocked_makers.json`** 新規作成（30メーカーのブロックリスト）
+  - 対象: グローバルメディアエンタテインメント、小林興業、アテナ映像、ドリームステージ、アリーナエンターテインメント、メディアバンク、FAプロ、アルファーインターナショナル、シネマジック、レアルワークス、いきなりエロざんまい、VIP、JUKUJO99、ながえスタイル ほか16メーカー
+  - 削除件数: FANZA Turso 15,116件 / MGS Turso 2,169件 / ローカル 17,069件
+  - 合計削除: **34,354件**（Best/総集編分と合わせ合計 ~88,000件削除）
+- **`fanza_daily_update.js` / `phase3_daily_update.js`** — BLOCKED_MAKERSフィルターをデイリー取得時に適用
+
+#### SQL logic error 修正
+- **原因**: `products_au` トリガー（FTS5更新用）がlibsql HTTP経由のUPDATE時にエラー
+- **修正**: 両日次スクリプトの価格UPDATE前に `DROP TRIGGER IF EXISTS products_au` を追加
+
+#### デプロイ先変更確認
+- Vercel → **Cloudflare Workers** に移行済み
+- デプロイコマンド: `npm run deploy:cf:only`
+
+---
+
 ### Phase 15 — ホーム・商品詳細・動画ページ改善（2026-04-01）
 
 #### ホームページ データフィルター
@@ -231,11 +262,11 @@
 
 ## 📊 現在のデータ規模
 
-| DB | 総作品数 | 女優特定済み | サンプル動画 |
-|---|---|---|---|
-| FANZA | 448,585件 | 308,500件（68.8%） | 331,430件 |
-| MGS | 115,409件 | 54,643件（47.3%） | 109,752件 |
-| **合計** | **563,994件** | **363,143件（64.4%）** | — |
+| DB | 総作品数 | 備考 |
+|---|---|---|
+| FANZA Turso | ~361,000件 | Best/総集編/低品質メーカー削除後 |
+| MGS Turso | ~99,000件 | Best/総集編/低品質メーカー削除後 |
+| ローカルfanza.db | ~411,000件 | 価格スキャン用 |
 
 | 女優プロフィール | 件数 |
 |---|---|

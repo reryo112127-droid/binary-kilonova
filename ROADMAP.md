@@ -1,6 +1,6 @@
 # AVコンシェルジュ — ロードマップ
 
-> 作成: 2026-03-17 / 最終更新: 2026-04-18
+> 作成: 2026-03-17 / 最終更新: 2026-05-13
 
 ---
 
@@ -8,7 +8,7 @@
 
 FANZAとMGSの作品を横断検索・閲覧できる高品質なアフィリエイトサイト。
 独自スコアリングによるランキング・レビュー・いいね機能で差別化。
-Tursoによるクラウドネイティブ構成で、Vercelにデプロイして常時稼働させる。
+Tursoによるクラウドネイティブ構成で、Cloudflare Workersにデプロイして常時稼働させる。
 
 ---
 
@@ -236,19 +236,15 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
 
 | 優先 | タスク | 状態 |
 |------|--------|------|
-| 🔴 高 | **Tursoブロック解除後に静的JSON生成**（〜05/01） | ⏳ 待機中 |
-| 🔴 高 | GitHub Secrets設定（CIを稼働させる） | 未着手 |
-| 🔴 高 | Vercel環境変数設定（TURSO_SITE_URL等） | 未着手 |
-| 🔴 高 | OGP画像の非露骨化（SNS Phase A） | 未着手 |
-| 🔴 高 | Blueskyアカウント登録・`.env`設定 | 未着手 |
-| 🔴 高 | Telegram Botアカウント登録・`.env`設定 | 未着手 |
-| ⏳ 待機 | **管理画面・投稿データ動作確認**（Turso解除後 05/01〜） | 待機中 |
-| ⏳ 待機 | **fanza_daily_update.js 再実行 → sale_end_date 取得確認**（05/01〜） | 待機中 |
-| ⏳ 待機 | avwikiデータ統合（スクレイプ完了後 〜04/09） | スクレイプ中 |
-| ⏳ 待機 | avwiki品番DB反映確認（〜04/12） | スクレイプ中 |
-| 🟡 中 | セールページ実装 | 未着手 |
+| 🔴 高 | **Tursoブロック解除後に静的JSON生成**（〜06/01） | ⏳ 待機中 |
+| 🔴 高 | **管理画面・投稿データ動作確認**（Turso解除後 06/01〜） | 待機中 |
+| 🔴 高 | **fanza_daily_update.js 再実行 → sale_end_date 取得確認**（06/01〜） | 待機中 |
+| 🟡 中 | OGP画像の非露骨化（SNS Phase A） | 未着手 |
+| 🟡 中 | Blueskyアカウント登録・`.env`設定 | 未着手 |
+| 🟡 中 | Telegram Botアカウント登録・`.env`設定 | 未着手 |
 | 🟡 中 | 女優ランキングタブ追加 | 未着手 |
 | 🟡 中 | レビュー一覧を作品詳細に表示 | 未着手 |
+| ⚠️ 条件付 | **Oracle Cloud移行**（6月もTurso上限に到達した場合） | 待機中 |
 
 ---
 
@@ -256,25 +252,25 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
 
 **本番URL: https://avrankings.com**
 
-- デプロイ: `cd site && npx vercel deploy --prod --yes`
-- エイリアスが外れた場合: `npx vercel alias <deployment-url> avrankings.com`
-- プロジェクト: `avdesires-projects/lunar-zodiac`
+- デプロイ: `cd site && npm run deploy:cf:only`
+- プロジェクト: Cloudflare Workers（`wrangler.toml` 参照）
 
 ---
 
 ## 🗒️ メモ
 
 - DMM API レート制限: 1リクエスト/秒（`RATE_LIMIT_MS = 1200ms` で対応）
-- Turso 無料プラン制限: 読み取り上限は月次リセット（毎月1日）。2026-04-18現在ブロック中（解除: 2026-05-01）
+- Turso 無料プラン制限: 読み取り上限は月次リセット（毎月1日）。2026-05-13現在上限超過中（解除: 2026-06-01）
   - ブロック解除後にやること（順番通りに実行）:
     1. `node scripts/generate-static-cache.mjs` → 静的JSONキャッシュ生成
-    2. `cd site && npx vercel deploy --prod --yes` → 本番デプロイ
+    2. `cd site && npm run deploy:cf:only` → Cloudflare Workers 本番デプロイ
     3. `node scripts/fanza_daily_update.js` → sale_end_date 取得（campaign.date_end が入れば表示されるようになる）
     4. 管理画面（`/admin/x-post`）で投稿データ（出演者追加・SNS・改名）の動作確認
     5. `node scripts/x_autopost.js --dry-run` → X投稿dry-run確認
     6. `node scripts/bluesky_autopost.js --dry-run` → Bluesky投稿dry-run確認
     7. `node scripts/telegram_bot.js --mode=notify --dry-run` → Telegram投稿dry-run確認
   - ホーム・ランキング・新着など主要エンドポイントはJSONから配信されTurso読み取りゼロになる
+- **6月にTurso読み込み上限が再び到達した場合はOracle Cloud Autonomous Databaseへ移行する**（→ 下記「DB移行計画」参照）
 - `suggest_cache.json` は日次更新時に自動再生成される
 - `site/.env.local` に Turso 接続情報が入っている（Gitに含めないこと）
   - `TURSO_MGS_URL` / `TURSO_MGS_TOKEN`
@@ -282,6 +278,30 @@ Tursoによるクラウドネイティブ構成で、Vercelにデプロイして
   - `TURSO_SITE_URL` / `TURSO_SITE_TOKEN` ← サイトDB用（Vercelにも要設定）
 - GitHub Actions CI: PCオフ時も毎日10:10 JSTにFANZA+MGS日次更新が実行される
   - Secrets未設定の場合は失敗するので先に設定すること
-- avwikiスクレイパー2本が並行稼働中（タスクスケジューラ＋GitHub Actions）
-  - `scrape_avwiki_full.js`: 女優プロフィール 残2,383件（〜04/08）
-  - `scrape_avwiki_products.js`: 品番→女優マッピング 残14,995件（〜04/12）
+- avwikiスクレイパー: 完了済み
+
+---
+
+## 🗄️ DB移行計画（Turso読み込み上限が6月も到達した場合）
+
+**移行先: Oracle Cloud Autonomous Database (Always Free)**
+- 無料枠: 40GB × 2DB、CPU時間課金（行読み取り制限なし）
+- 条件: 6月のTurso上限に再び到達したら移行着手
+
+### 構成（案A: ハイブリッド）
+```
+デイリースクリプト(Node.js) → Oracle ATP（マスターDB）
+                                   ↓ 夜間エクスポート
+Cloudflare Workers ← Cloudflare D1（読み取り専用レプリカ）
+```
+- Node.js側: `oracledb` npm パッケージ（Instant Client必要）
+- CF Workers側: D1バインディング（FTS5そのまま使用可）
+- 課題: Oracle→D1の夜間同期スクリプト新規作成が必要
+
+### 作業フロー（着手時）
+1. Oracle Cloud Always Free アカウント作成・ATP プロビジョニング
+2. SQLiteスキーマをOracle用に変換（型マッピング）
+3. データ移行: ローカルfanza.db / mgs.db → Oracle ATP
+4. デイリースクリプト: `turso.execute()` → `oracledb` に書き換え
+5. Cloudflare D1 作成 + Oracle→D1 夜間同期スクリプト作成
+6. CF Workers の DB接続を Turso → D1 に切り替え
