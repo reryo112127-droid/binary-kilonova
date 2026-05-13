@@ -26,6 +26,12 @@ const DMM_AFFILIATE_ID = process.env.DMM_AFFILIATE_ID;
 const DISCORD_WEBHOOK  = 'https://discord.com/api/webhooks/1485815872688885892/78U4bkE7SNNTIMuW91ru_bJXH6D6hynnf88dYAnzkgq2hECA4gUSNa6hzq5DWquwRJYe';
 
 const DB_PATH          = path.join(__dirname, '..', 'data', 'fanza.db');
+const BLOCKED_MAKERS_PATH = path.join(__dirname, '..', 'data', 'blocked_makers.json');
+const BLOCKED_MAKERS = new Set(
+    require('fs').existsSync(BLOCKED_MAKERS_PATH)
+        ? JSON.parse(require('fs').readFileSync(BLOCKED_MAKERS_PATH, 'utf-8')).makers
+        : []
+);
 const HITS_PER_REQUEST = 100;
 const RATE_LIMIT_MS    = 1200;
 const PRICE_SCAN_YEARS_DEFAULT = 2; // cid[]スキャンで対象とする年数（デフォルト2年）
@@ -412,9 +418,20 @@ async function main() {
     const rawNewItems = NO_PREORDER ? [] : await fetchPreorders(gteDateStr, lteDateStr);
 
     // 30分未満の作品はDBに登録しない
-    const newItems = rawNewItems.filter(p => p.duration_min === null || p.duration_min >= 30);
-    const shortSkipped = rawNewItems.length - newItems.length;
+    const afterDuration = rawNewItems.filter(p => p.duration_min === null || p.duration_min >= 30);
+    const shortSkipped = rawNewItems.length - afterDuration.length;
     if (shortSkipped > 0) console.log(`  30分未満スキップ: ${shortSkipped}件`);
+
+    // Best/総集編/オムニバス/リマスターはDBに登録しない
+    const COMPILATION_RE = /BEST|ベスト|総集編|オムニバス|リマスター/i;
+    const afterCompilation = afterDuration.filter(p => !COMPILATION_RE.test(p.title || ''));
+    const compilationSkipped = afterDuration.length - afterCompilation.length;
+    if (compilationSkipped > 0) console.log(`  総集編系スキップ: ${compilationSkipped}件`);
+
+    // ブロックメーカーはDBに登録しない
+    const newItems = afterCompilation.filter(p => !BLOCKED_MAKERS.has(p.maker || ''));
+    const makerSkipped = afterCompilation.length - newItems.length;
+    if (makerSkipped > 0) console.log(`  ブロックメーカースキップ: ${makerSkipped}件`);
 
     // ---- STEP 2: 価格更新（Tursoが必要なためクライアントを先に作成） ----
     const tursoUrl   = process.env.TURSO_FANZA_URL;

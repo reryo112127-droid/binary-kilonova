@@ -37,8 +37,14 @@ async function sendDiscord(content) {
     });
 }
 
-const ACTRESS_INDEX_FILE = path.join(__dirname, '..', 'data', 'mgs_actress_index.json');
-const KNOWN_IDS_CACHE    = path.join(__dirname, '..', 'data', 'known_ids_mgs_cache.json');
+const ACTRESS_INDEX_FILE  = path.join(__dirname, '..', 'data', 'mgs_actress_index.json');
+const KNOWN_IDS_CACHE     = path.join(__dirname, '..', 'data', 'known_ids_mgs_cache.json');
+const BLOCKED_MAKERS_PATH = path.join(__dirname, '..', 'data', 'blocked_makers.json');
+const BLOCKED_MAKERS = new Set(
+    fs.existsSync(BLOCKED_MAKERS_PATH)
+        ? JSON.parse(fs.readFileSync(BLOCKED_MAKERS_PATH, 'utf-8')).makers
+        : []
+);
 
 const IS_CI = !!process.env.CI;
 
@@ -239,6 +245,10 @@ async function main() {
                 if (exists) {
                     pageKnown++;
                     consecutiveKnown++;
+                } else if (/BEST|ベスト|総集編|オムニバス|リマスター/i.test(product.title || '')) {
+                    // 総集編系はスキップ
+                } else if (BLOCKED_MAKERS.has(product.maker || '')) {
+                    // ブロックメーカーはスキップ
                 } else {
                     // 新規作品！
                     if (!IS_CI) db.upsertProductFromList(product);
@@ -395,9 +405,20 @@ async function main() {
         const tursoToken = process.env.TURSO_MGS_TOKEN;
 
         // 30分未満の作品はTursoに登録しない
-        const filteredNewProducts = newProducts.filter(p => p.duration_min === null || p.duration_min >= 30);
-        const shortSkipped = newProducts.length - filteredNewProducts.length;
+        const afterDuration = newProducts.filter(p => p.duration_min === null || p.duration_min >= 30);
+        const shortSkipped = newProducts.length - afterDuration.length;
         if (shortSkipped > 0) console.log(`[Turso] 30分未満スキップ: ${shortSkipped}件`);
+
+        // Best/総集編/オムニバス/リマスターはTursoに登録しない
+        const COMPILATION_RE = /BEST|ベスト|総集編|オムニバス|リマスター/i;
+        const afterCompilation = afterDuration.filter(p => !COMPILATION_RE.test(p.title || ''));
+        const compilationSkipped = afterDuration.length - afterCompilation.length;
+        if (compilationSkipped > 0) console.log(`[Turso] 総集編系スキップ: ${compilationSkipped}件`);
+
+        // ブロックメーカーはTursoに登録しない
+        const filteredNewProducts = afterCompilation.filter(p => !BLOCKED_MAKERS.has(p.maker || ''));
+        const makerSkipped = afterCompilation.length - filteredNewProducts.length;
+        if (makerSkipped > 0) console.log(`[Turso] ブロックメーカースキップ: ${makerSkipped}件`);
 
         if (filteredNewProducts.length === 0 && priceMap.size === 0) {
             console.log('[Turso] 更新なし — スキップ');
