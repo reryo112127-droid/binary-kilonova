@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary":"#ec5b13"},fontFamily:{display:["Public Sans"]}}}}</script>
+<title>メーカー一覧 - AVランキング</title>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 font-display text-slate-900 dark:text-slate-100 min-h-screen">
+
+<header></header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- Page header -->
+  <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-black text-slate-900 dark:text-white">メーカー一覧</h1>
+      <p id="maker-count" class="text-sm text-slate-500 dark:text-slate-400 mt-0.5"></p>
+    </div>
+    <!-- Search -->
+    <div class="relative w-64">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+      <input id="maker-search" type="search" placeholder="メーカーを検索..." autocomplete="off"
+        class="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-1 focus:ring-primary transition-all"/>
+    </div>
+  </div>
+
+  <!-- Platform tabs + 五十音 index (sticky) -->
+  <div class="sticky top-14 z-30 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md pt-1 pb-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-4 border-b border-slate-100 dark:border-slate-800">
+    <!-- Platform -->
+    <div class="flex gap-2 mb-3">
+      <button id="ptab-all"   onclick="setPlatform('all')"   class="px-4 py-1.5 rounded-full text-xs font-bold bg-primary text-white transition-all">すべて</button>
+      <button id="ptab-fanza" onclick="setPlatform('fanza')" class="px-4 py-1.5 rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all">FANZA</button>
+      <button id="ptab-mgs"   onclick="setPlatform('mgs')"   class="px-4 py-1.5 rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all">MGS</button>
+    </div>
+    <!-- 五十音 -->
+    <div id="kana-index" class="flex flex-wrap gap-1.5"></div>
+  </div>
+
+  <!-- Content -->
+  <div id="makers-main"></div>
+
+</div>
+
+<script>
+(function(){
+  var allMakers = [];
+  var platform = 'all';
+  var activeKana = 'all';
+
+  var KANA_GROUPS = [
+    {label:'あ'},{label:'か'},{label:'さ'},{label:'た'},{label:'な'},
+    {label:'は'},{label:'ま'},{label:'や'},{label:'ら'},{label:'わ'},
+    {label:'A-Z'},{label:'#'},
+  ];
+
+  function toHira(code) {
+    if (code >= 0x30A1 && code <= 0x30F6) return code - 0x60;
+    return code;
+  }
+  var KANA_RANGES = {
+    'あ':[0x3041,0x304A],'か':[0x304B,0x3054],'さ':[0x3055,0x305E],
+    'た':[0x305F,0x3069],'な':[0x306A,0x306E],'は':[0x306F,0x307C],
+    'ま':[0x307E,0x3082],'や':[0x3084,0x3088],'ら':[0x3089,0x308D],
+    'わ':[0x308F,0x3093],
+  };
+
+  function getGroup(name) {
+    var code = toHira(name.charCodeAt(0));
+    for (var k in KANA_RANGES) {
+      var r = KANA_RANGES[k];
+      if (code >= r[0] && code <= r[1]) return k;
+    }
+    var c = name.charAt(0);
+    if ((c>='A'&&c<='Z')||(c>='a'&&c<='z')) return 'A-Z';
+    return '#';
+  }
+
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  window.setPlatform = function(p) {
+    platform = p;
+    activeKana = 'all';
+    ['all','fanza','mgs'].forEach(function(id) {
+      var btn = document.getElementById('ptab-' + id);
+      if (!btn) return;
+      btn.className = 'px-4 py-1.5 rounded-full text-xs font-bold transition-all '
+        + (id === p ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300');
+    });
+    render();
+  };
+
+  function buildIndex(filtered) {
+    var existing = new Set(filtered.map(function(m){ return getGroup(m.name); }));
+    var idx = document.getElementById('kana-index');
+    if (!idx) return;
+    var btns = [{label:'すべて', key:'all'}]
+      .concat(KANA_GROUPS.filter(function(g){ return existing.has(g.label); }).map(function(g){ return {label:g.label, key:g.label}; }));
+    idx.innerHTML = btns.map(function(b) {
+      var active = activeKana === b.key;
+      return '<button onclick="setKanaBtn(\''+b.key+'\')" class="px-3 py-1 rounded-full text-xs font-bold transition-all '
+        +(active ? 'bg-primary text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary')
+        +'">'+b.label+'</button>';
+    }).join('');
+  }
+  window.setKanaBtn = function(k) { activeKana = k; render(); };
+
+  function makerCard(m) {
+    var img = m.sample_image
+      ? '<img src="'+esc(m.sample_image)+'" alt="'+esc(m.name)+'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy"/>'
+      : '<div class="w-full h-full flex items-center justify-center bg-primary/10"><span class="material-symbols-outlined text-primary text-4xl">business</span></div>';
+    return '<a href="/maker/'+encodeURIComponent(m.name)+'" class="group block rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all">'
+      +'<div class="w-full aspect-video bg-slate-200 dark:bg-slate-700 overflow-hidden">'+img+'</div>'
+      +'<div class="px-3 py-2.5">'
+      +'<p class="text-xs font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors">'+esc(m.name)+'</p>'
+      +'<p class="text-[10px] text-slate-400 mt-0.5">'+Number(m.count).toLocaleString()+'作品</p>'
+      +'</div>'
+      +'</a>';
+  }
+
+  var GRID = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4';
+
+  function render() {
+    var q = (document.getElementById('maker-search')||{}).value;
+    q = (q||'').trim().toLowerCase();
+
+    var filtered = allMakers.filter(function(m) {
+      if (platform === 'fanza') return m.sources && m.sources.includes('fanza');
+      if (platform === 'mgs')   return m.sources && m.sources.includes('mgs');
+      return true;
+    });
+    if (q) filtered = filtered.filter(function(m){ return m.name.toLowerCase().includes(q); });
+
+    buildIndex(filtered);
+
+    var cntEl = document.getElementById('maker-count');
+    if (cntEl) cntEl.textContent = filtered.length + 'メーカー';
+
+    var main = document.getElementById('makers-main');
+    if (!main) return;
+
+    if (activeKana === 'all' || q) {
+      var groups = {};
+      filtered.forEach(function(m) {
+        var g = getGroup(m.name);
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(m);
+      });
+      var html = '';
+      KANA_GROUPS.forEach(function(kg) {
+        var items = groups[kg.label];
+        if (!items || !items.length) return;
+        html += '<div class="mb-8">'
+          +'<h2 class="text-lg font-black text-primary border-l-4 border-primary pl-3 mb-4">'+esc(kg.label)+'</h2>'
+          +'<div class="'+GRID+'">'+items.map(makerCard).join('')+'</div>'
+          +'</div>';
+      });
+      main.innerHTML = html || '<p class="text-center text-sm text-slate-400 py-16">見つかりませんでした</p>';
+    } else {
+      var items = filtered.filter(function(m){ return getGroup(m.name) === activeKana; });
+      main.innerHTML = items.length
+        ? '<div class="'+GRID+'">'+items.map(makerCard).join('')+'</div>'
+        : '<p class="text-center text-sm text-slate-400 py-16">見つかりませんでした</p>';
+    }
+  }
+
+  fetch('/api/makers')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      allMakers = Array.isArray(data) ? data : [];
+      render();
+    })
+    .catch(function() {
+      document.getElementById('makers-main').innerHTML = '<p class="text-center text-sm text-slate-400 py-16">読み込みに失敗しました</p>';
+    });
+
+  var si = document.getElementById('maker-search');
+  if (si) si.addEventListener('input', function(){ activeKana='all'; render(); });
+})();
+</script>
+</body>
+</html>

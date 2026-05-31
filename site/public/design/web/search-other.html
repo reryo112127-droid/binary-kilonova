@@ -330,7 +330,24 @@
   var ITEMS_PER_PAGE=40,currentPage=1,filteredCache=[],fetchOffset=0;
   var urlSort = ps.get('sort') || '';
   var filters = { contentType:'all', sortOrder: urlSort === 'wish_count' ? 'popular' : 'new', source:'', showBest:false, vrOnly:false, fromDate:'', toDate:'', subMaker:'', subGenres:[] };
-  var FETCH_LIMIT=200;
+  var FETCH_LIMIT=40;
+
+  // ① AbortController
+  var _abortCtrl = null;
+
+  // ④ クライアントキャッシュ (最大15件・5分TTL)
+  var _cache = new Map();
+  var CACHE_TTL = 5 * 60 * 1000;
+  function cacheGet(key) {
+    var e = _cache.get(key);
+    if (!e) return null;
+    if (Date.now() - e.ts > CACHE_TTL) { _cache.delete(key); return null; }
+    return e.data;
+  }
+  function cacheSet(key, data) {
+    if (_cache.size >= 15) _cache.delete(_cache.keys().next().value);
+    _cache.set(key, { data: data, ts: Date.now() });
+  }
 
   function buildUrl(off){
     var p = new URLSearchParams();
@@ -472,19 +489,63 @@
     }
   }
 
+  // ③ スケルトンカード
+  function skeletonHtml(n) {
+    var s = '';
+    for (var i = 0; i < n; i++) {
+      s += '<div class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col">'
+        +'<div class="bg-gray-200 animate-pulse aspect-[3/4]"></div>'
+        +'<div class="p-3 flex flex-col gap-2">'
+        +'<div class="h-3 bg-gray-200 animate-pulse rounded w-full"></div>'
+        +'<div class="h-3 bg-gray-200 animate-pulse rounded w-2/3"></div>'
+        +'<div class="h-2.5 bg-gray-200 animate-pulse rounded w-1/2"></div>'
+        +'</div></div>';
+    }
+    return s;
+  }
+
   function fetchAndRender(){
     if (!grid) return;
+
+    // ① 前のリクエストをキャンセル
+    if (_abortCtrl) { _abortCtrl.abort(); }
+    _abortCtrl = new AbortController();
+    var signal = _abortCtrl.signal;
+
     filters.subMaker = ''; filters.subGenres = []; currentPage = 1; fetchOffset = 0;
-    grid.innerHTML = '<div class="col-span-5 py-12 text-center text-sm text-gray-400">読み込み中...</div>';
     setLoadMoreVisible(false);
-    fetch(buildUrl(0)).then(function(r){return r.json();}).then(function(data){
-      var hasMore = data && data.length > FETCH_LIMIT;
-      allResults = hasMore ? data.slice(0, FETCH_LIMIT) : (data || []);
-      setLoadMoreVisible(hasMore);
+
+    var url = buildUrl(0);
+
+    // ④ キャッシュヒット → 即表示
+    var hit = cacheGet(url);
+    if (hit) {
+      allResults = hit;
       updateSidebarFilters(allResults);
-      if (!allResults.length){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">作品が見つかりませんでした</div>'; renderPagination(0); return; }
+      if (!allResults.length) { grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">作品が見つかりませんでした</div>'; renderPagination(0); return; }
       renderFiltered();
-    }).catch(function(){ grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">エラーが発生しました</div>'; });
+      return;
+    }
+
+    // ③ スケルトン即時表示
+    grid.innerHTML = skeletonHtml(ITEMS_PER_PAGE);
+
+    fetch(url, { signal: signal })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (signal.aborted) return;
+        var hasMore = data && data.length > FETCH_LIMIT;
+        allResults = hasMore ? data.slice(0, FETCH_LIMIT) : (data || []);
+        cacheSet(url, allResults); // ④ キャッシュ保存
+        setLoadMoreVisible(hasMore);
+        updateSidebarFilters(allResults);
+        if (!allResults.length) { grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">作品が見つかりませんでした</div>'; renderPagination(0); return; }
+        renderFiltered();
+      })
+      .catch(function(e){
+        if (e && e.name === 'AbortError') return;
+        grid.innerHTML = '<div class="col-span-5 py-12 text-center text-sm text-gray-400">エラーが発生しました</div>';
+      });
   }
   window.fetchMore=function(){
     var btn=document.getElementById('load-more-btn');if(btn){btn.textContent='読み込み中...';btn.disabled=true;}

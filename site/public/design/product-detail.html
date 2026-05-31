@@ -65,6 +65,17 @@
 <!-- 3. Title Section -->
 <div class="px-4 py-2">
 <h2 id="pd-title" class="text-xl font-extrabold leading-tight"></h2>
+<div id="pd-fanza-rating" class="flex items-center gap-1 mt-1.5" style="display:none">
+<div id="pd-fanza-stars" class="flex text-amber-400 leading-none"></div>
+<span id="pd-fanza-avg" class="text-sm font-bold text-amber-600 ml-0.5"></span>
+<span id="pd-fanza-cnt" class="text-xs text-slate-400"></span>
+<span class="text-[10px] text-slate-300 ml-1">FANZA</span>
+</div>
+<div id="pd-wish-rating" class="flex items-center gap-1 mt-1.5" style="display:none">
+<span class="material-symbols-outlined text-[16px] text-rose-400 leading-none">favorite</span>
+<span id="pd-wish-cnt" class="text-sm font-bold text-rose-500"></span>
+<span class="text-[10px] text-slate-300 ml-1">MGS お気に入り</span>
+</div>
 </div>
 <!-- 4. Action Buttons -->
 <div class="flex gap-3 px-4 py-2">
@@ -221,6 +232,30 @@ var _sampleImgs = [];
       // タイトル
       set('pd-title', p.title);
       document.title = (p.title||'作品詳細') + ' - AVコンシェルジュ';
+
+      // FANZA星評価
+      if (p.review_average && Number(p.review_average) > 0) {
+        var _avg = Math.round(Number(p.review_average) * 10) / 10;
+        var _filled = Math.round(_avg);
+        var _starsEl = document.getElementById('pd-fanza-stars');
+        if (_starsEl) _starsEl.innerHTML = [1,2,3,4,5].map(function(i){
+          return '<span class="material-symbols-outlined text-[16px]" style="font-variation-settings:\'FILL\' '+(i<=_filled?1:0)+'">star</span>';
+        }).join('');
+        var _avgEl = document.getElementById('pd-fanza-avg');
+        if (_avgEl) _avgEl.textContent = _avg.toFixed(1);
+        var _cntEl = document.getElementById('pd-fanza-cnt');
+        if (_cntEl && p.review_count) _cntEl.textContent = '(' + p.review_count + '件)';
+        var _ratingEl = document.getElementById('pd-fanza-rating');
+        if (_ratingEl) _ratingEl.style.display = '';
+      } else if (p.wish_count && Number(p.wish_count) > 0) {
+        // FANZAレーティングなし → MGS wish_count表示
+        var _wishEl = document.getElementById('pd-wish-rating');
+        var _wishCnt = document.getElementById('pd-wish-cnt');
+        if (_wishEl && _wishCnt) {
+          _wishCnt.textContent = Number(p.wish_count).toLocaleString();
+          _wishEl.style.display = '';
+        }
+      }
 
       // サンプル画像
       var samples = document.getElementById('pd-samples');

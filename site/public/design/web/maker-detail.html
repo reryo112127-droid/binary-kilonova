@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary":"#ec5b13"},fontFamily:{display:["Public Sans"]}}}}</script>
+<title>メーカー詳細 - AVランキング</title>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 font-display text-slate-900 dark:text-slate-100 min-h-screen">
+
+<!-- Header placeholder -->
+<header></header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Breadcrumb -->
+  <nav class="text-xs text-slate-400 mb-4 flex items-center gap-1.5">
+    <a href="/" class="hover:text-primary transition-colors">ホーム</a>
+    <span>/</span>
+    <a href="/makers" class="hover:text-primary transition-colors">メーカー一覧</a>
+    <span>/</span>
+    <span id="md-maker-name-crumb" class="text-slate-600 dark:text-slate-300"></span>
+  </nav>
+
+  <!-- Page header -->
+  <div class="flex items-center gap-4 mb-6">
+    <div>
+      <h1 id="md-title" class="text-2xl font-black text-slate-900 dark:text-white"></h1>
+      <p id="md-count" class="text-sm text-slate-500 dark:text-slate-400 mt-0.5"></p>
+    </div>
+    <!-- Tabs -->
+    <div class="ml-auto flex gap-2">
+      <button id="tab-new" onclick="switchTab('new')" class="px-4 py-2 bg-primary text-white rounded-full text-sm font-bold transition-all">新着</button>
+      <button id="tab-popular" onclick="switchTab('popular')" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-sm font-bold transition-all">人気</button>
+    </div>
+  </div>
+
+  <!-- Product grid -->
+  <div id="md-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+  </div>
+
+  <!-- Load more -->
+  <div id="md-load-more" class="flex justify-center mt-8" style="display:none!important">
+    <button onclick="loadMore()" class="px-8 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-sm">さらに読み込む</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var makerName = decodeURIComponent(location.pathname.split('/maker/')[1] || '');
+  var tab = 'new';
+  var page = 0;
+  var loading = false;
+  var hasMore = true;
+  var LIMIT = 48;
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function poster(url){
+    if(!url)return '';
+    if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');
+    if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');
+    return url;
+  }
+
+  // タイトル設定
+  var titleEl = document.getElementById('md-title');
+  if (titleEl) titleEl.textContent = makerName;
+  document.title = makerName + ' - AVランキング';
+  var crumbEl = document.getElementById('md-maker-name-crumb');
+  if (crumbEl) crumbEl.textContent = makerName;
+
+  function switchTab(t) {
+    tab = t;
+    var btnNew = document.getElementById('tab-new');
+    var btnPop = document.getElementById('tab-popular');
+    if (btnNew) btnNew.className = 'px-4 py-2 rounded-full text-sm font-bold transition-all ' + (t==='new' ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300');
+    if (btnPop) btnPop.className = 'px-4 py-2 rounded-full text-sm font-bold transition-all ' + (t==='popular' ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300');
+    page = 0; hasMore = true;
+    load(true);
+  }
+  window.switchTab = switchTab;
+
+  function renderCards(products, append) {
+    var grid = document.getElementById('md-grid');
+    if (!grid) return;
+    var html = products.map(function(p) {
+      var img = poster(p.main_image_url);
+      return '<div onclick="location.href=\'/product/\'+encodeURIComponent(\''+esc(p.product_id)+'\')" class="group cursor-pointer">'
+        +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-slate-200 dark:bg-slate-700 shadow-sm group-hover:shadow-md transition-shadow">'
+        +(img ? '<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="'+esc(img)+'" loading="lazy"/>' : '')
+        +(p.discount_pct > 0 ? '<span class="absolute top-1.5 left-1.5 bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md">'+p.discount_pct+'%OFF</span>' : '')
+        +'</div>'
+        +'<p class="text-xs font-bold leading-tight line-clamp-2 mt-2 group-hover:text-primary transition-colors">'+esc(p.title)+'</p>'
+        +(p.actresses ? '<p class="text-[10px] text-slate-400 truncate mt-0.5">'+esc(p.actresses.split(',')[0].trim())+'</p>' : '')
+        +'</div>';
+    }).join('');
+    if (append) grid.insertAdjacentHTML('beforeend', html);
+    else grid.innerHTML = html || '<p class="col-span-full text-center text-sm text-slate-400 py-16">作品が見つかりませんでした</p>';
+  }
+
+  function load(reset) {
+    if (loading) return;
+    if (reset) { page = 0; hasMore = true; }
+    if (!hasMore) return;
+    loading = true;
+    if (reset) {
+      var grid = document.getElementById('md-grid');
+      if (grid) {
+        var sk = '';
+        for (var i=0;i<12;i++) sk += '<div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>';
+        grid.innerHTML = sk;
+      }
+    }
+    var sort = tab === 'popular' ? 'wish_count' : 'new';
+    var offset = page * LIMIT;
+    var url = '/api/products?maker='+encodeURIComponent(makerName)+'&sort='+sort+'&limit='+LIMIT+'&offset='+offset;
+    fetch(url)
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        var arr = Array.isArray(data) ? data : [];
+        if (arr.length < LIMIT) hasMore = false;
+        renderCards(arr, !reset);
+        // 件数表示（初回のみ）
+        if (reset && page === 0) {
+          var cntEl = document.getElementById('md-count');
+          // カウントはAPIに別途リクエスト不要。ページ数から推定
+        }
+        page++;
+        loading = false;
+        var btn = document.getElementById('md-load-more');
+        if (btn) btn.style.display = hasMore ? '' : 'none';
+      })
+      .catch(function() { loading = false; });
+  }
+
+  window.loadMore = function() { load(false); };
+
+  // 無限スクロール
+  window.addEventListener('scroll', function() {
+    if (loading || !hasMore) return;
+    if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 600) load(false);
+  }, {passive:true});
+
+  load(true);
+})();
+</script>
+</body>
+</html>

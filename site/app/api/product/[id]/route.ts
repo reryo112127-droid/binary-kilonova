@@ -93,6 +93,10 @@ export async function GET(
         return (d && d > 1) ? d : null;
     })();
 
+    // FANZAレビュー（数値のみ。テキストは取得しない）
+    const reviewAverage = Number(fanzaProduct?.review_average ?? 0);
+    const reviewCount   = Number(fanzaProduct?.review_count   ?? 0);
+
     const responseData = {
         ...primary,
         duration_min: durationMin,
@@ -107,6 +111,9 @@ export async function GET(
         list_price: listPrice,
         current_price: currentPrice,
         sale_end_date: saleEndDate,
+        // FANZAレビュースコア
+        review_average: reviewAverage || null,
+        review_count: reviewCount || null,
         actresses: filterActresses(
             // MGS優先だが空の場合はFANZA側(AVWIKI補完済み)にフォールバック
             (mgsProduct?.actresses as string | null)

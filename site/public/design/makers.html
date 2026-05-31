@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary":"#ec5b13","background-light":"#f8f6f6","background-dark":"#221610"},fontFamily:{display:["Public Sans"]}}}}</script>
+<title>メーカー一覧 - AVランキング</title>
+<style>
+.no-scrollbar::-webkit-scrollbar{display:none}
+.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col max-w-md mx-auto bg-white dark:bg-background-dark shadow-xl">
+
+<!-- Header -->
+<header class="sticky top-0 z-50 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+  <div class="flex items-center gap-3 px-4 py-3">
+    <button onclick="history.back()" class="flex size-9 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0">
+      <span class="material-symbols-outlined text-slate-600 dark:text-slate-300 text-[22px]">arrow_back_ios_new</span>
+    </button>
+    <h1 class="text-base font-bold flex-1">メーカー一覧</h1>
+    <span id="maker-count" class="text-xs text-slate-400"></span>
+  </div>
+  <!-- Platform tabs -->
+  <div class="flex border-b border-slate-100 dark:border-slate-800">
+    <button id="ptab-all"   onclick="setPlatform('all')"   class="flex-1 py-2.5 text-xs font-bold border-b-2 border-primary text-primary">すべて</button>
+    <button id="ptab-fanza" onclick="setPlatform('fanza')" class="flex-1 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400">FANZA</button>
+    <button id="ptab-mgs"   onclick="setPlatform('mgs')"   class="flex-1 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400">MGS</button>
+  </div>
+  <!-- 五十音 index -->
+  <div class="flex overflow-x-auto no-scrollbar px-2 py-1.5 gap-1" id="kana-index">
+  </div>
+  <!-- Search -->
+  <div class="px-3 pb-2">
+    <div class="relative">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">search</span>
+      <input id="maker-search" type="search" placeholder="メーカーを検索..." autocomplete="off"
+        class="w-full pl-8 pr-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs outline-none border border-transparent focus:border-primary transition-colors"/>
+    </div>
+  </div>
+</header>
+
+<!-- Content -->
+<main class="flex-1 pb-28" id="makers-main">
+  <!-- Groups rendered by JS -->
+</main>
+
+<!-- Bottom nav placeholder -->
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 pb-6 pt-2 flex justify-between items-center z-50"></nav>
+
+<script>
+(function(){
+  var allMakers = [];
+  var platform = 'all';
+  var activeKana = 'all';
+
+  var KANA_GROUPS = [
+    {label:'あ', test: kanaGroup('あ')},
+    {label:'か', test: kanaGroup('か')},
+    {label:'さ', test: kanaGroup('さ')},
+    {label:'た', test: kanaGroup('た')},
+    {label:'な', test: kanaGroup('な')},
+    {label:'は', test: kanaGroup('は')},
+    {label:'ま', test: kanaGroup('ま')},
+    {label:'や', test: kanaGroup('や')},
+    {label:'ら', test: kanaGroup('ら')},
+    {label:'わ', test: kanaGroup('わ')},
+    {label:'A-Z', test: function(s){ var c=s.charAt(0); return (c>='A'&&c<='Z')||(c>='a'&&c<='z'); }},
+    {label:'#', test: function(s){ return true; }}, // catch-all
+  ];
+
+  // 五十音グループ判定
+  function toHira(code) {
+    // katakana→hiragana
+    if (code >= 0x30A1 && code <= 0x30F6) return code - 0x60;
+    return code;
+  }
+  function kanaGroup(rowStart) {
+    var ranges = {
+      'あ': [0x3041, 0x304A],
+      'か': [0x304B, 0x3054],
+      'さ': [0x3055, 0x305E],
+      'た': [0x305F, 0x3069],
+      'な': [0x306A, 0x306E],
+      'は': [0x306F, 0x307C],
+      'ま': [0x307E, 0x3082],
+      'や': [0x3084, 0x3088],
+      'ら': [0x3089, 0x308D],
+      'わ': [0x308F, 0x3093],
+    };
+    var r = ranges[rowStart];
+    return function(name) {
+      var code = toHira(name.charCodeAt(0));
+      return code >= r[0] && code <= r[1];
+    };
+  }
+
+  function getGroup(name) {
+    for (var i = 0; i < KANA_GROUPS.length - 1; i++) {
+      if (KANA_GROUPS[i].test(name)) return KANA_GROUPS[i].label;
+    }
+    return '#';
+  }
+
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // プラットフォームタブ切替
+  window.setPlatform = function(p) {
+    platform = p;
+    activeKana = 'all';
+    ['all','fanza','mgs'].forEach(function(id) {
+      var btn = document.getElementById('ptab-' + id);
+      if (!btn) return;
+      btn.className = 'flex-1 py-2.5 text-xs font-bold border-b-2 transition-colors '
+        + (id === p ? 'border-primary text-primary' : 'border-transparent text-slate-400');
+    });
+    render();
+  };
+
+  // 五十音タブ切替
+  function setKana(k) {
+    activeKana = k;
+    document.querySelectorAll('.kana-btn').forEach(function(btn) {
+      var active = btn.getAttribute('data-kana') === k;
+      btn.className = 'kana-btn shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors '
+        + (active ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400');
+    });
+    render();
+  }
+
+  // 五十音インデックスバー生成
+  function buildIndex(filtered) {
+    var existing = new Set(filtered.map(function(m){ return getGroup(m.name); }));
+    var idx = document.getElementById('kana-index');
+    if (!idx) return;
+    var btns = [{label:'すべて', key:'all'}]
+      .concat(KANA_GROUPS.filter(function(g){ return existing.has(g.label); }).map(function(g){ return {label:g.label, key:g.label}; }));
+    idx.innerHTML = btns.map(function(b) {
+      var active = activeKana === b.key;
+      return '<button class="kana-btn shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors '
+        + (active ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400')
+        + '" data-kana="' + b.key + '" onclick="setKanaBtn(\'' + b.key + '\')">'
+        + b.label + '</button>';
+    }).join('');
+  }
+  window.setKanaBtn = function(k) { setKana(k); };
+
+  // メーカーカード
+  function makerCard(m) {
+    var img = m.sample_image
+      ? '<img src="'+esc(m.sample_image)+'" alt="'+esc(m.name)+'" class="w-full h-full object-cover" loading="lazy"/>'
+      : '<div class="w-full h-full flex items-center justify-center bg-primary/10"><span class="material-symbols-outlined text-primary text-2xl">business</span></div>';
+    return '<a href="/maker/'+encodeURIComponent(m.name)+'" class="block rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800/60 shadow-sm active:scale-[0.97] transition-all">'
+      +'<div class="w-full aspect-video bg-slate-200 dark:bg-slate-700 overflow-hidden">'+img+'</div>'
+      +'<div class="px-2.5 py-2">'
+      +'<p class="text-[11px] font-bold leading-tight line-clamp-2">'+esc(m.name)+'</p>'
+      +'<p class="text-[9px] text-slate-400 mt-0.5">'+Number(m.count).toLocaleString()+'作品</p>'
+      +'</div>'
+      +'</a>';
+  }
+
+  // メインレンダリング
+  function render() {
+    var q = (document.getElementById('maker-search')||{}).value;
+    q = (q||'').trim().toLowerCase();
+
+    // プラットフォームフィルター
+    var filtered = allMakers.filter(function(m) {
+      if (platform === 'fanza') return m.sources && m.sources.includes('fanza');
+      if (platform === 'mgs')   return m.sources && m.sources.includes('mgs');
+      return true;
+    });
+
+    // 検索フィルター
+    if (q) filtered = filtered.filter(function(m){ return m.name.toLowerCase().includes(q); });
+
+    // インデックスバー更新
+    buildIndex(filtered);
+
+    // 五十音フィルター
+    var grouped;
+    if (activeKana === 'all' || q) {
+      // 全グループをセクション表示
+      var groups = {};
+      filtered.forEach(function(m) {
+        var g = getGroup(m.name);
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(m);
+      });
+      // 順序通りにレンダリング
+      var html = '';
+      KANA_GROUPS.forEach(function(kg) {
+        var items = groups[kg.label];
+        if (!items || !items.length) return;
+        html += '<div class="px-3 pt-4 pb-1">'
+          +'<h2 class="text-sm font-black text-primary border-l-4 border-primary pl-2">'+esc(kg.label)+'</h2>'
+          +'</div>'
+          +'<div class="px-3 grid grid-cols-2 gap-2.5 pb-2">'
+          +items.map(makerCard).join('')
+          +'</div>';
+      });
+      if (!html) html = '<p class="text-center text-sm text-slate-400 py-12">見つかりませんでした</p>';
+      document.getElementById('makers-main').innerHTML = html;
+    } else {
+      // 選択グループのみ
+      grouped = filtered.filter(function(m){ return getGroup(m.name) === activeKana; });
+      var html2 = grouped.length
+        ? '<div class="px-3 pt-4 grid grid-cols-2 gap-2.5">'+grouped.map(makerCard).join('')+'</div>'
+        : '<p class="text-center text-sm text-slate-400 py-12">見つかりませんでした</p>';
+      document.getElementById('makers-main').innerHTML = html2;
+    }
+
+    // 件数更新
+    var cntEl = document.getElementById('maker-count');
+    if (cntEl) cntEl.textContent = filtered.length + '件';
+  }
+
+  // データ取得
+  fetch('/api/makers')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      allMakers = Array.isArray(data) ? data : [];
+      render();
+    })
+    .catch(function() {
+      document.getElementById('makers-main').innerHTML = '<p class="text-center text-sm text-slate-400 py-12">読み込みに失敗しました</p>';
+    });
+
+  // 検索
+  var si = document.getElementById('maker-search');
+  if (si) si.addEventListener('input', function(){ activeKana='all'; render(); });
+})();
+</script>
+</div>
+</body>
+</html>

@@ -170,12 +170,25 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-4">
 <div class="lg:col-span-2 space-y-8" id="pd-main-col">
 <div>
-<div class="flex items-center gap-4 mb-4">
+<div class="flex items-center gap-4 mb-2">
 <h2 id="pd-title" class="text-3xl font-black text-slate-900 leading-tight" style=""></h2>
 <button class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="">
 <span class="material-symbols-outlined text-rose-500 text-xl group-hover:fill-1" style="">favorite</span>
 <span class="text-sm font-bold text-slate-700 whitespace-nowrap" style="">いいね</span>
 </button>
+</div>
+<div id="pd-fanza-rating" class="flex items-center gap-1.5 mb-4" style="display:none">
+<div id="pd-fanza-stars" class="flex text-amber-400 leading-none"></div>
+<span id="pd-fanza-avg" class="text-base font-bold text-amber-600"></span>
+<span id="pd-fanza-cnt" class="text-sm text-slate-400"></span>
+<span class="text-xs text-slate-300 ml-1">FANZA</span>
+</div>
+<div id="pd-wish-rating" class="flex items-center gap-1.5 mb-4" style="display:none">
+<span class="material-symbols-outlined text-[18px] text-rose-400 leading-none">favorite</span>
+<span id="pd-wish-cnt" class="text-base font-bold text-rose-500"></span>
+<span class="text-xs text-slate-300 ml-1">MGS お気に入り</span>
+</div>
+<div style="display:none">
 <button id="pd-cast-btn" class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="display:none">
 <span class="material-symbols-outlined text-slate-500 text-xl" style="">person_add</span>
 <span class="text-sm font-bold text-slate-700" style="">出演者を追加</span>
@@ -293,6 +306,30 @@ var _sampleImgs = [];
       // タイトル
       set('pd-title', p.title);
       document.title = (p.title||'作品詳細') + ' - AVコンシェルジュ';
+
+      // FANZA星評価
+      if (p.review_average && Number(p.review_average) > 0) {
+        var _avg = Math.round(Number(p.review_average) * 10) / 10;
+        var _filled = Math.round(_avg);
+        var _starsEl = document.getElementById('pd-fanza-stars');
+        if (_starsEl) _starsEl.innerHTML = [1,2,3,4,5].map(function(i){
+          return '<span class="material-symbols-outlined text-[20px]" style="font-variation-settings:\'FILL\' '+(i<=_filled?1:0)+'">star</span>';
+        }).join('');
+        var _avgEl = document.getElementById('pd-fanza-avg');
+        if (_avgEl) _avgEl.textContent = _avg.toFixed(1);
+        var _cntEl = document.getElementById('pd-fanza-cnt');
+        if (_cntEl && p.review_count) _cntEl.textContent = '(' + p.review_count + '件)';
+        var _ratingEl = document.getElementById('pd-fanza-rating');
+        if (_ratingEl) _ratingEl.style.display = '';
+      } else if (p.wish_count && Number(p.wish_count) > 0) {
+        var _wishEl = document.getElementById('pd-wish-rating');
+        var _wishCnt = document.getElementById('pd-wish-cnt');
+        if (_wishEl && _wishCnt) {
+          _wishCnt.textContent = Number(p.wish_count).toLocaleString();
+          _wishEl.style.display = '';
+        }
+      }
+
 
       // サンプル画像
       var samples = document.getElementById('pd-samples');

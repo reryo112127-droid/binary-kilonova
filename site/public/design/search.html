@@ -136,11 +136,28 @@
 
   var urlSort = ps.get('sort') || '';
   var filters = { contentType:'all', sortOrder: urlSort === 'wish_count' ? 'popular' : 'new', source:'', showBest:false, vrOnly:false, fromDate:'', toDate:'' };
-  var LIMIT = 60;
+  var LIMIT = 20;
   var fetchOffset = 0;
   var isLoading = false;
-  var allData = []; // ロード済み全データキャッシュ
+  var allData = [];
   var serverHasMore = false;
+
+  // ① AbortController: 前のリクエストをキャンセル
+  var _abortCtrl = null;
+
+  // ④ クライアントキャッシュ (最大15件・5分TTL)
+  var _cache = new Map();
+  var CACHE_TTL = 5 * 60 * 1000;
+  function cacheGet(key) {
+    var e = _cache.get(key);
+    if (!e) return null;
+    if (Date.now() - e.ts > CACHE_TTL) { _cache.delete(key); return null; }
+    return e.data;
+  }
+  function cacheSet(key, data) {
+    if (_cache.size >= 15) _cache.delete(_cache.keys().next().value);
+    _cache.set(key, { data: data, ts: Date.now() });
+  }
 
   function buildUrl(off){
     var p = new URLSearchParams();
@@ -224,20 +241,65 @@
     }
   }
 
-  // APIから取り直す（ソート・期間・コンテンツタイプ変更時）
+  // ③ スケルトンカード
+  function skeletonHtml(n) {
+    var s = '';
+    for (var i = 0; i < n; i++) {
+      s += '<div class="flex flex-col gap-1">'
+        +'<div class="w-full aspect-[3/4] rounded-md bg-gray-200 animate-pulse"></div>'
+        +'<div class="h-2.5 bg-gray-200 animate-pulse rounded w-full mt-1"></div>'
+        +'<div class="h-2.5 bg-gray-200 animate-pulse rounded w-3/4"></div>'
+        +'<div class="h-2 bg-gray-200 animate-pulse rounded w-1/2"></div>'
+        +'</div>';
+    }
+    return s;
+  }
+
+  // APIから取り直す
   function fetchAndRender(){
     if (!grid) return;
+
+    // ① 前のリクエストをキャンセル
+    if (_abortCtrl) { _abortCtrl.abort(); }
+    _abortCtrl = new AbortController();
+    var signal = _abortCtrl.signal;
+
     allData = [];
     fetchOffset = 0;
     serverHasMore = false;
-    grid.innerHTML = '<div class="col-span-3 py-8 text-center text-xs text-gray-400">読み込み中...</div>';
     setLoadMoreBtn(false);
-    fetch(buildUrl(0)).then(function(r){return r.json();}).then(function(data){
-      if (!data||!data.length){ grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-gray-400">作品が見つかりませんでした</div>'; return; }
-      serverHasMore = data.length > LIMIT;
-      allData = serverHasMore ? data.slice(0, LIMIT) : data;
+
+    var url = buildUrl(0);
+
+    // ④ キャッシュヒット → 即表示
+    var hit = cacheGet(url);
+    if (hit) {
+      allData = hit;
+      serverHasMore = false;
       renderFromCache();
-    }).catch(function(){ grid.innerHTML='<div class="col-span-3 py-8 text-center text-xs text-gray-400">エラーが発生しました</div>'; });
+      return;
+    }
+
+    // ③ スケルトンを即時表示
+    grid.innerHTML = skeletonHtml(LIMIT);
+
+    fetch(url, { signal: signal })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (signal.aborted) return;
+        if (!data || !data.length) {
+          grid.innerHTML = '<div class="col-span-3 py-8 text-center text-xs text-gray-400">作品が見つかりませんでした</div>';
+          return;
+        }
+        serverHasMore = data.length > LIMIT;
+        allData = serverHasMore ? data.slice(0, LIMIT) : data;
+        cacheSet(url, allData); // ④ キャッシュ保存
+        renderFromCache();
+      })
+      .catch(function(e){
+        if (e && e.name === 'AbortError') return; // キャンセルは無視
+        grid.innerHTML = '<div class="col-span-3 py-8 text-center text-xs text-gray-400">エラーが発生しました</div>';
+      });
   }
 
   window.fetchMore = function(){
@@ -246,17 +308,20 @@
     var btn = document.getElementById('load-more-btn');
     if (btn) btn.textContent = '読み込み中...';
     fetchOffset += LIMIT;
-    fetch(buildUrl(fetchOffset)).then(function(r){return r.json();}).then(function(data){
-      isLoading = false;
-      serverHasMore = data && data.length > LIMIT;
-      var items = (data && serverHasMore) ? data.slice(0, LIMIT) : (data || []);
-      allData = allData.concat(items);
-      if (btn) btn.textContent = 'もっと見る';
-      // 追加分のみgridに追記（全再描画しない）
-      var filtered = applyClientFilters(items);
-      filtered.forEach(function(p){ grid.insertAdjacentHTML('beforeend', cardHtml(p)); });
-      setLoadMoreBtn(serverHasMore);
-    }).catch(function(){ isLoading = false; if (btn) btn.textContent = 'もっと見る'; });
+    fetch(buildUrl(fetchOffset))
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        isLoading = false;
+        serverHasMore = data && data.length > LIMIT;
+        var items = (data && serverHasMore) ? data.slice(0, LIMIT) : (data || []);
+        allData = allData.concat(items);
+        if (btn) btn.textContent = 'もっと見る';
+        var filtered = applyClientFilters(items);
+        filtered.forEach(function(p){ grid.insertAdjacentHTML('beforeend', cardHtml(p)); });
+        if (window.restoreLikes) window.restoreLikes();
+        setLoadMoreBtn(serverHasMore);
+      })
+      .catch(function(){ isLoading = false; if (btn) btn.textContent = 'もっと見る'; });
   };
 
   // Content type radios

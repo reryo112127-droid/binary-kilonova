@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary":"#ec5b13","background-light":"#f8f6f6","background-dark":"#221610"},fontFamily:{display:["Public Sans"]}}}}</script>
+<title>メーカー詳細 - AVランキング</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="relative flex min-h-screen w-full flex-col max-w-md mx-auto bg-white dark:bg-background-dark shadow-xl">
+
+<!-- Header -->
+<header class="sticky top-0 z-50 flex items-center gap-3 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3">
+<button onclick="history.back()" class="flex size-9 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0">
+  <span class="material-symbols-outlined text-slate-600 dark:text-slate-300 text-[22px]">arrow_back_ios_new</span>
+</button>
+<h1 id="md-title" class="text-base font-bold flex-1 truncate"></h1>
+</header>
+
+<!-- Tab bar -->
+<div class="sticky top-[57px] z-40 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
+  <div class="flex">
+    <button id="tab-new" onclick="switchTab('new')" class="flex-1 py-3 text-sm font-bold border-b-2 border-primary text-primary transition-colors">新着</button>
+    <button id="tab-popular" onclick="switchTab('popular')" class="flex-1 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 transition-colors">人気</button>
+  </div>
+</div>
+
+<!-- Product grid -->
+<main class="flex-1 px-3 pb-28 pt-3">
+  <div id="md-grid" class="grid grid-cols-3 gap-2">
+    <div class="rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+    <div class="rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+    <div class="rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+    <div class="rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+    <div class="rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+    <div class="rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+  </div>
+  <div id="md-load-more" class="flex justify-center py-6" style="display:none!important">
+    <button onclick="loadMore()" class="px-6 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-full text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">さらに読み込む</button>
+  </div>
+</main>
+
+<!-- Bottom nav placeholder -->
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 pb-6 pt-2 flex justify-between items-center z-50">
+</nav>
+
+<script>
+(function(){
+  var makerName = decodeURIComponent(location.pathname.split('/maker/')[1] || '');
+  var tab = 'new';
+  var page = 0;
+  var loading = false;
+  var hasMore = true;
+  var LIMIT = 30;
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function poster(url){
+    if(!url)return '';
+    if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');
+    if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');
+    return url;
+  }
+
+  // タイトル設定
+  var titleEl = document.getElementById('md-title');
+  if (titleEl) titleEl.textContent = makerName;
+  document.title = makerName + ' - AVランキング';
+
+  function switchTab(t) {
+    tab = t;
+    ['new','popular'].forEach(function(id) {
+      var btn = document.getElementById('tab-'+id);
+      if (!btn) return;
+      if (id === t) {
+        btn.className = 'flex-1 py-3 text-sm font-bold border-b-2 border-primary text-primary transition-colors';
+      } else {
+        btn.className = 'flex-1 py-3 text-sm font-bold border-b-2 border-transparent text-slate-400 transition-colors';
+      }
+    });
+    page = 0; hasMore = true;
+    load(true);
+  }
+  window.switchTab = switchTab;
+
+  function renderCards(products, append) {
+    var grid = document.getElementById('md-grid');
+    if (!grid) return;
+    var html = products.map(function(p) {
+      var img = poster(p.main_image_url);
+      return '<div onclick="location.href=\'/product/\'+encodeURIComponent(\''+esc(p.product_id)+'\')" class="cursor-pointer">'
+        +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-700">'
+        +(img ? '<img class="w-full h-full object-cover" src="'+esc(img)+'" loading="lazy"/>' : '')
+        +(p.discount_pct > 0 ? '<span class="absolute top-1 left-1 bg-rose-600 text-white text-[9px] font-black px-1 py-0.5 rounded">'+p.discount_pct+'%OFF</span>' : '')
+        +'</div>'
+        +'<p class="text-[10px] font-bold leading-tight line-clamp-2 mt-1">'+esc(p.title)+'</p>'
+        +(p.actresses ? '<p class="text-[9px] text-slate-400 truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>' : '')
+        +'</div>';
+    }).join('');
+    if (append) grid.insertAdjacentHTML('beforeend', html);
+    else grid.innerHTML = html || '<p class="col-span-3 text-center text-xs text-slate-400 py-8">作品が見つかりませんでした</p>';
+  }
+
+  function load(reset) {
+    if (loading) return;
+    if (reset) { page = 0; hasMore = true; }
+    if (!hasMore) return;
+    loading = true;
+    if (reset) {
+      var grid = document.getElementById('md-grid');
+      if (grid) {
+        var sk = '';
+        for (var i=0;i<6;i++) sk += '<div class="rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>';
+        grid.innerHTML = sk;
+      }
+    }
+    var sort = tab === 'popular' ? 'wish_count' : 'new';
+    var offset = page * LIMIT;
+    var url = '/api/products?maker='+encodeURIComponent(makerName)+'&sort='+sort+'&limit='+LIMIT+'&offset='+offset;
+    fetch(url)
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        var arr = Array.isArray(data) ? data : [];
+        if (arr.length < LIMIT) hasMore = false;
+        renderCards(arr, !reset);
+        page++;
+        loading = false;
+        var btn = document.getElementById('md-load-more');
+        if (btn) btn.style.display = hasMore ? '' : 'none';
+      })
+      .catch(function() { loading = false; });
+  }
+
+  window.loadMore = function() { load(false); };
+
+  // 無限スクロール
+  window.addEventListener('scroll', function() {
+    if (loading || !hasMore) return;
+    if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 400) load(false);
+  }, {passive:true});
+
+  load(true);
+})();
+</script>
+</div>
+</body>
+</html>
