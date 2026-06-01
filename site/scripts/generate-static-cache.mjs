@@ -533,6 +533,7 @@ async function main() {
     const dataDir = path.join(ROOT, 'data');
 
     // 順次実行 + クエリ間300ms待機（Tursoレート制限 "fetch failed" を防ぐ）
+    // sitemap_cache.json / makers_cache.json は weekly-sitemap-cache ワークフローが生成
     const wait = ms => new Promise(r => setTimeout(r, ms));
     const newProds            = await genNewProducts();            await wait(300);
     const popularProds        = await genPopularProducts();        await wait(300);
@@ -542,9 +543,7 @@ async function main() {
     const actressRankingDefault = await genActressRankingDefault(); await wait(300);
     const preorderProds       = await genPreorderProducts();       await wait(300);
     const homePreorderCurated = await genHomePreorderCurated();    await wait(300);
-    const saleProds           = await genSaleProducts();           await wait(300);
-    const sitemapData         = await genSitemapCache();    await wait(300);
-    const makersList          = await genMakersList();
+    const saleProds           = await genSaleProducts();
 
     const write = (filename, data) => {
         const p = path.join(dataDir, filename);
@@ -565,16 +564,6 @@ async function main() {
     write('home_preorder_cache.json',             preorderProds);
     write('home_preorder_curated_cache.json',     homePreorderCurated);
     write('sale_cache.json',                      saleProds);
-
-    // サイトマップキャッシュ（オブジェクトなので件数表示を調整）
-    const sitemapPath    = path.join(dataDir, 'sitemap_cache.json');
-    const sitemapPubPath = path.join(ROOT, 'public', 'data', 'sitemap_cache.json');
-    const sitemapJson = JSON.stringify(sitemapData, null, 0);
-    fs.writeFileSync(sitemapPath, sitemapJson);
-    fs.writeFileSync(sitemapPubPath, sitemapJson);
-    console.log(`✓ sitemap_cache.json (女優:${sitemapData.actresses.length}件, 作品:${sitemapData.products.length}件)`);
-
-    write('makers_cache.json', makersList);
 
     console.log('\n完了！次のコマンドでデプロイしてください:');
     console.log('  cd site && npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy');

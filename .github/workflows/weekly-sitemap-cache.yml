@@ -1,0 +1,70 @@
+name: 週次サイトマップ・メーカーキャッシュ更新
+
+on:
+  schedule:
+    - cron: '0 18 * * 0'   # 日曜 03:00 JST (= 18:00 UTC 土曜)
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-sitemap-cache
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  generate-weekly-cache:
+    name: サイトマップ・メーカーキャッシュ生成
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install site dependencies
+        run: cd site && npm ci
+
+      - name: Generate sitemap & makers cache
+        run: cd site && node scripts/generate-weekly-cache.mjs
+        env:
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+
+      - name: Build for Cloudflare Workers
+        run: cd site && npm run build:cf
+        env:
+          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
+          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
+          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+
+      - name: Deploy to Cloudflare Workers
+        run: cd site && npm run deploy:cf:only
+        env:
+          CLOUDFLARE_API_TOKEN:  ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Commit updated cache files
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add \
+            site/data/sitemap_cache.json \
+            site/data/makers_cache.json \
+            site/public/data/sitemap_cache.json \
+            site/public/data/makers_cache.json \
+            || true
+          if ! git diff --staged --quiet; then
+            git commit -m "cache: 週次サイトマップ・メーカーキャッシュ更新 [skip ci]"
+            git pull --rebase origin main || git rebase --abort || true
+            git push || echo "Push failed (non-fatal)"
+          fi
