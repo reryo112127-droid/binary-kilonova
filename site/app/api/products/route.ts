@@ -9,11 +9,28 @@ export const dynamic = 'force-dynamic';
 const PRODUCTS_TTL = 5 * 60 * 1000; // 5分
 
 // セールページ・ホームで使用するメーカーホワイトリスト（FANZA限定）
-const SALE_MAKERS_FANZA = [
-    'エスワン', 'ムーディーズ', 'アイデアポケット', 'OPPAI', 'E-BODY',
-    'Fitch', 'マドンナ', '本中', 'ダスッ', 'kawaii', 'Hunter',
-    'ワンズファクトリー', 'SODクリエイト', 'FALENO', 'TAMEIKE',
-    'million', 'プレミアム', 'DAHLIA',
+// ['exact'|'like', value]
+// exact: maker = ? OR label = ?  （完全一致 → 誤ヒット防止）
+// like:  maker LIKE ? OR label LIKE ?  （部分一致 → DB登録名が長い場合）
+const SALE_MAKERS_FANZA: [string, string][] = [
+    ['like',  'エスワン'],       // DB: "エスワン ナンバーワンスタイル"
+    ['exact', 'ムーディーズ'],
+    ['exact', 'アイデアポケット'],
+    ['exact', 'OPPAI'],
+    ['exact', 'E-BODY'],
+    ['exact', 'Fitch'],
+    ['exact', 'マドンナ'],       // exact: マドンナモンロー を除外
+    ['exact', '本中'],
+    ['like',  'ダスッ'],         // DB: "ダスッ！"
+    ['exact', 'kawaii'],
+    ['exact', 'Hunter'],         // exact: LADY HUNTERS（桃太郎映像出版）を除外
+    ['exact', 'ワンズファクトリー'],
+    ['exact', 'SODクリエイト'],
+    ['exact', 'FALENO'],         // exact: FALENO TUBE を除外
+    ['exact', 'TAMEIKE'],
+    ['like',  'million'],        // label: "million（ミリオン）"
+    ['exact', 'プレミアム'],     // exact: プレミアム熟女/エマニエル を除外
+    ['exact', 'DAHLIA'],
 ];
 
 export async function GET(request: NextRequest) {
@@ -343,9 +360,14 @@ export async function GET(request: NextRequest) {
             // セールページ: FANZA は HOME_MAKERS のみ（maker/makers 未指定時）
             conditions.push('discount_pct >= 1');
             if (!isMgs && !maker && !makers) {
-                const saleCond = SALE_MAKERS_FANZA.map(() => '(label LIKE ? OR maker LIKE ?)').join(' OR ');
-                conditions.push(`(${saleCond})`);
-                SALE_MAKERS_FANZA.forEach(m => { args.push(`%${m}%`, `%${m}%`); });
+                const saleParts = SALE_MAKERS_FANZA.map(([type]) =>
+                    type === 'exact' ? '(maker = ? OR label = ?)' : '(maker LIKE ? OR label LIKE ?)'
+                );
+                conditions.push(`(${saleParts.join(' OR ')})`);
+                SALE_MAKERS_FANZA.forEach(([type, val]) => {
+                    if (type === 'exact') { args.push(val, val); }
+                    else { args.push(`%${val}%`, `%${val}%`); }
+                });
             }
         }
         if (minDiscount > 0) {
