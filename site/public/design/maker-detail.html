@@ -26,7 +26,7 @@ body { min-height: max(884px, 100dvh); }
 <div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
 
 <!-- Header -->
-<header class="sticky top-0 z-50 flex items-center bg-white/90 dark:bg-background-dark/90 backdrop-blur-md px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+<header class="sticky top-0 z-50 flex items-center bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-3 border-b border-slate-100 dark:border-slate-800">
   <div class="flex w-10 items-center justify-start">
     <button onclick="history.back()" class="flex items-center justify-center p-1 text-slate-600 dark:text-slate-400">
       <span class="material-symbols-outlined">arrow_back_ios</span>
@@ -43,47 +43,65 @@ body { min-height: max(884px, 100dvh); }
 <main class="flex-1">
   <div class="flex flex-col gap-3 py-3">
 
-    <!-- 並び替え: 新着/人気 -->
+    <!-- 1. 並び替えセグメント -->
     <div class="px-4">
       <div class="flex h-11 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
-        <button id="btn-sort-new" onclick="setSort('new')"
-          class="flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold bg-white dark:bg-slate-700 text-primary shadow-sm transition-all">
-          新着順
-        </button>
-        <button id="btn-sort-popular" onclick="setSort('wish_count')"
-          class="flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold text-slate-500 transition-all">
-          人気順
-        </button>
+        <label class="flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+          <span>新着順</span>
+          <input checked class="hidden" name="sort-seg" type="radio" value="new"/>
+        </label>
+        <label class="flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold text-slate-500 transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+          <span>人気順</span>
+          <input class="hidden" name="sort-seg" type="radio" value="popular"/>
+        </label>
       </div>
     </div>
 
-    <!-- フィルターバー -->
+    <!-- 2. フィルターバー -->
     <div class="flex items-center gap-2 overflow-x-auto px-4 no-scrollbar">
-      <button id="btn-fanza" onclick="toggleSource('fanza')"
-        class="flex h-9 shrink-0 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
-        <span class="text-xs font-medium">FANZA</span>
-      </button>
-      <button id="btn-mgs" onclick="toggleSource('mgs')"
-        class="flex h-9 shrink-0 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
-        <span class="text-xs font-medium">MGS動画</span>
-      </button>
-      <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0"></div>
-      <button id="btn-best" onclick="toggleBest()"
-        class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
+      <button id="btn-best" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
         <span class="text-xs font-medium">BEST/総集編</span>
         <span id="best-icon" class="material-symbols-outlined text-[18px] text-primary">toggle_on</span>
       </button>
+      <button id="btn-vr" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
+        <span class="text-xs font-medium">VR作品</span>
+        <span id="vr-icon" class="material-symbols-outlined text-[18px] text-slate-400">toggle_off</span>
+      </button>
+      <button id="btn-cal" class="flex h-9 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 px-3">
+        <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+      </button>
     </div>
 
-    <!-- 作品グリッド -->
-    <div id="md-grid" class="grid grid-cols-3 gap-x-2 gap-y-4 px-4 pb-24">
+    <!-- 3. カレンダーパネル（折りたたみ） -->
+    <div id="cal-panel" class="hidden px-4">
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-4 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="flex-1">
+            <label class="text-[11px] text-slate-500 mb-1 block">発売日 From</label>
+            <input id="sf-from" type="date" class="w-full text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-700"/>
+          </div>
+          <div class="flex-1">
+            <label class="text-[11px] text-slate-500 mb-1 block">発売日 To</label>
+            <input id="sf-to" type="date" class="w-full text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-700"/>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="setQuickDate('month')" class="flex-1 py-1.5 text-[11px] font-bold bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-primary hover:text-white transition-colors">直近1ヶ月</button>
+          <button onclick="setQuickDate('year')"  class="flex-1 py-1.5 text-[11px] font-bold bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-primary hover:text-white transition-colors">直近1年</button>
+          <button onclick="clearDate()"           class="flex-1 py-1.5 text-[11px] font-bold bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">クリア</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 作品グリッド -->
+    <div id="products-grid" class="grid grid-cols-3 gap-x-2 gap-y-4 px-4 pb-24">
       <!-- skeletons -->
-      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div></div>
-      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div></div>
-      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div></div>
-      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div></div>
-      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div></div>
-      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div></div>
+      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-2/3"></div></div>
+      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-2/3"></div></div>
+      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-2/3"></div></div>
+      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-2/3"></div></div>
+      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-2/3"></div></div>
+      <div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-2/3"></div></div>
     </div>
 
   </div>
@@ -95,13 +113,9 @@ body { min-height: max(884px, 100dvh); }
 <script>
 (function(){
   var makerName = decodeURIComponent(location.pathname.split('/maker/')[1] || '');
-  var sort = 'new';
-  var source = '';
-  var excludeBest = true;
-  var page = 0;
-  var loading = false;
-  var hasMore = true;
-  var LIMIT = 30;
+  var grid = document.getElementById('products-grid');
+  var sort = 'new', excludeBest = true, excludeVR = false, fromDate = '', toDate = '';
+  var page = 0, loading = false, hasMore = true, LIMIT = 30;
   var abortCtrl = null;
 
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -112,66 +126,84 @@ body { min-height: max(884px, 100dvh); }
     return url;
   }
 
-  // タイトル設定
+  // タイトル
   var titleEl = document.getElementById('md-title');
   if (titleEl) titleEl.textContent = makerName;
   document.title = makerName + ' - AVランキング';
 
-  // 並び替え
-  window.setSort = function(s) {
-    sort = s;
-    var btnNew = document.getElementById('btn-sort-new');
-    var btnPop = document.getElementById('btn-sort-popular');
-    var activeClass = 'flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold bg-white dark:bg-slate-700 text-primary shadow-sm transition-all';
-    var inactiveClass = 'flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold text-slate-500 transition-all';
-    if (btnNew) btnNew.className = s === 'new' ? activeClass : inactiveClass;
-    if (btnPop) btnPop.className = s === 'wish_count' ? activeClass : inactiveClass;
-    load(true);
-  };
-
-  // ソースフィルター
-  var sourceActiveClass = 'flex h-9 shrink-0 items-center justify-center rounded-full border px-3 py-1 bg-primary border-primary text-white';
-  var sourceInactiveClass = 'flex h-9 shrink-0 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1';
-  window.toggleSource = function(s) {
-    source = source === s ? '' : s;
-    var fb = document.getElementById('btn-fanza');
-    var mb = document.getElementById('btn-mgs');
-    if (fb) fb.className = source === 'fanza' ? sourceActiveClass : sourceInactiveClass;
-    if (mb) mb.className = source === 'mgs' ? sourceActiveClass : sourceInactiveClass;
-    load(true);
-  };
-
   // BEST/総集編トグル
-  window.toggleBest = function() {
+  var btnBest = document.getElementById('btn-best');
+  var bestIcon = document.getElementById('best-icon');
+  if (btnBest) btnBest.addEventListener('click', function(){
     excludeBest = !excludeBest;
-    var icon = document.getElementById('best-icon');
-    if (icon) {
-      icon.textContent = excludeBest ? 'toggle_on' : 'toggle_off';
-      icon.className = 'material-symbols-outlined text-[18px] ' + (excludeBest ? 'text-primary' : 'text-slate-400');
-    }
+    if (bestIcon){ bestIcon.textContent = excludeBest ? 'toggle_on' : 'toggle_off'; bestIcon.className = 'material-symbols-outlined text-[18px] ' + (excludeBest ? 'text-primary' : 'text-slate-400'); }
+    load(true);
+  });
+
+  // VRトグル
+  var btnVR = document.getElementById('btn-vr');
+  var vrIcon = document.getElementById('vr-icon');
+  if (btnVR) btnVR.addEventListener('click', function(){
+    excludeVR = !excludeVR;
+    if (vrIcon){ vrIcon.textContent = excludeVR ? 'toggle_on' : 'toggle_off'; vrIcon.className = 'material-symbols-outlined text-[18px] ' + (excludeVR ? 'text-primary' : 'text-slate-400'); }
+    load(true);
+  });
+
+  // カレンダーパネル
+  var btnCal = document.getElementById('btn-cal');
+  var calPanel = document.getElementById('cal-panel');
+  if (btnCal && calPanel) btnCal.addEventListener('click', function(){ calPanel.classList.toggle('hidden'); });
+  var fromInput = document.getElementById('sf-from');
+  var toInput   = document.getElementById('sf-to');
+  if (fromInput) fromInput.addEventListener('change', function(){ fromDate = fromInput.value; load(true); });
+  if (toInput)   toInput.addEventListener('change',   function(){ toDate   = toInput.value;   load(true); });
+
+  window.setQuickDate = function(period) {
+    var now = new Date();
+    var from = new Date(now);
+    if (period === 'month') from.setDate(now.getDate() - 30);
+    else from.setFullYear(now.getFullYear() - 1);
+    fromDate = from.toISOString().slice(0,10);
+    toDate   = now.toISOString().slice(0,10);
+    if (fromInput) fromInput.value = fromDate;
+    if (toInput)   toInput.value   = toDate;
+    load(true);
+  };
+  window.clearDate = function() {
+    fromDate = toDate = '';
+    if (fromInput) fromInput.value = '';
+    if (toInput)   toInput.value   = '';
     load(true);
   };
 
-  // カードHTML
+  // 並び替えセグメント
+  document.querySelectorAll('input[name="sort-seg"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      sort = r.value === 'popular' ? 'wish_count' : 'new';
+      load(true);
+    });
+  });
+
+  // カードHTML（products.htmlと同スタイル）
   function cardHtml(p) {
     var img = poster(p.main_image_url || '');
     var noAct = !(p.actresses && p.actresses.trim());
-    return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="flex flex-col gap-1 block">'
-      +'<div class="relative w-full aspect-[3/4] overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800">'
-      +(img ? '<img class="w-full h-full object-cover object-right block" src="'+esc(img)+'" loading="lazy" decoding="async"/>' : '')
+    return '<div class="flex flex-col gap-1" style="cursor:pointer" onclick="location.href=\'/product/\'+encodeURIComponent(\''+esc(p.product_id)+'\')">'
+      +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-700">'
+      +(img ? '<img class="w-full h-full object-cover object-right block" src="'+esc(img)+'" alt="" loading="lazy" decoding="async"/>' : '')
       +(p.discount_pct > 0 ? '<span class="absolute top-1 left-1 bg-rose-600 text-white text-[9px] font-black px-1 py-0.5 rounded leading-none">'+p.discount_pct+'%<br>OFF</span>' : '')
       +'<div class="absolute bottom-1 right-1 flex gap-1">'
       +(noAct ? '<button data-pid="'+esc(p.product_id)+'" class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)"><span class="material-symbols-outlined text-[12px]">add</span></button>' : '')
       +'<button data-like-pid="'+esc(p.product_id)+'" class="h-5 w-5 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)"><span class="material-symbols-outlined text-[12px]">favorite</span></button>'
       +'</div></div>'
-      +'<p class="line-clamp-2 text-[10px] font-bold leading-tight">'+esc(p.title||'')+'</p>'
-      +(p.actresses ? '<p class="text-[9px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>' : '')
-      +'</a>';
+      +'<p class="line-clamp-2 text-[11px] font-bold leading-tight">'+esc(p.title||'')+'</p>'
+      +(p.actresses ? '<p class="text-[10px] text-slate-400 truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>' : '')
+      +'</div>';
   }
 
   function skeletonHtml(n) {
     var s = '';
-    for (var i=0;i<n;i++) s += '<div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-md bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div></div>';
+    for(var i=0;i<n;i++) s += '<div class="flex flex-col gap-1"><div class="aspect-[3/4] rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full"></div><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-2/3"></div></div>';
     return s;
   }
 
@@ -182,12 +214,13 @@ body { min-height: max(884px, 100dvh); }
     if (abortCtrl) abortCtrl.abort();
     abortCtrl = new AbortController();
     loading = true;
-    var grid = document.getElementById('md-grid');
     if (reset && grid) grid.innerHTML = skeletonHtml(LIMIT);
     var offset = page * LIMIT;
     var url = '/api/products?maker='+encodeURIComponent(makerName)+'&exactMaker=1&sort='+sort+'&limit='+(LIMIT+1)+'&offset='+offset;
-    if (source) url += '&source='+source;
     if (excludeBest) url += '&excludeBest=1';
+    if (excludeVR)   url += '&excludeGenres=VR';
+    if (fromDate)    url += '&fromDate='+fromDate;
+    if (toDate)      url += '&toDate='+toDate;
     fetch(url, { signal: abortCtrl.signal })
       .then(function(r){ return r.json(); })
       .then(function(data){
@@ -202,7 +235,7 @@ body { min-height: max(884px, 100dvh); }
         if (window.restoreLikes) window.restoreLikes();
         page++;
       })
-      .catch(function(e){ if (e.name !== 'AbortError') loading = false; });
+      .catch(function(e){ if (e.name !== 'AbortError') { loading = false; if(grid && reset) grid.innerHTML = '<p class="col-span-3 text-center text-xs text-slate-400 py-8">エラーが発生しました</p>'; } });
   }
 
   // 無限スクロール
