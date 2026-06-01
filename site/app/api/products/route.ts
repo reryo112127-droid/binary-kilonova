@@ -8,6 +8,14 @@ export const dynamic = 'force-dynamic';
 
 const PRODUCTS_TTL = 5 * 60 * 1000; // 5分
 
+// セールページ・ホームで使用するメーカーホワイトリスト（FANZA限定）
+const SALE_MAKERS_FANZA = [
+    'エスワン', 'ムーディーズ', 'アイデアポケット', 'OPPAI', 'E-BODY',
+    'Fitch', 'マドンナ', '本中', 'ダスッ', 'kawaii', 'Hunter',
+    'ワンズファクトリー', 'SODクリエイト', 'FALENO', 'TAMEIKE',
+    'million', 'プレミアム', 'DAHLIA',
+];
+
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const sort = searchParams.get('sort') || 'new';
@@ -331,10 +339,19 @@ export async function GET(request: NextRequest) {
         if (vrOnly && !isMgs) {
             conditions.push('vr_flag = 1');
         }
-        if (sort === 'discount' || minDiscount > 0) {
-            const threshold = minDiscount > 0 ? minDiscount : 1;
+        if (sort === 'discount') {
+            // セールページ: FANZA は HOME_MAKERS のみ（maker/makers 未指定時）
+            conditions.push('discount_pct >= 1');
+            if (!isMgs && !maker && !makers) {
+                const saleCond = SALE_MAKERS_FANZA.map(() => '(label LIKE ? OR maker LIKE ?)').join(' OR ');
+                conditions.push(`(${saleCond})`);
+                SALE_MAKERS_FANZA.forEach(m => { args.push(`%${m}%`, `%${m}%`); });
+            }
+        }
+        if (minDiscount > 0) {
+            // 検索での割引フィルター: メーカー制限なし・全作品のセール情報を表示
             conditions.push('discount_pct >= ?');
-            args.push(threshold);
+            args.push(minDiscount);
         }
         if (isMgs) {
             conditions.push('(duration_min IS NULL OR duration_min < 600)');
