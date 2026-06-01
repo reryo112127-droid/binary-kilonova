@@ -174,6 +174,7 @@ function convertItem(item) {
         current_price:      currentPrice,
         discount_pct:       discountPct,
         sale_end_date:      saleEndDate,
+        floor:              'videoc',
         price_updated_at:   now,
         scraped_at:         now,
         updated_at:         now,
@@ -185,6 +186,7 @@ const ALL_COLUMNS = [
     'genres','sale_start_date','main_image_url','sample_images_json',
     'sample_video_url','affiliate_url','detail_url',
     'list_price','current_price','discount_pct','sale_end_date','price_updated_at',
+    'floor',
     'scraped_at','updated_at',
 ];
 

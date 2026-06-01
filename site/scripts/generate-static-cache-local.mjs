@@ -443,7 +443,8 @@ async function genMakersList() {
             args: [],
         }).then(r => r.rows).catch(() => []),
         fanza.execute({
-            sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image
+            sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image,
+                         SUM(CASE WHEN floor = 'videoc' THEN 1 ELSE 0 END) as videoc_cnt
                   FROM products
                   WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
                   GROUP BY maker HAVING cnt >= 3
@@ -456,14 +457,17 @@ async function genMakersList() {
     for (const row of mgsRows) {
         const name = String(row.maker ?? '').trim();
         if (!name) continue;
-        map.set(name, { name, count: Number(row.cnt ?? 0), sample_image: poster(String(row.sample_image ?? '')), sources: ['mgs'] });
+        map.set(name, { name, count: Number(row.cnt ?? 0), sample_image: poster(String(row.sample_image ?? '')), sources: ['mgs'], floor: 'videoa' });
     }
     for (const row of fanzaRows) {
         const name = String(row.maker ?? '').trim();
         if (!name) continue;
+        const cnt = Number(row.cnt ?? 0);
+        const videocCnt = Number(row.videoc_cnt ?? 0);
+        const floor = videocCnt > cnt / 2 ? 'videoc' : 'videoa';
         const e = map.get(name);
-        if (e) { e.count += Number(row.cnt ?? 0); e.sources.push('fanza'); }
-        else map.set(name, { name, count: Number(row.cnt ?? 0), sample_image: poster(String(row.sample_image ?? '')), sources: ['fanza'] });
+        if (e) { e.count += cnt; e.sources.push('fanza'); if (floor === 'videoc') e.floor = 'videoc'; }
+        else map.set(name, { name, count: cnt, sample_image: poster(String(row.sample_image ?? '')), sources: ['fanza'], floor });
     }
     return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 300);
 }

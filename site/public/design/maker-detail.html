@@ -118,7 +118,7 @@
     }
     var sort = tab === 'popular' ? 'wish_count' : 'new';
     var offset = page * LIMIT;
-    var url = '/api/products?maker='+encodeURIComponent(makerName)+'&sort='+sort+'&limit='+LIMIT+'&offset='+offset;
+    var url = '/api/products?maker='+encodeURIComponent(makerName)+'&exactMaker=1&sort='+sort+'&limit='+LIMIT+'&offset='+offset;
     fetch(url)
       .then(function(r){ return r.json(); })
       .then(function(data) {

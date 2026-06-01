@@ -463,6 +463,47 @@ async function genSaleProducts() {
     return combined;
 }
 
+// ── メーカー一覧（floor付き） ──────────────────────────────────────
+async function genMakersList() {
+    console.log('[メーカー一覧] 取得中...');
+    const [mgsRows, fanzaRows] = await Promise.all([
+        mgs.execute({
+            sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image
+                  FROM products WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
+                    AND (duration_min IS NULL OR duration_min < 600)
+                  GROUP BY maker HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 400`,
+            args: [],
+        }).then(r => r.rows).catch(() => []),
+        // floor情報付きで取得（videoc/videoa の多数決）
+        fanza.execute({
+            sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image,
+                         SUM(CASE WHEN floor = 'videoc' THEN 1 ELSE 0 END) as videoc_cnt
+                  FROM products WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
+                  GROUP BY maker HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 400`,
+            args: [],
+        }).then(r => r.rows).catch(() => []),
+    ]);
+
+    const map = new Map();
+    for (const row of mgsRows) {
+        const name = String(row.maker ?? '').trim();
+        if (!name) continue;
+        map.set(name, { name, count: Number(row.cnt ?? 0), sample_image: poster(String(row.sample_image ?? '')), sources: ['mgs'], floor: 'videoa' });
+    }
+    for (const row of fanzaRows) {
+        const name = String(row.maker ?? '').trim();
+        if (!name) continue;
+        const cnt = Number(row.cnt ?? 0);
+        const videocCnt = Number(row.videoc_cnt ?? 0);
+        // 過半数がvideocならvideoc判定
+        const floor = videocCnt > cnt / 2 ? 'videoc' : 'videoa';
+        const e = map.get(name);
+        if (e) { e.count += cnt; e.sources.push('fanza'); if (floor === 'videoc') e.floor = 'videoc'; }
+        else map.set(name, { name, count: cnt, sample_image: poster(String(row.sample_image ?? '')), sources: ['fanza'], floor });
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 300);
+}
+
 // ── サイトマップ用URLキャッシュ ────────────────────────────────────
 async function genSitemapCache() {
     console.log('[サイトマップキャッシュ] 取得中...');
@@ -502,7 +543,8 @@ async function main() {
     const preorderProds       = await genPreorderProducts();       await wait(300);
     const homePreorderCurated = await genHomePreorderCurated();    await wait(300);
     const saleProds           = await genSaleProducts();           await wait(300);
-    const sitemapData         = await genSitemapCache();
+    const sitemapData         = await genSitemapCache();    await wait(300);
+    const makersList          = await genMakersList();
 
     const write = (filename, data) => {
         const p = path.join(dataDir, filename);
@@ -531,6 +573,8 @@ async function main() {
     fs.writeFileSync(sitemapPath, sitemapJson);
     fs.writeFileSync(sitemapPubPath, sitemapJson);
     console.log(`✓ sitemap_cache.json (女優:${sitemapData.actresses.length}件, 作品:${sitemapData.products.length}件)`);
+
+    write('makers_cache.json', makersList);
 
     console.log('\n完了！次のコマンドでデプロイしてください:');
     console.log('  cd site && npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy');

@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     // フィルターなし・offset=0 のみ静的JSONを使用
     const noFilter = !searchParams.get('q') && !searchParams.get('genre') && !searchParams.get('actress')
-        && !searchParams.get('maker') && !searchParams.get('makers') && !searchParams.get('label')
+        && !searchParams.get('maker') && !searchParams.get('makers') && !searchParams.get('label') && !searchParams.get('exactMaker')
         && !searchParams.get('fromDate') && !searchParams.get('toDate') && !searchParams.get('source')
         && !searchParams.get('cup') && !searchParams.get('cups') && !searchParams.get('height')
         && !searchParams.get('vr') && !searchParams.get('series') && !searchParams.get('hasVideo')
@@ -131,6 +131,7 @@ export async function GET(request: NextRequest) {
     const genre = searchParams.get('genre') || '';
     const actress = searchParams.get('actress') || '';
     const maker = searchParams.get('maker') || '';
+    const exactMaker = searchParams.get('exactMaker') === '1';
     const label = searchParams.get('label') || '';
     const excludeGenres = searchParams.get('excludeGenres') || '';
     const excludeLabel = searchParams.get('excludeLabel') || '';
@@ -251,12 +252,19 @@ export async function GET(request: NextRequest) {
             }
         }
         if (maker) {
-            if (isMgs) {
-                // MGS: maker列にブランド名が入っている
+            if (exactMaker) {
+                // 完全一致（メーカー詳細ページ用: Hunterでlady huntersを除外）
+                if (isMgs) {
+                    conditions.push('maker = ?');
+                    args.push(maker);
+                } else {
+                    conditions.push('(maker = ? OR label = ?)');
+                    args.push(maker, maker);
+                }
+            } else if (isMgs) {
                 conditions.push('maker LIKE ?');
                 args.push(`%${maker}%`);
             } else {
-                // FANZA: maker列は親会社名、label列がブランド名 → 両方チェック
                 conditions.push('(label LIKE ? OR maker LIKE ?)');
                 args.push(`%${maker}%`, `%${maker}%`);
             }

@@ -51,7 +51,6 @@
   var allMakers = [];
   var platform = 'fanza';
   var activeKana = 'all';
-  var AMATEUR_RE = /素人|シロウト|ナンパ|投稿|ガチ素人|白完素人/;
 
   var KANA_GROUPS = [
     {label:'あ'},{label:'か'},{label:'さ'},{label:'た'},{label:'な'},
@@ -128,9 +127,8 @@
     q = (q||'').trim().toLowerCase();
 
     var filtered = allMakers.filter(function(m) {
-      var isAmateur = AMATEUR_RE.test(m.name);
-      if (platform === 'fanza')   return m.sources && m.sources.includes('fanza') && !isAmateur;
-      if (platform === 'amateur') return isAmateur;
+      if (platform === 'fanza')   return m.sources && m.sources.includes('fanza') && m.floor !== 'videoc';
+      if (platform === 'amateur') return m.floor === 'videoc';
       if (platform === 'mgs')     return m.sources && m.sources.includes('mgs');
       return true;
     });

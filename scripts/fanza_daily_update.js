@@ -260,7 +260,9 @@ async function fetchPreorders(gteDateStr, lteDateStr) {
                 for (const item of items) {
                     const genres = item.iteminfo?.genre?.map(g => g.name) || [];
                     if (genres.includes('ゲイ')) continue;
-                    fetched.push(convertItem(item));
+                    const converted = convertItem(item);
+                    converted.floor = floor;
+                    fetched.push(converted);
                 }
                 process.stdout.write(`  [${floor}] 取得中: ${fetched.length} 件\r`);
                 if (items.length < HITS_PER_REQUEST) break;
@@ -464,6 +466,7 @@ async function main() {
         'list_price','current_price','discount_pct','sale_end_date',
         'review_count','review_average',
         'series_id','series_name','vr_flag',
+        'floor',
         'price_updated_at','scraped_at','updated_at',
     ];
 
