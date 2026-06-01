@@ -448,11 +448,11 @@ var _sampleImgs = [];
       }
       var mkEl = document.getElementById('pd-maker');
       if (mkEl) {
-        var makerHref = p.maker ? '/search?makers=' + encodeURIComponent(p.maker) : null;
+        var makerHref = p.maker ? '/search?maker=' + encodeURIComponent(p.maker) : null;
         mkEl.innerHTML = p.maker ? (makerHref ? '<a href="'+makerHref+'" class="hover:underline">'+esc(p.maker)+'</a>' : esc(p.maker)) : '-';
       }
       var lbEl = document.getElementById('pd-label');
-      if (lbEl) lbEl.innerHTML = p.label ? '<a href="/search?makers='+encodeURIComponent(p.label)+'" class="hover:underline">'+esc(p.label)+'</a>' : '-';
+      if (lbEl) lbEl.innerHTML = p.label ? '<a href="/search?label='+encodeURIComponent(p.label)+'" class="hover:underline">'+esc(p.label)+'</a>' : '-';
       var gnEl = document.getElementById('pd-genres-row');
       if (gnEl) {
         var gns = (p.genres||'').split(',').slice(0,6).map(function(s){return s.trim();}).filter(Boolean);
