@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
+<html lang="ja"><head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>メーカー詳細 - AVランキング</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<style>
-body { font-family: 'Noto Sans JP', sans-serif; background: #f8f9fa; color: #111; }
+<style data-purpose="custom-typography">
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+body { font-family: 'Noto Sans JP', sans-serif; }
+</style>
+<style data-purpose="custom-layout">
 .product-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -17,188 +18,236 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #f8f9fa; color: #111
 @media (max-width: 1024px) { .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 640px)  { .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
-<title>メーカー詳細 - AVランキング</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 </head>
-<body>
+<body class="bg-[#f8f9fa] text-gray-900 leading-relaxed">
 
 <!-- Header placeholder (replaced by injectLayout) -->
 <header></header>
 
 <main class="container mx-auto px-4 py-8">
-  <!-- Breadcrumb -->
-  <nav class="flex text-[11px] text-gray-400 mb-6">
-    <ol class="inline-flex items-center space-x-2">
-      <li><a class="hover:text-primary transition-colors" href="/">ホーム</a></li>
-      <li class="flex items-center">
-        <svg class="w-2.5 h-2.5 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10"><path d="m1 9 4-4-4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <a class="hover:text-primary transition-colors" href="/makers">メーカー一覧</a>
-      </li>
-      <li class="flex items-center">
-        <svg class="w-2.5 h-2.5 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10"><path d="m1 9 4-4-4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span id="md-crumb" class="font-medium text-gray-600"></span>
-      </li>
-    </ol>
-  </nav>
+<!-- パンくず -->
+<nav class="flex text-[11px] text-gray-400 mb-6">
+<ol class="inline-flex items-center space-x-2">
+<li><a class="hover:text-blue-600" href="/">ホーム</a></li>
+<li class="flex items-center">
+<svg class="w-2.5 h-2.5 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10"><path d="m1 9 4-4-4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<a class="hover:text-blue-600" href="/makers">メーカー一覧</a>
+</li>
+<li class="flex items-center">
+<svg class="w-2.5 h-2.5 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10"><path d="m1 9 4-4-4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span id="md-crumb" class="font-medium text-gray-600"></span>
+</li>
+</ol>
+</nav>
 
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-    <div class="flex items-center flex-wrap gap-3">
-      <h1 id="md-title" class="text-xl font-bold text-gray-800"></h1>
-      <!-- 並び替え -->
-      <div class="flex items-center space-x-1 bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm">
-        <button id="btn-sort-new" onclick="setSort('new')"
-          class="px-3 py-1 text-[11px] font-bold rounded-md bg-primary text-white transition-all">新着順</button>
-        <button id="btn-sort-popular" onclick="setSort('wish_count')"
-          class="px-3 py-1 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all">人気順</button>
-      </div>
-      <!-- ソースフィルター -->
-      <div class="flex items-center space-x-1 bg-gray-100 px-1 py-1 rounded-lg">
-        <button id="src-all"   onclick="setSource('')"       class="px-3 py-1 text-[11px] font-bold rounded-md bg-white shadow-sm text-primary">すべて</button>
-        <button id="src-fanza" onclick="setSource('fanza')"  class="px-3 py-1 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700 transition">FANZA</button>
-        <button id="src-mgs"   onclick="setSource('mgs')"    class="px-3 py-1 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700 transition">MGS動画</button>
-      </div>
-      <!-- BEST除外 -->
-      <button id="qf-best" onclick="toggleBest()"
-        class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-primary text-white border-primary">BEST除外</button>
-    </div>
-    <p id="result-count" class="text-xs text-gray-400"></p>
-  </div>
+<div class="flex flex-col lg:flex-row gap-8">
+<!-- サイドバー -->
+<aside class="w-full lg:w-64 flex-shrink-0 space-y-6">
+<!-- 発売日カレンダー -->
+<div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+<h2 class="font-bold text-sm mb-4 text-gray-800">発売日で探す</h2>
+<div class="mb-3" id="cal-wrap">
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="text-[12px] font-bold" id="cal-label"></span>
+<div class="flex space-x-1">
+<button onclick="calMove(-1)" class="p-1 hover:bg-gray-100 rounded text-gray-400"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-width="2"/></svg></button>
+<button onclick="calMove(1)" class="p-1 hover:bg-gray-100 rounded text-gray-400"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="2"/></svg></button>
+</div>
+</div>
+<div class="grid grid-cols-7 text-center text-[10px] text-gray-400 mb-1">
+<div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+</div>
+<div class="grid grid-cols-7 gap-0.5 text-center text-[11px]" id="cal-days"></div>
+</div>
+<div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+<button id="qf-all"   onclick="setQuickPeriod('all')"   class="px-2.5 py-1.5 text-[11px] font-bold bg-blue-600 text-white rounded-md transition">すべて</button>
+<button id="qf-month" onclick="setQuickPeriod('month')" class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100">直近1ヶ月</button>
+<button id="qf-year"  onclick="setQuickPeriod('year')"  class="px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100">直近1年</button>
+</div>
+</div>
+<!-- 絞り込み -->
+<div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-6">
+<!-- 出演者 -->
+<div>
+<h3 class="font-bold text-xs mb-3 text-gray-700">出演者</h3>
+<div class="relative">
+<input id="filter-actress" class="w-full text-[11px] pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:ring-blue-500/20 focus:border-blue-500" placeholder="出演者名で絞り込み..." type="text"/>
+<svg class="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-width="2"/></svg>
+</div>
+</div>
+<!-- ジャンル -->
+<div>
+<h3 class="font-bold text-xs mb-3 text-gray-700">ジャンル</h3>
+<input id="filter-genre" class="w-full text-[11px] px-3 py-1.5 border border-gray-200 rounded-lg focus:ring-blue-500/20 focus:border-blue-500" placeholder="ジャンルで絞り込み..." type="text"/>
+</div>
+<button onclick="clearFilters()" class="w-full bg-gray-900 text-white text-[12px] font-bold py-2.5 rounded-lg hover:bg-gray-800 transition shadow-sm">絞り込みをクリア</button>
+</div>
+</aside>
 
-  <!-- Product Grid -->
-  <div class="product-grid" id="md-grid">
-    <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
-    <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
-    <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
-    <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
-    <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
-  </div>
-
-  <!-- Load more -->
-  <div id="md-load-more" class="flex justify-center mt-8" style="display:none!important">
-    <button onclick="loadMore()" class="px-8 py-3 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-600 hover:bg-gray-50 transition shadow-sm">さらに読み込む</button>
-  </div>
+<!-- メインコンテンツ -->
+<section class="flex-1">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+<div class="flex items-center flex-wrap gap-4">
+<h1 id="md-title" class="text-xl font-bold text-gray-800"></h1>
+<!-- 並び替え -->
+<div class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
+<span class="text-[11px] text-gray-400 whitespace-nowrap">並び替え</span>
+<select id="sort-select" onchange="setSort(this.value)" class="text-[11px] border-none bg-transparent p-0 pr-6 focus:ring-0 font-medium">
+<option value="new">新着順</option>
+<option value="wish_count">人気順</option>
+</select>
+</div>
+<!-- BEST除外 -->
+<button id="qf-best" onclick="toggleBest()" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-blue-50 border-blue-200 text-blue-700">BEST除外</button>
+<!-- VR除外 -->
+<button id="qf-vr" onclick="toggleVR()" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600">VR除外</button>
+</div>
+<p id="result-count" class="text-xs text-gray-400">-- 作品</p>
+</div>
+<!-- 商品グリッド -->
+<div class="product-grid" id="products-grid">
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col flex-1 gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col flex-1 gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col flex-1 gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col flex-1 gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col flex-1 gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col flex-1 gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col flex-1 gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col flex-1 gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col flex-1 gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col flex-1 gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+</div>
+<div id="pagination-wrap" class="mt-12 flex justify-center"></div>
+</section>
+</div>
 </main>
 
-<script>
-(function(){
-  var makerName = decodeURIComponent(location.pathname.split('/maker/')[1] || '');
-  var sort = 'new';
-  var source = '';
-  var excludeBest = true;
-  var page = 0;
-  var loading = false;
-  var hasMore = true;
-  var LIMIT = 48;
-  var abortCtrl = null;
+<script>(function(){
+var makerName = decodeURIComponent(location.pathname.split('/maker/')[1] || '');
+var g = document.getElementById('products-grid');
+var pgWrap = document.getElementById('pagination-wrap');
+var titleEl = document.getElementById('md-title');
+var crumbEl = document.getElementById('md-crumb');
+if (titleEl) titleEl.textContent = makerName;
+if (crumbEl) crumbEl.textContent = makerName;
+document.title = makerName + ' - AVランキング';
 
-  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function poster(url){
-    if(!url)return'';
-    if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');
-    if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');
-    return url;
+var FETCH_LIMIT = 200;
+var today = new Date();
+var state = { period:'all', selectedDate:null, calYear:today.getFullYear(), calMonth:today.getMonth(), sort:'new', excludeBest:true, excludeVR:false, actress:'', genre:'' };
+var fetchOffset = 0, isLoading = false;
+var abortCtrl = null;
+
+function fmt(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function getRange(){
+  if (state.selectedDate) return { fromDate:state.selectedDate, toDate:state.selectedDate };
+  if (state.period === 'month') { var d=new Date(today); d.setDate(today.getDate()-30); return { fromDate:fmt(d), toDate:fmt(today) }; }
+  if (state.period === 'year')  { var d=new Date(today); d.setFullYear(today.getFullYear()-1); return { fromDate:fmt(d), toDate:fmt(today) }; }
+  return { fromDate:'', toDate:'' };
+}
+function renderCal(){
+  var y=state.calYear, m=state.calMonth, first=new Date(y,m,1).getDay(), last=new Date(y,m+1,0).getDate(), prevLast=new Date(y,m,0).getDate(), todayStr=fmt(today), html='';
+  document.getElementById('cal-label').textContent = y+'年 '+(m+1)+'月';
+  for(var i=0;i<first;i++) html+='<div class="py-1 text-gray-300">'+(prevLast-first+1+i)+'</div>';
+  for(var d=1;d<=last;d++){
+    var ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var cls='py-1 rounded cursor-pointer transition '+(ds===state.selectedDate?'bg-blue-600 text-white font-bold':ds===todayStr?'bg-blue-100 text-blue-700 font-bold':'hover:bg-blue-50 text-gray-700');
+    html+='<button class="'+cls+'" onclick="selectDate(\''+ds+'\')">'+d+'</button>';
   }
-
-  var titleEl = document.getElementById('md-title');
-  var crumbEl = document.getElementById('md-crumb');
-  if (titleEl) titleEl.textContent = makerName;
-  if (crumbEl) crumbEl.textContent = makerName;
-  document.title = makerName + ' - AVランキング';
-
-  window.setSort = function(s) {
-    sort = s;
-    var btnNew = document.getElementById('btn-sort-new');
-    var btnPop = document.getElementById('btn-sort-popular');
-    var actClass = 'px-3 py-1 text-[11px] font-bold rounded-md bg-primary text-white transition-all';
-    var inactClass = 'px-3 py-1 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all';
-    if (btnNew) btnNew.className = s === 'new' ? actClass : inactClass;
-    if (btnPop) btnPop.className = s === 'wish_count' ? actClass : inactClass;
-    load(true);
-  };
-
-  window.setSource = function(s) {
-    source = s;
-    var actClass = 'px-3 py-1 text-[11px] font-bold rounded-md bg-white shadow-sm text-primary';
-    var inactClass = 'px-3 py-1 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700 transition';
-    ['','fanza','mgs'].forEach(function(v) {
-      var suffix = v === '' ? 'all' : v;
-      var btn = document.getElementById('src-' + suffix);
-      if (btn) btn.className = v === s ? actClass : inactClass;
-    });
-    load(true);
-  };
-
-  window.toggleBest = function() {
-    excludeBest = !excludeBest;
-    var btn = document.getElementById('qf-best');
-    if (btn) btn.className = 'inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition '
-      + (excludeBest ? 'bg-primary text-white border-primary' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600');
-    load(true);
-  };
-
-  function cardHtml(p) {
-    var img = poster(p.main_image_url || '');
-    var noAct = !(p.actresses && p.actresses.trim());
-    return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group block">'
-      +'<div class="bg-gray-50 relative overflow-hidden aspect-[3/4]">'
-      +(img ? '<img class="w-full h-full object-cover object-right group-hover:scale-105 transition-transform" src="'+esc(img)+'" loading="lazy" decoding="async"/>' : '')
-      +(p.discount_pct > 0 ? '<span class="absolute top-1.5 left-1.5 bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded">'+p.discount_pct+'%OFF</span>' : '')
-      +'<div class="absolute bottom-2 right-2 flex gap-1">'
-      +(noAct ? '<button data-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)"><span class="material-symbols-outlined text-[14px]">add</span></button>' : '')
-      +'<button data-like-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
-      +'</div></div>'
-      +'<div class="p-3 flex flex-col flex-1">'
-      +'<p class="text-xs font-bold line-clamp-2 mb-1">'+esc(p.title||'')+'</p>'
-      +(p.actresses ? '<p class="text-[10px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>' : '')
-      +'</div></a>';
-  }
-
-  function load(reset) {
-    if (loading && !reset) return;
-    if (reset) { page = 0; hasMore = true; }
-    if (!hasMore) return;
-    if (abortCtrl) abortCtrl.abort();
-    abortCtrl = new AbortController();
-    loading = true;
-    var grid = document.getElementById('md-grid');
-    if (reset && grid) {
-      var sk = '';
-      for(var i=0;i<10;i++) sk+='<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>';
-      grid.innerHTML = sk;
-    }
-    var offset = page * LIMIT;
-    var url = '/api/products?maker='+encodeURIComponent(makerName)+'&exactMaker=1&sort='+sort+'&limit='+(LIMIT+1)+'&offset='+offset;
-    if (source) url += '&source='+source;
-    if (excludeBest) url += '&excludeBest=1';
-    fetch(url, { signal: abortCtrl.signal })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        if (!grid || abortCtrl.signal.aborted) return;
-        loading = false;
-        var arr = Array.isArray(data) ? data : [];
-        hasMore = arr.length > LIMIT;
-        if (hasMore) arr = arr.slice(0, LIMIT);
-        var html = arr.map(cardHtml).join('');
-        if (reset) grid.innerHTML = html || '<p class="col-span-5 text-center text-sm text-gray-400 py-16">作品が見つかりませんでした</p>';
-        else grid.insertAdjacentHTML('beforeend', html);
-        if (window.restoreLikes) window.restoreLikes();
-        var cntEl = document.getElementById('result-count');
-        if (cntEl && reset) cntEl.textContent = arr.length + (hasMore ? '+' : '') + ' 作品';
-        var btn = document.getElementById('md-load-more');
-        if (btn) btn.style.display = hasMore ? '' : 'none';
-        page++;
-      })
-      .catch(function(e){ if (e.name !== 'AbortError') loading = false; });
-  }
-
-  window.loadMore = function() { load(false); };
-
-  window.addEventListener('scroll', function(){
-    if (loading || !hasMore) return;
-    if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 600) load(false);
-  }, {passive:true});
-
-  load(true);
-})();
-</script>
-</body>
-</html>
+  var rem=(7-((first+last)%7))%7; for(var n=1;n<=rem;n++) html+='<div class="py-1 text-gray-300">'+n+'</div>';
+  document.getElementById('cal-days').innerHTML = html;
+}
+function updateQfBtns(a){
+  ['all','month','year'].forEach(function(p){
+    var b=document.getElementById('qf-'+p); if(!b)return;
+    b.className = p===a
+      ? 'px-2.5 py-1.5 text-[11px] font-bold bg-blue-600 text-white rounded-md transition'
+      : 'px-2.5 py-1.5 text-[11px] bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-600 rounded-md transition border border-transparent hover:border-blue-100';
+  });
+}
+function updateFilterBtns(){
+  var act='inline-flex items-center text-[11px] font-bold px-2.5 py-1.5 rounded-lg border transition bg-blue-50 border-blue-200 text-blue-700';
+  var ina='inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600';
+  var b=document.getElementById('qf-best'); if(b)b.className=(state.excludeBest?act:ina);
+  var v=document.getElementById('qf-vr');   if(v)v.className=(state.excludeVR?act:ina);
+}
+function setLoadMoreVisible(v){
+  if(!pgWrap)return;
+  if(v){ pgWrap.innerHTML='<button onclick="loadMore()" class="px-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 shadow-sm transition">さらに読み込む</button>'; pgWrap.style.display='flex'; pgWrap.style.justifyContent='center'; }
+  else { pgWrap.innerHTML=''; pgWrap.style.display='none'; }
+}
+function buildUrl(off){
+  var r = getRange();
+  var url = '/api/products?maker='+encodeURIComponent(makerName)+'&exactMaker=1&sort='+state.sort+'&limit='+(FETCH_LIMIT+1)+'&offset='+off;
+  if(r.fromDate) url += '&fromDate='+r.fromDate;
+  if(r.toDate)   url += '&toDate='+r.toDate;
+  if(state.excludeBest) url += '&excludeBest=1';
+  if(state.excludeVR)   url += '&excludeGenres=VR';
+  if(state.actress)     url += '&actress='+encodeURIComponent(state.actress);
+  if(state.genre)       url += '&genre='+encodeURIComponent(state.genre);
+  return url;
+}
+function poster(url){
+  if(!url)return'';
+  if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');
+  if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');
+  return url;
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cardHtml(p){
+  var img = poster(p.main_image_url||'');
+  var dt  = (p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
+  var noAct = !(p.actresses&&p.actresses.trim());
+  return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+encodeURIComponent(p.product_id||'')+'\'">'
+    +'<div class="bg-gray-50 relative overflow-hidden aspect-[3/4]">'
+    +(img?'<img alt="" class="w-full h-full object-cover object-right group-hover:scale-105 transition duration-500" src="'+esc(img)+'"/>':'')
+    +(p.discount_pct>0?'<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">'+p.discount_pct+'%OFF</span>':'')
+    +'<div class="absolute bottom-2 right-2 flex gap-1">'
+    +(noAct?'<button data-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
+    +'<button data-like-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.stopPropagation();toggleLike(this,this.dataset.likePid)"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
+    +'</div></div>'
+    +'<div class="p-3 flex flex-col flex-1">'
+    +'<h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight">'+esc(p.title||'')+'</h3>'
+    +(p.actresses?'<p class="text-[10px] text-orange-500 truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
+    +'<p class="text-[10px] text-gray-400 mt-auto pt-1">'+dt+'</p>'
+    +'</div></article>';
+}
+function loadProducts(){
+  fetchOffset=0;
+  if(abortCtrl) abortCtrl.abort();
+  abortCtrl = new AbortController();
+  g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">読み込み中...</p>';
+  setLoadMoreVisible(false);
+  fetch(buildUrl(0), {signal:abortCtrl.signal}).then(function(res){return res.json();}).then(function(d){
+    var hasMore=d&&d.length>FETCH_LIMIT; if(hasMore)d=d.slice(0,FETCH_LIMIT);
+    var cEl=document.getElementById('result-count'); if(cEl)cEl.textContent=(d?d.length:0)+(hasMore?'+':'')+' 作品';
+    if(!d||!d.length){g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">作品が見つかりませんでした</p>';return;}
+    g.innerHTML=d.map(cardHtml).join('');
+    if(window.restoreLikes)window.restoreLikes();
+    fetchOffset=FETCH_LIMIT;
+    setLoadMoreVisible(hasMore);
+  }).catch(function(e){if(e.name!=='AbortError')g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">エラーが発生しました</p>';});
+}
+window.loadMore=function(){
+  if(isLoading)return; isLoading=true;
+  fetch(buildUrl(fetchOffset)).then(function(res){return res.json();}).then(function(d){
+    var hasMore=d&&d.length>FETCH_LIMIT; if(hasMore)d=d.slice(0,FETCH_LIMIT);
+    if(d&&d.length){g.insertAdjacentHTML('beforeend',d.map(cardHtml).join(''));if(window.restoreLikes)window.restoreLikes();}
+    var cEl=document.getElementById('result-count');
+    if(cEl){var cur=parseInt(cEl.textContent)||0;cEl.textContent=(cur+(d?d.length:0))+(hasMore?'+':'')+' 作品';}
+    fetchOffset+=FETCH_LIMIT;
+    setLoadMoreVisible(hasMore);
+  }).catch(function(){}).finally(function(){isLoading=false;});
+};
+window.setQuickPeriod=function(p){state.period=p;state.selectedDate=null;updateQfBtns(p);renderCal();loadProducts();};
+window.selectDate=function(ds){state.selectedDate=ds;state.period=null;updateQfBtns(null);renderCal();loadProducts();};
+window.calMove=function(dir){state.calMonth+=dir;if(state.calMonth>11){state.calMonth=0;state.calYear++;}if(state.calMonth<0){state.calMonth=11;state.calYear--;}renderCal();};
+window.setSort=function(s){state.sort=s;loadProducts();};
+window.toggleBest=function(){state.excludeBest=!state.excludeBest;updateFilterBtns();loadProducts();};
+window.toggleVR=function(){state.excludeVR=!state.excludeVR;updateFilterBtns();loadProducts();};
+window.clearFilters=function(){state.actress='';state.genre='';['actress','genre'].forEach(function(k){var el=document.getElementById('filter-'+k);if(el)el.value='';});loadProducts();};
+(function(){var t={};['actress','genre'].forEach(function(k){var el=document.getElementById('filter-'+k);if(!el)return;el.addEventListener('input',function(){clearTimeout(t[k]);t[k]=setTimeout(function(){state[k]=el.value.trim();loadProducts();},500);});});})();
+renderCal();updateQfBtns('all');updateFilterBtns();loadProducts();
+})();</script>
+</body></html>
