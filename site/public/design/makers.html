@@ -27,9 +27,9 @@
   </div>
   <!-- Platform tabs -->
   <div class="flex border-b border-slate-100 dark:border-slate-800">
-    <button id="ptab-all"   onclick="setPlatform('all')"   class="flex-1 py-2.5 text-xs font-bold border-b-2 border-primary text-primary">すべて</button>
-    <button id="ptab-fanza" onclick="setPlatform('fanza')" class="flex-1 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400">FANZA</button>
-    <button id="ptab-mgs"   onclick="setPlatform('mgs')"   class="flex-1 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400">MGS</button>
+    <button id="ptab-fanza"   onclick="setPlatform('fanza')"   class="flex-1 py-2.5 text-xs font-bold border-b-2 border-primary text-primary">FANZA</button>
+    <button id="ptab-amateur" onclick="setPlatform('amateur')" class="flex-1 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400">素人</button>
+    <button id="ptab-mgs"     onclick="setPlatform('mgs')"     class="flex-1 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400">MGS</button>
   </div>
   <!-- 五十音 index -->
   <div class="flex overflow-x-auto no-scrollbar px-2 py-1.5 gap-1" id="kana-index">
@@ -55,8 +55,9 @@
 <script>
 (function(){
   var allMakers = [];
-  var platform = 'all';
+  var platform = 'fanza';
   var activeKana = 'all';
+  var AMATEUR_RE = /素人|シロウト|ナンパ|投稿|ガチ素人|白完素人/;
 
   var KANA_GROUPS = [
     {label:'あ', test: kanaGroup('あ')},
@@ -112,7 +113,7 @@
   window.setPlatform = function(p) {
     platform = p;
     activeKana = 'all';
-    ['all','fanza','mgs'].forEach(function(id) {
+    ['fanza','amateur','mgs'].forEach(function(id) {
       var btn = document.getElementById('ptab-' + id);
       if (!btn) return;
       btn.className = 'flex-1 py-2.5 text-xs font-bold border-b-2 transition-colors '
@@ -168,8 +169,10 @@
 
     // プラットフォームフィルター
     var filtered = allMakers.filter(function(m) {
-      if (platform === 'fanza') return m.sources && m.sources.includes('fanza');
-      if (platform === 'mgs')   return m.sources && m.sources.includes('mgs');
+      var isAmateur = AMATEUR_RE.test(m.name);
+      if (platform === 'fanza')   return m.sources && m.sources.includes('fanza') && !isAmateur;
+      if (platform === 'amateur') return isAmateur;
+      if (platform === 'mgs')     return m.sources && m.sources.includes('mgs');
       return true;
     });
 
