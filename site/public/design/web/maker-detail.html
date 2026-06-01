@@ -4,147 +4,195 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<script>tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary":"#ec5b13"},fontFamily:{display:["Public Sans"]}}}}</script>
+<style>
+body { font-family: 'Noto Sans JP', sans-serif; background: #f8f9fa; color: #111; }
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1rem;
+}
+@media (max-width: 1280px) { .product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 1024px) { .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px)  { .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
 <title>メーカー詳細 - AVランキング</title>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<body>
 
-<!-- Header placeholder -->
+<!-- Header placeholder (replaced by injectLayout) -->
 <header></header>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<main class="container mx-auto px-4 py-8">
   <!-- Breadcrumb -->
-  <nav class="text-xs text-slate-400 mb-4 flex items-center gap-1.5">
-    <a href="/" class="hover:text-primary transition-colors">ホーム</a>
-    <span>/</span>
-    <a href="/makers" class="hover:text-primary transition-colors">メーカー一覧</a>
-    <span>/</span>
-    <span id="md-maker-name-crumb" class="text-slate-600 dark:text-slate-300"></span>
+  <nav class="flex text-[11px] text-gray-400 mb-6">
+    <ol class="inline-flex items-center space-x-2">
+      <li><a class="hover:text-primary transition-colors" href="/">ホーム</a></li>
+      <li class="flex items-center">
+        <svg class="w-2.5 h-2.5 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10"><path d="m1 9 4-4-4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <a class="hover:text-primary transition-colors" href="/makers">メーカー一覧</a>
+      </li>
+      <li class="flex items-center">
+        <svg class="w-2.5 h-2.5 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10"><path d="m1 9 4-4-4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="md-crumb" class="font-medium text-gray-600"></span>
+      </li>
+    </ol>
   </nav>
 
-  <!-- Page header -->
-  <div class="flex items-center gap-4 mb-6">
-    <div>
-      <h1 id="md-title" class="text-2xl font-black text-slate-900 dark:text-white"></h1>
-      <p id="md-count" class="text-sm text-slate-500 dark:text-slate-400 mt-0.5"></p>
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+    <div class="flex items-center flex-wrap gap-3">
+      <h1 id="md-title" class="text-xl font-bold text-gray-800"></h1>
+      <!-- 並び替え -->
+      <div class="flex items-center space-x-1 bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm">
+        <button id="btn-sort-new" onclick="setSort('new')"
+          class="px-3 py-1 text-[11px] font-bold rounded-md bg-primary text-white transition-all">新着順</button>
+        <button id="btn-sort-popular" onclick="setSort('wish_count')"
+          class="px-3 py-1 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all">人気順</button>
+      </div>
+      <!-- ソースフィルター -->
+      <div class="flex items-center space-x-1 bg-gray-100 px-1 py-1 rounded-lg">
+        <button id="src-all"   onclick="setSource('')"       class="px-3 py-1 text-[11px] font-bold rounded-md bg-white shadow-sm text-primary">すべて</button>
+        <button id="src-fanza" onclick="setSource('fanza')"  class="px-3 py-1 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700 transition">FANZA</button>
+        <button id="src-mgs"   onclick="setSource('mgs')"    class="px-3 py-1 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700 transition">MGS動画</button>
+      </div>
+      <!-- BEST除外 -->
+      <button id="qf-best" onclick="toggleBest()"
+        class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-primary text-white border-primary">BEST除外</button>
     </div>
-    <!-- Tabs -->
-    <div class="ml-auto flex gap-2">
-      <button id="tab-new" onclick="switchTab('new')" class="px-4 py-2 bg-primary text-white rounded-full text-sm font-bold transition-all">新着</button>
-      <button id="tab-popular" onclick="switchTab('popular')" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-sm font-bold transition-all">人気</button>
-    </div>
+    <p id="result-count" class="text-xs text-gray-400"></p>
   </div>
 
-  <!-- Product grid -->
-  <div id="md-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
-    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
-    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
-    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
-    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
-    <div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>
+  <!-- Product Grid -->
+  <div class="product-grid" id="md-grid">
+    <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+    <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+    <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+    <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
+    <article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>
   </div>
 
   <!-- Load more -->
   <div id="md-load-more" class="flex justify-center mt-8" style="display:none!important">
-    <button onclick="loadMore()" class="px-8 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-sm">さらに読み込む</button>
+    <button onclick="loadMore()" class="px-8 py-3 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-600 hover:bg-gray-50 transition shadow-sm">さらに読み込む</button>
   </div>
-</div>
+</main>
 
 <script>
 (function(){
   var makerName = decodeURIComponent(location.pathname.split('/maker/')[1] || '');
-  var tab = 'new';
+  var sort = 'new';
+  var source = '';
+  var excludeBest = true;
   var page = 0;
   var loading = false;
   var hasMore = true;
   var LIMIT = 48;
+  var abortCtrl = null;
 
-  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function poster(url){
-    if(!url)return '';
+    if(!url)return'';
     if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');
     if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');
     return url;
   }
 
-  // タイトル設定
   var titleEl = document.getElementById('md-title');
+  var crumbEl = document.getElementById('md-crumb');
   if (titleEl) titleEl.textContent = makerName;
-  document.title = makerName + ' - AVランキング';
-  var crumbEl = document.getElementById('md-maker-name-crumb');
   if (crumbEl) crumbEl.textContent = makerName;
+  document.title = makerName + ' - AVランキング';
 
-  function switchTab(t) {
-    tab = t;
-    var btnNew = document.getElementById('tab-new');
-    var btnPop = document.getElementById('tab-popular');
-    if (btnNew) btnNew.className = 'px-4 py-2 rounded-full text-sm font-bold transition-all ' + (t==='new' ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300');
-    if (btnPop) btnPop.className = 'px-4 py-2 rounded-full text-sm font-bold transition-all ' + (t==='popular' ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300');
-    page = 0; hasMore = true;
+  window.setSort = function(s) {
+    sort = s;
+    var btnNew = document.getElementById('btn-sort-new');
+    var btnPop = document.getElementById('btn-sort-popular');
+    var actClass = 'px-3 py-1 text-[11px] font-bold rounded-md bg-primary text-white transition-all';
+    var inactClass = 'px-3 py-1 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all';
+    if (btnNew) btnNew.className = s === 'new' ? actClass : inactClass;
+    if (btnPop) btnPop.className = s === 'wish_count' ? actClass : inactClass;
     load(true);
-  }
-  window.switchTab = switchTab;
+  };
 
-  function renderCards(products, append) {
-    var grid = document.getElementById('md-grid');
-    if (!grid) return;
-    var html = products.map(function(p) {
-      var img = poster(p.main_image_url);
-      return '<div onclick="location.href=\'/product/\'+encodeURIComponent(\''+esc(p.product_id)+'\')" class="group cursor-pointer">'
-        +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-slate-200 dark:bg-slate-700 shadow-sm group-hover:shadow-md transition-shadow">'
-        +(img ? '<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="'+esc(img)+'" loading="lazy"/>' : '')
-        +(p.discount_pct > 0 ? '<span class="absolute top-1.5 left-1.5 bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md">'+p.discount_pct+'%OFF</span>' : '')
-        +'</div>'
-        +'<p class="text-xs font-bold leading-tight line-clamp-2 mt-2 group-hover:text-primary transition-colors">'+esc(p.title)+'</p>'
-        +(p.actresses ? '<p class="text-[10px] text-slate-400 truncate mt-0.5">'+esc(p.actresses.split(',')[0].trim())+'</p>' : '')
-        +'</div>';
-    }).join('');
-    if (append) grid.insertAdjacentHTML('beforeend', html);
-    else grid.innerHTML = html || '<p class="col-span-full text-center text-sm text-slate-400 py-16">作品が見つかりませんでした</p>';
+  window.setSource = function(s) {
+    source = s;
+    var actClass = 'px-3 py-1 text-[11px] font-bold rounded-md bg-white shadow-sm text-primary';
+    var inactClass = 'px-3 py-1 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700 transition';
+    ['','fanza','mgs'].forEach(function(v) {
+      var suffix = v === '' ? 'all' : v;
+      var btn = document.getElementById('src-' + suffix);
+      if (btn) btn.className = v === s ? actClass : inactClass;
+    });
+    load(true);
+  };
+
+  window.toggleBest = function() {
+    excludeBest = !excludeBest;
+    var btn = document.getElementById('qf-best');
+    if (btn) btn.className = 'inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition '
+      + (excludeBest ? 'bg-primary text-white border-primary' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600');
+    load(true);
+  };
+
+  function cardHtml(p) {
+    var img = poster(p.main_image_url || '');
+    var noAct = !(p.actresses && p.actresses.trim());
+    return '<a href="/product/'+encodeURIComponent(p.product_id)+'" class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group block">'
+      +'<div class="bg-gray-50 relative overflow-hidden aspect-[3/4]">'
+      +(img ? '<img class="w-full h-full object-cover object-right group-hover:scale-105 transition-transform" src="'+esc(img)+'" loading="lazy" decoding="async"/>' : '')
+      +(p.discount_pct > 0 ? '<span class="absolute top-1.5 left-1.5 bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded">'+p.discount_pct+'%OFF</span>' : '')
+      +'<div class="absolute bottom-2 right-2 flex gap-1">'
+      +(noAct ? '<button data-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)"><span class="material-symbols-outlined text-[14px]">add</span></button>' : '')
+      +'<button data-like-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur rounded-full text-white" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
+      +'</div></div>'
+      +'<div class="p-3 flex flex-col flex-1">'
+      +'<p class="text-xs font-bold line-clamp-2 mb-1">'+esc(p.title||'')+'</p>'
+      +(p.actresses ? '<p class="text-[10px] text-primary truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>' : '')
+      +'</div></a>';
   }
 
   function load(reset) {
-    if (loading) return;
+    if (loading && !reset) return;
     if (reset) { page = 0; hasMore = true; }
     if (!hasMore) return;
+    if (abortCtrl) abortCtrl.abort();
+    abortCtrl = new AbortController();
     loading = true;
-    if (reset) {
-      var grid = document.getElementById('md-grid');
-      if (grid) {
-        var sk = '';
-        for (var i=0;i<12;i++) sk += '<div class="rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse aspect-[3/4]"></div>';
-        grid.innerHTML = sk;
-      }
+    var grid = document.getElementById('md-grid');
+    if (reset && grid) {
+      var sk = '';
+      for(var i=0;i<10;i++) sk+='<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col animate-pulse"><div class="aspect-[3/4] bg-gray-200"></div><div class="p-2.5 flex flex-col gap-2"><div class="h-3 bg-gray-200 rounded w-3/4"></div><div class="h-2 bg-gray-200 rounded w-1/2"></div></div></article>';
+      grid.innerHTML = sk;
     }
-    var sort = tab === 'popular' ? 'wish_count' : 'new';
     var offset = page * LIMIT;
-    var url = '/api/products?maker='+encodeURIComponent(makerName)+'&exactMaker=1&sort='+sort+'&limit='+LIMIT+'&offset='+offset;
-    fetch(url)
+    var url = '/api/products?maker='+encodeURIComponent(makerName)+'&exactMaker=1&sort='+sort+'&limit='+(LIMIT+1)+'&offset='+offset;
+    if (source) url += '&source='+source;
+    if (excludeBest) url += '&excludeBest=1';
+    fetch(url, { signal: abortCtrl.signal })
       .then(function(r){ return r.json(); })
-      .then(function(data) {
-        var arr = Array.isArray(data) ? data : [];
-        if (arr.length < LIMIT) hasMore = false;
-        renderCards(arr, !reset);
-        // 件数表示（初回のみ）
-        if (reset && page === 0) {
-          var cntEl = document.getElementById('md-count');
-          // カウントはAPIに別途リクエスト不要。ページ数から推定
-        }
-        page++;
+      .then(function(data){
+        if (!grid || abortCtrl.signal.aborted) return;
         loading = false;
+        var arr = Array.isArray(data) ? data : [];
+        hasMore = arr.length > LIMIT;
+        if (hasMore) arr = arr.slice(0, LIMIT);
+        var html = arr.map(cardHtml).join('');
+        if (reset) grid.innerHTML = html || '<p class="col-span-5 text-center text-sm text-gray-400 py-16">作品が見つかりませんでした</p>';
+        else grid.insertAdjacentHTML('beforeend', html);
+        if (window.restoreLikes) window.restoreLikes();
+        var cntEl = document.getElementById('result-count');
+        if (cntEl && reset) cntEl.textContent = arr.length + (hasMore ? '+' : '') + ' 作品';
         var btn = document.getElementById('md-load-more');
         if (btn) btn.style.display = hasMore ? '' : 'none';
+        page++;
       })
-      .catch(function() { loading = false; });
+      .catch(function(e){ if (e.name !== 'AbortError') loading = false; });
   }
 
   window.loadMore = function() { load(false); };
 
-  // 無限スクロール
-  window.addEventListener('scroll', function() {
+  window.addEventListener('scroll', function(){
     if (loading || !hasMore) return;
     if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 600) load(false);
   }, {passive:true});
