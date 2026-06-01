@@ -110,19 +110,17 @@
   window.setKanaBtn = function(k) { activeKana = k; render(); };
 
   function makerCard(m) {
-    var img = m.sample_image
-      ? '<img src="'+esc(m.sample_image)+'" alt="'+esc(m.name)+'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy"/>'
-      : '<div class="w-full h-full flex items-center justify-center bg-primary/10"><span class="material-symbols-outlined text-primary text-4xl">business</span></div>';
-    return '<a href="/maker/'+encodeURIComponent(m.name)+'" class="group block rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all">'
-      +'<div class="w-full aspect-video bg-slate-200 dark:bg-slate-700 overflow-hidden">'+img+'</div>'
-      +'<div class="px-3 py-2.5">'
-      +'<p class="text-xs font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors">'+esc(m.name)+'</p>'
-      +'<p class="text-[10px] text-slate-400 mt-0.5">'+Number(m.count).toLocaleString()+'作品</p>'
+    return '<a href="/maker/'+encodeURIComponent(m.name)+'" class="group flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-primary hover:shadow-sm transition-all">'
+      +'<span class="material-symbols-outlined text-primary text-[20px] shrink-0">business</span>'
+      +'<div class="flex-1 min-w-0">'
+      +'<p class="text-sm font-bold truncate group-hover:text-primary transition-colors">'+esc(m.name)+'</p>'
+      +'<p class="text-xs text-slate-400 mt-0.5">'+Number(m.count).toLocaleString()+'作品</p>'
       +'</div>'
+      +'<span class="material-symbols-outlined text-slate-300 text-[18px] shrink-0 group-hover:text-primary transition-colors">chevron_right</span>'
       +'</a>';
   }
 
-  var GRID = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4';
+  var GRID = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2';
 
   function render() {
     var q = (document.getElementById('maker-search')||{}).value;

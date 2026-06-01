@@ -151,15 +151,13 @@
 
   // メーカーカード
   function makerCard(m) {
-    var img = m.sample_image
-      ? '<img src="'+esc(m.sample_image)+'" alt="'+esc(m.name)+'" class="w-full h-full object-cover" loading="lazy"/>'
-      : '<div class="w-full h-full flex items-center justify-center bg-primary/10"><span class="material-symbols-outlined text-primary text-2xl">business</span></div>';
-    return '<a href="/maker/'+encodeURIComponent(m.name)+'" class="block rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800/60 shadow-sm active:scale-[0.97] transition-all">'
-      +'<div class="w-full aspect-video bg-slate-200 dark:bg-slate-700 overflow-hidden">'+img+'</div>'
-      +'<div class="px-2.5 py-2">'
-      +'<p class="text-[11px] font-bold leading-tight line-clamp-2">'+esc(m.name)+'</p>'
-      +'<p class="text-[9px] text-slate-400 mt-0.5">'+Number(m.count).toLocaleString()+'作品</p>'
+    return '<a href="/maker/'+encodeURIComponent(m.name)+'" class="flex items-center gap-2.5 px-3 py-3 bg-white dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 rounded-xl active:bg-slate-50 dark:active:bg-slate-700 transition-colors">'
+      +'<span class="material-symbols-outlined text-primary text-[18px] shrink-0">business</span>'
+      +'<div class="flex-1 min-w-0">'
+      +'<p class="text-[12px] font-bold leading-tight truncate">'+esc(m.name)+'</p>'
+      +'<p class="text-[10px] text-slate-400 mt-0.5">'+Number(m.count).toLocaleString()+'作品</p>'
       +'</div>'
+      +'<span class="material-symbols-outlined text-slate-300 text-[16px] shrink-0">chevron_right</span>'
       +'</a>';
   }
 
@@ -199,7 +197,7 @@
         html += '<div class="px-3 pt-4 pb-1">'
           +'<h2 class="text-sm font-black text-primary border-l-4 border-primary pl-2">'+esc(kg.label)+'</h2>'
           +'</div>'
-          +'<div class="px-3 grid grid-cols-2 gap-2.5 pb-2">'
+          +'<div class="px-3 flex flex-col gap-1.5 pb-2">'
           +items.map(makerCard).join('')
           +'</div>';
       });
@@ -209,7 +207,7 @@
       // 選択グループのみ
       grouped = filtered.filter(function(m){ return getGroup(m.name) === activeKana; });
       var html2 = grouped.length
-        ? '<div class="px-3 pt-4 grid grid-cols-2 gap-2.5">'+grouped.map(makerCard).join('')+'</div>'
+        ? '<div class="px-3 pt-4 flex flex-col gap-1.5">'+grouped.map(makerCard).join('')+'</div>'
         : '<p class="text-center text-sm text-slate-400 py-12">見つかりませんでした</p>';
       document.getElementById('makers-main').innerHTML = html2;
     }
