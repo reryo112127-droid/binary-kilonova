@@ -54,8 +54,12 @@ export async function GET(request: NextRequest) {
 
     // フィルターなし・offset=0 のみ静的JSONを使用
     const noFilter = !searchParams.get('q') && !searchParams.get('genre') && !searchParams.get('actress')
-        && !searchParams.get('maker') && !searchParams.get('fromDate') && !searchParams.get('source')
-        && !searchParams.get('cup') && !searchParams.get('height') && !searchParams.get('vr');
+        && !searchParams.get('maker') && !searchParams.get('makers') && !searchParams.get('label')
+        && !searchParams.get('fromDate') && !searchParams.get('toDate') && !searchParams.get('source')
+        && !searchParams.get('cup') && !searchParams.get('cups') && !searchParams.get('height')
+        && !searchParams.get('vr') && !searchParams.get('series') && !searchParams.get('hasVideo')
+        && !searchParams.get('excludeBest') && !searchParams.get('minDiscount')
+        && !searchParams.get('ageMin') && !searchParams.get('ageMax');
 
     if (noFilter) {
         const file = sort === 'wish_count' ? 'products_popular_cache.json'
