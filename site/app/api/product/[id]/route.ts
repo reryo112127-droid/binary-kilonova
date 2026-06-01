@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { filterActresses } from '../../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../../lib/turso';
 import { getCached, setCached } from '../../../../lib/apiCache';
+import { cacheHeaders } from '../../../../lib/staticCache';
 
 const PRODUCT_TTL = 60 * 60 * 1000; // 1時間
 
@@ -24,9 +25,17 @@ export async function GET(
     try {
     const { id } = await params;
 
+    const cfCache = typeof caches !== 'undefined' ? (caches as unknown as { default: Cache }).default : null;
+    let cfCacheKey: Request | null = null;
+    if (cfCache) {
+        cfCacheKey = new Request(request.url);
+        const cfHit = await cfCache.match(cfCacheKey);
+        if (cfHit) return cfHit as unknown as NextResponse;
+    }
+
     const cacheKey = `product_${id}`;
     const cached = getCached<Record<string, unknown>>(cacheKey, PRODUCT_TTL);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: cacheHeaders(3600, 300) });
 
     let mgsProduct: Record<string, unknown> | null = null;
     let fanzaProduct: Record<string, unknown> | null = null;
@@ -135,7 +144,12 @@ export async function GET(
         })(),
     };
     setCached(cacheKey, responseData);
-    return NextResponse.json(responseData);
+    if (cfCache && cfCacheKey) {
+        await cfCache.put(cfCacheKey, new Response(JSON.stringify(responseData), {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+        }));
+    }
+    return NextResponse.json(responseData, { headers: cacheHeaders(3600, 300) });
     } catch (err: unknown) {
         console.error('Product API error:', err);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

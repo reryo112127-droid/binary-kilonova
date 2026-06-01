@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getMgsClient, getFanzaClient } from '../../../../../lib/turso';
 import { filterActresses } from '../../../../../lib/actressFilter';
 import { getCached, setCached } from '../../../../../lib/apiCache';
+import { cacheHeaders } from '../../../../../lib/staticCache';
 
 const SIMILAR_TTL = 30 * 60 * 1000; // 30分
 
@@ -42,14 +43,22 @@ function toProduct(row: ProductRow, source: string) {
 }
 
 export async function GET(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> },
 ) {
     const { id } = await params;
 
+    const cfCache = typeof caches !== 'undefined' ? (caches as unknown as { default: Cache }).default : null;
+    let cfCacheKey: Request | null = null;
+    if (cfCache) {
+        cfCacheKey = new Request(request.url);
+        const cfHit = await cfCache.match(cfCacheKey);
+        if (cfHit) return cfHit as unknown as NextResponse;
+    }
+
     const cacheKey = `similar_${id}`;
     const cached = getCached<ReturnType<typeof toProduct>[]>(cacheKey, SIMILAR_TTL);
-    if (cached) return NextResponse.json(cached);
+    if (cached) return NextResponse.json(cached, { headers: cacheHeaders(1800, 300) });
 
     const mgsClient = getMgsClient();
     const fanzaClient = getFanzaClient();
@@ -143,5 +152,10 @@ export async function GET(
     const result = scored.slice(0, 8).map(({ _score: _, ...p }) => p);
 
     setCached(cacheKey, result);
-    return NextResponse.json(result);
+    if (cfCache && cfCacheKey) {
+        await cfCache.put(cfCacheKey, new Response(JSON.stringify(result), {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+        }));
+    }
+    return NextResponse.json(result, { headers: cacheHeaders(1800, 300) });
 }
