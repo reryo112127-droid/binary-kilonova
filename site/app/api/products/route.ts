@@ -396,7 +396,7 @@ export async function GET(request: NextRequest) {
 
     function buildOrderBy(isMgs: boolean) {
         // MGSは YYYY/MM/DD 形式のため REPLACE で正規化 → 関数インデックス idx_sale_date_norm が効く
-        if (sort === 'new') return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY sale_start_date DESC';
+        if (sort === 'new' || sort === 'date_all') return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY sale_start_date DESC';
         if (sort === 'pre-order') return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY SUBSTR(sale_start_date,1,10) DESC';
         if (sort === 'random') return 'ORDER BY RANDOM()';
         if (sort === 'discount') return 'ORDER BY discount_pct DESC';         // 割引率が高い順

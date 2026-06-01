@@ -43,16 +43,34 @@ body { min-height: max(884px, 100dvh); }
 <main class="flex-1">
   <div class="flex flex-col gap-3 py-3">
 
-    <!-- 1. 並び替えセグメント -->
+    <!-- 1. コンテンツタイプセグメント（products.htmlと同スタイル） -->
     <div class="px-4">
       <div class="flex h-11 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
         <label class="flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
-          <span>新着順</span>
-          <input checked class="hidden" name="sort-seg" type="radio" value="new"/>
+          <span>すべて</span>
+          <input checked class="hidden" name="content-type" type="radio" value="all"/>
         </label>
         <label class="flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold text-slate-500 transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
-          <span>人気順</span>
-          <input class="hidden" name="sort-seg" type="radio" value="popular"/>
+          <span>新作</span>
+          <input class="hidden" name="content-type" type="radio" value="new"/>
+        </label>
+        <label class="flex h-full grow cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-bold text-slate-500 transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+          <span>予約作品</span>
+          <input class="hidden" name="content-type" type="radio" value="pre-order"/>
+        </label>
+      </div>
+    </div>
+
+    <!-- 2. 新着/人気ソート -->
+    <div class="flex items-center gap-2 px-4">
+      <div class="flex h-9 flex-1 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
+        <label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-2 text-xs font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+          <span class="truncate">新着順</span>
+          <input checked class="hidden" name="sort-order" type="radio" value="new"/>
+        </label>
+        <label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-2 text-xs font-bold text-slate-500 transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
+          <span class="truncate">人気順</span>
+          <input class="hidden" name="sort-order" type="radio" value="popular"/>
         </label>
       </div>
     </div>
@@ -70,6 +88,11 @@ body { min-height: max(884px, 100dvh); }
       <button id="btn-cal" class="flex h-9 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 px-3">
         <span class="material-symbols-outlined text-[18px]">calendar_today</span>
       </button>
+      <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0"></div>
+      <a href="/search/advanced" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-primary px-3 py-1 text-white">
+        <span class="material-symbols-outlined text-[16px]">tune</span>
+        <span class="text-xs font-bold">詳細検索</span>
+      </a>
     </div>
 
     <!-- 3. カレンダーパネル（折りたたみ） -->
@@ -114,7 +137,7 @@ body { min-height: max(884px, 100dvh); }
 (function(){
   var makerName = decodeURIComponent(location.pathname.split('/maker/')[1] || '');
   var grid = document.getElementById('products-grid');
-  var sort = 'new', excludeBest = true, excludeVR = false, fromDate = '', toDate = '';
+  var sort = 'date_all', excludeBest = true, excludeVR = false, fromDate = '', toDate = '';
   var page = 0, loading = false, hasMore = true, LIMIT = 30;
   var abortCtrl = null;
 
@@ -176,12 +199,16 @@ body { min-height: max(884px, 100dvh); }
     load(true);
   };
 
-  // 並び替えセグメント
-  document.querySelectorAll('input[name="sort-seg"]').forEach(function(r){
-    r.addEventListener('change', function(){
-      sort = r.value === 'popular' ? 'wish_count' : 'new';
-      load(true);
-    });
+  // コンテンツタイプ・ソート セグメント
+  function computeSort() {
+    var ct = (document.querySelector('input[name="content-type"]:checked') || {}).value || 'all';
+    var so = (document.querySelector('input[name="sort-order"]:checked') || {}).value || 'new';
+    if (ct === 'pre-order') return 'pre-order';
+    if (ct === 'new') return so === 'popular' ? 'wish_count' : 'new';
+    return so === 'popular' ? 'wish_count' : 'date_all';
+  }
+  document.querySelectorAll('input[name="content-type"], input[name="sort-order"]').forEach(function(r){
+    r.addEventListener('change', function(){ sort = computeSort(); load(true); });
   });
 
   // カードHTML（products.htmlと同スタイル）
