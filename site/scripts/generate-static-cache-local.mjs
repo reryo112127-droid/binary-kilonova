@@ -48,17 +48,36 @@ const today = new Date().toISOString().slice(0, 10);
 const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 // ── ホーム画面掲載メーカーリスト ────────────────────────────────────
+// ['exact'|'like', value]  ※ generate-static-cache.mjs / route.ts と同一定義を維持
 const HOME_MAKERS = [
-    'エスワン', 'ムーディーズ', 'アイデアポケット', 'OPPAI', 'E-BODY',
-    'Fitch', 'マドンナ', '本中', 'ダスッ', 'kawaii', 'Hunter',
-    'ワンズファクトリー', 'SODクリエイト', 'FALENO', 'TAMEIKE',
-    'million', 'プレミアム', 'DAHLIA',
+    ['like',  'エスワン'],
+    ['exact', 'ムーディーズ'],
+    ['exact', 'アイデアポケット'],
+    ['exact', 'OPPAI'],
+    ['exact', 'E-BODY'],
+    ['exact', 'Fitch'],
+    ['exact', 'マドンナ'],
+    ['exact', '本中'],
+    ['like',  'ダスッ'],
+    ['exact', 'kawaii'],
+    ['exact', 'Hunter'],
+    ['exact', 'ワンズファクトリー'],
+    ['exact', 'SODクリエイト'],
+    ['exact', 'FALENO'],
+    ['exact', 'TAMEIKE'],
+    ['like',  'million'],
+    ['exact', 'プレミアム'],
+    ['exact', 'DAHLIA'],
 ];
 
-const mgsMakerCond   = HOME_MAKERS.map(() => 'maker LIKE ?').join(' OR ');
-const mgsMakerArgs   = HOME_MAKERS.map(m => `%${m}%`);
-const fanzaMakerCond = HOME_MAKERS.map(() => '(label LIKE ? OR maker LIKE ?)').join(' OR ');
-const fanzaMakerArgs = HOME_MAKERS.flatMap(m => [`%${m}%`, `%${m}%`]);
+const mgsMakerCond = HOME_MAKERS.map(([t]) => t === 'exact' ? 'maker = ?' : 'maker LIKE ?').join(' OR ');
+const mgsMakerArgs = HOME_MAKERS.map(([t, v]) => t === 'exact' ? v : `%${v}%`);
+const fanzaMakerCond = HOME_MAKERS.map(([t]) =>
+    t === 'exact' ? '(maker = ? OR label = ?)' : '(maker LIKE ? OR label LIKE ?)'
+).join(' OR ');
+const fanzaMakerArgs = HOME_MAKERS.flatMap(([t, v]) =>
+    t === 'exact' ? [v, v] : [`%${v}%`, `%${v}%`]
+);
 
 // FANZA拡張列（存在しない場合はNULLフォールバック）
 const FANZA_EXT = `COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, sale_end_date`;

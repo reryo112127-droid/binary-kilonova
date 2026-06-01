@@ -59,33 +59,40 @@ const today = new Date().toISOString().slice(0, 10);
 const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 // ── ホーム画面掲載メーカーリスト（予約・セール共通） ──────────────
+// ['exact'|'like', value]
+// exact = 完全一致（誤ヒット防止: プレミアム熟女・マドンナモンロー等を除外）
+// like  = 部分一致（DB登録名が長いメーカー: エスワン→エスワン ナンバーワンスタイル 等）
 const HOME_MAKERS = [
-    'エスワン',
-    'ムーディーズ',
-    'アイデアポケット',
-    'OPPAI',
-    'E-BODY',
-    'Fitch',
-    'マドンナ',
-    '本中',
-    'ダスッ',
-    'kawaii',
-    'Hunter',
-    'ワンズファクトリー',
-    'SODクリエイト',
-    'FALENO',
-    'TAMEIKE',
-    'million',
-    'プレミアム',
-    'DAHLIA',
+    ['like',  'エスワン'],       // DB: "エスワン ナンバーワンスタイル"
+    ['exact', 'ムーディーズ'],
+    ['exact', 'アイデアポケット'],
+    ['exact', 'OPPAI'],
+    ['exact', 'E-BODY'],
+    ['exact', 'Fitch'],
+    ['exact', 'マドンナ'],       // exact: マドンナモンロー を除外
+    ['exact', '本中'],
+    ['like',  'ダスッ'],         // DB: "ダスッ！"
+    ['exact', 'kawaii'],
+    ['exact', 'Hunter'],         // exact: LADY HUNTERS（桃太郎映像出版）を除外
+    ['exact', 'ワンズファクトリー'],
+    ['exact', 'SODクリエイト'],
+    ['exact', 'FALENO'],         // exact: FALENO TUBE を除外
+    ['exact', 'TAMEIKE'],
+    ['like',  'million'],        // label: "million（ミリオン）"
+    ['exact', 'プレミアム'],     // exact: プレミアム熟女/エマニエル を除外
+    ['exact', 'DAHLIA'],
 ];
 
 // MGS用メーカー条件（maker列）
-const mgsMakerCond  = HOME_MAKERS.map(() => 'maker LIKE ?').join(' OR ');
-const mgsMakerArgs  = HOME_MAKERS.map(m => `%${m}%`);
+const mgsMakerCond = HOME_MAKERS.map(([t]) => t === 'exact' ? 'maker = ?' : 'maker LIKE ?').join(' OR ');
+const mgsMakerArgs = HOME_MAKERS.map(([t, v]) => t === 'exact' ? v : `%${v}%`);
 // FANZA用メーカー条件（label列 OR maker列）
-const fanzaMakerCond = HOME_MAKERS.map(() => '(label LIKE ? OR maker LIKE ?)').join(' OR ');
-const fanzaMakerArgs = HOME_MAKERS.flatMap(m => [`%${m}%`, `%${m}%`]);
+const fanzaMakerCond = HOME_MAKERS.map(([t]) =>
+    t === 'exact' ? '(maker = ? OR label = ?)' : '(maker LIKE ? OR label LIKE ?)'
+).join(' OR ');
+const fanzaMakerArgs = HOME_MAKERS.flatMap(([t, v]) =>
+    t === 'exact' ? [v, v] : [`%${v}%`, `%${v}%`]
+);
 
 // ── 新着作品 ──────────────────────────────────────────────────────
 async function genNewProducts() {

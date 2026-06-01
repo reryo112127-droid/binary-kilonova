@@ -442,6 +442,17 @@ var _sampleImgs = [];
         }
       }
 
+      // パッケージ画像クリック → アフィリエイトリンク（FANZA優先）
+      var heroAffUrl = p.fanza_affiliate_url || p.mgs_affiliate_url || null;
+      var heroEl = document.getElementById('pd-hero');
+      if (heroEl && heroAffUrl) {
+        heroEl.style.cursor = 'pointer';
+        heroEl.addEventListener('click', function() {
+          window.open(heroAffUrl, '_blank', 'noopener noreferrer');
+          trackPurchase(p.fanza_affiliate_url ? 'fanza' : 'mgs');
+        });
+      }
+
       // レビューボタンリンク設定
       var rvBtn = document.getElementById('pd-review-btn');
       if (rvBtn) rvBtn.href = '/review/add/' + encodeURIComponent(id);

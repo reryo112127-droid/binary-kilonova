@@ -154,7 +154,7 @@
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 <div class="flex flex-col gap-8">
 <!-- 1. Top: Large package image (landscape) -->
-<div class="w-full rounded-2xl overflow-hidden bg-slate-100 shadow-sm relative">
+<div id="pd-hero" class="w-full rounded-2xl overflow-hidden bg-slate-100 shadow-sm relative" style="cursor:default">
 <img id="pd-hero-img" alt="" class="w-full h-auto block"/>
 <span id="pd-vr-badge" class="absolute top-3 left-3 bg-violet-600 text-white text-sm font-black px-3 py-1 rounded-lg" style="display:none">VR</span>
 </div>
@@ -518,6 +518,17 @@ var _sampleImgs = [];
           mb.style.display = '';
           mb.addEventListener('click', function(){ trackPurchase('mgs'); }, {once:true});
         }
+      }
+
+      // パッケージ画像クリック → アフィリエイトリンク（FANZA優先）
+      var heroAffUrl = p.fanza_affiliate_url || p.mgs_affiliate_url || null;
+      var heroEl = document.getElementById('pd-hero');
+      if (heroEl && heroAffUrl) {
+        heroEl.style.cursor = 'pointer';
+        heroEl.addEventListener('click', function() {
+          window.open(heroAffUrl, '_blank', 'noopener noreferrer');
+          trackPurchase(p.fanza_affiliate_url ? 'fanza' : 'mgs');
+        });
       }
 
       // レビューボタンリンク設定
