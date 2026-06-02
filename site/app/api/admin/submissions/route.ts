@@ -23,10 +23,12 @@ export async function GET(request: NextRequest) {
             if (!mgsClient) return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
 
             const result = await mgsClient.execute({
-                sql: `SELECT id, product_id, actresses, session_id, submitted_at, status
-                      FROM cast_submissions
-                      WHERE status = ?
-                      ORDER BY submitted_at DESC
+                sql: `SELECT cs.id, cs.product_id, cs.actresses, cs.session_id, cs.submitted_at, cs.status,
+                             p.main_image_url
+                      FROM cast_submissions cs
+                      LEFT JOIN products p ON p.product_id = cs.product_id
+                      WHERE cs.status = ?
+                      ORDER BY cs.submitted_at DESC
                       LIMIT 100`,
                 args: [status],
             });
@@ -106,17 +108,17 @@ export async function POST(request: NextRequest) {
                     args: [id],
                 });
 
-                // Update products in MGS DB (only if actresses is empty)
+                // Update products in MGS DB（役名が入っている場合も上書き）
                 await mgsClient.execute({
-                    sql: `UPDATE products SET actresses = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')`,
+                    sql: `UPDATE products SET actresses = ? WHERE product_id = ?`,
                     args: [actresses, product_id],
                 });
 
-                // Update products in FANZA DB (only if actresses is empty)
+                // Update products in FANZA DB
                 const fanzaClient = getFanzaClient();
                 if (fanzaClient) {
                     await fanzaClient.execute({
-                        sql: `UPDATE products SET actresses = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')`,
+                        sql: `UPDATE products SET actresses = ? WHERE product_id = ?`,
                         args: [actresses, product_id],
                     }).catch(() => {});
                 }

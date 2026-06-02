@@ -70,6 +70,7 @@ export async function initSiteSchema() {
             product_id TEXT NOT NULL UNIQUE,
             decision   TEXT NOT NULL,
             new_genre  TEXT,
+            post_type  TEXT DEFAULT 'package',
             decided_at TEXT DEFAULT (datetime('now'))
         )`,
         `CREATE INDEX IF NOT EXISTS idx_product_likes_pid   ON product_likes(product_id)`,
@@ -82,6 +83,10 @@ export async function initSiteSchema() {
     for (const sql of statements) {
         await db.execute(sql);
     }
+
+    // マイグレーション: 既存テーブルに post_type カラムを追加（既に存在する場合は無視）
+    await db.execute(`ALTER TABLE x_post_decisions ADD COLUMN post_type TEXT DEFAULT 'package'`).catch(() => {});
+
     schemaInitialized = true;
 }
 

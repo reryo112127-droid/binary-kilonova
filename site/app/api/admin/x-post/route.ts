@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'product_id と decision は必須です' }, { status: 400 });
     }
 
-    const { product_id, decision, new_genre } = body;
+    const { product_id, decision, new_genre, post_type } = body;
 
     const db = getSiteClient();
     if (!db) {
@@ -136,9 +136,9 @@ export async function POST(request: NextRequest) {
 
     try {
         await db.execute({
-            sql: `INSERT OR REPLACE INTO x_post_decisions (product_id, decision, new_genre)
-                  VALUES (?, ?, ?)`,
-            args: [String(product_id), String(decision), new_genre ? String(new_genre) : null],
+            sql: `INSERT OR REPLACE INTO x_post_decisions (product_id, decision, new_genre, post_type)
+                  VALUES (?, ?, ?, ?)`,
+            args: [String(product_id), String(decision), new_genre ? String(new_genre) : null, post_type ? String(post_type) : 'package'],
         });
 
         return NextResponse.json({ ok: true });

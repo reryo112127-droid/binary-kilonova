@@ -190,8 +190,8 @@ function buildXPostHtml(key: string): string {
         (product.actresses ? '<p class="text-[10px] text-slate-500 truncate">' + product.actresses + '</p>' : '') +
         '<div class="space-y-2 mt-auto pt-1">' +
           '<div class="grid grid-cols-2 gap-2">' +
-            '<button onclick="approve(\'' + product.product_id + '\', \'' + genre + '\')" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-90 shadow-sm"><span class="material-symbols-outlined text-sm" style="font-variation-settings:\'FILL\' 1">auto_fix_high</span>パケ投稿</button>' +
-            '<button onclick="approve(\'' + product.product_id + '\', \'' + genre + '\')" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20"><span class="material-symbols-outlined text-sm">image</span>サンプル投稿</button>' +
+            '<button onclick="approve(\'' + product.product_id + '\', \'' + genre + '\', \'package\')" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-90 shadow-sm"><span class="material-symbols-outlined text-sm" style="font-variation-settings:\'FILL\' 1">auto_fix_high</span>パケ投稿</button>' +
+            '<button onclick="approve(\'' + product.product_id + '\', \'' + genre + '\', \'sample\')" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20"><span class="material-symbols-outlined text-sm">image</span>サンプル投稿</button>' +
           '</div>' +
           '<div class="grid grid-cols-2 gap-2">' +
             '<button onclick="decide(\'' + product.product_id + '\', \'' + genre + '\', \'skip\')" class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-slate-200 text-slate-600 text-[11px] font-medium hover:bg-slate-50"><span class="material-symbols-outlined text-sm">close</span>投稿しない</button>' +
@@ -202,16 +202,16 @@ function buildXPostHtml(key: string): string {
     }
 
     // 承認: x_post_decisions に decision='approve' で登録 → 自動投稿スクリプトがキューから拾う
-    function approve(productId, genre) {
-      decide(productId, genre, 'approve', genre);
+    function approve(productId, genre, postType) {
+      decide(productId, genre, 'approve', genre, postType || 'package');
     }
 
-    async function decide(productId, genre, decision, newGenre) {
+    async function decide(productId, genre, decision, newGenre, postType) {
       try {
         const res = await fetch('/api/admin/x-post', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
-          body: JSON.stringify({ product_id: productId, decision, new_genre: newGenre || genre }),
+          body: JSON.stringify({ product_id: productId, decision, new_genre: newGenre || genre, post_type: postType || null }),
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         await loadGenre(genre);

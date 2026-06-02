@@ -196,8 +196,9 @@ function buildAdminHtml(key: string): string {
       let bodyRows = '';
 
       if (type === 'cast') {
-        headers = '<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">作品ID</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">出演者</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">投稿日</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ステータス</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">操作</th>';
+        headers = '<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">画像</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">作品ID</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">出演者</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">投稿日</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ステータス</th><th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">操作</th>';
         bodyRows = rows.map(r => \`<tr class="border-t border-gray-100 hover:bg-gray-50">
+          <td class="px-4 py-3">\${r.main_image_url ? \`<img src="\${r.main_image_url}" class="w-12 h-16 object-cover rounded" loading="lazy"/>\` : '<span class="text-xs text-gray-300">なし</span>'}</td>
           <td class="px-4 py-3 text-sm text-gray-500">\${r.id}</td>
           <td class="px-4 py-3 text-sm font-mono text-blue-600">\${r.product_id || ''}</td>
           <td class="px-4 py-3 text-sm text-gray-800">\${r.actresses || ''}</td>
