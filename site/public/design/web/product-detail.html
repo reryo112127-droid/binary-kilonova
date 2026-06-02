@@ -172,7 +172,7 @@
 <div>
 <div class="flex items-center gap-4 mb-2">
 <h2 id="pd-title" class="text-3xl font-black text-slate-900 leading-tight" style=""></h2>
-<button class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="">
+<button id="pd-like-btn" class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="">
 <span class="material-symbols-outlined text-rose-500 text-xl group-hover:fill-1" style="">favorite</span>
 <span class="text-sm font-bold text-slate-700 whitespace-nowrap" style="">いいね</span>
 </button>
@@ -188,12 +188,10 @@
 <span id="pd-wish-cnt" class="text-base font-bold text-rose-500"></span>
 <span class="text-xs text-slate-300 ml-1">MGS お気に入り</span>
 </div>
-<div style="display:none">
 <button id="pd-cast-btn" class="flex items-center gap-1.5 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors group" style="display:none">
 <span class="material-symbols-outlined text-slate-500 text-xl" style="">person_add</span>
 <span class="text-sm font-bold text-slate-700" style="">出演者を追加</span>
 </button>
-</div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
 <div class="flex border-b border-slate-100 pb-2">
@@ -402,6 +400,16 @@ var _sampleImgs = [];
         actEl.innerHTML = acts.length ? linkedItems(acts,'actress') : '-';
       }
       if (!p.actresses) { var cb=document.getElementById('pd-cast-btn'); if(cb) cb.style.display=''; }
+
+      // いいね・出演者追加ボタンをproduct_idと接続
+      var likeBtn = document.getElementById('pd-like-btn');
+      if (likeBtn) {
+        likeBtn.setAttribute('data-like-pid', id);
+        likeBtn.onclick = function(){ toggleLike(this, id); };
+      }
+      var castBtn2 = document.getElementById('pd-cast-btn');
+      if (castBtn2) castBtn2.onclick = function(){ location.href='/cast/register/'+encodeURIComponent(id); };
+      if (window.restoreLikes) window.restoreLikes();
 
       // 出演者プロフィールカード（右カラム）
       if (acts.length && acts.length <= 6) {
