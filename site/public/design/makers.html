@@ -27,13 +27,17 @@
   </div>
   <!-- Platform tabs -->
   <div class="flex border-b border-slate-100 dark:border-slate-800">
-    <button id="ptab-fanza"   onclick="setPlatform('fanza')"   class="flex-1 py-2.5 text-xs font-bold border-b-2 border-primary text-primary">FANZA</button>
-    <button id="ptab-amateur" onclick="setPlatform('amateur')" class="flex-1 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400">素人</button>
-    <button id="ptab-mgs"     onclick="setPlatform('mgs')"     class="flex-1 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400">MGS</button>
+    <button id="ptab-fanza"   onclick="setPlatform('fanza')"   class="flex-1 py-2.5 text-xs font-bold border-b-2 border-primary text-primary transition-colors">FANZA</button>
+    <button id="ptab-amateur" onclick="setPlatform('amateur')" class="flex-1 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 transition-colors">FANZA素人</button>
+    <button id="ptab-mgs"     onclick="setPlatform('mgs')"     class="flex-1 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 transition-colors">MGS動画</button>
   </div>
-  <!-- 五十音 index -->
-  <div class="flex overflow-x-auto no-scrollbar px-2 py-1.5 gap-1" id="kana-index">
+  <!-- Sort mode toggle -->
+  <div class="flex items-center gap-1.5 px-4 py-2 border-b border-slate-100 dark:border-slate-800">
+    <button id="sort-kana"  onclick="setSortMode('kana')"  class="px-3 py-1 rounded-full text-[11px] font-bold transition-colors bg-primary text-white">五十音順</button>
+    <button id="sort-alpha" onclick="setSortMode('alpha')" class="px-3 py-1 rounded-full text-[11px] font-bold transition-colors bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">A-Z順</button>
   </div>
+  <!-- Index bar -->
+  <div class="flex overflow-x-auto no-scrollbar px-2 py-1.5 gap-1" id="kana-index"></div>
   <!-- Search -->
   <div class="px-3 pb-2">
     <div class="relative">
@@ -45,9 +49,7 @@
 </header>
 
 <!-- Content -->
-<main class="flex-1 pb-28" id="makers-main">
-  <!-- Groups rendered by JS -->
-</main>
+<main class="flex-1 pb-28" id="makers-main"></main>
 
 <!-- Bottom nav placeholder -->
 <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 pb-6 pt-2 flex justify-between items-center z-50"></nav>
@@ -56,8 +58,10 @@
 (function(){
   var allMakers = [];
   var platform = 'fanza';
+  var sortMode = 'kana'; // 'kana' | 'alpha'
   var activeKana = 'all';
 
+  // 五十音グループ定義
   var KANA_GROUPS = [
     {label:'あ', test: kanaGroup('あ')},
     {label:'か', test: kanaGroup('か')},
@@ -70,43 +74,56 @@
     {label:'ら', test: kanaGroup('ら')},
     {label:'わ', test: kanaGroup('わ')},
     {label:'A-Z', test: function(s){ var c=s.charAt(0); return (c>='A'&&c<='Z')||(c>='a'&&c<='z'); }},
-    {label:'#', test: function(s){ return true; }}, // catch-all
+    {label:'#', test: function(){ return true; }},
   ];
 
-  // 五十音グループ判定
+  // A-Zグループ定義
+  var ALPHA_GROUPS = (function(){
+    var groups = [];
+    for (var i = 65; i <= 90; i++) {
+      var l = String.fromCharCode(i);
+      groups.push({label: l, key: l});
+    }
+    groups.push({label:'#', key:'#'});
+    return groups;
+  })();
+
   function toHira(code) {
-    // katakana→hiragana
     if (code >= 0x30A1 && code <= 0x30F6) return code - 0x60;
     return code;
   }
   function kanaGroup(rowStart) {
     var ranges = {
-      'あ': [0x3041, 0x304A],
-      'か': [0x304B, 0x3054],
-      'さ': [0x3055, 0x305E],
-      'た': [0x305F, 0x3069],
-      'な': [0x306A, 0x306E],
-      'は': [0x306F, 0x307C],
-      'ま': [0x307E, 0x3082],
-      'や': [0x3084, 0x3088],
-      'ら': [0x3089, 0x308D],
+      'あ': [0x3041, 0x304A], 'か': [0x304B, 0x3054], 'さ': [0x3055, 0x305E],
+      'た': [0x305F, 0x3069], 'な': [0x306A, 0x306E], 'は': [0x306F, 0x307C],
+      'ま': [0x307E, 0x3082], 'や': [0x3084, 0x3088], 'ら': [0x3089, 0x308D],
       'わ': [0x308F, 0x3093],
     };
     var r = ranges[rowStart];
-    return function(name) {
-      var code = toHira(name.charCodeAt(0));
-      return code >= r[0] && code <= r[1];
-    };
+    return function(name) { var code = toHira(name.charCodeAt(0)); return code >= r[0] && code <= r[1]; };
   }
-
-  function getGroup(name) {
+  function getKanaGroup(name) {
     for (var i = 0; i < KANA_GROUPS.length - 1; i++) {
       if (KANA_GROUPS[i].test(name)) return KANA_GROUPS[i].label;
     }
     return '#';
   }
+  function getAlphaGroup(name) {
+    var c = name.charAt(0).toUpperCase();
+    if (c >= 'A' && c <= 'Z') return c;
+    return '#';
+  }
 
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function sortToggleCls(active) {
+    return 'px-3 py-1 rounded-full text-[11px] font-bold transition-colors '
+      + (active ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400');
+  }
+  function indexBtnCls(active) {
+    return 'kana-btn shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors '
+      + (active ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400');
+  }
 
   // プラットフォームタブ切替
   window.setPlatform = function(p) {
@@ -121,33 +138,43 @@
     render();
   };
 
-  // 五十音タブ切替
-  function setKana(k) {
+  // ソートモード切替
+  window.setSortMode = function(mode) {
+    sortMode = mode;
+    activeKana = 'all';
+    document.getElementById('sort-kana').className  = sortToggleCls(mode === 'kana');
+    document.getElementById('sort-alpha').className = sortToggleCls(mode === 'alpha');
+    render();
+  };
+
+  // インデックスバー切替
+  window.setKanaBtn = function(k) {
     activeKana = k;
     document.querySelectorAll('.kana-btn').forEach(function(btn) {
-      var active = btn.getAttribute('data-kana') === k;
-      btn.className = 'kana-btn shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors '
-        + (active ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400');
+      btn.className = indexBtnCls(btn.getAttribute('data-kana') === k);
     });
     render();
-  }
+  };
 
-  // 五十音インデックスバー生成
+  // インデックスバー生成
   function buildIndex(filtered) {
-    var existing = new Set(filtered.map(function(m){ return getGroup(m.name); }));
     var idx = document.getElementById('kana-index');
     if (!idx) return;
-    var btns = [{label:'すべて', key:'all'}]
-      .concat(KANA_GROUPS.filter(function(g){ return existing.has(g.label); }).map(function(g){ return {label:g.label, key:g.label}; }));
+    var btns;
+    if (sortMode === 'kana') {
+      var existing = new Set(filtered.map(function(m){ return getKanaGroup(m.name); }));
+      btns = [{label:'すべて', key:'all'}]
+        .concat(KANA_GROUPS.filter(function(g){ return existing.has(g.label); }).map(function(g){ return {label:g.label, key:g.label}; }));
+    } else {
+      var alphaExist = new Set(filtered.map(function(m){ return getAlphaGroup(m.name); }));
+      btns = [{label:'すべて', key:'all'}]
+        .concat(ALPHA_GROUPS.filter(function(g){ return alphaExist.has(g.key); }).map(function(g){ return {label:g.label, key:g.key}; }));
+    }
     idx.innerHTML = btns.map(function(b) {
-      var active = activeKana === b.key;
-      return '<button class="kana-btn shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors '
-        + (active ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400')
-        + '" data-kana="' + b.key + '" onclick="setKanaBtn(\'' + b.key + '\')">'
-        + b.label + '</button>';
+      return '<button class="' + indexBtnCls(activeKana === b.key) + '" data-kana="' + b.key
+        + '" onclick="setKanaBtn(\'' + b.key + '\')">' + b.label + '</button>';
     }).join('');
   }
-  window.setKanaBtn = function(k) { setKana(k); };
 
   // メーカーカード
   function makerCard(m) {
@@ -161,59 +188,57 @@
       +'</a>';
   }
 
+  function sectionHtml(label, items) {
+    return '<div class="px-3 pt-4 pb-1"><h2 class="text-sm font-black text-primary border-l-4 border-primary pl-2">'+esc(label)+'</h2></div>'
+      +'<div class="px-3 flex flex-col gap-1.5 pb-2">'+items.map(makerCard).join('')+'</div>';
+  }
+
   // メインレンダリング
   function render() {
-    var q = (document.getElementById('maker-search')||{}).value;
-    q = (q||'').trim().toLowerCase();
+    var q = ((document.getElementById('maker-search')||{}).value||'').trim().toLowerCase();
 
-    // プラットフォームフィルター（floor='videoc'で素人判定）
+    // プラットフォームフィルター
     var filtered = allMakers.filter(function(m) {
       if (platform === 'fanza')   return m.sources && m.sources.includes('fanza') && m.floor !== 'videoc';
       if (platform === 'amateur') return m.floor === 'videoc';
       if (platform === 'mgs')     return m.sources && m.sources.includes('mgs');
       return true;
     });
-
-    // 検索フィルター
     if (q) filtered = filtered.filter(function(m){ return m.name.toLowerCase().includes(q); });
 
-    // インデックスバー更新
     buildIndex(filtered);
 
-    // 五十音フィルター
-    var grouped;
-    if (activeKana === 'all' || q) {
-      // 全グループをセクション表示
-      var groups = {};
-      filtered.forEach(function(m) {
-        var g = getGroup(m.name);
-        if (!groups[g]) groups[g] = [];
-        groups[g].push(m);
-      });
-      // 順序通りにレンダリング
-      var html = '';
-      KANA_GROUPS.forEach(function(kg) {
-        var items = groups[kg.label];
-        if (!items || !items.length) return;
-        html += '<div class="px-3 pt-4 pb-1">'
-          +'<h2 class="text-sm font-black text-primary border-l-4 border-primary pl-2">'+esc(kg.label)+'</h2>'
-          +'</div>'
-          +'<div class="px-3 flex flex-col gap-1.5 pb-2">'
-          +items.map(makerCard).join('')
-          +'</div>';
-      });
-      if (!html) html = '<p class="text-center text-sm text-slate-400 py-12">見つかりませんでした</p>';
-      document.getElementById('makers-main').innerHTML = html;
+    var html = '';
+    if (sortMode === 'kana') {
+      if (activeKana === 'all' || q) {
+        var groups = {};
+        filtered.forEach(function(m) { var g = getKanaGroup(m.name); if (!groups[g]) groups[g]=[]; groups[g].push(m); });
+        KANA_GROUPS.forEach(function(kg) {
+          var items = groups[kg.label];
+          if (items && items.length) html += sectionHtml(kg.label, items);
+        });
+      } else {
+        var sel = filtered.filter(function(m){ return getKanaGroup(m.name) === activeKana; });
+        html = sel.length ? '<div class="px-3 pt-4 flex flex-col gap-1.5">'+sel.map(makerCard).join('')+'</div>' : '';
+      }
     } else {
-      // 選択グループのみ
-      grouped = filtered.filter(function(m){ return getGroup(m.name) === activeKana; });
-      var html2 = grouped.length
-        ? '<div class="px-3 pt-4 flex flex-col gap-1.5">'+grouped.map(makerCard).join('')+'</div>'
-        : '<p class="text-center text-sm text-slate-400 py-12">見つかりませんでした</p>';
-      document.getElementById('makers-main').innerHTML = html2;
+      // A-Z順：アルファベット昇順ソート
+      var sorted = filtered.slice().sort(function(a, b) { return a.name.localeCompare(b.name, 'en'); });
+      if (activeKana === 'all' || q) {
+        var agroups = {};
+        sorted.forEach(function(m) { var g = getAlphaGroup(m.name); if (!agroups[g]) agroups[g]=[]; agroups[g].push(m); });
+        ALPHA_GROUPS.forEach(function(ag) {
+          var items = agroups[ag.key];
+          if (items && items.length) html += sectionHtml(ag.label, items);
+        });
+      } else {
+        var asel = sorted.filter(function(m){ return getAlphaGroup(m.name) === activeKana; });
+        html = asel.length ? '<div class="px-3 pt-4 flex flex-col gap-1.5">'+asel.map(makerCard).join('')+'</div>' : '';
+      }
     }
 
-    // 件数更新
+    if (!html) html = '<p class="text-center text-sm text-slate-400 py-12">見つかりませんでした</p>';
+    document.getElementById('makers-main').innerHTML = html;
     var cntEl = document.getElementById('maker-count');
     if (cntEl) cntEl.textContent = filtered.length + '件';
   }
