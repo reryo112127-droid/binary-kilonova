@@ -73,14 +73,14 @@ async function genMakersList() {
             sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image
                   FROM products WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
                     AND (duration_min IS NULL OR duration_min < 600)
-                  GROUP BY maker HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 400`,
+                  GROUP BY maker HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 600`,
             args: [],
         }).then(r => r.rows).catch(() => []),
         fanza.execute({
             sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image,
                          SUM(CASE WHEN floor = 'videoc' THEN 1 ELSE 0 END) as videoc_cnt
                   FROM products WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
-                  GROUP BY maker HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 400`,
+                  GROUP BY maker HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 600`,
             args: [],
         }).then(r => r.rows).catch(() => []),
     ]);
@@ -101,7 +101,14 @@ async function genMakersList() {
         if (e) { e.count += cnt; e.sources.push('fanza'); if (floor === 'videoc') e.floor = 'videoc'; }
         else map.set(name, { name, count: cnt, sample_image: poster(String(row.sample_image ?? '')), sources: ['fanza'], floor });
     }
-    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 300);
+
+    // MGSソース限定メーカーを件数上位300件 + MGS専用全件で構成
+    const all = Array.from(map.values()).sort((a, b) => b.count - a.count);
+    const top300 = all.slice(0, 300);
+    const top300Names = new Set(top300.map(m => m.name));
+    // MGS専用で上位300に入らなかったものを追加（cnt>=3保証済み）
+    const mgsOnly = all.filter(m => m.sources.length === 1 && m.sources[0] === 'mgs' && !top300Names.has(m.name));
+    return [...top300, ...mgsOnly].sort((a, b) => b.count - a.count);
 }
 
 // ── メイン ────────────────────────────────────────────────────────

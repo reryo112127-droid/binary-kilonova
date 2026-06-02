@@ -57,7 +57,7 @@
   var activeKana = 'all';
 
   var KANA_GROUPS = [
-    'あ','か','さ','た','な','は','ま','や','ら','わ','A-Z'
+    'あ','か','さ','た','な','は','ま','や','ら','わ','A-Z','#'
   ];
   var KANA_RANGES = {
     'あ':[0x3041,0x304A],'か':[0x304B,0x3054],'さ':[0x3055,0x305E],
@@ -65,11 +65,10 @@
     'ま':[0x307E,0x3082],'や':[0x3084,0x3088],'ら':[0x3089,0x308D],
     'わ':[0x308F,0x3093],
   };
-  // 漢字グループ判定用：日本語ロケールで各行の上限境界と比較
-  var KANA_UPPER = {
-    'あ':'か','か':'さ','さ':'た','た':'な','な':'は',
-    'は':'ま','ま':'や','や':'ら','ら':'わ','わ':'ん'
-  };
+  var KANJI_BOUNDS = [
+    {l:'か',g:'あ'},{l:'さ',g:'か'},{l:'た',g:'さ'},{l:'な',g:'た'},
+    {l:'は',g:'な'},{l:'ま',g:'は'},{l:'や',g:'ま'},{l:'ら',g:'や'},{l:'わ',g:'ら'},
+  ];
 
   function toHira(code) {
     if (code >= 0x30A1 && code <= 0x30F6) return code - 0x60;
@@ -77,20 +76,21 @@
   }
 
   function getGroup(name) {
+    var c0 = name.charAt(0);
     var code = toHira(name.charCodeAt(0));
     for (var k in KANA_RANGES) {
       var r = KANA_RANGES[k];
       if (code >= r[0] && code <= r[1]) return k;
     }
-    var c = name.charAt(0);
-    if ((c>='A'&&c<='Z')||(c>='a'&&c<='z')) return 'A-Z';
-    // 漢字：日本語ロケール比較でグループ判定
-    for (var i = 0; i < KANA_GROUPS.length - 1; i++) {
-      var row = KANA_GROUPS[i];
-      var upper = KANA_UPPER[row];
-      if (upper && name.localeCompare(upper, 'ja') < 0) return row;
+    if ((c0>='A'&&c0<='Z')||(c0>='a'&&c0<='z')) return 'A-Z';
+    var cCode = name.charCodeAt(0);
+    if ((cCode >= 0x4E00 && cCode <= 0x9FFF) || (cCode >= 0x3400 && cCode <= 0x4DBF)) {
+      for (var i = 0; i < KANJI_BOUNDS.length; i++) {
+        if (name.localeCompare(KANJI_BOUNDS[i].l, 'ja') < 0) return KANJI_BOUNDS[i].g;
+      }
+      return 'わ';
     }
-    return 'わ';
+    return '#';
   }
 
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

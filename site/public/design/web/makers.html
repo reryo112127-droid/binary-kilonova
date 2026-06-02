@@ -68,16 +68,35 @@
     'ま':[0x307E,0x3082],'や':[0x3084,0x3088],'ら':[0x3089,0x308D],
     'わ':[0x308F,0x3093],
   };
+  var KANJI_BOUNDS = [
+    {l:'か',g:'あ'},{l:'さ',g:'か'},{l:'た',g:'さ'},{l:'な',g:'た'},
+    {l:'は',g:'な'},{l:'ま',g:'は'},{l:'や',g:'ま'},{l:'ら',g:'や'},{l:'わ',g:'ら'},
+  ];
+  function isKanji(c) { var code = c.charCodeAt(0); return (code >= 0x4E00 && code <= 0x9FFF) || (code >= 0x3400 && code <= 0x4DBF); }
 
   function getGroup(name) {
+    var c0 = name.charAt(0);
     var code = toHira(name.charCodeAt(0));
     for (var k in KANA_RANGES) {
       var r = KANA_RANGES[k];
       if (code >= r[0] && code <= r[1]) return k;
     }
-    var c = name.charAt(0);
-    if ((c>='A'&&c<='Z')||(c>='a'&&c<='z')) return 'A-Z';
+    if ((c0>='A'&&c0<='Z')||(c0>='a'&&c0<='z')) return 'A-Z';
+    if (isKanji(c0)) {
+      for (var i = 0; i < KANJI_BOUNDS.length; i++) {
+        if (name.localeCompare(KANJI_BOUNDS[i].l, 'ja') < 0) return KANJI_BOUNDS[i].g;
+      }
+      return 'わ';
+    }
     return '#';
+  }
+
+  function sortGroup(items, group) {
+    return items.slice().sort(function(a, b) {
+      if (group === 'A-Z') return a.name.localeCompare(b.name, 'en');
+      if (group === '#')   return a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name, 'ja');
+    });
   }
 
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -151,8 +170,8 @@
       });
       var html = '';
       KANA_GROUPS.forEach(function(kg) {
-        var items = groups[kg.label];
-        if (!items || !items.length) return;
+        var items = sortGroup(groups[kg.label] || [], kg.label);
+        if (!items.length) return;
         html += '<div class="mb-8">'
           +'<h2 class="text-lg font-black text-primary border-l-4 border-primary pl-3 mb-4">'+esc(kg.label)+'</h2>'
           +'<div class="'+GRID+'">'+items.map(makerCard).join('')+'</div>'
@@ -160,7 +179,7 @@
       });
       main.innerHTML = html || '<p class="text-center text-sm text-slate-400 py-16">見つかりませんでした</p>';
     } else {
-      var items = filtered.filter(function(m){ return getGroup(m.name) === activeKana; });
+      var items = sortGroup(filtered.filter(function(m){ return getGroup(m.name) === activeKana; }), activeKana);
       main.innerHTML = items.length
         ? '<div class="'+GRID+'">'+items.map(makerCard).join('')+'</div>'
         : '<p class="text-center text-sm text-slate-400 py-16">見つかりませんでした</p>';
