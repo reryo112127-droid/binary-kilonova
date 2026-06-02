@@ -68,9 +68,9 @@ export async function POST(request: NextRequest) {
         if (best[1] >= 2) {
             const approvedActresses = best[0];
 
-            // MGS DB のproductsテーブルを更新
+            // MGS DB のproductsテーブルを更新（役名が入っている場合も上書き）
             await mgsClient.execute({
-                sql: `UPDATE products SET actresses = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')`,
+                sql: `UPDATE products SET actresses = ? WHERE product_id = ?`,
                 args: [approvedActresses, productId],
             });
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
             const fanzaClient = getFanzaClient();
             if (fanzaClient) {
                 await fanzaClient.execute({
-                    sql: `UPDATE products SET actresses = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')`,
+                    sql: `UPDATE products SET actresses = ? WHERE product_id = ?`,
                     args: [approvedActresses, productId],
                 }).catch(() => {});
             }
