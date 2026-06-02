@@ -84,8 +84,10 @@ export async function initSiteSchema() {
         await db.execute(sql);
     }
 
-    // マイグレーション: 既存テーブルに post_type カラムを追加（既に存在する場合は無視）
-    await db.execute(`ALTER TABLE x_post_decisions ADD COLUMN post_type TEXT DEFAULT 'package'`).catch(() => {});
+    // マイグレーション（既に存在する場合は無視）
+    await db.execute(`ALTER TABLE x_post_decisions ADD COLUMN post_type  TEXT DEFAULT 'package'`).catch(() => {});
+    await db.execute(`ALTER TABLE x_post_decisions ADD COLUMN posted_at  TEXT`).catch(() => {});
+    await db.execute(`ALTER TABLE x_post_decisions ADD COLUMN tweet_id   TEXT`).catch(() => {});
 
     schemaInitialized = true;
 }

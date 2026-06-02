@@ -108,13 +108,30 @@ function buildXPostHtml(key: string): string {
         <span class="text-gray-600">/</span>
         <h1 class="font-bold text-base">X投稿選択</h1>
       </div>
-      <button onclick="markAllDone()"
-        class="bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1">
-        <span class="material-symbols-outlined text-base">check_circle</span>
-        一括スキップ
-      </button>
+      <div class="flex items-center gap-2">
+        <button onclick="postAllNow()" id="postAllBtn"
+          class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1">
+          <span class="material-symbols-outlined text-base">send</span>
+          全ジャンル今すぐ投稿
+        </button>
+        <button onclick="markAllDone()"
+          class="bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1">
+          <span class="material-symbols-outlined text-base">check_circle</span>
+          一括スキップ
+        </button>
+      </div>
     </div>
   </header>
+
+  <!-- 投稿状況パネル -->
+  <div id="statusPanel" class="bg-gray-800 text-white px-4 py-3 text-xs">
+    <div class="max-w-screen-xl mx-auto flex flex-wrap gap-4 items-center">
+      <span class="text-gray-400 font-semibold">投稿キュー:</span>
+      <div id="statusItems" class="flex flex-wrap gap-3">
+        <span class="text-gray-500">読み込み中...</span>
+      </div>
+    </div>
+  </div>
 
   <main class="max-w-[1400px] mx-auto px-4 py-8">
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -198,8 +215,66 @@ function buildXPostHtml(key: string): string {
             '<button onclick="decide(\'' + product.product_id + '\', \'' + genre + '\', \'best_exclude\')" class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-bold hover:bg-amber-100"><span class="material-symbols-outlined text-sm">auto_awesome_motion</span>BEST除外</button>' +
           '</div>' +
           '<button onclick="genreMove(\'' + product.product_id + '\', \'' + genre + '\')" class="w-full flex items-center justify-between py-2 px-3 rounded-lg border border-red-100 text-red-600 text-[11px] font-medium hover:bg-red-50"><span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-sm">category</span>ジャンル間違い</span><span class="material-symbols-outlined text-sm">expand_more</span></button>' +
+          '<button onclick="postGenreNow(\'' + genre + '\')" class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold transition"><span class="material-symbols-outlined text-sm">send</span>このジャンルを今すぐ投稿</button>' +
         '</div>';
     }
+
+    // 投稿状況を取得して表示
+    async function loadStatus() {
+      try {
+        const res = await fetch('/api/admin/x-post/execute', { headers: { 'x-admin-key': ADMIN_KEY } });
+        const data = await res.json();
+        const GENRE_LABELS_JP = { new:'新作', sale:'セール', anon:'匿名', lady:'レディ', vr:'VR', collab:'共演' };
+        const el = document.getElementById('statusItems');
+        if (!el) return;
+        el.innerHTML = Object.entries(data).map(([genre, s]) => {
+          const st = s;
+          const lastTime = st.lastPostedAt ? st.lastPostedAt.slice(0,16) : 'なし';
+          const color = st.queued > 0 ? 'text-green-400' : 'text-gray-500';
+          return '<span class="flex items-center gap-1"><span class="text-gray-400">' + (GENRE_LABELS_JP[genre]||genre) + ':</span>'
+            + '<span class="' + color + ' font-bold">' + st.queued + '件</span>'
+            + '<span class="text-gray-600 text-[10px]">最終:' + lastTime + '</span></span>';
+        }).join('');
+      } catch(e) { /* ignore */ }
+    }
+    loadStatus();
+
+    // 全ジャンル今すぐ投稿
+    window.postAllNow = async function() {
+      const btn = document.getElementById('postAllBtn');
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/admin/x-post/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        const results = Object.entries(data).map(([g, r]) => {
+          const rv = r;
+          return (GENRE_LABELS[g]||g) + ': ' + (rv.success ? '✓ 投稿完了 ' + (rv.tweetId||'') : rv.error || '失敗');
+        }).join('\n');
+        alert('投稿結果:\n' + results);
+        loadStatus();
+        GENRES.forEach(g => loadGenre(g));
+      } catch(e) { alert('エラー: ' + e.message); }
+      finally { if (btn) btn.disabled = false; }
+    };
+
+    // 1ジャンルだけ投稿
+    window.postGenreNow = async function(genre) {
+      try {
+        const res = await fetch('/api/admin/x-post/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+          body: JSON.stringify({ genre }),
+        });
+        const data = await res.json();
+        alert((GENRE_LABELS[genre]||genre) + ': ' + (data.success ? '✓ 投稿完了 tweet:' + data.tweetId : data.error || '失敗'));
+        loadStatus();
+        loadGenre(genre);
+      } catch(e) { alert('エラー: ' + e.message); }
+    };
 
     // 承認: x_post_decisions に decision='approve' で登録 → 自動投稿スクリプトがキューから拾う
     function approve(productId, genre, postType) {

@@ -1,0 +1,18 @@
+name: X Auto Post (Hourly)
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 毎時0分に実行
+  workflow_dispatch:       # 手動実行も可能
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to X (all genres)
+        run: |
+          curl -s -X POST "https://avrankings.com/api/admin/x-post/execute" \
+            -H "Content-Type: application/json" \
+            -H "x-admin-key: ${{ secrets.ADMIN_KEY }}" \
+            -d '{}' \
+            | jq .
