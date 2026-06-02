@@ -175,27 +175,6 @@ function buildXPostHtml(key: string): string {
 
         const product = products[0];
 
-        // 裸・露出チェック（NGなら自動スキップして次へ）
-        panel.innerHTML = '<div class="text-center py-4 text-xs text-slate-400">画像チェック中...</div>';
-        try {
-          const checkRes = await fetch('/api/admin/x-post/check-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
-            body: JSON.stringify({ url: product.main_image_url }),
-          });
-          const { safe } = await checkRes.json();
-          if (!safe) {
-            // 露出ありと判定 → 自動スキップして次の作品へ
-            await fetch('/api/admin/x-post', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
-              body: JSON.stringify({ product_id: product.product_id, decision: 'skip_nude', new_genre: genre }),
-            });
-            loadGenre(genre); // 次の作品を再ロード
-            return;
-          }
-        } catch (_) { /* チェック失敗は無視して表示 */ }
-
         currentProducts[genre] = product;
         renderProduct(genre, product);
       } catch (e) {

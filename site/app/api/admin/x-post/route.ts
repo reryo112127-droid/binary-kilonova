@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
             SELECT product_id, title, main_image_url, sample_images_json,
                    affiliate_url, actresses, discount_pct, sale_start_date
             FROM products
-            WHERE 1=1
+            WHERE (x_safe IS NULL OR x_safe = 1)
             ${excludePlaceholder}
             ${genreWhere}
             ${orderBy}
