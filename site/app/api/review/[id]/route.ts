@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSiteClient } from '../../../../lib/turso';
 import { initSiteSchema, getProductReviews } from '../../../../lib/siteDb';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
     _req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -11,7 +13,9 @@ export async function GET(
     if (!db) return NextResponse.json([]);
 
     const reviews = await getProductReviews(id);
-    return NextResponse.json(reviews);
+    return NextResponse.json(reviews, {
+        headers: { 'Cache-Control': 'no-store' },
+    });
 }
 
 export async function POST(
