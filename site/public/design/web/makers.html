@@ -34,7 +34,6 @@
     <!-- Platform -->
     <div class="flex gap-2 mb-3">
       <button id="ptab-fanza"   onclick="setPlatform('fanza')"   class="px-4 py-1.5 rounded-full text-xs font-bold bg-primary text-white transition-all">FANZA</button>
-      <button id="ptab-amateur" onclick="setPlatform('amateur')" class="px-4 py-1.5 rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all">素人</button>
       <button id="ptab-mgs"     onclick="setPlatform('mgs')"     class="px-4 py-1.5 rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all">MGS動画</button>
     </div>
     <!-- 五十音 -->
@@ -104,7 +103,7 @@
   window.setPlatform = function(p) {
     platform = p;
     activeKana = 'all';
-    ['fanza','amateur','mgs'].forEach(function(id) {
+    ['fanza','mgs'].forEach(function(id) {
       var btn = document.getElementById('ptab-' + id);
       if (!btn) return;
       btn.className = 'px-4 py-1.5 rounded-full text-xs font-bold transition-all '
