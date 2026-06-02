@@ -269,11 +269,16 @@
           +'<div class="aspect-[3/4] rounded-xl overflow-hidden shadow-md relative bg-slate-200 dark:bg-slate-800">'
           +(ps?'<img class="w-full h-full object-cover object-right block" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
           +(disc?'<span class="absolute top-1.5 left-1.5 '+badgeClass+' text-white text-[9px] font-black px-1.5 py-0.5 rounded leading-none">'+disc+'%<br>OFF</span>':'')
+          +'<div class="absolute bottom-1.5 right-1.5 flex gap-1">'
+          +(!(p.actresses&&p.actresses.trim())?'<button data-pid="'+esc(p.product_id)+'" onclick="event.preventDefault();event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)" class="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-slate-700 hover:bg-primary hover:text-white transition-colors"><span class="material-symbols-outlined text-[14px]">add</span></button>':'')
+          +'<button data-like-pid="'+esc(p.product_id)+'" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)" class="w-6 h-6 flex items-center justify-center bg-white/90 rounded-full shadow text-primary hover:bg-primary hover:text-white transition-colors"><span class="material-symbols-outlined text-[14px]">favorite</span></button>'
+          +'</div>'
           +'</div>'
           +(curP?'<p class="text-[11px] font-black text-red-500 mt-1 leading-none">¥'+curP.toLocaleString()+(listP&&listP!==curP?'<span class="text-[9px] font-normal text-slate-400 line-through ml-1">¥'+listP.toLocaleString()+'</span>':'')+'</p>':'')
           +'<p class="text-[10px] font-bold leading-tight line-clamp-2 mt-0.5">'+esc(p.title||'')+'</p>'
           +'</a>';
       }).join('');
+      if(window.restoreLikes)window.restoreLikes();
     }).catch(function(){});
 
   // ランキングセクション

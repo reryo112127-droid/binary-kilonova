@@ -346,12 +346,18 @@ function cardHtml(p){
   var t=((p.title||'').substring(0,40)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
   var pid=encodeURIComponent(p.product_id||'');
+  var rawPid=(p.product_id||'').replace(/'/g,'');
   var badge=p.source==='fanza'?'<span class="absolute top-2 right-2 bg-orange-500 text-white text-[8px] font-bold px-1 py-0.5 rounded">FANZA</span>':'<span class="absolute top-2 right-2 bg-teal-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">MGS</span>';
+  var noAct=!(p.actresses&&p.actresses.trim());
   return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
     +'<div class="bg-gray-50 relative overflow-hidden aspect-[3/4]">'
     +(img?'<img alt="" class="w-full h-full object-cover object-right group-hover:scale-105 transition duration-500" src="'+img+'"/>':'')
     +'<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">NEW</span>'
-    +badge+'</div>'
+    +badge
+    +'<div class="absolute bottom-2 right-2 flex gap-1">'
+    +(noAct?'<button data-pid="'+rawPid+'" onclick="event.preventDefault();event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">add</span></button>':'')
+    +'<button data-like-pid="'+rawPid+'" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-red-500 hover:bg-red-500 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">favorite</span></button>'
+    +'</div></div>'
     +'<div class="p-3"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8">'+t+'</h3>'
     +'<p class="text-[10px] text-gray-400">'+dt+' 発売</p></div></article>';
 }
@@ -372,6 +378,7 @@ function loadProducts(){
     var cEl=document.getElementById('result-count');if(cEl)cEl.textContent=(d?d.length:0)+(hasMore?'+':'')+' 作品';
     if(!d||!d.length){g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">この期間の作品がありません</p>';return;}
     g.innerHTML=d.map(cardHtml).join('');
+    if(window.restoreLikes)window.restoreLikes();
     fetchOffset=FETCH_LIMIT;
     setLoadMoreVisible(hasMore);
   }).catch(function(){g.innerHTML='<p class="col-span-5 text-center text-gray-400 py-12 text-sm">エラーが発生しました</p>';});

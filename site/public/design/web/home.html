@@ -316,11 +316,16 @@
           +'<div class="aspect-[3/4] overflow-hidden rounded-xl bg-gray-100 relative shadow-sm mb-2">'
           +(img?'<img src="'+esc(img)+'" alt="'+esc(p.title)+'" class="w-full h-full object-cover object-right transition-transform group-hover:scale-105"/>':'')
           +(disc?'<span class="absolute top-2 left-2 '+badgeClass+' text-white text-[9px] font-black px-1.5 py-1 rounded-sm leading-none text-center">'+disc+'%<br>OFF</span>':'')
+          +'<div class="absolute bottom-2 right-2 flex gap-1">'
+          +(!(p.actresses&&p.actresses.trim())?'<button data-pid="'+esc(p.product_id)+'" onclick="event.preventDefault();event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-gray-700 hover:bg-gray-800 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">add</span></button>':'')
+          +'<button data-like-pid="'+esc(p.product_id)+'" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-red-500 hover:bg-red-500 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">favorite</span></button>'
+          +'</div>'
           +'</div>'
           +(curP?'<p class="text-sm font-black text-red-500 leading-none">¥'+curP.toLocaleString()+(listP&&listP!==curP?'<span class="text-[10px] font-normal text-gray-400 line-through ml-1">¥'+listP.toLocaleString()+'</span>':'')+'</p>':'')
           +'<h5 class="text-xs font-bold line-clamp-2 mt-1 leading-snug">'+esc(p.title)+'</h5>'
           +'</a>';
       }).join('');
+      if(window.restoreLikes)window.restoreLikes();
     }).catch(function(){});
 
   // Fetch ranking section
