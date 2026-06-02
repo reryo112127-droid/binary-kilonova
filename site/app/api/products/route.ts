@@ -52,8 +52,9 @@ export async function GET(request: NextRequest) {
         if (cfHit) return cfHit as unknown as NextResponse;
     }
 
-    // フィルターなし・offset=0 のみ静的JSONを使用
-    const noFilter = !searchParams.get('q') && !searchParams.get('genre') && !searchParams.get('actress')
+    // フィルターなし・offset=0 のみ静的JSONを使用（予約作品は常にTurso直接クエリ）
+    const noFilter = sort !== 'pre-order'
+        && !searchParams.get('q') && !searchParams.get('genre') && !searchParams.get('actress')
         && !searchParams.get('maker') && !searchParams.get('makers') && !searchParams.get('label') && !searchParams.get('exactMaker')
         && !searchParams.get('fromDate') && !searchParams.get('toDate') && !searchParams.get('source')
         && !searchParams.get('cup') && !searchParams.get('cups') && !searchParams.get('height')
