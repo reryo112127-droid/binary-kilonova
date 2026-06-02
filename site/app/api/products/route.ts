@@ -356,7 +356,10 @@ export async function GET(request: NextRequest) {
                 conditions.push('title NOT LIKE ?');
                 args.push(p);
             });
-            conditions.push('(duration_min IS NULL OR duration_min <= 200)');
+            // 予約作品はduration_minが未確定なのでdurationフィルターを除外
+            if (sort !== 'pre-order') {
+                conditions.push('(duration_min IS NULL OR duration_min <= 200)');
+            }
         }
         if (hasVideo) {
             conditions.push('sample_video_url IS NOT NULL');

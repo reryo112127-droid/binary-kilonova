@@ -103,7 +103,7 @@ const PRODUCTS_SCRIPT = `<script>
     var offset=page*LIMIT;
     var url='/api/products?sort='+getSortParam()+'&limit='+LIMIT+'&offset='+offset;
     if(source)url+='&source='+source;
-    if(excludeBest)url+='&excludeBest=1';
+    if(excludeBest&&type!=='pre-order')url+='&excludeBest=1';
     if(showVr)url+='&vr=1';
     fetch(url)
       .then(function(r){return r.json();})
