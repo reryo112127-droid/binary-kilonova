@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     try {
         let html = await readHtml(request.url, htmlFile);
-        html = isMobile ? injectMobileLayout(html, '') : injectWebLayout(html);
+        html = isMobile ? injectMobileLayout(html, 'makers', { skipHeader: true }) : injectWebLayout(html);
         return new NextResponse(html, {
             headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'private, max-age=60' },
         });
