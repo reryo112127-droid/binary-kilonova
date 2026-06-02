@@ -445,12 +445,14 @@ export async function GET(request: NextRequest) {
         queryTurso(fanzaClient, false, perLimit),
     ]);
 
-    // 交互にマージ
+    // 交互にマージ（MGS優先: 同一product_idのFANZA重複を除去）
+    const mgsIds = new Set(mgsResults.map(r => String(r.product_id)));
+    const dedupedFanza = fanzaResults.filter(r => !mgsIds.has(String(r.product_id)));
     const combined: Record<string, unknown>[] = [];
-    const maxLen = Math.max(mgsResults.length, fanzaResults.length);
+    const maxLen = Math.max(mgsResults.length, dedupedFanza.length);
     for (let i = 0; i < maxLen; i++) {
         if (mgsResults[i]) combined.push(mgsResults[i]);
-        if (fanzaResults[i]) combined.push(fanzaResults[i]);
+        if (dedupedFanza[i]) combined.push(dedupedFanza[i]);
     }
 
     const result = combined.slice(0, limit);

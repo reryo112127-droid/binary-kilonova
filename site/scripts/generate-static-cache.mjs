@@ -51,6 +51,19 @@ function poster(url) {
     return url;
 }
 
+// MGS優先マージ: 同一product_idのFANZA重複を除去してインターリーブ
+function mergeDedup(mgsRows, fanzaRows, mgsSource, fanzaSource) {
+    const mgsIds = new Set(mgsRows.map(r => String(r.product_id)));
+    const deduped = fanzaRows.filter(r => !mgsIds.has(String(r.product_id)));
+    const combined = [];
+    const maxLen = Math.max(mgsRows.length, deduped.length);
+    for (let i = 0; i < maxLen; i++) {
+        if (mgsRows[i])  combined.push({ ...mgsRows[i],  main_image_url: poster(String(mgsRows[i].main_image_url   || '')), source: mgsSource   || 'mgs'   });
+        if (deduped[i])  combined.push({ ...deduped[i],  main_image_url: poster(String(deduped[i].main_image_url   || '')), source: fanzaSource || 'fanza' });
+    }
+    return combined;
+}
+
 const BEST = ['%BEST%','%ベスト%','%総集編%','%コレクション%','%Best%','%リマスター%','%AIリマスター%'];
 const bestConds = BEST.map(() => 'title NOT LIKE ?').join(' AND ');
 const bestArgs  = BEST;
@@ -123,12 +136,7 @@ async function genNewProducts() {
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
-    const combined = [];
-    const maxLen = Math.max(mgsRows.length, fanzaRows.length);
-    for (let i = 0; i < maxLen; i++) {
-        if (mgsRows[i])   combined.push({ ...mgsRows[i],   main_image_url: poster(mgsRows[i].main_image_url),   source: 'mgs' });
-        if (fanzaRows[i]) combined.push({ ...fanzaRows[i], main_image_url: poster(fanzaRows[i].main_image_url), source: 'fanza' });
-    }
+    const combined = mergeDedup(mgsRows, fanzaRows);
 
     return combined;
 }
@@ -157,12 +165,7 @@ async function genPopularProducts() {
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
-    const combined = [];
-    const maxLen = Math.max(mgsRows.length, fanzaRows.length);
-    for (let i = 0; i < maxLen; i++) {
-        if (mgsRows[i])   combined.push({ ...mgsRows[i],   main_image_url: poster(mgsRows[i].main_image_url),   source: 'mgs' });
-        if (fanzaRows[i]) combined.push({ ...fanzaRows[i], main_image_url: poster(fanzaRows[i].main_image_url), source: 'fanza' });
-    }
+    const combined = mergeDedup(mgsRows, fanzaRows);
 
     return combined;
 }
@@ -381,12 +384,7 @@ async function genPreorderProducts() {
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
-    const combined = [];
-    const maxLen = Math.max(mgsRows.length, fanzaRows.length);
-    for (let i = 0; i < maxLen; i++) {
-        if (mgsRows[i])   combined.push({ ...mgsRows[i],   main_image_url: poster(mgsRows[i].main_image_url),   source: 'mgs' });
-        if (fanzaRows[i]) combined.push({ ...fanzaRows[i], main_image_url: poster(fanzaRows[i].main_image_url), source: 'fanza' });
-    }
+    const combined = mergeDedup(mgsRows, fanzaRows);
 
     return combined;
 }
@@ -418,12 +416,7 @@ async function genHomePreorderCurated() {
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
-    const combined = [];
-    const maxLen = Math.max(mgsRows.length, fanzaRows.length);
-    for (let i = 0; i < maxLen; i++) {
-        if (mgsRows[i])   combined.push({ ...mgsRows[i],   main_image_url: poster(mgsRows[i].main_image_url),   source: 'mgs' });
-        if (fanzaRows[i]) combined.push({ ...fanzaRows[i], main_image_url: poster(fanzaRows[i].main_image_url), source: 'fanza' });
-    }
+    const combined = mergeDedup(mgsRows, fanzaRows);
 
     return combined;
 }
@@ -455,10 +448,7 @@ async function genSaleProducts() {
         }).then(r => r.rows).catch(e => { console.error('MGS sale error:', e.message); return []; }),
     ]);
 
-    const combined = [
-        ...fanzaRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'fanza' })),
-        ...mgsRows.map(r  => ({ ...r, main_image_url: poster(r.main_image_url),  source: 'mgs'   })),
-    ];
+    const combined = mergeDedup(mgsRows, fanzaRows);
     combined.sort((a, b) => Number(b.discount_pct) - Number(a.discount_pct));
     return combined;
 }
