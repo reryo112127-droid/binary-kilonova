@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
             const result = await mgsClient.execute({
                 sql: `SELECT cs.id, cs.product_id, cs.actresses, cs.session_id, cs.submitted_at, cs.status,
-                             p.main_image_url
+                             p.main_image_url, p.maker
                       FROM cast_submissions cs
                       LEFT JOIN products p ON p.product_id = cs.product_id
                       WHERE cs.status = ?
