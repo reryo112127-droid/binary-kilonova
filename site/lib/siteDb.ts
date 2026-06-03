@@ -65,6 +65,11 @@ export async function initSiteSchema() {
             submitted_at  TEXT DEFAULT (datetime('now')),
             status        TEXT DEFAULT 'pending'
         )`,
+        `CREATE TABLE IF NOT EXISTS product_safety (
+            product_id TEXT PRIMARY KEY,
+            x_safe     INTEGER NOT NULL DEFAULT 1,
+            checked_at TEXT DEFAULT (datetime('now'))
+        )`,
         `CREATE TABLE IF NOT EXISTS x_post_decisions (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id TEXT NOT NULL UNIQUE,

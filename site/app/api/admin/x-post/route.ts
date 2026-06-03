@@ -72,11 +72,25 @@ export async function GET(request: NextRequest) {
             }
         }
 
+        // product_safetyでNG判定された作品を除外（site DBからNG product_idを取得）
+        const siteClient = getSiteClient();
+        let ngExclude = '';
+        if (siteClient) {
+            const ngIds = await siteClient.execute(
+                "SELECT product_id FROM product_safety WHERE x_safe = 0"
+            ).then(r => r.rows.map(r => String(r.product_id))).catch(() => [] as string[]);
+            if (ngIds.length > 0) {
+                ngExclude = `AND product_id NOT IN (${ngIds.map(() => '?').join(',')})`;
+                args.push(...ngIds);
+            }
+        }
+
         const sql = `
             SELECT product_id, title, main_image_url, sample_images_json,
                    affiliate_url, actresses, discount_pct, sale_start_date
             FROM products
-            WHERE (x_safe IS NULL OR x_safe = 1)
+            WHERE 1=1
+            ${ngExclude}
             ${excludePlaceholder}
             ${genreWhere}
             ${orderBy}

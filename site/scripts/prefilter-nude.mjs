@@ -30,21 +30,40 @@ const args    = process.argv.slice(2);
 const LIMIT   = parseInt(args[args.indexOf('--limit') + 1] || '0', 10) || 999999;
 const RECHECK = args.includes('--recheck');
 const DRY     = args.includes('--dry');
-const CONCURRENCY = 20; // 同時処理数
+const CONCURRENCY = 20;
 
-const mgs = createClient({ url: process.env.TURSO_MGS_URL, authToken: process.env.TURSO_MGS_TOKEN });
+// MGS DB（読み取り専用）
+const mgs  = createClient({ url: process.env.TURSO_MGS_URL,  authToken: process.env.TURSO_MGS_TOKEN });
+// Site DB（書き込み先：FTS5トリガーなし）
+const site = createClient({ url: process.env.TURSO_SITE_URL, authToken: process.env.TURSO_SITE_TOKEN });
 
-await mgs.execute(`ALTER TABLE products ADD COLUMN x_safe INTEGER DEFAULT NULL`).catch(() => {});
-console.log('x_safeカラム確認済み\n');
+// product_safetyテーブル作成（なければ）
+await site.execute(`CREATE TABLE IF NOT EXISTS product_safety (
+    product_id TEXT PRIMARY KEY,
+    x_safe     INTEGER NOT NULL DEFAULT 1,
+    checked_at TEXT DEFAULT (datetime('now'))
+)`);
+console.log('product_safetyテーブル確認済み\n');
 
-const whereClause = RECHECK ? '1=1' : 'x_safe IS NULL';
-const rows = await mgs.execute({
-    sql: `SELECT product_id, main_image_url FROM products
-          WHERE ${whereClause}
-            AND main_image_url IS NOT NULL AND main_image_url != ''
-          ORDER BY sale_start_date DESC LIMIT ?`,
-    args: [LIMIT],
-}).then(r => r.rows);
+// 対象作品を取得（RECHECKなら全件、通常はproduct_safetyに未登録のもの）
+let rows;
+if (RECHECK) {
+    rows = await mgs.execute({
+        sql: `SELECT product_id, main_image_url FROM products
+              WHERE main_image_url IS NOT NULL AND main_image_url != ''
+              ORDER BY sale_start_date DESC LIMIT ?`,
+        args: [LIMIT],
+    }).then(r => r.rows);
+} else {
+    const checked = await site.execute('SELECT product_id FROM product_safety').then(r => new Set(r.rows.map(r => String(r.product_id))));
+    const allRows = await mgs.execute({
+        sql: `SELECT product_id, main_image_url FROM products
+              WHERE main_image_url IS NOT NULL AND main_image_url != ''
+              ORDER BY sale_start_date DESC LIMIT ?`,
+        args: [Math.min(LIMIT * 10, 200000)],
+    }).then(r => r.rows);
+    rows = allRows.filter(r => !checked.has(String(r.product_id))).slice(0, LIMIT);
+}
 
 console.log(`対象: ${rows.length}件 | 並列: ${CONCURRENCY} | ${RECHECK ? '全件再チェック' : '未チェックのみ'}${DRY ? ' [DRY RUN]' : ''}\n`);
 
@@ -114,12 +133,16 @@ async function processOne(row) {
 
         const xSafe = result.safe ? 1 : 0;
         if (!DRY) {
-            await mgs.execute({ sql: `UPDATE products SET x_safe = ? WHERE product_id = ?`, args: [xSafe, pid] });
+            await site.execute({
+                sql: `INSERT OR REPLACE INTO product_safety (product_id, x_safe, checked_at) VALUES (?, ?, datetime('now'))`,
+                args: [pid, xSafe],
+            });
         }
         if (xSafe) safe++; else ng++;
-    } catch {
+    } catch (e) {
+        if (errors < 3) console.error('\nエラー詳細:', pid, e.message);
         errors++;
-        if (!DRY) await mgs.execute({ sql: `UPDATE products SET x_safe = 1 WHERE product_id = ?`, args: [pid] }).catch(() => {});
+        if (!DRY) await site.execute({ sql: `INSERT OR REPLACE INTO product_safety (product_id, x_safe) VALUES (?, 1)`, args: [pid] }).catch(() => {});
     }
     done++;
     const elapsed = ((Date.now() - start) / 1000).toFixed(0);
