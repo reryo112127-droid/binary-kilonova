@@ -1,5 +1,4 @@
 import { TwitterApi } from 'twitter-api-v2';
-import Anthropic from '@anthropic-ai/sdk';
 import { getSiteClient, getMgsClient } from './turso';
 import { initSiteSchema } from './siteDb';
 
@@ -27,25 +26,57 @@ function posterUrl(url: string): string {
     return url;
 }
 
-async function generateTweetText(title: string, actresses: string, genres: string): Promise<string> {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return title.slice(0, 60);
+// ジャンル別テンプレート（シャドウバン対策でパターンをランダム選択）
+const TEMPLATES: Record<string, string[]> = {
+    new: [
+        '新作情報をお届け📢 {title}',
+        '今週の注目作品✨ {title}',
+        '新着作品のご紹介🎬 {title}',
+        'チェックしてほしい新作🔥 {title}',
+        '見逃せない新作情報💫 {title}',
+    ],
+    sale: [
+        'セール中の注目作品💰 {title}',
+        'お得な割引中🏷️ {title}',
+        '期間限定セール情報📣 {title}',
+        'コスパ最高の一本💎 {title}',
+        'セール中でお得に視聴可能📽️ {title}',
+    ],
+    anon: [
+        '素人系の注目作品📸 {title}',
+        'リアル感が魅力の一本🎥 {title}',
+        '素人シリーズの新作✨ {title}',
+        '素朴な魅力が光る作品💡 {title}',
+        'ナチュラル系の注目作🌿 {title}',
+    ],
+    lady: [
+        '大人の女性が輝く作品👑 {title}',
+        '熟練の魅力が詰まった一本💐 {title}',
+        '上品で魅力的な作品🌸 {title}',
+        '大人の色気が光る作品✨ {title}',
+        'エレガントな魅力の一本💄 {title}',
+    ],
+    vr: [
+        'VR体験ができる没入感抜群の作品🥽 {title}',
+        'VRで楽しむ臨場感あふれる一本🎮 {title}',
+        '360度の世界観が魅力のVR作品🌐 {title}',
+        'VRで体験する新感覚コンテンツ💫 {title}',
+        '最新VR技術で楽しむ話題作🔮 {title}',
+    ],
+    collab: [
+        '豪華共演が実現した注目作品🌟 {title}',
+        '人気キャスト共演の話題作💥 {title}',
+        '贅沢な共演が楽しめる一本🎭 {title}',
+        '豪華メンバーが揃った注目作✨ {title}',
+        '夢のコラボが実現した作品👥 {title}',
+    ],
+};
 
-    const client = new Anthropic({ apiKey });
-    try {
-        const msg = await client.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 150,
-            messages: [{
-                role: 'user',
-                content: `AV作品の紹介文を80文字以内で作成してください。プラットフォーム規約を遵守し、過激・露骨な表現を避けてください。ハッシュタグとURLは含めないでください。紹介文のみ出力してください。\n\nタイトル: ${title}\n出演者: ${actresses || '不明'}\nジャンル: ${genres || ''}`,
-            }],
-        });
-        const text = msg.content[0];
-        return text.type === 'text' ? text.text.trim().slice(0, 100) : title.slice(0, 60);
-    } catch {
-        return title.slice(0, 60);
-    }
+function generateTweetText(title: string, genre: string): string {
+    const templates = TEMPLATES[genre] || TEMPLATES.new;
+    const tmpl = templates[Math.floor(Math.random() * templates.length)];
+    const shortTitle = title.length > 50 ? title.slice(0, 47) + '…' : title;
+    return tmpl.replace('{title}', shortTitle);
 }
 
 export interface PostResult {
@@ -96,8 +127,8 @@ export async function postNextForGenre(genre: string): Promise<PostResult> {
     const genres   = String(prod.genres   || '');
     const imageUrl = posterUrl(String(prod.main_image_url || ''));
 
-    // ツイート文生成
-    const introText = await generateTweetText(title, actresses, genres);
+    // ツイート文生成（テンプレートベース・API不要）
+    const introText = generateTweetText(title, genre);
     const hashtag   = actresses ? '#' + actresses.split(/[,、]/)[0].trim().replace(/\s+/g, '_') : '';
     const detailUrl = `https://avrankings.com/product/${productId}`;
     const tweetText = [introText, hashtag, detailUrl].filter(Boolean).join('\n');
