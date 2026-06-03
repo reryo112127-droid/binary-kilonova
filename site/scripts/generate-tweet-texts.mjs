@@ -91,20 +91,19 @@ for (const dec of decisions) {
     try {
         const msg = await claude.messages.create({
             model: 'claude-haiku-4-5-20251001',
-            max_tokens: 200,
+            max_tokens: 150,
             messages: [{
                 role: 'user',
-                content: `X(Twitter)への投稿文を作成してください。
+                content: `X(Twitter)への短い投稿文を作成してください。
 条件:
-- 100文字以内
+- 50文字以内
+- 作品タイトルは含めない
+- 出演者名も含めない（ハッシュタグで別途追加します）
 - プラットフォーム規約を遵守し、性的・露骨な表現を避ける
-- 自然な日本語で感想風に
-- ハッシュタグ・URLは含めない（後で追加します）
+- 感想や紹介の一言フレーズ
 - 絵文字を1〜2個使う
+- URLは含めない
 
-作品情報:
-タイトル: ${title}
-出演者: ${actresses || '不明'}
 ジャンル: ${genres}
 
 投稿文のみ出力:`,

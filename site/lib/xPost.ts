@@ -29,54 +29,52 @@ function posterUrl(url: string): string {
 // ジャンル別テンプレート（シャドウバン対策でパターンをランダム選択）
 const TEMPLATES: Record<string, string[]> = {
     new: [
-        '新作情報をお届け📢 {title}',
-        '今週の注目作品✨ {title}',
-        '新着作品のご紹介🎬 {title}',
-        'チェックしてほしい新作🔥 {title}',
-        '見逃せない新作情報💫 {title}',
+        '新着作品をお届け📢',
+        '今週の注目作品✨',
+        'チェックしてほしい新作🔥',
+        '見逃せない新作情報💫',
+        '新作のご紹介🎬',
     ],
     sale: [
-        'セール中の注目作品💰 {title}',
-        'お得な割引中🏷️ {title}',
-        '期間限定セール情報📣 {title}',
-        'コスパ最高の一本💎 {title}',
-        'セール中でお得に視聴可能📽️ {title}',
+        'セール中の注目作品💰',
+        'お得な割引中🏷️',
+        '期間限定セール情報📣',
+        'コスパ最高の一本💎',
+        'セール中でお得に視聴可能📽️',
     ],
     anon: [
-        '素人系の注目作品📸 {title}',
-        'リアル感が魅力の一本🎥 {title}',
-        '素人シリーズの新作✨ {title}',
-        '素朴な魅力が光る作品💡 {title}',
-        'ナチュラル系の注目作🌿 {title}',
+        '素人系の注目作品📸',
+        'リアル感が魅力の一本🎥',
+        '素人シリーズの新作✨',
+        'ナチュラル系の注目作🌿',
+        '素朴な魅力が光る作品💡',
     ],
     lady: [
-        '大人の女性が輝く作品👑 {title}',
-        '熟練の魅力が詰まった一本💐 {title}',
-        '上品で魅力的な作品🌸 {title}',
-        '大人の色気が光る作品✨ {title}',
-        'エレガントな魅力の一本💄 {title}',
+        '大人の女性が輝く作品👑',
+        '熟練の魅力が詰まった一本💐',
+        '上品で魅力的な作品🌸',
+        '大人の色気が光る作品✨',
+        'エレガントな魅力の一本💄',
     ],
     vr: [
-        'VR体験ができる没入感抜群の作品🥽 {title}',
-        'VRで楽しむ臨場感あふれる一本🎮 {title}',
-        '360度の世界観が魅力のVR作品🌐 {title}',
-        'VRで体験する新感覚コンテンツ💫 {title}',
-        '最新VR技術で楽しむ話題作🔮 {title}',
+        'VR体験ができる没入感抜群の作品🥽',
+        'VRで楽しむ臨場感あふれる一本🎮',
+        '360度の世界観が魅力のVR作品🌐',
+        'VRで体験する新感覚コンテンツ💫',
+        '最新VR技術で楽しむ話題作🔮',
     ],
     collab: [
-        '豪華共演が実現した注目作品🌟 {title}',
-        '人気キャスト共演の話題作💥 {title}',
-        '贅沢な共演が楽しめる一本🎭 {title}',
-        '豪華メンバーが揃った注目作✨ {title}',
-        '夢のコラボが実現した作品👥 {title}',
+        '豪華共演が実現した注目作品🌟',
+        '人気キャスト共演の話題作💥',
+        '贅沢な共演が楽しめる一本🎭',
+        '豪華メンバーが揃った注目作✨',
+        '夢のコラボが実現した作品👥',
     ],
 };
 
-function generateTweetText(title: string, genre: string): string {
+function generateTweetText(genre: string): string {
     const templates = TEMPLATES[genre] || TEMPLATES.new;
-    const tmpl = templates[Math.floor(Math.random() * templates.length)];
-    const shortTitle = title.length > 50 ? title.slice(0, 47) + '…' : title;
-    return tmpl.replace('{title}', shortTitle);
+    return templates[Math.floor(Math.random() * templates.length)];
 }
 
 export interface PostResult {
@@ -133,7 +131,7 @@ export async function postNextForGenre(genre: string): Promise<PostResult> {
     if (savedText) {
         tweetText = savedText; // generate-tweet-texts.mjs で生成済み
     } else {
-        const introText = generateTweetText(title, genre);
+        const introText = generateTweetText(genre);
         const hashtag   = actresses ? '#' + actresses.split(/[,、]/)[0].trim().replace(/\s+/g, '_') : '';
         const detailUrl = `https://avrankings.com/product/${productId}`;
         tweetText = [introText, hashtag, detailUrl].filter(Boolean).join('\n');
