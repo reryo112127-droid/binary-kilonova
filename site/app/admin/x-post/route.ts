@@ -93,6 +93,7 @@ function buildXPostHtml(key: string): string {
   </script>
   <style>
     .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .icon-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   </style>
 </head>
 <body class="bg-slate-50 font-display text-slate-900 antialiased">
@@ -169,7 +170,7 @@ function buildXPostHtml(key: string): string {
 
         if (!products || products.length === 0) {
           currentProducts[genre] = null;
-          panel.innerHTML = '<div class="text-center py-8 flex flex-col items-center gap-2 text-slate-400"><span class="material-symbols-outlined text-3xl text-green-500" style="font-variation-settings:\'FILL\' 1">check_circle</span><span class="text-sm">全て処理済み</span></div>';
+          panel.innerHTML = '<div class="text-center py-8 flex flex-col items-center gap-2 text-slate-400"><span class="material-symbols-outlined text-3xl text-green-500" class="icon-fill">check_circle</span><span class="text-sm">全て処理済み</span></div>';
           return;
         }
 
@@ -208,7 +209,7 @@ function buildXPostHtml(key: string): string {
         (product.actresses ? '<p class="text-[10px] text-slate-500 truncate">' + product.actresses + '</p>' : '') +
         '<div class="space-y-2 mt-auto pt-1">' +
           '<div class="grid grid-cols-2 gap-2">' +
-            '<button onclick="approve(\'' + product.product_id + '\', \'' + genre + '\', \'package\')" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-90 shadow-sm"><span class="material-symbols-outlined text-sm" style="font-variation-settings:\'FILL\' 1">auto_fix_high</span>パケ投稿</button>' +
+            '<button onclick="approve(\'' + product.product_id + '\', \'' + genre + '\', \'package\')" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-90 shadow-sm"><span class="material-symbols-outlined text-sm" class="icon-fill">auto_fix_high</span>パケ投稿</button>' +
             '<button onclick="approve(\'' + product.product_id + '\', \'' + genre + '\', \'sample\')" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20"><span class="material-symbols-outlined text-sm">image</span>サンプル投稿</button>' +
           '</div>' +
           '<div class="grid grid-cols-2 gap-2">' +
