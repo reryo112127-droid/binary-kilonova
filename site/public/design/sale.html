@@ -91,7 +91,7 @@ body { font-family: 'Public Sans', sans-serif; }
 <script>(function(){
 var g = document.getElementById('sale-grid');
 if (!g) return;
-var LIMIT = 60, fetchOffset = 0, isLoading = false;
+var LIMIT = 20, fetchOffset = 0, isLoading = false;
 var filters = { source: 'fanza', excludeBest: false, excludeVr: false };
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -234,6 +234,7 @@ window.fetchMore = function() {
     .catch(function(){})
     .finally(function(){ isLoading = false; if (btn) { btn.textContent = 'もっと見る'; btn.disabled = false; } });
 };
+(function(){var s=document.getElementById('load-more-btn');if(!s||!window.IntersectionObserver)return;new IntersectionObserver(function(e){if(e[0].isIntersecting)window.fetchMore&&window.fetchMore();},{rootMargin:'200px'}).observe(s);})();
 
 load();
 })();
