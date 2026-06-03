@@ -93,6 +93,7 @@ export async function initSiteSchema() {
     await db.execute(`ALTER TABLE x_post_decisions ADD COLUMN post_type  TEXT DEFAULT 'package'`).catch(() => {});
     await db.execute(`ALTER TABLE x_post_decisions ADD COLUMN posted_at  TEXT`).catch(() => {});
     await db.execute(`ALTER TABLE x_post_decisions ADD COLUMN tweet_id   TEXT`).catch(() => {});
+    await db.execute(`ALTER TABLE x_post_decisions ADD COLUMN tweet_text TEXT`).catch(() => {});
 
     schemaInitialized = true;
 }

@@ -96,12 +96,12 @@ export async function postNextForGenre(genre: string): Promise<PostResult> {
 
     await initSiteSchema();
 
-    // 未投稿の承認済み作品を取得（最も古いものから）
+    // 未投稿の承認済み作品を取得（事前生成テキストがあるものを優先）
     const decRes = await siteDb.execute({
-        sql: `SELECT id, product_id, post_type FROM x_post_decisions
+        sql: `SELECT id, product_id, post_type, tweet_text FROM x_post_decisions
               WHERE decision = 'approve' AND (new_genre = ? OR (new_genre IS NULL AND ? = 'new'))
                 AND posted_at IS NULL
-              ORDER BY decided_at ASC LIMIT 1`,
+              ORDER BY (tweet_text IS NOT NULL AND tweet_text != '') DESC, decided_at ASC LIMIT 1`,
         args: [genre, genre],
     });
     if (decRes.rows.length === 0) return { success: false, error: 'キュー空' };
@@ -127,11 +127,17 @@ export async function postNextForGenre(genre: string): Promise<PostResult> {
     const genres   = String(prod.genres   || '');
     const imageUrl = posterUrl(String(prod.main_image_url || ''));
 
-    // ツイート文生成（テンプレートベース・API不要）
-    const introText = generateTweetText(title, genre);
-    const hashtag   = actresses ? '#' + actresses.split(/[,、]/)[0].trim().replace(/\s+/g, '_') : '';
-    const detailUrl = `https://avrankings.com/product/${productId}`;
-    const tweetText = [introText, hashtag, detailUrl].filter(Boolean).join('\n');
+    // ツイート文: 事前生成テキストがあればそれを使用、なければテンプレート
+    const savedText = String(dec.tweet_text || '').trim();
+    let tweetText: string;
+    if (savedText) {
+        tweetText = savedText; // generate-tweet-texts.mjs で生成済み
+    } else {
+        const introText = generateTweetText(title, genre);
+        const hashtag   = actresses ? '#' + actresses.split(/[,、]/)[0].trim().replace(/\s+/g, '_') : '';
+        const detailUrl = `https://avrankings.com/product/${productId}`;
+        tweetText = [introText, hashtag, detailUrl].filter(Boolean).join('\n');
+    }
 
     // Twitterクライアント取得
     const twitter = getTwitterClient(accountNum);
