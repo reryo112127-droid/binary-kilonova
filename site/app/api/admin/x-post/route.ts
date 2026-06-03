@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         let excludePlaceholder = '';
         const args: (string | number)[] = [];
         if (siteDb) {
-            const decided = await siteDb.execute('SELECT product_id FROM x_post_decisions');
+            const decided = await siteDb.execute('SELECT product_id FROM x_post_decisions ORDER BY decided_at DESC LIMIT 500');
             const decidedIds = decided.rows.map(r => String(r.product_id));
             if (decidedIds.length > 0) {
                 excludePlaceholder = `AND product_id NOT IN (${decidedIds.map(() => '?').join(',')})`;
@@ -72,12 +72,12 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // product_safetyでNG判定された作品を除外（site DBからNG product_idを取得）
+        // product_safetyでNG判定された作品を除外（最大500件・NOT IN上限対策）
         const siteClient = getSiteClient();
         let ngExclude = '';
         if (siteClient) {
             const ngIds = await siteClient.execute(
-                "SELECT product_id FROM product_safety WHERE x_safe = 0"
+                "SELECT product_id FROM product_safety WHERE x_safe = 0 ORDER BY checked_at DESC LIMIT 500"
             ).then(r => r.rows.map(r => String(r.product_id))).catch(() => [] as string[]);
             if (ngIds.length > 0) {
                 ngExclude = `AND product_id NOT IN (${ngIds.map(() => '?').join(',')})`;
