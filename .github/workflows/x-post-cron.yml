@@ -1,14 +1,18 @@
-name: X Auto Post (Hourly)
+name: X Auto Post
 
 on:
   schedule:
-    - cron: '0 * * * *'  # 毎時0分に実行
-  workflow_dispatch:       # 手動実行も可能
+    - cron: '0 */2 * * *'  # 2時間おき（12回/日 = 360件/月、無料枠500件の72%）
+  workflow_dispatch:         # 手動実行も可能
 
 jobs:
   post:
     runs-on: ubuntu-latest
     steps:
+      - name: Random jitter delay (15〜45分)
+        # シャドウバン対策: 毎回ランダムな遅延を入れて投稿時刻を分散
+        run: sleep $((RANDOM % 1800 + 900))
+
       - name: Post to X (all genres)
         run: |
           curl -s -X POST "https://avrankings.com/api/admin/x-post/execute" \
