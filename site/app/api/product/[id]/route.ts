@@ -3,6 +3,7 @@ import { filterActresses } from '../../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../../lib/turso';
 import { getCached, setCached } from '../../../../lib/apiCache';
 import { cacheHeaders } from '../../../../lib/staticCache';
+import { r2GetProduct, r2PutProduct } from '../../../../lib/productR2';
 
 const PRODUCT_TTL = 60 * 60 * 1000; // 1時間
 
@@ -35,7 +36,19 @@ export async function GET(
 
     const cacheKey = `product_${id}`;
     const cached = getCached<Record<string, unknown>>(cacheKey, PRODUCT_TTL);
-    if (cached) return NextResponse.json(cached, { headers: cacheHeaders(3600, 300) });
+    if (cached) return NextResponse.json(cached, { headers: cacheHeaders(86400, 3600) });
+
+    // R2 read-through: 永続キャッシュにあればTursoを叩かず返す
+    const r2data = await r2GetProduct(id);
+    if (r2data) {
+        setCached(cacheKey, r2data);
+        if (cfCache && cfCacheKey) {
+            await cfCache.put(cfCacheKey, new Response(JSON.stringify(r2data), {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
+            }));
+        }
+        return NextResponse.json(r2data, { headers: cacheHeaders(86400, 3600) });
+    }
 
     let mgsProduct: Record<string, unknown> | null = null;
     let fanzaProduct: Record<string, unknown> | null = null;
@@ -144,6 +157,8 @@ export async function GET(
         })(),
     };
     setCached(cacheKey, responseData);
+    // R2に永続保存（次回以降はTuruso不要）
+    await r2PutProduct(id, responseData);
     if (cfCache && cfCacheKey) {
         await cfCache.put(cfCacheKey, new Response(JSON.stringify(responseData), {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },

@@ -5,6 +5,12 @@ compatibility_flags = ["nodejs_compat"]
 
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
 
+# 商品詳細 read-through キャッシュ用 R2 バケット
+# Tursoから初回1回だけ読んでR2に保存し、以降はR2から返す（Turso読み込み削減）
+[[r2_buckets]]
+binding = "PRODUCTS_BUCKET"
+bucket_name = "avrankings-products"
+
 # cross-fetch を Workers ネイティブの fetch にエイリアス
 # @libsql/hrana-client が cross-fetch を使うが、Workers では node-fetch → https.request が使えないため
 [alias]

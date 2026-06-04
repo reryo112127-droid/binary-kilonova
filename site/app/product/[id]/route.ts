@@ -4,6 +4,7 @@ import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { filterActresses } from '../../../lib/actressFilter';
 import { readStaticCacheAsync as readStaticCache } from '../../../lib/staticCache';
+import { r2GetProduct } from '../../../lib/productR2';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,28 +14,24 @@ function escHtml(s: string): string {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// SSR用プロダクトデータをCFキャッシュに保存・取得
+// SSR用プロダクトデータの取得（R2 read-through）
 const _ssrProductCache = new Map<string, { data: Record<string, unknown>; at: number }>();
 const SSR_PRODUCT_TTL = 24 * 60 * 60 * 1000;
 
 async function fetchProduct(id: string): Promise<Record<string, unknown> | null> {
-    // in-memoryキャッシュ
+    // in-memoryキャッシュ（同一isolate内）
     const mem = _ssrProductCache.get(id);
     if (mem && Date.now() - mem.at < SSR_PRODUCT_TTL) return mem.data;
 
-    // Cloudflare Cache（isolate間共有）
-    const cfCache = typeof caches !== 'undefined' ? (caches as unknown as { default: Cache }).default : null;
-    const cfKey = cfCache ? new Request(`https://ssr-product-cache.internal/${id}`) : null;
-    if (cfCache && cfKey) {
-        const hit = await cfCache.match(cfKey);
-        if (hit) {
-            const data = await hit.json() as Record<string, unknown>;
-            _ssrProductCache.set(id, { data, at: Date.now() });
-            return data;
-        }
+    // R2 read-through: /api/product/[id] が保存した全フィールドエントリを共有利用
+    // （SSRはtitle/actresses/maker等の一部のみ使用）
+    const r2 = await r2GetProduct(id);
+    if (r2) {
+        _ssrProductCache.set(id, { data: r2, at: Date.now() });
+        return r2;
     }
 
-    // Tursoクエリ（FANZA優先）
+    // R2 miss: Turso最小クエリ（R2書き込みはAPI側に任せ、全フィールドで保存させる）
     const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date FROM products WHERE product_id = ? LIMIT 1';
     let result: Record<string, unknown> | null = null;
 
@@ -55,14 +52,7 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
         }
     }
 
-    if (result) {
-        _ssrProductCache.set(id, { data: result, at: Date.now() });
-        if (cfCache && cfKey) {
-            cfCache.put(cfKey, new Response(JSON.stringify(result), {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
-            })).catch(() => {});
-        }
-    }
+    if (result) _ssrProductCache.set(id, { data: result, at: Date.now() });
     return result;
 }
 

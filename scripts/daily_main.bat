@@ -55,14 +55,20 @@ if "%DOM%"=="1" (
 )
 
 REM === [4] キャッシュ再生成 & デプロイ（FANZA深夜取得分＋MGS新作を反映） ===
-echo [4/4] cache+deploy: %time% >> "%LOG_FILE%"
+echo [4/5] cache+deploy: %time% >> "%LOG_FILE%"
 cd /d "%PROJECT_DIR%\site"
 "%NODE%" scripts\generate-static-cache.mjs >> "%LOG_FILE%" 2>&1
 if %errorlevel% neq 0 (
-    echo [4/4] cache generation failed, deploying with existing cache >> "%LOG_FILE%"
+    echo [4/5] cache generation failed, deploying with existing cache >> "%LOG_FILE%"
 )
 "%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
-echo [4/4] done: %time% >> "%LOG_FILE%"
+echo [4/5] done: %time% >> "%LOG_FILE%"
+
+REM === [5] セール商品のR2キャッシュ無効化（価格鮮度確保） ===
+REM R2 read-throughは永続のため、セール商品は日次でR2を削除して最新価格を再取得させる
+echo [5/5] R2 invalidate sale products: %time% >> "%LOG_FILE%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_DIR%\scripts\invalidate_sale_r2.ps1" >> "%LOG_FILE%" 2>&1
+echo [5/5] done: %errorlevel% at %time% >> "%LOG_FILE%"
 
 echo ======================================== >> "%LOG_FILE%"
 echo main daily update done: %date% %time% >> "%LOG_FILE%"
