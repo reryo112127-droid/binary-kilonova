@@ -281,20 +281,13 @@ export async function GET(request: NextRequest) {
             }
         }
         if (maker) {
+            // MGS/FANZA共にlabelも検索対象に含める（メーカー一覧のレーベル項目に対応）
             if (exactMaker) {
                 // 完全一致（メーカー詳細ページ用: Hunterでlady huntersを除外）
-                if (isMgs) {
-                    conditions.push('maker = ?');
-                    args.push(maker);
-                } else {
-                    conditions.push('(maker = ? OR label = ?)');
-                    args.push(maker, maker);
-                }
-            } else if (isMgs) {
-                conditions.push('maker LIKE ?');
-                args.push(`%${maker}%`);
+                conditions.push('(maker = ? OR label = ?)');
+                args.push(maker, maker);
             } else {
-                conditions.push('(label LIKE ? OR maker LIKE ?)');
+                conditions.push('(maker LIKE ? OR label LIKE ?)');
                 args.push(`%${maker}%`, `%${maker}%`);
             }
         }

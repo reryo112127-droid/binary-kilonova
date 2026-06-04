@@ -110,7 +110,50 @@ async function genMakersList() {
     const top300Names = new Set(top300.map(m => m.name));
     // MGS専用で上位300に入らなかったものを追加（cnt>=3保証済み）
     const mgsOnly = all.filter(m => m.sources.length === 1 && m.sources[0] === 'mgs' && !top300Names.has(m.name));
-    return [...top300, ...mgsOnly].sort((a, b) => b.count - a.count);
+    const makerList = [...top300, ...mgsOnly].sort((a, b) => b.count - a.count);
+
+    // ── レーベル(label)追加: メーカー一覧に無いブランドを補完 ──
+    console.log('[メーカー一覧] レーベル取得中...');
+    const existingNames = new Set(makerList.map(m => m.name));
+    const [mgsLabels, fanzaLabels] = await Promise.all([
+        mgs.execute({
+            sql: `SELECT label, COUNT(*) as cnt FROM products
+                  WHERE label IS NOT NULL AND LENGTH(TRIM(label)) > 1 AND label != '----'
+                    AND (duration_min IS NULL OR duration_min < 600)
+                  GROUP BY label HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 1500`,
+            args: [],
+        }).then(r => r.rows).catch(() => []),
+        fanza.execute({
+            sql: `SELECT label, COUNT(*) as cnt,
+                         SUM(CASE WHEN floor = 'videoc' THEN 1 ELSE 0 END) as videoc_cnt
+                  FROM products
+                  WHERE label IS NOT NULL AND LENGTH(TRIM(label)) > 1 AND label != '----'
+                  GROUP BY label HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 4000`,
+            args: [],
+        }).then(r => r.rows).catch((e) => { console.error('[FANZA label query error]', e.message); return []; }),
+    ]);
+
+    const labelMap = new Map();
+    for (const row of mgsLabels) {
+        const name = String(row.label ?? '').trim();
+        if (!name || existingNames.has(name)) continue;
+        const e = labelMap.get(name);
+        if (e) { e.count += Number(row.cnt ?? 0); }
+        else labelMap.set(name, { name, count: Number(row.cnt ?? 0), sample_image: '', sources: ['mgs'], floor: 'videoa', is_label: true });
+    }
+    for (const row of fanzaLabels) {
+        const name = String(row.label ?? '').trim();
+        if (!name || existingNames.has(name)) continue;
+        const cnt = Number(row.cnt ?? 0);
+        const floor = Number(row.videoc_cnt ?? 0) > cnt / 2 ? 'videoc' : 'videoa';
+        const e = labelMap.get(name);
+        if (e) { e.count += cnt; if (!e.sources.includes('fanza')) e.sources.push('fanza'); if (floor === 'videoc') e.floor = 'videoc'; }
+        else labelMap.set(name, { name, count: cnt, sample_image: '', sources: ['fanza'], floor, is_label: true });
+    }
+
+    const labelList = Array.from(labelMap.values()).sort((a, b) => b.count - a.count);
+    console.log(`[メーカー一覧] メーカー ${makerList.length}件 + レーベル ${labelList.length}件`);
+    return [...makerList, ...labelList].sort((a, b) => b.count - a.count);
 }
 
 // ── 女優表示用フルプロフィールキャッシュ ─────────────────────────

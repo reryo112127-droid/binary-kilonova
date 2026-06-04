@@ -51,6 +51,18 @@ function poster(url) {
     return url;
 }
 
+// 女優名ではなく役名/説明文（「ゆい 26歳 フリーター」等）かを判定。
+// lib/actressFilter.ts の looksLikeDescription と同等ロジック。女優ランキングから役名を除外する。
+function looksLikeDescription(name) {
+    if (!name) return true;
+    if (/\d+歳/.test(name)) return true;             // 年齢入り
+    if (/\d{4}年\d+月/.test(name)) return true;       // 年月（誤スクレイプ）
+    if (/[【】()]/.test(name)) return true;           // 括弧（ASCII）
+    if (name.length > 30) return true;                // 極端に長い
+    if (/\s/.test(name.trim())) return true;          // スペース含む（名前+職業/年齢形式）
+    return false;
+}
+
 // MGS優先マージ: 同一product_idのFANZA重複を除去してインターリーブ
 function mergeDedup(mgsRows, fanzaRows, mgsSource, fanzaSource) {
     const mgsIds = new Set(mgsRows.map(r => String(r.product_id)));
@@ -278,7 +290,7 @@ async function genActressRanking2026() {
     const processRows = (rows, isMgs) => {
         for (const row of rows) {
             if (!row.actresses) continue;
-            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean);
+            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean).filter(n => !looksLikeDescription(n));
             const wishCount = Number(row.wish_count ?? 0);
             for (const name of names) {
                 const e = actressMap.get(name);
@@ -333,7 +345,7 @@ async function genActressRankingDefault() {
     const processRows = (rows) => {
         for (const row of rows) {
             if (!row.actresses) continue;
-            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean);
+            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean).filter(n => !looksLikeDescription(n));
             const wishCount = Number(row.wish_count ?? 0);
             for (const name of names) {
                 const e = actressMap.get(name);
