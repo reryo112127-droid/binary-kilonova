@@ -55,7 +55,7 @@
   var KANA_GROUPS = [
     {label:'あ'},{label:'か'},{label:'さ'},{label:'た'},{label:'な'},
     {label:'は'},{label:'ま'},{label:'や'},{label:'ら'},{label:'わ'},
-    {label:'A-Z'},{label:'#'},
+    {label:'漢字'},{label:'A-Z'},{label:'#'},
   ];
 
   function toHira(code) {
@@ -83,10 +83,8 @@
     }
     if ((c0>='A'&&c0<='Z')||(c0>='a'&&c0<='z')) return 'A-Z';
     if (isKanji(c0)) {
-      for (var i = 0; i < KANJI_BOUNDS.length; i++) {
-        if (name.localeCompare(KANJI_BOUNDS[i].l, 'ja') < 0) return KANJI_BOUNDS[i].g;
-      }
-      return 'わ';
+      // 読み仮名が無いため漢字は読み順に分類できない → 専用「漢字」グループにまとめる
+      return '漢字';
     }
     return '#';
   }

@@ -65,7 +65,25 @@ export async function GET(request: NextRequest) {
 
     const hasPhysical = !!(cup || heightRange || ageMin);
 
-    // Cloudflare Cache API（isolate間共有・身体的フィルタなし時のみ有効）
+    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
+
+    // 日付範囲なし・身体的フィルタなし → 静的キャッシュ（ASSETS）から返す
+    // CF Cacheをバイパスし、デプロイ時のデータ更新（役名除去等）を即反映する
+    if (!hasPhysical && !fromDate && !toDate) {
+        const cached = await readStaticCache<unknown[]>('actress_ranking_default_cache.json');
+        if (cached && cached.length > 0) {
+            return NextResponse.json(cached.slice(0, limit), { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } });
+        }
+    }
+    // 2026年デフォルトクエリ（同上・CF Cacheバイパス）
+    if (!hasPhysical && fromDate === '2026-01-01' && toDate === '2026-12-31') {
+        const cached = await readStaticCache<unknown[]>('actress_ranking_2026_cache.json');
+        if (cached && cached.length > 0) {
+            return NextResponse.json(cached.slice(0, limit), { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } });
+        }
+    }
+
+    // 上記静的キャッシュに該当しない場合のみ CF Cache + Turso を使用
     const cfCache = (!hasPhysical && typeof caches !== 'undefined')
         ? (caches as unknown as { default: Cache }).default : null;
     let cfCacheKey: Request | null = null;
@@ -76,32 +94,6 @@ export async function GET(request: NextRequest) {
         cfCacheKey = new Request(normUrl.toString());
         const cfHit = await cfCache.match(cfCacheKey);
         if (cfHit) return cfHit as unknown as NextResponse;
-    }
-
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
-
-    // 日付範囲なし・身体的フィルタなし → 静的キャッシュから返す
-    if (!hasPhysical && !fromDate && !toDate) {
-        const cached = await readStaticCache<unknown[]>('actress_ranking_default_cache.json');
-        if (cached && cached.length > 0) {
-            const page = cached.slice(0, limit);
-            if (cfCache && cfCacheKey) await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
-            }));
-            return NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } });
-        }
-    }
-
-    // 2026年デフォルトクエリ（身体的特徴フィルタなし時のみ静的JSONを使用）
-    if (!hasPhysical && fromDate === '2026-01-01' && toDate === '2026-12-31') {
-        const cached = await readStaticCache<unknown[]>('actress_ranking_2026_cache.json');
-        if (cached && cached.length > 0) {
-            const page = cached.slice(0, limit);
-            if (cfCache && cfCacheKey) await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
-            }));
-            return NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } });
-        }
     }
 
     const cacheKey = 'actress_ranking_' + Array.from(searchParams.entries())

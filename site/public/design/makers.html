@@ -57,7 +57,7 @@
   var activeKana = 'all';
 
   var KANA_GROUPS = [
-    'あ','か','さ','た','な','は','ま','や','ら','わ','A-Z','#'
+    'あ','か','さ','た','な','は','ま','や','ら','わ','漢字','A-Z','#'
   ];
   var KANA_RANGES = {
     'あ':[0x3041,0x304A],'か':[0x304B,0x3054],'さ':[0x3055,0x305E],
@@ -85,10 +85,8 @@
     if ((c0>='A'&&c0<='Z')||(c0>='a'&&c0<='z')) return 'A-Z';
     var cCode = name.charCodeAt(0);
     if ((cCode >= 0x4E00 && cCode <= 0x9FFF) || (cCode >= 0x3400 && cCode <= 0x4DBF)) {
-      for (var i = 0; i < KANJI_BOUNDS.length; i++) {
-        if (name.localeCompare(KANJI_BOUNDS[i].l, 'ja') < 0) return KANJI_BOUNDS[i].g;
-      }
-      return 'わ';
+      // 読み仮名が無いため漢字は読み順に分類できない → 専用「漢字」グループにまとめる
+      return '漢字';
     }
     return '#';
   }
