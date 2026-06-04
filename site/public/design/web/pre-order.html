@@ -369,16 +369,20 @@ function cardHtml(p){
     +'<div class="p-3"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8">'+t+'</h3>'
     +'<p class="text-[10px] text-gray-400">'+dt+' 発売予定</p></div></article>';
 }
+// SSRデータをページ送りに使い回す（Turso呼び出し削減）
+var _ssrPool=null;
 function loadProducts(){
   fetchOffset=0;
   if(window.__SSR_PREORDER_DATA__&&window.__SSR_PREORDER_DATA__.length&&state.period==='all'&&!state.source&&!state.excludeBest&&!state.excludeVR&&!state.maker&&!state.actress&&!state.genre){
-    var _pd=window.__SSR_PREORDER_DATA__;window.__SSR_PREORDER_DATA__=null;
-    var _hm=_pd.length>FETCH_LIMIT;if(_hm)_pd=_pd.slice(0,FETCH_LIMIT);
-    var cEl=document.getElementById('result-count');if(cEl)cEl.textContent=(_pd.length||0)+(_hm?'+':'')+' 件';
+    _ssrPool=window.__SSR_PREORDER_DATA__;window.__SSR_PREORDER_DATA__=null;
+    var _pd=_ssrPool.slice(0,FETCH_LIMIT);
+    var _hm=_ssrPool.length>FETCH_LIMIT;
+    var cEl=document.getElementById('result-count');if(cEl)cEl.textContent=(_ssrPool.length||0)+' 件';
     g.innerHTML=_pd.length?_pd.map(cardHtml).join(''):'<p class="col-span-5 text-center text-gray-400 py-12 text-sm">この期間の予約作品がありません</p>';
     if(_pd.length){fetchOffset=FETCH_LIMIT;setLoadMoreVisible(_hm);}
     return;
   }
+  _ssrPool=null;
   setLoadMoreVisible(false);
   fetch(buildUrl(0)).then(function(res){return res.json();}).then(function(d){
     var hasMore=d&&d.length>FETCH_LIMIT;if(hasMore)d=d.slice(0,FETCH_LIMIT);
@@ -391,6 +395,18 @@ function loadProducts(){
 }
 window.loadMore=function(){
   if(isLoading)return;isLoading=true;
+  // SSRプールに残りがあればTursoを叩かずに返す
+  if(_ssrPool && fetchOffset < _ssrPool.length){
+    var chunk=_ssrPool.slice(fetchOffset,fetchOffset+FETCH_LIMIT);
+    var hasMore=fetchOffset+FETCH_LIMIT<_ssrPool.length;
+    g.insertAdjacentHTML('beforeend',chunk.map(cardHtml).join(''));
+    var cEl=document.getElementById('result-count');
+    if(cEl){var cur=parseInt(cEl.textContent)||0;cEl.textContent=(cur+chunk.length)+(hasMore?'+':'')+' 件';}
+    fetchOffset+=FETCH_LIMIT;
+    setLoadMoreVisible(hasMore);
+    isLoading=false;
+    return;
+  }
   fetch(buildUrl(fetchOffset)).then(function(res){return res.json();}).then(function(d){
     var hasMore=d&&d.length>FETCH_LIMIT;if(hasMore)d=d.slice(0,FETCH_LIMIT);
     if(d&&d.length)g.insertAdjacentHTML('beforeend',d.map(cardHtml).join(''));

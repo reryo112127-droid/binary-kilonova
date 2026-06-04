@@ -106,14 +106,33 @@ const PRODUCTS_SCRIPT = `<script>
     if(!hasMore)return;
     loading=true;
 
-    // pre-order の初回ロードはSSR注入データを使用（Turso不要）
-    if(reset && type==='pre-order' && page===0 && window.__SSR_PREORDER_DATA__ && window.__SSR_PREORDER_DATA__.length){
-      var pd=window.__SSR_PREORDER_DATA__;window.__SSR_PREORDER_DATA__=null;
-      hasMore=pd.length>=LIMIT;
-      renderCards(pd.slice(0,LIMIT),false);
-      if(window.restoreLikes)window.restoreLikes();
-      page++;loading=false;
-      return;
+    // SSR注入データを使用（Turso不要）
+    if(reset && page===0){
+      // pre-order
+      if(type==='pre-order' && window.__SSR_PREORDER_DATA__ && window.__SSR_PREORDER_DATA__.length){
+        var pd=window.__SSR_PREORDER_DATA__;window.__SSR_PREORDER_DATA__=null;
+        hasMore=pd.length>=LIMIT;
+        renderCards(pd.slice(0,LIMIT),false);
+        if(window.restoreLikes)window.restoreLikes();
+        page++;loading=false;
+        return;
+      }
+      // 新着: products_new_cache.json SSRデータをクライアントでBEST除外フィルタ適用
+      if(type!=='pre-order' && !source && window.__SSR_NEW_DATA__ && window.__SSR_NEW_DATA__.length){
+        var nd=window.__SSR_NEW_DATA__;window.__SSR_NEW_DATA__=null;
+        if(excludeBest){
+          nd=nd.filter(function(p){
+            var t=(p.title||'');
+            return !/BEST|ベスト|総集編|コレクション|Best/i.test(t);
+          });
+        }
+        if(showVr) nd=nd.filter(function(p){return p.vr_flag||p.genres&&/\bVR\b|VR専用/i.test(p.genres);});
+        hasMore=nd.length>LIMIT;
+        renderCards(nd.slice(0,LIMIT),false);
+        if(window.restoreLikes)window.restoreLikes();
+        page++;loading=false;
+        return;
+      }
     }
 
     if(reset)renderSkeleton();
@@ -261,13 +280,19 @@ export async function GET(request: NextRequest) {
         : `/design/web/${type === 'pre-order' ? 'pre-order.html' : 'new-products.html'}`;
 
     try {
-        // pre-order: home_preorder_cache.json をSSR注入（PC/モバイル共通）
-        // PC pre-order.html / モバイル PRODUCTS_SCRIPT 共に window.__SSR_PREORDER_DATA__ を参照
+        // PC/モバイル共通: 静的JSONをSSR注入してTursoクエリをゼロに
         let ssrScript = '';
         if (type === 'pre-order') {
-            const preorderCache = await readStaticCache<unknown[]>('home_preorder_cache.json');
-            if (preorderCache && preorderCache.length > 0) {
-                ssrScript = `<script>window.__SSR_PREORDER_DATA__=${JSON.stringify(preorderCache)};</script>`;
+            const cache = await readStaticCache<unknown[]>('home_preorder_cache.json');
+            if (cache && cache.length > 0) {
+                ssrScript = `<script>window.__SSR_PREORDER_DATA__=${JSON.stringify(cache)};</script>`;
+            }
+        } else if (isMobile && type !== 'pre-order') {
+            // モバイル新着: products_new_cache.json の先頭80件をSSR注入
+            // (クライアントでBEST除外フィルタ適用 → 30件表示)
+            const cache = await readStaticCache<unknown[]>('products_new_cache.json');
+            if (cache && cache.length > 0) {
+                ssrScript = `<script>window.__SSR_NEW_DATA__=${JSON.stringify(cache.slice(0, 80))};</script>`;
             }
         }
 
