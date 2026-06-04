@@ -38,6 +38,8 @@ const FANZA_INDEXES = [
     `CREATE INDEX IF NOT EXISTS idx_discount_pct ON products(discount_pct DESC) WHERE discount_pct > 0`,
     // VRフィルター用（部分インデックス）
     `CREATE INDEX IF NOT EXISTS idx_vr_flag ON products(vr_flag) WHERE vr_flag = 1`,
+    // メーカー一覧キャッシュ生成 GROUP BY maker + floor カバリングインデックス
+    `CREATE INDEX IF NOT EXISTS idx_maker_floor ON products(maker, floor)`,
 ];
 
 async function applyIndexes(label, url, token, indexes) {

@@ -76,13 +76,15 @@ async function genMakersList() {
                   GROUP BY maker HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 600`,
             args: [],
         }).then(r => r.rows).catch(() => []),
+        // MAX(main_image_url) を除去: カバリングインデックス(maker,floor)で高速化
+        // sample_imageはmaker一覧カードで未使用のため省略
         fanza.execute({
-            sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image,
+            sql: `SELECT maker, COUNT(*) as cnt,
                          SUM(CASE WHEN floor = 'videoc' THEN 1 ELSE 0 END) as videoc_cnt
                   FROM products WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
                   GROUP BY maker HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 600`,
             args: [],
-        }).then(r => r.rows).catch(() => []),
+        }).then(r => r.rows).catch((e) => { console.error('[FANZA maker query error]', e.message); return []; }),
     ]);
 
     const map = new Map();

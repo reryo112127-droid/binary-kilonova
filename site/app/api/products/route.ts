@@ -450,14 +450,28 @@ export async function GET(request: NextRequest) {
         queryTurso(fanzaClient, false, perLimit),
     ]);
 
-    // 交互にマージ（MGS優先: 同一product_idのFANZA重複を除去）
+    // 重複除去（MGS優先）
     const mgsIds = new Set(mgsResults.map(r => String(r.product_id)));
     const dedupedFanza = fanzaResults.filter(r => !mgsIds.has(String(r.product_id)));
-    const combined: Record<string, unknown>[] = [];
-    const maxLen = Math.max(mgsResults.length, dedupedFanza.length);
-    for (let i = 0; i < maxLen; i++) {
-        if (mgsResults[i]) combined.push(mgsResults[i]);
-        if (dedupedFanza[i]) combined.push(dedupedFanza[i]);
+
+    let combined: Record<string, unknown>[];
+
+    if (sort === 'new' || sort === 'date_all' || sort === 'pre-order') {
+        // 日付系ソートは結合後に再ソート（1:1交互では日付順が崩れる）
+        // MGS: "YYYY/MM/DD" → normalize / → -  FANZA: "YYYY-MM-DD HH:MM:SS" → slice 10
+        combined = [...mgsResults, ...dedupedFanza].sort((a, b) => {
+            const da = String(a.sale_start_date ?? '').replace(/\//g, '-').slice(0, 10);
+            const db = String(b.sale_start_date ?? '').replace(/\//g, '-').slice(0, 10);
+            return sort === 'pre-order' ? da.localeCompare(db) : db.localeCompare(da);
+        });
+    } else {
+        // 人気順・割引順は交互インターリーブ（MGS人気 + FANZA人気を均等に混在）
+        combined = [];
+        const maxLen = Math.max(mgsResults.length, dedupedFanza.length);
+        for (let i = 0; i < maxLen; i++) {
+            if (mgsResults[i]) combined.push(mgsResults[i]);
+            if (dedupedFanza[i]) combined.push(dedupedFanza[i]);
+        }
     }
 
     const result = combined.slice(0, limit);
