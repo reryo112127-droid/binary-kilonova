@@ -83,7 +83,7 @@ const PRODUCTS_SCRIPT = `<script>
       return '<div class="flex flex-col gap-1" style="cursor:pointer" onclick="location.href=\\'/product/\\'+encodeURIComponent(\\'' + esc(p.product_id) + '\\')">'
         +'<div class="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-700">'+imgHtml
         +'<div class="absolute bottom-1 right-1 flex gap-1">'
-        +(noAct?'<button data-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-full text-white" onclick="event.preventDefault();event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)"><span class="material-symbols-outlined text-[12px]">add</span></button>':'')
+        +(noAct?'<button data-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-full text-white" onclick="event.preventDefault();event.stopPropagation();location.href=\\'/cast/register/\\'+encodeURIComponent(this.dataset.pid)"><span class="material-symbols-outlined text-[12px]">add</span></button>':'')
         +'<button data-like-pid="'+esc(p.product_id)+'" class="w-6 h-6 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-full text-white" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)"><span class="material-symbols-outlined text-[12px]">favorite</span></button>'
         +'</div></div>'
         +'<p class="line-clamp-2 text-[11px] font-bold leading-tight">'+esc(p.title)+'</p>'
