@@ -32,10 +32,10 @@ const RECHECK = args.includes('--recheck');
 const DRY     = args.includes('--dry');
 const CONCURRENCY = 20;
 
-// MGS DB（読み取り専用）
-const mgs  = createClient({ url: process.env.TURSO_MGS_URL,  authToken: process.env.TURSO_MGS_TOKEN });
-// Site DB（書き込み先：FTS5トリガーなし）
-const site = createClient({ url: process.env.TURSO_SITE_URL, authToken: process.env.TURSO_SITE_TOKEN });
+// DBクライアント
+const mgs   = createClient({ url: process.env.TURSO_MGS_URL,   authToken: process.env.TURSO_MGS_TOKEN });
+const fanza = createClient({ url: process.env.TURSO_FANZA_URL,  authToken: process.env.TURSO_FANZA_TOKEN });
+const site  = createClient({ url: process.env.TURSO_SITE_URL,   authToken: process.env.TURSO_SITE_TOKEN });
 
 // product_safetyテーブル作成（なければ）
 await site.execute(`CREATE TABLE IF NOT EXISTS product_safety (
@@ -45,27 +45,70 @@ await site.execute(`CREATE TABLE IF NOT EXISTS product_safety (
 )`);
 console.log('product_safetyテーブル確認済み\n');
 
-// 対象作品を取得（RECHECKなら全件、通常はproduct_safetyに未登録のもの）
-let rows;
-if (RECHECK) {
-    rows = await mgs.execute({
-        sql: `SELECT product_id, main_image_url FROM products
-              WHERE main_image_url IS NOT NULL AND main_image_url != ''
-              ORDER BY sale_start_date DESC LIMIT ?`,
-        args: [LIMIT],
-    }).then(r => r.rows);
-} else {
-    const checked = await site.execute('SELECT product_id FROM product_safety').then(r => new Set(r.rows.map(r => String(r.product_id))));
-    const allRows = await mgs.execute({
-        sql: `SELECT product_id, main_image_url FROM products
-              WHERE main_image_url IS NOT NULL AND main_image_url != ''
-              ORDER BY sale_start_date DESC LIMIT ?`,
-        args: [Math.min(LIMIT * 10, 200000)],
-    }).then(r => r.rows);
-    rows = allRows.filter(r => !checked.has(String(r.product_id))).slice(0, LIMIT);
-}
+// ── ホーム画面のFANZAメーカーリスト（generate-static-cache.mjsと同期） ──
+const HOME_MAKERS = [
+    ['like',  'エスワン'],
+    ['exact', 'ムーディーズ'],
+    ['exact', 'アイデアポケット'],
+    ['exact', 'OPPAI'],
+    ['exact', 'E-BODY'],
+    ['exact', 'Fitch'],
+    ['exact', 'マドンナ'],
+    ['exact', '本中'],
+    ['like',  'ダスッ'],
+    ['exact', 'kawaii'],
+    ['exact', 'Hunter'],
+    ['exact', 'ワンズファクトリー'],
+    ['exact', 'SODクリエイト'],
+    ['exact', 'FALENO'],
+    ['exact', 'TAMEIKE'],
+    ['like',  'million'],
+    ['exact', 'プレミアム'],
+    ['exact', 'DAHLIA'],
+];
 
-console.log(`対象: ${rows.length}件 | 並列: ${CONCURRENCY} | ${RECHECK ? '全件再チェック' : '未チェックのみ'}${DRY ? ' [DRY RUN]' : ''}\n`);
+const fanzaMakerCond = HOME_MAKERS.map(([t]) =>
+    t === 'exact' ? '(maker = ? OR label = ?)' : '(maker LIKE ? OR label LIKE ?)'
+).join(' OR ');
+const fanzaMakerArgs = HOME_MAKERS.flatMap(([t, v]) => t === 'exact' ? [v, v] : [`%${v}%`, `%${v}%`]);
+
+// ── 対象作品を取得 ──
+const ONE_YEAR_AGO = new Date();
+ONE_YEAR_AGO.setFullYear(ONE_YEAR_AGO.getFullYear() - 1);
+const cutoffDate = ONE_YEAR_AGO.toISOString().slice(0, 10);
+const WISH_THRESHOLD = 500;
+
+const checked = RECHECK
+    ? new Set()
+    : await site.execute('SELECT product_id FROM product_safety').then(r => new Set(r.rows.map(r => String(r.product_id))));
+
+// MGS: 新作（1年以内）OR 人気（wish_count≥500）
+const mgsRows = await mgs.execute({
+    sql: `SELECT product_id, main_image_url FROM products
+          WHERE main_image_url IS NOT NULL AND main_image_url != ''
+            AND (duration_min IS NULL OR duration_min < 600)
+            AND (sale_start_date >= ? OR wish_count >= ?)
+          ORDER BY wish_count DESC, sale_start_date DESC`,
+    args: [cutoffDate, WISH_THRESHOLD],
+}).then(r => r.rows);
+
+// FANZA: ホーム画面メーカーのみ
+const fanzaRows = await fanza.execute({
+    sql: `SELECT product_id, main_image_url FROM products
+          WHERE (${fanzaMakerCond})
+            AND main_image_url IS NOT NULL AND main_image_url != ''
+            AND floor != 'videoc'
+          ORDER BY sale_start_date DESC`,
+    args: fanzaMakerArgs,
+}).then(r => r.rows);
+
+const allRows = [...mgsRows, ...fanzaRows];
+const rows = allRows.filter(r => !checked.has(String(r.product_id))).slice(0, LIMIT || allRows.length);
+
+console.log(`MGS絞込: 新作(${cutoffDate}以降) OR 人気(wish_count≥${WISH_THRESHOLD}) → ${mgsRows.length}件`);
+console.log(`FANZA絞込: ホーム画面メーカー(${HOME_MAKERS.length}社) → ${fanzaRows.length}件`);
+console.log(`合計: ${allRows.length}件 → 未チェック: ${rows.length}件`);
+console.log(`並列: ${CONCURRENCY} | ${RECHECK ? '全件再チェック' : '未チェックのみ'}${DRY ? ' [DRY RUN]' : ''}\n`);
 
 // RGB → HSL変換
 function rgbToHsl(r, g, b) {
