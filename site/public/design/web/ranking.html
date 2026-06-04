@@ -529,7 +529,7 @@ var ORDER=[1,0,2]; // indices: 2nd=1, 1st=0, 3rd=2 in display order
 
 (window.__SSR_RANKING_DATA__
   ?Promise.resolve(window.__SSR_RANKING_DATA__)
-  :fetch('/api/ranking?limit=9').then(function(r){return r.json();}))
+  :fetch('/api/ranking?limit=30').then(function(r){return r.json();}))
   .then(function(d){
   var items=d||[];
   var wp=document.getElementById('works-podium-row');
@@ -538,7 +538,7 @@ var ORDER=[1,0,2]; // indices: 2nd=1, 1st=0, 3rd=2 in display order
     wp.innerHTML=ORDER.map(function(pi,i){var c=POD_CFG[i];return workPodItem(items[pi],c.rank,c.wrap,c.imgSz,c.border,c.cls,c.podH);}).join('');
   }
   if(wl&&items.length>3){
-    wl.innerHTML=items.slice(3,9).map(function(p,i){
+    wl.innerHTML=items.slice(3,30).map(function(p,i){
       var rank=i+4;var img=(function(u){return u&&u.includes('pb_e_')?u.replace('pb_e_','pf_e_'):u;})(p.main_image_url||'');var t=esc((p.title||'').substring(0,30));var pid=encodeURIComponent(p.product_id||'');
       return '<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
         +'<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">'+rank+'</span>'
@@ -551,7 +551,7 @@ var ORDER=[1,0,2]; // indices: 2nd=1, 1st=0, 3rd=2 in display order
 
 (window.__SSR_ACTRESS_RANKING_DATA__
   ?Promise.resolve(window.__SSR_ACTRESS_RANKING_DATA__)
-  :fetch('/api/ranking/actress?limit=9').then(function(r){return r.json();}))
+  :fetch('/api/ranking/actress?limit=30').then(function(r){return r.json();}))
   .then(function(d){
   var items=d||[];
   var cp=document.getElementById('cast-podium-row');
@@ -560,7 +560,7 @@ var ORDER=[1,0,2]; // indices: 2nd=1, 1st=0, 3rd=2 in display order
     cp.innerHTML=ORDER.map(function(pi,i){var c=CAST_POD_CFG[i];return castPodItem(items[pi],c.rank,c.wrap,c.imgSz,c.border,c.cls,c.podH);}).join('');
   }
   if(cl&&items.length>3){
-    cl.innerHTML=items.slice(3,9).map(function(a,i){
+    cl.innerHTML=items.slice(3,30).map(function(a,i){
       var rank=i+4;var img=a.image_url||'';var name=esc(a.name||'');var an=encodeURIComponent(a.name||'');
       return '<div class="flex items-center gap-4 rounded-2xl bg-white dark:bg-slate-900/50 p-4 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border border-slate-200 dark:border-slate-800 shadow-sm relative cursor-pointer" onclick="location.href=\'/actress/'+an+'\'">'
         +'<span class="text-xl font-black text-slate-400 w-8 text-center shrink-0">'+rank+'</span>'

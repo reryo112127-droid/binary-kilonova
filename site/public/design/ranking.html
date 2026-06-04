@@ -286,7 +286,7 @@
 
   (window.__SSR_RANKING_DATA__
     ? Promise.resolve(window.__SSR_RANKING_DATA__)
-    : fetch('/api/ranking?limit=12&excludeBest=1').then(function(r){return r.json();}))
+    : fetch('/api/ranking?limit=30&excludeBest=1').then(function(r){return r.json();}))
     .then(function(data){
       if (!Array.isArray(data) || !data.length) return;
       setWorksCard(1, data[0]); setWorksCard(2, data[1]); setWorksCard(3, data[2]);
@@ -318,9 +318,10 @@
     if (card) card.onclick = function(){ location.href = aurl(a.name); };
   }
 
+  // 出演者ランキングは本体で一本化描画。フィルタ条件は route が window.__ACTRESS_API_PARAMS で渡す
   (window.__SSR_ACTRESS_RANKING_DATA__
     ? Promise.resolve(window.__SSR_ACTRESS_RANKING_DATA__)
-    : fetch('/api/ranking/actress?limit=12').then(function(r){return r.json();}))
+    : fetch('/api/ranking/actress?'+(window.__ACTRESS_API_PARAMS||'limit=30')).then(function(r){return r.json();}))
     .then(function(data){
       if (!Array.isArray(data) || !data.length) return;
       setCastCard(1, data[0]); setCastCard(2, data[1]); setCastCard(3, data[2]);

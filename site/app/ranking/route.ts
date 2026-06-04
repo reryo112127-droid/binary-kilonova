@@ -32,12 +32,12 @@ export async function GET(request: NextRequest) {
         // SSRデータ取得・注入
         try {
             if (isMobile) {
-                const ranking = await ssrFetchRanking(12);
+                const ranking = await ssrFetchRanking(30);
                 html = injectSsrScript(html, '__SSR_RANKING_DATA__', ranking);
             } else {
                 const [ranking, actressRanking] = await Promise.all([
-                    ssrFetchRanking(9),
-                    ssrFetchActressRanking(9),
+                    ssrFetchRanking(30),
+                    ssrFetchActressRanking(30),
                 ]);
                 html = injectSsrScript(html, '__SSR_RANKING_DATA__', ranking);
                 html = injectSsrScript(html, '__SSR_ACTRESS_RANKING_DATA__', actressRanking);
