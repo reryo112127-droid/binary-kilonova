@@ -372,9 +372,12 @@
     if (filters.toDate) p.set('toDate',filters.toDate);
     return '/api/products?'+p.toString();
   }
+  var _hasMore=false, _loading=false;
   function setLoadMoreVisible(v){
+    // 無限スクロール採用のためボタンは常に非表示。hasMore状態のみ保持
+    _hasMore=v;
     var w=document.getElementById('load-more-wrap');
-    if(w)w.style.cssText=v?'display:flex;justify-content:center;margin-top:1rem':'display:none!important';
+    if(w)w.style.display='none';
   }
 
   var allResults = [];
@@ -397,13 +400,9 @@
   }
 
   function renderPagination(total){
+    // 無限スクロール採用のためページネーションは非表示
     var pgWrap=document.getElementById('pagination-wrap');
-    if(!pgWrap)return;
-    var isFirst=currentPage===1,isLast=(currentPage*ITEMS_PER_PAGE)>=total;
-    var pc='p-2 text-gray-200 cursor-not-allowed',pa='p-2 text-gray-400 hover:text-blue-600 transition';
-    var prev='<button '+(isFirst?'disabled ':'')+' onclick="srchPage('+(currentPage-1)+')" class="'+(isFirst?pc:pa)+'"><svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" fill-rule="evenodd"></path></svg></button>';
-    var next='<button '+(isLast?'disabled ':'')+' onclick="srchPage('+(currentPage+1)+')" class="'+(isLast?pc:pa)+'"><svg class="h-4 w-4" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" fill-rule="evenodd"></path></svg></button>';
-    pgWrap.innerHTML='<nav class="flex items-center space-x-3">'+prev+'<span class="text-xs font-bold text-gray-600 px-2">'+currentPage+' / '+Math.max(1,Math.ceil(total/ITEMS_PER_PAGE))+' ページ</span>'+next+'</nav>';
+    if(pgWrap)pgWrap.style.display='none';
   }
   function renderFiltered(){
     if (!grid) return;
@@ -416,7 +415,7 @@
     filteredCache = filtered;
     var cEl=document.getElementById('result-count');if(cEl){cEl.textContent=filtered.length+' 作品';cEl.classList.remove('hidden');}
     if (!filtered.length) { grid.innerHTML='<div class="col-span-5 py-12 text-center text-sm text-gray-400">絞り込み結果がありません</div>'; renderPagination(0); return; }
-    var start=(currentPage-1)*ITEMS_PER_PAGE,page=filtered.slice(start,start+ITEMS_PER_PAGE);
+    var page=filtered; // 無限スクロール: 絞り込み後の全件を表示
     // 最初の10枚を即座に描画、残りを次フレームで追加（体感速度向上）
     grid.innerHTML = page.slice(0,10).map(cardHtml).join('');
     if(page.length>10){
@@ -568,19 +567,25 @@
       });
   }
   window.fetchMore=function(){
-    var btn=document.getElementById('load-more-btn');if(btn){btn.textContent='読み込み中...';btn.disabled=true;}
+    if(_loading||!_hasMore)return;
+    _loading=true;
     fetchOffset+=FETCH_LIMIT;
     fetch(buildUrl(fetchOffset)).then(function(r){return r.json();}).then(function(data){
       var hasMore = data && data.length > FETCH_LIMIT;
       var items = hasMore ? data.slice(0, FETCH_LIMIT) : (data || []);
       allResults = allResults.concat(items);
       setLoadMoreVisible(hasMore);
-      if(btn){btn.textContent='さらに読み込む';btn.disabled=false;}
-      filters.subMaker='';filters.subGenres=[];currentPage=1;
       updateSidebarFilters(allResults);
       renderFiltered();
-    }).catch(function(){if(btn){btn.textContent='さらに読み込む';btn.disabled=false;}});
+      _loading=false;
+    }).catch(function(){_loading=false;});
   };
+
+  // 無限スクロール: 下端付近で自動読み込み
+  window.addEventListener('scroll',function(){
+    if(_loading||!_hasMore)return;
+    if(window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-1000) window.fetchMore();
+  },{passive:true});
 
   // Source toggle (すべて/MGS/FANZA)
   var allSrcBtn=document.getElementById('sf-all-src-btn'), mgsBtn=document.getElementById('sf-mgs-btn'), fanzaBtn=document.getElementById('sf-fanza-btn');

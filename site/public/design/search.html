@@ -215,8 +215,9 @@
   }
 
   function setLoadMoreBtn(visible){
+    // 無限スクロール採用のためボタンは常に非表示
     var btn = document.getElementById('load-more-btn');
-    if (btn) btn.style.display = visible ? '' : 'none';
+    if (btn) btn.style.display = 'none';
   }
 
   // キャッシュから再描画（APIコールなし）
@@ -340,6 +341,14 @@
       })
       .catch(function(){ isLoading = false; if (btn) btn.textContent = 'もっと見る'; });
   };
+
+  // 無限スクロール: 下端付近で自動読み込み
+  window.addEventListener('scroll', function(){
+    if (isLoading || !serverHasMore) return;
+    if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 800) {
+      window.fetchMore();
+    }
+  }, { passive: true });
 
   // Content type radios
   document.querySelectorAll('input[name="content-type"]').forEach(function(r){

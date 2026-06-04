@@ -325,10 +325,11 @@ function updateFilterBtns(){
   var b=document.getElementById('qf-best');if(b)b.className=(state.excludeBest?act:ina);
   var v=document.getElementById('qf-vr');if(v)v.className=(state.excludeVR?act:ina);
 }
+var _hasMore=false;
 function setLoadMoreVisible(v){
-  if(!pgWrap)return;
-  if(v){pgWrap.innerHTML='<button onclick="loadMore()" class="px-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 shadow-sm transition">さらに読み込む</button>';pgWrap.style.display='flex';pgWrap.style.justifyContent='center';}
-  else{pgWrap.innerHTML='';pgWrap.style.display='none';}
+  // 無限スクロール採用のためボタンは表示しない。hasMore状態のみ保持
+  _hasMore=v;
+  if(pgWrap){pgWrap.innerHTML='';pgWrap.style.display='none';}
 }
 function buildUrl(off){
   var r=getRange();
@@ -393,14 +394,11 @@ window.loadMore=function(){
     setLoadMoreVisible(hasMore);
   }).catch(function(){}).finally(function(){isLoading=false;});
 };
-// IntersectionObserver: スクロールで自動ロード
-(function(){
-  var sentinel=document.getElementById('load-more-btn');
-  if(!sentinel||!window.IntersectionObserver)return;
-  new IntersectionObserver(function(entries){
-    if(entries[0].isIntersecting)window.loadMore&&window.loadMore();
-  },{rootMargin:'200px'}).observe(sentinel);
-})();
+// 無限スクロール: 下端付近で自動ロード
+window.addEventListener('scroll',function(){
+  if(isLoading||!_hasMore)return;
+  if(window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-1000) window.loadMore&&window.loadMore();
+},{passive:true});
 window.setQuickPeriod=function(p){state.period=p;state.selectedDate=null;updateQfBtns(p);renderCal();loadProducts();};
 window.selectDate=function(ds){state.selectedDate=ds;state.period=null;updateQfBtns(null);renderCal();loadProducts();};
 window.calMove=function(dir){state.calMonth+=dir;if(state.calMonth>11){state.calMonth=0;state.calYear++;}if(state.calMonth<0){state.calMonth=11;state.calYear--;}renderCal();};
