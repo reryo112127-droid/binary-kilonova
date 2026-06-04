@@ -62,28 +62,31 @@ export async function GET(request: NextRequest) {
         && !searchParams.get('excludeBest') && !searchParams.get('minDiscount')
         && !searchParams.get('ageMin') && !searchParams.get('ageMax');
 
-    // 人気女優 top200 の商品リストを静的JSONから返す（Tursoクエリ不要）
+    // 女優別商品リストを静的JSONから返す（Tursoクエリ不要）
+    // top_products(top200) → extended_products(~2000人) の順で検索
     const actressParam = searchParams.get('actress') || '';
+    // excludeBest条件を外す: キャッシュはBEST除外済みデータを格納しているため
     if (
         actressParam && offset === 0 &&
         (sort === 'new' || sort === '') &&
         !searchParams.get('q') && !searchParams.get('genre') && !searchParams.get('maker') &&
         !searchParams.get('fromDate') && !searchParams.get('toDate') && !searchParams.get('source') &&
-        !searchParams.get('vr') && !searchParams.get('hasVideo') && !searchParams.get('excludeBest')
+        !searchParams.get('vr') && !searchParams.get('hasVideo')
     ) {
-        const topCache = await readStaticCache<Record<string, unknown[]>>('actress_top_products.json');
-        if (topCache) {
-            const products = topCache[actressParam];
-            if (products && products.length > 0) {
-                const page = products.slice(0, limit + 1); // +1 でhasMore判定
-                const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 600) } });
-                if (cfCache && cfCacheKey) {
-                    await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
-                        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
-                    }));
-                }
-                return res;
+        const [topCache, extCache] = await Promise.all([
+            readStaticCache<Record<string, unknown[]>>('actress_top_products.json'),
+            readStaticCache<Record<string, unknown[]>>('actress_extended_products.json'),
+        ]);
+        const products = topCache?.[actressParam] ?? extCache?.[actressParam];
+        if (products && products.length > 0) {
+            const page = products.slice(0, limit + 1);
+            const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 600) } });
+            if (cfCache && cfCacheKey) {
+                await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+                }));
             }
+            return res;
         }
     }
 
