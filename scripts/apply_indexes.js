@@ -21,6 +21,8 @@ const MGS_INDEXES = [
     `CREATE INDEX IF NOT EXISTS idx_sale_date_norm ON products(REPLACE(sale_start_date, '/', '-') DESC)`,
     // サンプル動画フィルター用（WHERE部分インデックス）
     `CREATE INDEX IF NOT EXISTS idx_sample_video ON products(sample_video_url) WHERE sample_video_url IS NOT NULL`,
+    // similar API: maker完全一致 + wish_count降順（商品詳細ページで毎回発生）
+    `CREATE INDEX IF NOT EXISTS idx_maker_wish ON products(maker, wish_count DESC)`,
 ];
 
 const FANZA_INDEXES = [
@@ -30,6 +32,12 @@ const FANZA_INDEXES = [
     `CREATE INDEX IF NOT EXISTS idx_review_count ON products(review_count DESC)`,
     // サンプル動画フィルター用
     `CREATE INDEX IF NOT EXISTS idx_sample_video ON products(sample_video_url) WHERE sample_video_url IS NOT NULL`,
+    // similar API: maker完全一致 + 新着順（FANZAはwish_countカラムなし）
+    `CREATE INDEX IF NOT EXISTS idx_maker_date ON products(maker, sale_start_date DESC)`,
+    // セールソート・セールフィルター用（discount_pct > 0 の部分インデックス）
+    `CREATE INDEX IF NOT EXISTS idx_discount_pct ON products(discount_pct DESC) WHERE discount_pct > 0`,
+    // VRフィルター用（部分インデックス）
+    `CREATE INDEX IF NOT EXISTS idx_vr_flag ON products(vr_flag) WHERE vr_flag = 1`,
 ];
 
 async function applyIndexes(label, url, token, indexes) {
@@ -58,10 +66,14 @@ async function applyIndexes(label, url, token, indexes) {
         ? [
             { label: 'wish_count ORDER BY', sql: `EXPLAIN QUERY PLAN SELECT product_id FROM products ORDER BY wish_count DESC LIMIT 100` },
             { label: 'sale_start_date ORDER BY', sql: `EXPLAIN QUERY PLAN SELECT product_id FROM products WHERE REPLACE(sale_start_date,'/','-') <= '2026-05-07' ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 20` },
+            { label: 'maker + wish_count (similar)', sql: `EXPLAIN QUERY PLAN SELECT product_id FROM products WHERE maker = 'SODクリエイト' ORDER BY wish_count DESC LIMIT 40` },
           ]
         : [
             { label: 'review_count ORDER BY', sql: `EXPLAIN QUERY PLAN SELECT product_id FROM products ORDER BY review_count DESC LIMIT 100` },
             { label: 'sale_start_date ORDER BY', sql: `EXPLAIN QUERY PLAN SELECT product_id FROM products ORDER BY sale_start_date DESC LIMIT 20` },
+            { label: 'maker + sale_start_date (similar)', sql: `EXPLAIN QUERY PLAN SELECT product_id FROM products WHERE maker = 'SODクリエイト' ORDER BY sale_start_date DESC LIMIT 40` },
+            { label: 'discount_pct ORDER BY', sql: `EXPLAIN QUERY PLAN SELECT product_id FROM products WHERE discount_pct > 0 ORDER BY discount_pct DESC LIMIT 20` },
+            { label: 'vr_flag filter', sql: `EXPLAIN QUERY PLAN SELECT product_id FROM products WHERE vr_flag = 1 ORDER BY sale_start_date DESC LIMIT 20` },
           ];
 
     for (const q of checkQueries) {

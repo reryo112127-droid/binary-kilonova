@@ -127,6 +127,8 @@
   var ps = new URLSearchParams(location.search);
   var actress=ps.get('actress')||'', maker=ps.get('maker')||'', label=ps.get('label')||'', genre=ps.get('genre')||'', q=ps.get('q')||'';
   var term = actress||maker||label||genre||q;
+  // サーバーサイド注入データ（初回API呼び出し不要）
+  var __ssrData = window.__SD__ || null;
 
   var h1 = document.querySelector('header h1');
   if (h1 && term) h1.textContent = term;
@@ -270,6 +272,21 @@
     setLoadMoreBtn(false);
 
     var url = buildUrl(0);
+
+    // SSR注入データが現在の検索条件と一致する場合は即表示（API呼び出し不要）
+    if (__ssrData && __ssrData.p) {
+      var sp = __ssrData.p;
+      if (sp.q===q && sp.actress===actress && sp.maker===maker && sp.genre===genre && sp.label===label) {
+        var raw = __ssrData.d;
+        __ssrData = null; // 一度だけ使用
+        serverHasMore = raw.length > LIMIT;
+        allData = serverHasMore ? raw.slice(0, LIMIT) : raw;
+        cacheSet(url, allData);
+        renderFromCache();
+        return;
+      }
+      __ssrData = null;
+    }
 
     // ④ キャッシュヒット → 即表示
     var hit = cacheGet(url);

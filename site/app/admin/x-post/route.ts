@@ -183,6 +183,11 @@ function buildXPostHtml(key: string): string {
       }
     }
 
+    function imgProxy(url) {
+      if (!url) return '';
+      return '/api/admin/img-proxy?key=' + encodeURIComponent(ADMIN_KEY) + '&url=' + encodeURIComponent(url);
+    }
+
     function renderProduct(genre, product) {
       const panel = document.getElementById('panel-' + genre);
       const sampleImgs = (product.sample_images || []).slice(0, 4);
@@ -190,7 +195,7 @@ function buildXPostHtml(key: string): string {
       const sampleHtml = sampleImgs.length > 0
         ? '<div class="grid grid-cols-4 gap-2">' +
             sampleImgs.map(img =>
-              '<div class="aspect-video rounded-md overflow-hidden border border-slate-100"><img src="' + img + '" class="w-full h-full object-cover" loading="lazy" onerror="this.style.display=\'none\'"/></div>'
+              '<div class="aspect-video rounded-md overflow-hidden border border-slate-100"><img src="' + imgProxy(img) + '" class="w-full h-full object-cover" loading="lazy" onerror="this.style.display=\'none\'"/></div>'
             ).join('') +
           '</div>'
         : '<div class="text-xs text-slate-400 text-center py-1">サンプルなし</div>';
@@ -201,7 +206,7 @@ function buildXPostHtml(key: string): string {
 
       panel.innerHTML =
         '<div class="relative group aspect-[3/4] rounded-lg overflow-hidden border border-slate-100 cursor-pointer">' +
-          '<img src="' + (product.main_image_url || '') + '" class="w-full h-full object-cover transition-transform group-hover:scale-105"/>' +
+          '<img src="' + imgProxy(product.main_image_url || '') + '" class="w-full h-full object-cover transition-transform group-hover:scale-105"/>' +
           discountBadge +
         '</div>' +
         sampleHtml +

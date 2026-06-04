@@ -65,45 +65,18 @@ export async function GET(
         ? '/design/cast-add.html'
         : '/design/web/cast-add.html';
 
-    try {
-        let html = await readHtml(request.url, htmlFile);
-        html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
+    const PRODUCT_ID   = JSON.stringify(productId);
+    const SUCCESS_URL  = JSON.stringify('/cast/complete');
 
-        // パッケージ画像エリアをSSR差し替え（背景div → 実際の<img>、改行込みでマッチ）
-        if (productImage) {
-            html = html.replace(
-                /<div class="w-full h-full bg-center bg-no-repeat bg-cover"[\s\S]*?<\/div>/,
-                `<img id="pkg-img" src="${escHtml(productImage)}" alt="${escHtml(productTitle)}" class="w-full h-full object-cover object-center"/>`
-            );
-        } else {
-            // 画像なしでも背景divを空imgに置き換え（作品ID表示のため）
-            html = html.replace(
-                /<div class="w-full h-full bg-center bg-no-repeat bg-cover"[\s\S]*?<\/div>/,
-                `<div id="pkg-img-placeholder" class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-700"><span class="material-symbols-outlined text-slate-400 text-4xl">movie</span></div>`
-            );
-        }
-
-        // タイトルをSSR差し替え
-        html = html.replace(
-            /(<h1 class="text-2xl font-bold leading-tight">)[^<]*/,
-            `$1${escHtml(productTitle || productId)}`
-        );
-
-        // フォーム送信・入力追加・戻るボタンのスクリプトを注入
-        const PRODUCT_ID = JSON.stringify(productId);
-        const PRODUCT_TITLE = JSON.stringify(productTitle);
-        const SUCCESS_URL = JSON.stringify(`/cast/complete`);
-
-        const script = `<script>
+    // ── モバイル用スクリプト ──────────────────────────────────
+    const mobileScript = `<script>
 (function(){
   var PRODUCT_ID = ${PRODUCT_ID};
   var SUCCESS_URL = ${SUCCESS_URL};
 
-  // 戻るボタン
   var backBtn = document.querySelector('header button');
   if (backBtn) backBtn.addEventListener('click', function(){ history.back(); });
 
-  // 入力欄追加ボタン
   var addBtn = document.querySelector('button.border-dashed');
   var inputsWrap = document.querySelector('div.space-y-3');
   if (addBtn && inputsWrap) {
@@ -115,51 +88,140 @@ export async function GET(
     });
   }
 
-  // 送信ボタン
   var submitBtn = document.querySelector('button.bg-primary.text-white.font-bold.py-4');
   if (submitBtn) {
     submitBtn.addEventListener('click', function(){
       var inputs = document.querySelectorAll('div.space-y-3 input[type="text"]');
       var actresses = Array.from(inputs).map(function(el){ return el.value.trim(); }).filter(Boolean);
-      if (actresses.length === 0) {
-        alert('出演者名を1名以上入力してください');
-        return;
-      }
-
+      if (actresses.length === 0) { alert('出演者名を1名以上入力してください'); return; }
       submitBtn.disabled = true;
       submitBtn.textContent = '送信中...';
-
       var sessionId = localStorage.getItem('session_id') || '';
-
       fetch('/api/cast/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-session-id': sessionId,
-        },
+        headers: { 'Content-Type': 'application/json', 'x-session-id': sessionId },
         body: JSON.stringify({ product_id: PRODUCT_ID, actresses: actresses }),
       })
       .then(function(r){ return r.json(); })
       .then(function(data){
-        if (data.ok || data.message) {
-          location.href = SUCCESS_URL;
-        } else {
+        if (data.ok || data.message) { location.href = SUCCESS_URL; }
+        else { alert('送信エラー: ' + (data.error || '不明なエラー')); submitBtn.disabled = false; submitBtn.textContent = 'この内容で登録する'; }
+      })
+      .catch(function(){ alert('通信エラーが発生しました'); submitBtn.disabled = false; submitBtn.textContent = 'この内容で登録する'; });
+    });
+  }
+})();
+</script>`;
+
+    // ── PC用スクリプト ────────────────────────────────────────
+    const webScript = `<script>
+(function(){
+  var PRODUCT_ID = ${PRODUCT_ID};
+  var SUCCESS_URL = ${SUCCESS_URL};
+
+  // キャンセルボタン
+  document.querySelectorAll('button[type="button"]').forEach(function(btn){
+    if (btn.textContent.trim() === 'キャンセル') btn.addEventListener('click', function(){ history.back(); });
+  });
+
+  // 既存の×ボタン（入力行削除）
+  var list = document.getElementById('performer-list');
+  if (list) {
+    list.querySelectorAll('button').forEach(function(btn){
+      btn.addEventListener('click', function(){ btn.closest('.flex.items-center.gap-2').remove(); });
+    });
+  }
+
+  // 入力欄追加ボタン
+  var addBtn = document.querySelector('button.border-dashed, button[class*="border-dashed"]');
+  if (addBtn && list) {
+    addBtn.addEventListener('click', function(){
+      var div = document.createElement('div');
+      div.className = 'flex items-center gap-2';
+      div.innerHTML = '<input class="form-input flex-1 rounded-xl border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:border-primary focus:ring-primary h-12" placeholder="例：山田 花子" type="text"/>'
+        + '<button class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" type="button"><span class="material-symbols-outlined">close</span></button>';
+      list.appendChild(div);
+      div.querySelector('button').addEventListener('click', function(){ div.remove(); });
+    });
+  }
+
+  // フォーム送信
+  var form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var inputs = list ? list.querySelectorAll('input[type="text"]') : [];
+      var actresses = Array.from(inputs).map(function(el){ return el.value.trim(); }).filter(Boolean);
+      if (actresses.length === 0) { alert('出演者名を1名以上入力してください'); return; }
+      var submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span><span>送信中...</span>'; }
+      var sessionId = localStorage.getItem('session_id') || '';
+      fetch('/api/cast/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-session-id': sessionId },
+        body: JSON.stringify({ product_id: PRODUCT_ID, actresses: actresses }),
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.ok || data.message) { location.href = SUCCESS_URL; }
+        else {
           alert('送信エラー: ' + (data.error || '不明なエラー'));
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'この内容で登録する';
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<span class="material-symbols-outlined">send</span><span>情報を送信する</span>'; }
         }
       })
-      .catch(function(e){
+      .catch(function(){
         alert('通信エラーが発生しました');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'この内容で登録する';
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<span class="material-symbols-outlined">send</span><span>情報を送信する</span>'; }
       });
     });
   }
 })();
 </script>`;
 
-        html = html.replace('</body>', script + '\n</body>');
+    try {
+        let html = await readHtml(request.url, htmlFile);
+        html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
+
+        if (isMobile) {
+            // ── モバイル: パッケージ画像置換 ──────────────────
+            if (productImage) {
+                html = html.replace(
+                    /<div class="w-full h-full bg-center bg-no-repeat bg-cover"[\s\S]*?<\/div>/,
+                    `<img id="pkg-img" src="${escHtml(productImage)}" alt="${escHtml(productTitle)}" class="w-full h-full object-cover object-center"/>`
+                );
+            } else {
+                html = html.replace(
+                    /<div class="w-full h-full bg-center bg-no-repeat bg-cover"[\s\S]*?<\/div>/,
+                    `<div class="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-700"><span class="material-symbols-outlined text-slate-400 text-4xl">movie</span></div>`
+                );
+            }
+            // モバイル: タイトル置換
+            html = html.replace(
+                /(<h1 class="text-2xl font-bold leading-tight">)[^<]*/,
+                `$1${escHtml(productTitle || productId)}`
+            );
+            html = html.replace('</body>', mobileScript + '\n</body>');
+
+        } else {
+            // ── PC: パッケージ画像置換 ────────────────────────
+            if (productImage) {
+                html = html.replace(
+                    /<div class="w-full md:w-48 bg-center bg-no-repeat[^"]*bg-cover[^"]*"[^>]*style='background-image:[^']*'><\/div>/,
+                    `<img id="pkg-img" src="${escHtml(productImage)}" alt="${escHtml(productTitle)}" class="w-full md:w-48 aspect-video md:aspect-square rounded-lg shrink-0 object-cover object-center"/>`
+                );
+            } else {
+                html = html.replace(
+                    /<div class="w-full md:w-48 bg-center bg-no-repeat[^"]*bg-cover[^"]*"[^>]*style='background-image:[^']*'><\/div>/,
+                    `<div class="w-full md:w-48 aspect-video md:aspect-square rounded-lg shrink-0 flex items-center justify-center bg-slate-200 dark:bg-slate-700"><span class="material-symbols-outlined text-slate-400 text-5xl">movie</span></div>`
+                );
+            }
+            // PC: タイトル置換（Work Info Card 内の h3）
+            html = html.replace(
+                /(<h3 class="text-slate-900 dark:text-white text-2xl font-bold"[^>]*>)[^<]*/,
+                `$1${escHtml(productTitle || productId)}`
+            );
+            html = html.replace('</body>', webScript + '\n</body>');
+        }
 
         return new NextResponse(html, {
             headers: {

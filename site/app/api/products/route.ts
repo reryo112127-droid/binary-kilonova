@@ -271,8 +271,13 @@ export async function GET(request: NextRequest) {
             }
         }
         if (label) {
-            conditions.push('label LIKE ?');
-            args.push(`%${label}%`);
+            if (label.length >= 3) {
+                conditions.push(FTS_IN);
+                args.push(`label : "${esc5(label)}"`);
+            } else {
+                conditions.push('label LIKE ?');
+                args.push(`%${label}%`);
+            }
         }
         if (excludeGenres) {
             excludeGenres.split(',').map(s => s.trim()).filter(Boolean).forEach(ex => {
