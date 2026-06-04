@@ -113,21 +113,161 @@ async function genMakersList() {
     return [...top300, ...mgsOnly].sort((a, b) => b.count - a.count);
 }
 
+// ── 女優表示用フルプロフィールキャッシュ ─────────────────────────
+// actress_display_cache.json: 女優APIのTursoクエリをゼロにするための静的JSON
+async function genActressDisplayCache() {
+    console.log('[女優表示キャッシュ] 取得中...');
+    const rows = await fanza.execute(
+        `SELECT name, fanza_id, ruby, height, bust, waist, hip, cup,
+                birthday, blood_type, hobby, prefectures,
+                image_url, twitter, instagram, tiktok,
+                aliases, avwiki_url, agency_url, agency_source,
+                augmented, retired
+         FROM actress_profiles
+         ORDER BY name`
+    ).then(r => r.rows).catch(() => []);
+
+    // Record<name, profile> 形式で返す（O(1)ルックアップ用）
+    const map = {};
+    for (const row of rows) {
+        const name = String(row.name ?? '').trim();
+        if (!name) continue;
+        let aliases = [];
+        try { aliases = row.aliases ? JSON.parse(String(row.aliases)) : []; } catch { /* ignore */ }
+        map[name] = {
+            name,
+            fanza_id:     row.fanza_id   ?? null,
+            ruby:         row.ruby       ?? null,
+            height:       row.height     ?? null,
+            bust:         row.bust       ?? null,
+            waist:        row.waist      ?? null,
+            hip:          row.hip        ?? null,
+            cup:          row.cup        ?? null,
+            birthday:     row.birthday   ?? null,
+            blood_type:   row.blood_type ?? null,
+            hobby:        row.hobby      ?? null,
+            prefectures:  row.prefectures ?? null,
+            image_url:    row.image_url  ?? null,
+            twitter:      row.twitter    ?? null,
+            instagram:    row.instagram  ?? null,
+            tiktok:       row.tiktok     ?? null,
+            aliases,
+            avwiki_url:   row.avwiki_url  ?? null,
+            agency_url:   row.agency_url  ?? null,
+            agency_source:row.agency_source ?? null,
+            augmented:    row.augmented === 1,
+            retired:      row.retired === 1,
+        };
+    }
+    return map;
+}
+
+// ── 人気女優 上位200人の商品リスト静的JSON ─────────────────────────
+// actress_top_products.json: 女優検索ページのTursoクエリを完全ゼロに
+async function genTopActressProducts() {
+    console.log('[人気女優商品リスト] 取得中...');
+
+    // MGSのwish_count上位から女優名を抽出（上位200人）
+    const mgsActressRows = await mgs.execute({
+        sql: `SELECT actresses, SUM(wish_count) as total_wish
+              FROM products
+              WHERE actresses IS NOT NULL AND actresses != '' AND actresses != '----'
+                AND (duration_min IS NULL OR duration_min < 600)
+              GROUP BY actresses
+              ORDER BY total_wish DESC
+              LIMIT 1000`,
+        args: [],
+    }).then(r => r.rows).catch(() => []);
+
+    // 女優名ごとに集計（カンマ区切りを展開）
+    const actressWish = new Map();
+    for (const row of mgsActressRows) {
+        const names = String(row.actresses ?? '').split(/,|、/).map(s => s.trim()).filter(s => s && s !== '----');
+        const w = Number(row.total_wish ?? 0);
+        for (const n of names) {
+            actressWish.set(n, (actressWish.get(n) || 0) + w);
+        }
+    }
+    const top200 = [...actressWish.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 200)
+        .map(([name]) => name);
+
+    console.log(`  上位200女優を特定 (サンプル: ${top200.slice(0,5).join(', ')})`);
+
+    // 各女優の商品を取得（MGS + FANZA 並列、最新20件）
+    const SQL = (nameEsc) =>
+        `SELECT product_id, title, actresses, main_image_url, genres, maker,
+                sale_start_date, sample_video_url,
+                COALESCE(discount_pct,0) AS discount_pct, list_price, current_price,
+                0 AS wish_count, NULL AS series_name, 0 AS vr_flag, sale_end_date`;
+
+    const result = {};
+    const BATCH = 20; // 同時リクエスト数を制限
+
+    for (let i = 0; i < top200.length; i += BATCH) {
+        const batch = top200.slice(i, i + BATCH);
+        await Promise.all(batch.map(async (actressName) => {
+            const escaped = actressName.replace(/"/g, '""');
+            const ftsMatch = `actresses : "${escaped}"`;
+            const [mgsRows, fanzaRows] = await Promise.all([
+                mgs.execute({
+                    sql: `${SQL(escaped)}
+                          FROM products
+                          WHERE product_id IN (SELECT product_id FROM products_fts WHERE products_fts MATCH ?)
+                            AND (duration_min IS NULL OR duration_min < 600)
+                          ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 20`,
+                    args: [ftsMatch],
+                }).then(r => r.rows.map(row => ({ ...row, source: 'mgs' }))).catch(() => []),
+                fanza.execute({
+                    sql: `${SQL(escaped)}
+                          FROM products
+                          WHERE product_id IN (SELECT product_id FROM products_fts WHERE products_fts MATCH ?)
+                          ORDER BY sale_start_date DESC LIMIT 20`,
+                    args: [ftsMatch],
+                }).then(r => r.rows.map(row => ({ ...row, source: 'fanza' }))).catch(() => []),
+            ]);
+
+            // 結合・重複除去・新着順ソート
+            const seen = new Set();
+            const combined = [...mgsRows, ...fanzaRows].filter(r => {
+                const pid = String(r.product_id);
+                if (seen.has(pid)) return false;
+                seen.add(pid);
+                return true;
+            }).sort((a, b) => {
+                const da = String(a.sale_start_date ?? '').replace(/\//g, '-').slice(0, 10);
+                const db = String(b.sale_start_date ?? '').replace(/\//g, '-').slice(0, 10);
+                return db.localeCompare(da);
+            }).slice(0, 20);
+
+            if (combined.length > 0) result[actressName] = combined;
+        }));
+        if (i + BATCH < top200.length) await new Promise(r => setTimeout(r, 100));
+    }
+
+    return result;
+}
+
 // ── メイン ────────────────────────────────────────────────────────
 async function main() {
     const dataDir = path.join(ROOT, 'data');
 
     const wait = ms => new Promise(r => setTimeout(r, ms));
-    const sitemapData = await genSitemapCache(); await wait(300);
-    const makersList  = await genMakersList();
+    const sitemapData       = await genSitemapCache();        await wait(200);
+    const makersList        = await genMakersList();          await wait(200);
+    const actressMap        = await genActressDisplayCache(); await wait(200);
+    const topActressProducts = await genTopActressProducts();
 
     const write = (filename, data) => {
         const p = path.join(dataDir, filename);
         const pubP = path.join(ROOT, 'public', 'data', filename);
-        fs.writeFileSync(p, JSON.stringify(data, null, 0));
+        const json = JSON.stringify(data, null, 0);
+        fs.writeFileSync(p, json);
         fs.mkdirSync(path.dirname(pubP), { recursive: true });
-        fs.writeFileSync(pubP, JSON.stringify(data, null, 0));
-        console.log(`✓ ${filename} (${data.length}件)`);
+        fs.writeFileSync(pubP, json);
+        const count = Array.isArray(data) ? data.length : Object.keys(data).length;
+        console.log(`✓ ${filename} (${count}件)`);
     };
 
     const sitemapPath    = path.join(dataDir, 'sitemap_cache.json');
@@ -138,6 +278,8 @@ async function main() {
     console.log(`✓ sitemap_cache.json (女優:${sitemapData.actresses.length}件, 作品:${sitemapData.products.length}件)`);
 
     write('makers_cache.json', makersList);
+    write('actress_display_cache.json', actressMap);
+    write('actress_top_products.json', topActressProducts);
 
     console.log('\n完了！');
     process.exit(0);

@@ -277,10 +277,10 @@ export async function GET(request: NextRequest) {
     const finalScored = scored.slice(0, limit);
     setCached(cacheKey, finalScored);
 
-    const res = NextResponse.json(finalScored, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(120, 600) } });
+    const res = NextResponse.json(finalScored, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 600) } });
     if (cfCache && cfCacheKey) {
         await cfCache.put(cfCacheKey, new Response(JSON.stringify(finalScored), {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120' },
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
         }));
     }
     return res;

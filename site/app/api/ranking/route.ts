@@ -280,11 +280,11 @@ export async function GET(request: NextRequest) {
     const finalResult = result.slice(0, limit);
     setCached(cacheKey, finalResult);
 
-    const res = NextResponse.json(finalResult, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(120, 600) } });
-    // CF Cache APIに保存（2分TTL・isolate間共有）
+    const res = NextResponse.json(finalResult, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 600) } });
+    // CF Cache APIに保存（30分TTL・isolate間共有）
     if (cfCache && cfCacheKey) {
         await cfCache.put(cfCacheKey, new Response(JSON.stringify(finalResult), {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120' },
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
         }));
     }
     return res;

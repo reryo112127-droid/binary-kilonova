@@ -40,6 +40,8 @@ const FANZA_INDEXES = [
     `CREATE INDEX IF NOT EXISTS idx_vr_flag ON products(vr_flag) WHERE vr_flag = 1`,
     // メーカー一覧キャッシュ生成 GROUP BY maker + floor カバリングインデックス
     `CREATE INDEX IF NOT EXISTS idx_maker_floor ON products(maker, floor)`,
+    // excludeBest: duration_min <= 200 フィルター高速化
+    `CREATE INDEX IF NOT EXISTS idx_duration_min ON products(duration_min)`,
 ];
 
 async function applyIndexes(label, url, token, indexes) {

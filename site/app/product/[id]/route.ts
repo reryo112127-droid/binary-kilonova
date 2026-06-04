@@ -13,29 +13,57 @@ function escHtml(s: string): string {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// SSR用プロダクトデータをCFキャッシュに保存・取得
+const _ssrProductCache = new Map<string, { data: Record<string, unknown>; at: number }>();
+const SSR_PRODUCT_TTL = 24 * 60 * 60 * 1000;
+
 async function fetchProduct(id: string): Promise<Record<string, unknown> | null> {
-    // FANZA優先（素人系作品が多い）
+    // in-memoryキャッシュ
+    const mem = _ssrProductCache.get(id);
+    if (mem && Date.now() - mem.at < SSR_PRODUCT_TTL) return mem.data;
+
+    // Cloudflare Cache（isolate間共有）
+    const cfCache = typeof caches !== 'undefined' ? (caches as unknown as { default: Cache }).default : null;
+    const cfKey = cfCache ? new Request(`https://ssr-product-cache.internal/${id}`) : null;
+    if (cfCache && cfKey) {
+        const hit = await cfCache.match(cfKey);
+        if (hit) {
+            const data = await hit.json() as Record<string, unknown>;
+            _ssrProductCache.set(id, { data, at: Date.now() });
+            return data;
+        }
+    }
+
+    // Tursoクエリ（FANZA優先）
+    const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date FROM products WHERE product_id = ? LIMIT 1';
+    let result: Record<string, unknown> | null = null;
+
     const fanzaClient = getFanzaClient();
     if (fanzaClient) {
         try {
-            const r = await fanzaClient.execute({
-                sql: 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date FROM products WHERE product_id = ? LIMIT 1',
-                args: [id],
-            });
-            if (r.rows.length > 0) return { ...r.rows[0] } as Record<string, unknown>;
+            const r = await fanzaClient.execute({ sql: SQL, args: [id] });
+            if (r.rows.length > 0) result = { ...r.rows[0] } as Record<string, unknown>;
         } catch { /* fallthrough */ }
     }
-    const mgsClient = getMgsClient();
-    if (mgsClient) {
-        try {
-            const r = await mgsClient.execute({
-                sql: 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date FROM products WHERE product_id = ? LIMIT 1',
-                args: [id],
-            });
-            if (r.rows.length > 0) return { ...r.rows[0] } as Record<string, unknown>;
-        } catch { /* fallthrough */ }
+    if (!result) {
+        const mgsClient = getMgsClient();
+        if (mgsClient) {
+            try {
+                const r = await mgsClient.execute({ sql: SQL, args: [id] });
+                if (r.rows.length > 0) result = { ...r.rows[0] } as Record<string, unknown>;
+            } catch { /* ignore */ }
+        }
     }
-    return null;
+
+    if (result) {
+        _ssrProductCache.set(id, { data: result, at: Date.now() });
+        if (cfCache && cfKey) {
+            cfCache.put(cfKey, new Response(JSON.stringify(result), {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
+            })).catch(() => {});
+        }
+    }
+    return result;
 }
 
 // OGP用: 女優プロフィール画像をASSETS静的JSONから取得（Tursoクエリ廃止）

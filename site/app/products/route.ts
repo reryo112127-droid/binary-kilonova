@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readHtml } from '../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
+import { readStaticCacheAsync as readStaticCache } from '../../lib/staticCache';
 
 const MOBILE_UA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
 
@@ -104,6 +105,17 @@ const PRODUCTS_SCRIPT = `<script>
     if(reset){page=0;hasMore=true;}
     if(!hasMore)return;
     loading=true;
+
+    // pre-order の初回ロードはSSR注入データを使用（Turso不要）
+    if(reset && type==='pre-order' && page===0 && window.__SSR_PREORDER_DATA__ && window.__SSR_PREORDER_DATA__.length){
+      var pd=window.__SSR_PREORDER_DATA__;window.__SSR_PREORDER_DATA__=null;
+      hasMore=pd.length>=LIMIT;
+      renderCards(pd.slice(0,LIMIT),false);
+      if(window.restoreLikes)window.restoreLikes();
+      page++;loading=false;
+      return;
+    }
+
     if(reset)renderSkeleton();
     var offset=page*LIMIT;
     var url='/api/products?sort='+getSortParam()+'&limit='+LIMIT+'&offset='+offset;
@@ -249,20 +261,31 @@ export async function GET(request: NextRequest) {
         : `/design/web/${type === 'pre-order' ? 'pre-order.html' : 'new-products.html'}`;
 
     try {
+        // pre-order: home_preorder_cache.json をSSR注入（PC/モバイル共通）
+        // PC pre-order.html / モバイル PRODUCTS_SCRIPT 共に window.__SSR_PREORDER_DATA__ を参照
+        let ssrScript = '';
+        if (type === 'pre-order') {
+            const preorderCache = await readStaticCache<unknown[]>('home_preorder_cache.json');
+            if (preorderCache && preorderCache.length > 0) {
+                ssrScript = `<script>window.__SSR_PREORDER_DATA__=${JSON.stringify(preorderCache)};</script>`;
+            }
+        }
+
         let html = await readHtml(request.url, htmlFile);
 
         if (isMobile) {
-            // IDs are already embedded in products.html directly
             html = injectMobileLayout(html, '', { skipHeader: true });
+            if (ssrScript) html = html.replace('</head>', ssrScript + '\n</head>');
             html = html.replace('</body>', PRODUCTS_SCRIPT + '\n</body>');
         } else {
             html = injectWebLayout(html);
+            if (ssrScript) html = html.replace('</head>', ssrScript + '\n</head>');
         }
 
         return new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'private, max-age=60',
+                'Cache-Control': 'private, no-store',
             },
         });
     } catch {

@@ -146,10 +146,10 @@ export async function GET(
     setCached(cacheKey, responseData);
     if (cfCache && cfCacheKey) {
         await cfCache.put(cfCacheKey, new Response(JSON.stringify(responseData), {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
         }));
     }
-    return NextResponse.json(responseData, { headers: cacheHeaders(3600, 300) });
+    return NextResponse.json(responseData, { headers: cacheHeaders(86400, 3600) });
     } catch (err: unknown) {
         console.error('Product API error:', err);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

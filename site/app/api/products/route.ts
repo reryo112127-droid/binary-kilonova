@@ -62,6 +62,31 @@ export async function GET(request: NextRequest) {
         && !searchParams.get('excludeBest') && !searchParams.get('minDiscount')
         && !searchParams.get('ageMin') && !searchParams.get('ageMax');
 
+    // 人気女優 top200 の商品リストを静的JSONから返す（Tursoクエリ不要）
+    const actressParam = searchParams.get('actress') || '';
+    if (
+        actressParam && offset === 0 &&
+        (sort === 'new' || sort === '') &&
+        !searchParams.get('q') && !searchParams.get('genre') && !searchParams.get('maker') &&
+        !searchParams.get('fromDate') && !searchParams.get('toDate') && !searchParams.get('source') &&
+        !searchParams.get('vr') && !searchParams.get('hasVideo') && !searchParams.get('excludeBest')
+    ) {
+        const topCache = await readStaticCache<Record<string, unknown[]>>('actress_top_products.json');
+        if (topCache) {
+            const products = topCache[actressParam];
+            if (products && products.length > 0) {
+                const page = products.slice(0, limit + 1); // +1 でhasMore判定
+                const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 600) } });
+                if (cfCache && cfCacheKey) {
+                    await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
+                        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+                    }));
+                }
+                return res;
+            }
+        }
+    }
+
     if (noFilter) {
         const file = sort === 'wish_count' ? 'products_popular_cache.json'
                    : sort === 'new'        ? 'products_new_cache.json'
@@ -478,13 +503,15 @@ export async function GET(request: NextRequest) {
     const cacheKey = (request as NextRequest & { _cacheKey?: string })._cacheKey;
     if (cacheKey) setCached(cacheKey, result);
 
-    // CF Cache API に保存（5分TTL）
-    if (cfCache && cfCacheKey) {
-        const cfResponse = new Response(JSON.stringify(result), {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
-        });
-        await cfCache.put(cfCacheKey, cfResponse);
+    // CF Cache API に保存（空結果はキャッシュしない → 次回リクエストで再取得）
+    if (result.length > 0 && cfCache && cfCacheKey) {
+        await cfCache.put(cfCacheKey, new Response(JSON.stringify(result), {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+        }));
     }
-
-    return NextResponse.json(result, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(60, 300) } });
+    // 空結果は短いTTLで返す（キャッシュ汚染防止）
+    const resHeaders = result.length > 0
+        ? { 'Content-Type': 'application/json', ...cacheHeaders(1800, 600) }
+        : { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+    return NextResponse.json(result, { headers: resHeaders });
 }

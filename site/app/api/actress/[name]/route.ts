@@ -1,68 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFanzaClient } from '../../../../lib/turso';
 import { getCached, setCached } from '../../../../lib/apiCache';
-import { cacheHeaders } from '../../../../lib/staticCache';
+import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../../lib/staticCache';
 
-const ACTRESS_TTL = 30 * 60 * 1000; // 30分
+const ACTRESS_TTL = 24 * 60 * 60 * 1000; // 24時間
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(
-    req: NextRequest,
-    { params }: { params: Promise<{ name: string }> }
-) {
-    const { name } = await params;
-    const actressName = decodeURIComponent(name);
-    const nameNoSpace = actressName.replace(/\s+/g, '');
+type ActressDisplayEntry = {
+    name: string; fanza_id: string | null; ruby: string | null;
+    height: number | null; bust: number | null; waist: number | null; hip: number | null; cup: string | null;
+    birthday: string | null; blood_type: string | null; hobby: string | null; prefectures: string | null;
+    image_url: string | null; twitter: string | null; instagram: string | null; tiktok: string | null;
+    aliases: string[]; avwiki_url: string | null; agency_url: string | null; agency_source: string | null;
+    augmented: boolean; retired: boolean;
+};
 
-    // in-memoryキャッシュ（アイソレート内）
-    const cacheKey = `actress_${actressName}`;
-    const cached = getCached<object>(cacheKey, ACTRESS_TTL);
-    if (cached) return NextResponse.json(cached, { headers: cacheHeaders(1800, 300) });
-
-    // Cloudflare Cache API（アイソレート間共有）
-    const cfCache = typeof caches !== 'undefined' ? (caches as unknown as { default: Cache }).default : null;
-    let cfCacheKey: Request | null = null;
-    if (cfCache) {
-        const normUrl = new URL(req.url);
-        cfCacheKey = new Request(normUrl.toString());
-        const cfHit = await cfCache.match(cfCacheKey);
-        if (cfHit) return cfHit as unknown as NextResponse;
-    }
-
-    const db = getFanzaClient();
-    if (!db) {
-        return NextResponse.json({ name: actressName, error: 'db unavailable' }, { status: 503 });
-    }
-
-    // エイリアス解決: 入力名 → canonical_name
-    const aliasRow = await db.execute({
-        sql: `SELECT canonical_name FROM actress_aliases WHERE alias = ? OR alias = ?`,
-        args: [actressName, nameNoSpace],
-    }).then(r => r.rows[0]).catch(() => null);
-    const canonicalName = (aliasRow?.canonical_name as string) ?? actressName;
-
-    // プロフィール取得（canonical_name または入力名で検索）
-    const row = await db.execute({
-        sql: `SELECT * FROM actress_profiles WHERE name = ? OR name = ?`,
-        args: [canonicalName, nameNoSpace],
-    }).then(r => r.rows[0]).catch(() => null);
-
+function buildProfile(actressName: string, canonicalName: string, row: ActressDisplayEntry | null) {
     const aliases: string[] = [];
     if (row?.aliases) {
-        try {
-            const parsed = JSON.parse(row.aliases as string);
-            if (Array.isArray(parsed)) {
-                parsed.forEach((a: string) => { if (a !== actressName) aliases.push(a); });
-            }
-        } catch { /* ignore */ }
+        row.aliases.forEach((a: string) => { if (a !== actressName) aliases.push(a); });
     }
     if (canonicalName !== actressName) aliases.push(canonicalName);
-
-    const profile = {
-        name: actressName,
+    return {
+        name:        actressName,
         canonical_name: canonicalName,
-        aliases: [...new Set(aliases)],
+        aliases:     [...new Set(aliases)],
         height:      row?.height      ?? null,
         bust:        row?.bust        ?? null,
         waist:       row?.waist       ?? null,
@@ -79,19 +42,82 @@ export async function GET(
         sns_source:  row?.agency_source ?? (row?.avwiki_url ? 'avwiki' : null),
         agency_url:  row?.agency_url  ?? null,
         avwiki_url:  row?.avwiki_url  ?? null,
-        retired:     row?.retired === 1,
-        augmented:   row?.augmented === 1,
+        retired:     row?.retired === true,
+        augmented:   row?.augmented === true,
         has_fanza_profile:  !!(row?.fanza_id),
         has_avwiki_profile: !!(row?.avwiki_url),
         has_agency_profile: !!(row?.agency_url),
     };
+}
+
+export async function GET(
+    req: NextRequest,
+    { params }: { params: Promise<{ name: string }> }
+) {
+    const { name } = await params;
+    const actressName = decodeURIComponent(name);
+    const nameNoSpace = actressName.replace(/\s+/g, '');
+
+    const cacheKey = `actress_${actressName}`;
+    const cached = getCached<object>(cacheKey, ACTRESS_TTL);
+    if (cached) return NextResponse.json(cached, { headers: cacheHeaders(86400, 3600) });
+
+    const cfCache = typeof caches !== 'undefined' ? (caches as unknown as { default: Cache }).default : null;
+    let cfCacheKey: Request | null = null;
+    if (cfCache) {
+        cfCacheKey = new Request(new URL(req.url).toString());
+        const cfHit = await cfCache.match(cfCacheKey);
+        if (cfHit) return cfHit as unknown as NextResponse;
+    }
+
+    // ── 静的JSONから取得（Tursoクエリを省略）────────────────────────
+    const displayCache = await readStaticCache<Record<string, ActressDisplayEntry>>('actress_display_cache.json');
+    if (displayCache) {
+        // 直接一致 or スペース除去で一致
+        const row = displayCache[actressName] ?? displayCache[nameNoSpace] ?? null;
+
+        // エイリアス解決: aliases配列でどの名前を正規名に持つか逆引き
+        let canonicalName = actressName;
+        if (!row) {
+            for (const [canonical, entry] of Object.entries(displayCache)) {
+                if (entry.aliases && entry.aliases.includes(actressName)) {
+                    canonicalName = canonical;
+                    break;
+                }
+            }
+        }
+        const resolved = row ?? displayCache[canonicalName] ?? null;
+        const profile = buildProfile(actressName, canonicalName, resolved);
+
+        setCached(cacheKey, profile);
+        const res = NextResponse.json(profile, { headers: cacheHeaders(86400, 3600) });
+        if (cfCache && cfCacheKey) {
+            await cfCache.put(cfCacheKey, new Response(JSON.stringify(profile), {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
+            }));
+        }
+        return res;
+    }
+
+    // ── 静的JSONがない場合のTursoフォールバック ──────────────────────
+    const db = getFanzaClient();
+    if (!db) return NextResponse.json({ name: actressName }, { status: 503 });
+
+    const [aliasRow, profileRow] = await Promise.all([
+        db.execute({ sql: `SELECT canonical_name FROM actress_aliases WHERE alias = ? OR alias = ?`, args: [actressName, nameNoSpace] })
+          .then(r => r.rows[0]).catch(() => null),
+        db.execute({ sql: `SELECT * FROM actress_profiles WHERE name = ? OR name = ?`, args: [actressName, nameNoSpace] })
+          .then(r => r.rows[0]).catch(() => null),
+    ]);
+    const canonicalName = (aliasRow?.canonical_name as string) ?? actressName;
+    const row = profileRow as ActressDisplayEntry | null;
+    const profile = buildProfile(actressName, canonicalName, row);
 
     setCached(cacheKey, profile);
-
-    const res = NextResponse.json(profile, { headers: cacheHeaders(1800, 300) });
+    const res = NextResponse.json(profile, { headers: cacheHeaders(86400, 3600) });
     if (cfCache && cfCacheKey) {
         await cfCache.put(cfCacheKey, new Response(JSON.stringify(profile), {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
         }));
     }
     return res;

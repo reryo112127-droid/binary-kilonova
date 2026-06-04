@@ -154,8 +154,8 @@ export async function GET(
     setCached(cacheKey, result);
     if (cfCache && cfCacheKey) {
         await cfCache.put(cfCacheKey, new Response(JSON.stringify(result), {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=21600' },
         }));
     }
-    return NextResponse.json(result, { headers: cacheHeaders(1800, 300) });
+    return NextResponse.json(result, { headers: cacheHeaders(21600, 3600) });
 }
