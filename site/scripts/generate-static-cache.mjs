@@ -63,6 +63,39 @@ function looksLikeDescription(name) {
     return false;
 }
 
+// known女優リスト（actress_display_cache.json・FANZA登録6万人）を読み込む
+let _knownActresses = null;
+function getKnownActresses() {
+    if (_knownActresses) return _knownActresses;
+    _knownActresses = new Set();
+    try {
+        const p = path.join(ROOT, 'public', 'data', 'actress_display_cache.json');
+        if (fs.existsSync(p)) {
+            const m = JSON.parse(fs.readFileSync(p, 'utf-8'));
+            for (const n of Object.keys(m)) _knownActresses.add(n);
+        }
+    } catch { /* ignore */ }
+    return _knownActresses;
+}
+
+// 役名/属性語パターン（known外の名前に適用）
+const ROLE_ATTR_RE = /カップ|アイドル|レイヤー|素人|ナンパ|人妻|熟女|美少女|お姉さん|奥様|奥さん|先生|店員|社員|職員|店長|彼女|新妻|若妻|ギャル|コスプレ|ナース|女医|教師|秘書|OL/;
+
+// 女優ランキングに採用してよい名前か
+// FANZA登録(actress_display_cache=ActressSearch API)にある女優のみ採用するホワイトリスト方式。
+// FANZA APIに女優登録が無い名前は役名/通称(いつき・りおぴん・「寝起きでも〜美女3名」等)とみなし除外。
+function isValidActressName(name) {
+    if (!name) return false;
+    const known = getKnownActresses();
+    if (known.size > 0) return known.has(name);       // knownロード成功時: ホワイトリスト厳格
+    // knownロード失敗時のみパターン判定にフォールバック（ランキングが空になるのを防ぐ）
+    if (looksLikeDescription(name)) return false;
+    if (/(さん|ちゃん|くん|君)$/.test(name)) return false;
+    if (/[&＆・/／＋+]/.test(name)) return false;
+    if (ROLE_ATTR_RE.test(name)) return false;
+    return true;
+}
+
 // MGS優先マージ: 同一product_idのFANZA重複を除去してインターリーブ
 function mergeDedup(mgsRows, fanzaRows, mgsSource, fanzaSource) {
     const mgsIds = new Set(mgsRows.map(r => String(r.product_id)));
@@ -290,7 +323,7 @@ async function genActressRanking2026() {
     const processRows = (rows, isMgs) => {
         for (const row of rows) {
             if (!row.actresses) continue;
-            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean).filter(n => !looksLikeDescription(n));
+            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean).filter(isValidActressName);
             const wishCount = Number(row.wish_count ?? 0);
             for (const name of names) {
                 const e = actressMap.get(name);
@@ -345,7 +378,7 @@ async function genActressRankingDefault() {
     const processRows = (rows) => {
         for (const row of rows) {
             if (!row.actresses) continue;
-            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean).filter(n => !looksLikeDescription(n));
+            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean).filter(isValidActressName);
             const wishCount = Number(row.wish_count ?? 0);
             for (const name of names) {
                 const e = actressMap.get(name);
