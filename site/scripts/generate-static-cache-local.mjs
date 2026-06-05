@@ -40,6 +40,46 @@ function poster(url) {
     return url;
 }
 
+// 役名/説明文判定（「ゆい 26歳 フリーター」等）
+function looksLikeDescription(name) {
+    if (!name) return true;
+    if (/\d+歳/.test(name)) return true;
+    if (/\d{4}年\d+月/.test(name)) return true;
+    if (/[【】()]/.test(name)) return true;
+    if (name.length > 30) return true;
+    if (/\s/.test(name.trim())) return true;
+    return false;
+}
+
+// known女優リスト（actress_display_cache.json）読み込み
+let _knownActresses = null;
+function getKnownActresses() {
+    if (_knownActresses) return _knownActresses;
+    _knownActresses = new Set();
+    try {
+        const p = path.join(ROOT, 'public', 'data', 'actress_display_cache.json');
+        if (fs.existsSync(p)) {
+            const m = JSON.parse(fs.readFileSync(p, 'utf-8'));
+            for (const n of Object.keys(m)) _knownActresses.add(n);
+        }
+    } catch { /* ignore */ }
+    return _knownActresses;
+}
+
+const ROLE_ATTR_RE = /カップ|アイドル|レイヤー|素人|ナンパ|人妻|熟女|美少女|お姉さん|奥様|奥さん|先生|店員|社員|職員|店長|彼女|新妻|若妻|ギャル|コスプレ|ナース|女医|教師|秘書|OL/;
+
+// 女優ランキングに採用してよい名前か（FANZA登録ホワイトリスト方式）
+function isValidActressName(name) {
+    if (!name) return false;
+    const known = getKnownActresses();
+    if (known.size > 0) return known.has(name);
+    if (looksLikeDescription(name)) return false;
+    if (/(さん|ちゃん|くん|君)$/.test(name)) return false;
+    if (/[&＆・/／＋+]/.test(name)) return false;
+    if (ROLE_ATTR_RE.test(name)) return false;
+    return true;
+}
+
 const BEST = ['%BEST%','%ベスト%','%総集編%','%コレクション%','%Best%','%リマスター%','%AIリマスター%'];
 const bestConds = BEST.map(() => 'title NOT LIKE ?').join(' AND ');
 const bestArgs  = BEST;
@@ -296,7 +336,7 @@ function buildActressRanking(mgsRows, fanzaRows, profileRows, topN) {
     const processRows = (rows) => {
         for (const row of rows) {
             if (!row.actresses) continue;
-            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean);
+            const names = String(row.actresses).split(/,|、/).map(s => s.trim()).filter(Boolean).filter(isValidActressName);
             const wishCount = Number(row.wish_count ?? 0);
             for (const name of names) {
                 const e = actressMap.get(name);

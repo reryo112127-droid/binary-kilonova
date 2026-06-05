@@ -54,15 +54,22 @@ if "%DOM%"=="1" (
     echo [3/4] skipped ^(not day 1 of month: Turso sync runs monthly^) >> "%LOG_FILE%"
 )
 
-REM === [4] キャッシュ再生成 & デプロイ（FANZA深夜取得分＋MGS新作を反映） ===
-echo [4/5] cache+deploy: %time% >> "%LOG_FILE%"
+REM === [4] キャッシュ再生成 & デプロイ ===
+REM 【重要】Turso無料枠が読み込みブロック中(〜月初リセット)のため、ローカルSQLite
+REM (fanza.db/mgs.db)からキャッシュ生成する generate-static-cache-local.mjs を使用。
+REM Turso読み込み枠が回復したら generate-static-cache.mjs (Turso版) に戻すこと。
+echo [4/5] cache+deploy (local DB): %time% >> "%LOG_FILE%"
 cd /d "%PROJECT_DIR%\site"
-"%NODE%" scripts\generate-static-cache.mjs >> "%LOG_FILE%" 2>&1
-if %errorlevel% neq 0 (
-    echo [4/5] cache generation failed, deploying with existing cache >> "%LOG_FILE%"
+"%NODE%" scripts\generate-static-cache-local.mjs >> "%LOG_FILE%" 2>&1
+REM 空キャッシュガード: products_new_cache が0件ならデプロイ中止(本番空デプロイ防止)
+set CACHE_CNT=0
+for /f %%C in ('""%NODE%" -e "try{console.log(require(String.raw`./public/data/products_new_cache.json`).length)}catch(e){console.log(0)}""') do set CACHE_CNT=%%C
+if "%CACHE_CNT%"=="0" (
+    echo [4/5] 空キャッシュ検出、デプロイ中止 >> "%LOG_FILE%"
+) else (
+    "%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
+    echo [4/5] done (%CACHE_CNT%件): %time% >> "%LOG_FILE%"
 )
-"%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
-echo [4/5] done: %time% >> "%LOG_FILE%"
 
 REM === [5] セール商品のR2キャッシュ無効化（価格鮮度確保） ===
 REM R2 read-throughは永続のため、セール商品は日次でR2を削除して最新価格を再取得させる
