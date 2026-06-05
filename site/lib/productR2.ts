@@ -64,6 +64,19 @@ export async function r2PutProduct(id: string, data: Record<string, unknown>): P
     }
 }
 
+/** R2に商品詳細を保存（書き込みガード無し・一括投入用 populate_r2_local.mjs から使用） */
+export async function r2PutProductRaw(id: string, data: Record<string, unknown>): Promise<void> {
+    const bucket = await getBucket();
+    if (!bucket) return;
+    try {
+        await bucket.put(productKey(id), JSON.stringify(data), {
+            httpMetadata: { contentType: 'application/json' },
+        });
+    } catch {
+        /* ignore */
+    }
+}
+
 /** R2の商品詳細を削除（価格更新時の無効化用） */
 export async function r2DeleteProduct(id: string): Promise<void> {
     const bucket = await getBucket();
