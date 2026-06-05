@@ -59,6 +59,12 @@ jobs:
           TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
 
+      - name: 空キャッシュガード（Tursoブロック時はビルド・デプロイを中止）
+        run: |
+          cnt=$(node -e "try{console.log(require('./site/public/data/products_new_cache.json').length)}catch(e){console.log(0)}")
+          echo "products_new_cache: $cnt 件"
+          if [ "$cnt" -eq 0 ]; then echo "空キャッシュ検出（Turso読み込みブロック中）。本番への空デプロイを防ぐため中止します。"; exit 1; fi
+
       - name: Build for Cloudflare Workers
         run: cd site && npm run build:cf
         env:
@@ -133,6 +139,12 @@ jobs:
           TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
           TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
+
+      - name: 空キャッシュガード（Tursoブロック時はビルド・デプロイを中止）
+        run: |
+          cnt=$(node -e "try{console.log(require('./site/public/data/products_new_cache.json').length)}catch(e){console.log(0)}")
+          echo "products_new_cache: $cnt 件"
+          if [ "$cnt" -eq 0 ]; then echo "空キャッシュ検出（Turso読み込みブロック中）。本番への空デプロイを防ぐため中止します。"; exit 1; fi
 
       - name: Build for Cloudflare Workers
         run: cd site && npm run build:cf
