@@ -1,10 +1,16 @@
-name: Daily Update (FANZA + MGS)
+name: Daily Update (FANZA)
+
+# 役割分担:
+#   - FANZA(DMM API)の日次更新 → ここ(GitHub Actions)。IPブロックされないAPI。
+#   - MGSスクレイプ → PC(daily_main.bat)。GitHub Actions IPはMGStageにブロックされるため。
+#   - AVWIKI → avwiki-scraper.yml(GitHub Actions)。
+#   - 静的キャッシュ生成・Cloudflareデプロイ → PC(daily_main.bat 10:30, MGS取得後に1回だけ)。
+#     ここではcache生成・デプロイを行わない(Turso読み込みの二重消費を避けるため)。
 
 on:
   schedule:
     - cron: '5 15 * * *'   # FANZA: 深夜 0:05 JST (= 15:05 UTC)
-    - cron: '5 1 * * *'    # MGS:  午前 10:05 JST (=  01:05 UTC)
-  workflow_dispatch:         # 手動実行（両方実行）
+  workflow_dispatch:
 
 concurrency:
   group: daily-update
@@ -16,7 +22,6 @@ permissions:
 jobs:
   fanza-update:
     name: FANZA 日次更新
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 15 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,133 +53,13 @@ jobs:
           TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
           TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
 
-      - name: Install site dependencies
-        run: cd site && npm ci
-
-      - name: Generate static JSON cache
-        run: cd site && node scripts/generate-static-cache.mjs
-        env:
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
-          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
-
-      - name: 空キャッシュガード（Tursoブロック時はビルド・デプロイを中止）
-        run: |
-          cnt=$(node -e "try{console.log(require('./site/public/data/products_new_cache.json').length)}catch(e){console.log(0)}")
-          echo "products_new_cache: $cnt 件"
-          if [ "$cnt" -eq 0 ]; then echo "空キャッシュ検出（Turso読み込みブロック中）。本番への空デプロイを防ぐため中止します。"; exit 1; fi
-
-      - name: Build for Cloudflare Workers
-        run: cd site && npm run build:cf
-        env:
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
-          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
-
-      - name: Deploy to Cloudflare Workers
-        run: cd site && npm run deploy:cf:only
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Commit updated cache files
+      - name: Commit suggest cache
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add \
-            site/data/products_new_cache.json \
-            site/data/products_popular_cache.json \
-            site/data/ranking_2026_cache.json \
-            site/data/actress_ranking_2026_cache.json \
-            site/data/home_preorder_cache.json \
-            site/data/home_preorder_curated_cache.json \
-            site/data/sale_cache.json \
-            || true
+          git add data/suggest_cache.json site/public/data/suggest_cache.json site/data/suggest_cache.json || true
           if ! git diff --staged --quiet; then
-            git commit -m "cache: FANZA日次更新後の静的キャッシュ更新 [skip ci]"
-            git pull --rebase origin main || git rebase --abort || true
-            git push || echo "Push failed (non-fatal)"
-          fi
-
-  mgs-update:
-    name: MGS 日次更新
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '5 1 * * *'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run MGS daily update
-        run: node scripts/phase3_daily_update.js
-        env:
-          TURSO_MGS_URL:   ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN: ${{ secrets.TURSO_MGS_TOKEN }}
-
-      - name: Build suggest cache (Turso)
-        run: node scripts/build_suggest_cache.js
-        env:
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
-          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
-
-      - name: Install site dependencies
-        run: cd site && npm ci
-
-      - name: Generate static JSON cache
-        run: cd site && node scripts/generate-static-cache.mjs
-        env:
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
-          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
-
-      - name: 空キャッシュガード（Tursoブロック時はビルド・デプロイを中止）
-        run: |
-          cnt=$(node -e "try{console.log(require('./site/public/data/products_new_cache.json').length)}catch(e){console.log(0)}")
-          echo "products_new_cache: $cnt 件"
-          if [ "$cnt" -eq 0 ]; then echo "空キャッシュ検出（Turso読み込みブロック中）。本番への空デプロイを防ぐため中止します。"; exit 1; fi
-
-      - name: Build for Cloudflare Workers
-        run: cd site && npm run build:cf
-        env:
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
-          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
-
-      - name: Deploy to Cloudflare Workers
-        run: cd site && npm run deploy:cf:only
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Commit updated cache files
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add \
-            site/data/products_new_cache.json \
-            site/data/products_popular_cache.json \
-            site/data/ranking_2026_cache.json \
-            site/data/actress_ranking_2026_cache.json \
-            site/data/home_preorder_cache.json \
-            site/data/home_preorder_curated_cache.json \
-            site/data/sale_cache.json \
-            || true
-          if ! git diff --staged --quiet; then
-            git commit -m "cache: MGS日次更新後の静的キャッシュ更新 [skip ci]"
+            git commit -m "cache: FANZA日次更新後のサジェストキャッシュ更新 [skip ci]"
             git pull --rebase origin main || git rebase --abort || true
             git push || echo "Push failed (non-fatal)"
           fi

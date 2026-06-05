@@ -116,28 +116,6 @@ jobs:
             git push || echo "Push failed (non-fatal, will retry next run)"
           fi
 
-      # Turso更新後にサイトを再ビルド・デプロイ（女優ランキング画像を即時反映）
-      - name: Install site dependencies
-        run: cd site && npm ci
-
-      - name: Generate static JSON cache
-        run: cd site && node scripts/generate-static-cache.mjs
-        env:
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
-          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
-
-      - name: Build for Cloudflare Workers
-        run: cd site && npm run build:cf
-        env:
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
-          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
-
-      - name: Deploy to Cloudflare Workers
-        run: cd site && npm run deploy:cf:only
-        env:
-          CLOUDFLARE_API_TOKEN:  ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # 静的キャッシュ生成・Cloudflareデプロイは PC(daily_main.bat, MGS取得後 10:30) に集約。
+      # ここでは行わない（Turso読み込みの二重消費を避けるため）。
+      # AVWIKIで取得した女優情報(Turso反映済み)は、次回のPC日次バッチのcache生成で反映される。
