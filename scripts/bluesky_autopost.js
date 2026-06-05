@@ -23,7 +23,7 @@
 require('dotenv').config({ path: './site/.env.local' });
 const { AtpAgent, RichText } = require('@atproto/api');
 const { rewritePhrase } = require('../lib/gemini_rewrite');
-const { d1 } = require('./lib/d1');
+const { d1, fanzaShards } = require('./lib/d1');
 
 // ==============================
 // 設定
@@ -110,7 +110,7 @@ function getMgsClient() {
     return d1('mgs');
 }
 function getFanzaClient() {
-    return d1('fanza');
+    return fanzaShards();
 }
 
 // ==============================

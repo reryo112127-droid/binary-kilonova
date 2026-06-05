@@ -78,9 +78,29 @@ export async function getMgsClient(): Promise<CompatClient | null> {
     return db ? wrap(db) : null;
 }
 
+// FANZA は無料D1(500MB/DB)に収めるため product_id ハッシュで複数シャードに分割している。
+// 読み取りは全シャードに同じSELECTを投げて行をマージする（ランタイムは読み取り専用）。
+// 注意: 行を返すSELECT用。COUNT等の集約クエリはシャードごとの部分結果になる（主に静的キャッシュ
+//       フォールバックでのみ発生し、ロングテール検索の行取得には影響しない）。
 export async function getFanzaClient(): Promise<CompatClient | null> {
-    const db = await getBinding('DB_FANZA');
-    return db ? wrap(db) : null;
+    const names = ['DB_FANZA_0', 'DB_FANZA_1'];
+    const dbs = (await Promise.all(names.map(getBinding))).filter((d): d is D1Database => !!d);
+    if (dbs.length === 0) {
+        // 後方互換: 単一バインディング DB_FANZA があればそれを使う
+        const single = await getBinding('DB_FANZA');
+        return single ? wrap(single) : null;
+    }
+    const clients = dbs.map(wrap);
+    return {
+        async execute(stmt: ExecuteArg): Promise<CompatResult> {
+            const results = await Promise.all(clients.map(c => c.execute(stmt)));
+            return {
+                rows: results.flatMap(r => r.rows),
+                rowsAffected: results.reduce((a, r) => a + r.rowsAffected, 0),
+                lastInsertRowid: null,
+            };
+        },
+    };
 }
 
 export async function getSiteClient(): Promise<CompatClient | null> {

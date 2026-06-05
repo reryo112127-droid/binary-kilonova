@@ -9,7 +9,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createClient } from '@libsql/client';
+import { openLocal } from '../../scripts/lib/localsqlite.cjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');         // site/
@@ -32,8 +32,8 @@ function loadAdminKey() {
     return null;
 }
 
-const mgs   = createClient({ url: 'file:' + path.join(DATA, 'mgs.db') });
-const fanza = createClient({ url: 'file:' + path.join(DATA, 'fanza.db') });
+const mgs   = openLocal(path.join(DATA, 'mgs.db'));
+const fanza = openLocal(path.join(DATA, 'fanza.db'));
 
 function detectAmateur(maker, genres) {
     if (genres && genres.includes('素人')) return true;
@@ -110,10 +110,63 @@ async function main() {
     const adminKey = loadAdminKey();
     if (!adminKey) { console.error('ADMIN_KEY が .env.local に見つかりません'); process.exit(1); }
 
-    // --all で全商品(ローカルDB全件)、引数なしで静的キャッシュ掲載の主要商品のみ
-    const allMode = process.argv.includes('--all');
+    const url = `${SITE_URL}/api/admin/r2-populate`;
+    const POST_BATCH = 40, CONCURRENCY = 5;
+    let loggedStatus = false;
+    async function postOnce(chunk) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey }, body: JSON.stringify({ items: chunk }) });
+                if (!res.ok) {
+                    if (!loggedStatus) { loggedStatus = true; console.error(`  POST非OK status=${res.status}`); }
+                    await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                    continue;
+                }
+                const j = await res.json();
+                return j.saved || 0;
+            } catch (e) {
+                if (!loggedStatus) { loggedStatus = true; console.error('  POST例外:', e.message); }
+                await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            }
+        }
+        return 0;
+    }
+    async function postBatches(items) {
+        let saved = 0;
+        const batches = [];
+        for (let i = 0; i < items.length; i += POST_BATCH) batches.push(items.slice(i, i + POST_BATCH));
+        const queue = [...batches];
+        async function worker() { while (queue.length) saved += await postOnce(queue.shift()); }
+        await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+        return saved;
+    }
+
+    // FANZAモード: rowidページングでストリーミング投入（メモリ圧迫なし）
+    if (process.argv.includes('--fanza')) {
+        const READ_CHUNK = 3000;
+        let lastRowid = 0, total = 0, saved = 0;
+        while (true) {
+            const rows = (await fanza.execute({ sql: 'SELECT rowid AS _rid, * FROM products WHERE rowid > ? ORDER BY rowid LIMIT ?', args: [lastRowid, READ_CHUNK] })).rows;
+            if (rows.length === 0) break;
+            lastRowid = Number(rows[rows.length - 1]._rid);
+            const items = [];
+            for (const r of rows) {
+                delete r._rid;
+                const data = buildDetail(String(r.product_id), null, r);
+                if (data) items.push({ id: String(r.product_id), data });
+            }
+            saved += await postBatches(items);
+            total += rows.length;
+            console.log(`  FANZA投入 ${total}件 (saved累計 ${saved})`);
+        }
+        console.log(`完了: FANZA R2投入 ${saved}件`);
+        process.exit(0);
+    }
+
+    // モード: --all (MGS+FANZA全件) / 既定(静的キャッシュ掲載分)
+    // --all (MGS+FANZA全件) / 既定(静的キャッシュ掲載分)
     let ids;
-    if (allMode) {
+    if (process.argv.includes('--all')) {
         const [mgsIds, fanzaIds] = await Promise.all([
             mgs.execute('SELECT product_id FROM products').then(r => r.rows.map(x => String(x.product_id))).catch(() => []),
             fanza.execute('SELECT product_id FROM products').then(r => r.rows.map(x => String(x.product_id))).catch(() => []),
@@ -137,25 +190,7 @@ async function main() {
         else notFound++;
     }
     console.log(`詳細生成: ${items.length}件 (DB未発見 ${notFound}件)`);
-
-    // /api/admin/r2-populate へ500件ずつPOST
-    const url = `${SITE_URL}/api/admin/r2-populate`;
-    let saved = 0;
-    for (let i = 0; i < items.length; i += 200) {
-        const chunk = items.slice(i, i + 200);
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
-                body: JSON.stringify({ items: chunk }),
-            });
-            const j = await res.json();
-            saved += (j.saved || 0);
-            console.log(`  投入 ${i + chunk.length}/${items.length} (saved累計: ${saved})`);
-        } catch (e) {
-            console.error('  POST失敗:', e.message);
-        }
-    }
+    const saved = await postBatches(items);
     console.log(`完了: R2投入 ${saved}件`);
     process.exit(0);
 }

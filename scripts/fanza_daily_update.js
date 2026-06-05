@@ -17,14 +17,22 @@
 const path = require('path');
 const { execSync } = require('child_process');
 const Database = require('better-sqlite3');
-const { d1 } = require('./lib/d1');
+const { fanzaShards } = require('./lib/d1');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
-// Turso 廃止: カタログ書き込みは Cloudflare D1(FANZA) へ。
-// 必要 env: CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_FANZA_ID
-const hasD1 = !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_TOKEN && process.env.D1_FANZA_ID);
-const fanzaDb = () => d1('fanza');
+// Turso 廃止: FANZAカタログ書き込みは Cloudflare D1 の2シャードへ（ハッシュ振り分け）。
+// 必要 env: CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_FANZA_0_ID / D1_FANZA_1_ID
+const hasD1 = !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_TOKEN
+    && process.env.D1_FANZA_0_ID && process.env.D1_FANZA_1_ID);
+const fanzaDb = () => fanzaShards();  // スマートシャードクライアント（execute/batch互換）
+
+// MGS動画と重複する FANZA videoc(素人)作品の判定用インデックス（無ければスキップ無効）
+const { isDuplicate } = require('./lib/dedup.cjs');
+let DEDUP_INDEX = {};
+try {
+    DEDUP_INDEX = JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', 'data', 'videoc_dedup_index.json'), 'utf-8'));
+} catch { /* インデックス未生成なら重複スキップしない */ }
 
 const DMM_API_ID      = process.env.DMM_API_ID;
 const DMM_AFFILIATE_ID = process.env.DMM_AFFILIATE_ID;
@@ -424,9 +432,14 @@ async function main() {
     if (compilationSkipped > 0) console.log(`  総集編系スキップ: ${compilationSkipped}件`);
 
     // ブロックメーカーはDBに登録しない
-    const newItems = afterCompilation.filter(p => !BLOCKED_MAKERS.has(p.maker || ''));
-    const makerSkipped = afterCompilation.length - newItems.length;
+    const afterMaker = afterCompilation.filter(p => !BLOCKED_MAKERS.has(p.maker || ''));
+    const makerSkipped = afterCompilation.length - afterMaker.length;
     if (makerSkipped > 0) console.log(`  ブロックメーカースキップ: ${makerSkipped}件`);
+
+    // MGS動画と重複する videoc(素人)作品は登録しない（MGSの方がパッケージ画質が良いため）
+    const newItems = afterMaker.filter(p => !(p.floor === 'videoc' && isDuplicate(p.product_id, p.title, DEDUP_INDEX)));
+    const dupSkipped = afterMaker.length - newItems.length;
+    if (dupSkipped > 0) console.log(`  MGS重複videocスキップ: ${dupSkipped}件`);
 
     // ---- STEP 2: 価格更新（D1が必要なためクライアントを先に作成） ----
     let scanResult = { priceMap: new Map(), cutoffStr: null };

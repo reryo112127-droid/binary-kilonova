@@ -10,12 +10,12 @@
 const path = require('path');
 const fs   = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
-const { d1 } = require('./lib/d1');
+const { d1, fanzaShards } = require('./lib/d1');
 
 // Turso 廃止: CI(ローカルSQLite無し)では D1 から抽出。
 // 必要 env: CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_FANZA_ID / D1_MGS_ID
 const hasD1 = !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_TOKEN
-    && process.env.D1_FANZA_ID && process.env.D1_MGS_ID);
+    && process.env.D1_FANZA_0_ID && process.env.D1_MGS_ID);
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const OUTPUT   = path.join(DATA_DIR, 'suggest_cache.json');
@@ -147,7 +147,7 @@ async function main() {
         merged = extractFromSqlite();
     } else if (hasD1) {
         console.log('[モード] D1 (CI環境)\n');
-        const fanzaDb = d1('fanza');
+        const fanzaDb = fanzaShards();
         const mgsDb   = d1('mgs');
         merged = await extractFromTurso(mgsDb, fanzaDb);
         fanzaDb.close();
@@ -165,7 +165,7 @@ async function main() {
 
     // D1 に保存（設定されている場合）
     if (hasD1) {
-        const fanzaDb = d1('fanza');
+        const fanzaDb = fanzaShards();
         await saveToTurso(fanzaDb, merged);
         fanzaDb.close();
     }

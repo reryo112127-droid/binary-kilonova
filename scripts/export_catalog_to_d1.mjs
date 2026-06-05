@@ -34,10 +34,19 @@ const BYTES_PER_INSERT = 80 * 1024;  // 1 INSERT 文あたりのバイト上限�
 
 const FTS_COLS = ['product_id', 'title', 'actresses', 'genres', 'label', 'maker'];
 
+// FANZA はスリム検索スキーマ(0005)の列のみ出力（sample_images_json 等の大列を除外）
+const FANZA_SLIM_COLS = ['product_id','title','actresses','maker','label','duration_min','genres',
+    'sale_start_date','main_image_url','sample_video_url','affiliate_url','list_price','current_price',
+    'discount_pct','sale_end_date','series_id','series_name','vr_flag'];
+
 const TARGETS = [
     { name: 'mgs',   db: path.join(ROOT, 'data', 'mgs.db') },
-    { name: 'fanza', db: path.join(ROOT, 'data', 'fanza.db') },
+    { name: 'fanza', db: path.join(ROOT, 'data', 'fanza.db'), cols: FANZA_SLIM_COLS },
 ];
+
+// --only mgs|fanza で対象を限定
+const onlyIdx = args.indexOf('--only');
+const ONLY = onlyIdx >= 0 ? args[onlyIdx + 1] : null;
 
 function sqlVal(v) {
     if (v === null || v === undefined) return 'NULL';
@@ -84,6 +93,7 @@ function writeChunkedInserts(outDir, prefix, table, columns, rows) {
 
 let grandRows = 0;
 for (const t of TARGETS) {
+    if (ONLY && t.name !== ONLY) continue;
     if (!fs.existsSync(t.db)) {
         console.warn(`⚠️  ${t.db} が無いためスキップ`);
         continue;
@@ -92,8 +102,9 @@ for (const t of TARGETS) {
     fs.mkdirSync(outDir, { recursive: true });
 
     const db = new Database(t.db, { readonly: true });
-    const cols = db.prepare('PRAGMA table_info(products)').all().map(r => r.name);
-    const rows = db.prepare('SELECT * FROM products').all();
+    const allCols = db.prepare('PRAGMA table_info(products)').all().map(r => r.name);
+    const cols = t.cols ? t.cols.filter(c => allCols.includes(c)) : allCols;
+    const rows = db.prepare(`SELECT ${cols.map(c => `"${c}"`).join(',')} FROM products`).all();
     db.close();
 
     const pFiles = writeChunkedInserts(outDir, 'products', 'products', cols, rows);

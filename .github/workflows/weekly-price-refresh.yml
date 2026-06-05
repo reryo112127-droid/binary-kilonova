@@ -53,8 +53,8 @@ jobs:
           DMM_AFFILIATE_IDS:     ${{ secrets.DMM_AFFILIATE_IDS }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
-          D1_FANZA_ID:           ${{ secrets.D1_FANZA_ID }}
-
+          D1_FANZA_0_ID:        ${{ secrets.D1_FANZA_0_ID }}
+          D1_FANZA_1_ID:        ${{ secrets.D1_FANZA_1_ID }}
   # ----------------------------------------------------------------
   #  MGS: 金曜 15:00 JST に実行（FANZAセール開始翌日）
   # ----------------------------------------------------------------

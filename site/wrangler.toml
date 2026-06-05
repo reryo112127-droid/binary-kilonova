@@ -22,10 +22,17 @@ binding = "DB_SITE"
 database_name = "avrankings-site"
 database_id = "a1161083-9be8-4338-85ee-aebd0900c0b0"
 
+# FANZA は無料D1(500MB/DB)に収めるため product_id ハッシュで2シャードに分割。
+# 読み取りは両方に投げてマージ（lib/turso.ts getFanzaClient）。書き込みは日次スクリプトがハッシュで振り分け。
 [[d1_databases]]
-binding = "DB_FANZA"
-database_name = "avrankings-fanza"
-database_id = "d899665d-0959-4fec-b801-9bb8010a822d"
+binding = "DB_FANZA_0"
+database_name = "avrankings-fanza-0"
+database_id = "1a2003eb-af57-4f69-bc5e-a8978162ea40"
+
+[[d1_databases]]
+binding = "DB_FANZA_1"
+database_name = "avrankings-fanza-1"
+database_id = "a472647e-ec27-4d42-a71f-503559c93cb1"
 
 [[d1_databases]]
 binding = "DB_MGS"

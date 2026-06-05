@@ -123,10 +123,65 @@ function createD1Client({ databaseId, accountId, apiToken } = {}) {
 
 // 名前付きショートカット（環境変数の database_id から生成）
 function d1(which) {
-    const map = { fanza: 'D1_FANZA_ID', mgs: 'D1_MGS_ID', site: 'D1_SITE_ID' };
+    const map = {
+        fanza: 'D1_FANZA_ID', mgs: 'D1_MGS_ID', site: 'D1_SITE_ID',
+        'fanza-0': 'D1_FANZA_0_ID', 'fanza-1': 'D1_FANZA_1_ID',
+    };
     const key = map[which];
     if (!key) throw new Error(`未知の D1 名: ${which}`);
     return createD1Client({ databaseId: env(key) });
 }
 
-module.exports = { createD1Client, d1, sqlVal };
+// FANZAシャード用スマートクライアント（libsql互換 execute/batch）。
+// SQLパターンで自動振り分けし、日次スクリプトの呼び出しをほぼ無改修にする:
+//   - SELECT                         → 全シャードに投げて行をマージ（COUNT等の集約は部分的になる点に注意）
+//   - INSERT ... INTO products       → product_id(先頭値)のハッシュでシャードへ
+//   - INSERT ... INTO actress_profiles / suggest_cache → シャード0（productでない単一ホーム表）
+//   - UPDATE/DELETE ... products      → 全シャードで実行（各シャードが自分の行だけ更新＝正しい）
+//   - その他                          → 全シャードで実行
+function fanzaShards() {
+    const { FANZA_SHARDS, shardOf } = require('./shard.cjs');
+    const shards = [];
+    for (let i = 0; i < FANZA_SHARDS; i++) shards.push(d1(`fanza-${i}`));
+
+    const firstWord = sql => sql.replace(/^\s+/, '').slice(0, 8).toUpperCase();
+    const isSelect = sql => firstWord(sql).startsWith('SELECT');
+    const isInsertProducts = sql => /^\s*INSERT\b[\s\S]*\binto\s+products\b/i.test(sql) && !/products_fts|actress_profiles|suggest_cache/i.test(sql);
+    const isSingleHome = sql => /\b(actress_profiles|suggest_cache)\b/i.test(sql);
+
+    async function execute(stmt) {
+        const sql = typeof stmt === 'string' ? stmt : stmt.sql;
+        const args = typeof stmt === 'string' ? [] : (stmt.args ?? []);
+        if (isSelect(sql)) {
+            const rs = await Promise.all(shards.map(s => s.execute(stmt)));
+            return { rows: rs.flatMap(r => r.rows), rowsAffected: 0, lastInsertRowid: null };
+        }
+        if (isInsertProducts(sql)) {
+            return shards[shardOf(args[0], FANZA_SHARDS)].execute(stmt);
+        }
+        if (isSingleHome(sql)) {
+            return shards[0].execute(stmt);
+        }
+        // UPDATE/DELETE/その他 → 全シャードで実行（各シャードが自分の行のみ反映）
+        const rs = await Promise.all(shards.map(s => s.execute(stmt)));
+        return { rows: rs[0]?.rows ?? [], rowsAffected: rs.reduce((a, r) => a + (r.rowsAffected || 0), 0), lastInsertRowid: null };
+    }
+
+    async function batch(statements /* , mode */) {
+        const list = statements.map(s => (typeof s === 'string' ? { sql: s, args: [] } : s));
+        // products への INSERT バッチ → シャードごとに振り分けてバッチ
+        if (list.length && list.every(s => isInsertProducts(s.sql))) {
+            const groups = shards.map(() => []);
+            for (const s of list) groups[shardOf((s.args ?? [])[0], FANZA_SHARDS)].push(s);
+            const rs = await Promise.all(groups.map((g, i) => (g.length ? shards[i].batch(g) : Promise.resolve([]))));
+            return rs.flat();
+        }
+        // それ以外（UPDATEバッチ等）→ 全シャードで同じバッチを実行
+        const rs = await Promise.all(shards.map(s => s.batch(list)));
+        return rs[0];
+    }
+
+    return { execute, batch, close() {}, shards };
+}
+
+module.exports = { createD1Client, d1, fanzaShards, sqlVal };

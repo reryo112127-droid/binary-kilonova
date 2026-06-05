@@ -12,7 +12,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { d1 } from '../../scripts/lib/d1.js';
+import { d1, fanzaShards } from '../../scripts/lib/d1.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -30,13 +30,13 @@ function loadEnv() {
 loadEnv();
 
 if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_D1_TOKEN
-    || !process.env.D1_MGS_ID || !process.env.D1_FANZA_ID) {
+    || !process.env.D1_MGS_ID || !process.env.D1_FANZA_0_ID) {
     console.error('CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_MGS_ID / D1_FANZA_ID が未設定です');
     process.exit(1);
 }
 
 const mgs   = d1('mgs');
-const fanza = d1('fanza');
+const fanza = fanzaShards();
 
 // ローカルの actress_profiles.json を読み込む（Turso クエリを廃止し行読み取りを削減）
 function loadLocalProfiles() {

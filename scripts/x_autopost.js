@@ -11,7 +11,7 @@
  */
 
 require('dotenv').config({ path: './site/.env.local' });
-const { d1 } = require('./lib/d1');
+const { d1, fanzaShards } = require('./lib/d1');
 const { TwitterApi } = require('twitter-api-v2');
 const { rewritePhrase } = require('../lib/gemini_rewrite');
 
@@ -80,7 +80,7 @@ function getSiteClient() {
 }
 
 function getFanzaClient() {
-    return d1('fanza');
+    return fanzaShards();
 }
 
 // ==============================

@@ -6,7 +6,7 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { d1 } = require('./lib/d1');
+const { d1, fanzaShards } = require('./lib/d1');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const JSONL_FILE = path.join(__dirname, '../data/avwiki_full.jsonl');
@@ -20,12 +20,12 @@ async function main() {
         process.exit(1);
     }
 
-    if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_D1_TOKEN || !process.env.D1_FANZA_ID) {
+    if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_D1_TOKEN || !process.env.D1_FANZA_0_ID) {
         console.error('CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_FANZA_ID が未設定');
         process.exit(1);
     }
 
-    const db = d1('fanza');
+    const db = fanzaShards();
 
     const lines = fs.readFileSync(JSONL_FILE, 'utf-8').trim().split('\n').filter(Boolean);
     console.log(`avwiki_full.jsonl: ${lines.length} 件読み込み`);

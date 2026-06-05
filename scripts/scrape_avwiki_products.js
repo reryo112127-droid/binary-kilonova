@@ -31,7 +31,7 @@
 const fs   = require('fs');
 const path = require('path');
 const cheerio = require('cheerio');
-const { d1 } = require('./lib/d1');
+const { d1, fanzaShards } = require('./lib/d1');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -118,7 +118,7 @@ async function rebuildFts5(client) {
 // FTS は site/migrations/0004 のトリガで自動同期されるため、本スクリプト内の
 // DROP/CREATE TRIGGER・rebuild は d1.js 側で no-op 化される（素の UPDATE のみ有効）。
 function createClients() {
-    return { mgs: d1('mgs'), fanza: d1('fanza') };
+    return { mgs: d1('mgs'), fanza: fanzaShards() };
 }
 
 // ========== HTTP取得 ==========

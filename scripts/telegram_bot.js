@@ -19,7 +19,7 @@
 
 require('dotenv').config({ path: './site/.env.local' });
 const { Telegraf, Markup } = require('telegraf');
-const { d1 } = require('./lib/d1');
+const { d1, fanzaShards } = require('./lib/d1');
 
 // ==============================
 // 設定
@@ -37,7 +37,7 @@ const CH_SALE        = process.env.TELEGRAM_CHANNEL;    // 同じチャンネル
 
 const getSiteClient  = () => d1('site');
 const getMgsClient   = () => d1('mgs');
-const getFanzaClient = () => d1('fanza');
+const getFanzaClient = () => fanzaShards();
 
 // ==============================
 // URL生成

@@ -157,8 +157,14 @@ export async function GET(
         })(),
     };
     setCached(cacheKey, responseData);
-    // R2に永続保存（次回以降はTuruso不要）
-    await r2PutProduct(id, responseData);
+    // R2に永続保存（次回以降はD1不要）。
+    // ただし FANZA はスリムD1に sample_images を持たないため、空ギャラリーで上書きしないよう
+    // 画像がある場合のみ保存する（FANZAの完全な詳細は populate_r2_local が別途R2に投入する）。
+    const sampleImgs = responseData.sample_images;
+    const hasImages = Array.isArray(sampleImgs) && sampleImgs.length > 0;
+    if (responseData.source === 'mgs' || hasImages) {
+        await r2PutProduct(id, responseData);
+    }
     if (cfCache && cfCacheKey) {
         await cfCache.put(cfCacheKey, new Response(JSON.stringify(responseData), {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
