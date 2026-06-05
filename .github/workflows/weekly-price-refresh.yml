@@ -48,11 +48,12 @@ jobs:
       - name: FANZA 価格更新 (直近6年)
         run: node scripts/fanza_daily_update.js --months 72 --no-preorder
         env:
-          DMM_API_ID:        ${{ secrets.DMM_API_ID }}
-          DMM_AFFILIATE_ID:  ${{ secrets.DMM_AFFILIATE_ID }}
-          DMM_AFFILIATE_IDS: ${{ secrets.DMM_AFFILIATE_IDS }}
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          DMM_API_ID:            ${{ secrets.DMM_API_ID }}
+          DMM_AFFILIATE_ID:      ${{ secrets.DMM_AFFILIATE_ID }}
+          DMM_AFFILIATE_IDS:     ${{ secrets.DMM_AFFILIATE_IDS }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_FANZA_ID:           ${{ secrets.D1_FANZA_ID }}
 
   # ----------------------------------------------------------------
   #  MGS: 金曜 15:00 JST に実行（FANZAセール開始翌日）
@@ -82,5 +83,6 @@ jobs:
       - name: MGS 価格更新 (直近6年)
         run: node scripts/phase3_daily_update.js --pages 700 --no-preorder
         env:
-          TURSO_MGS_URL:   ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN: ${{ secrets.TURSO_MGS_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_MGS_ID:             ${{ secrets.D1_MGS_ID }}

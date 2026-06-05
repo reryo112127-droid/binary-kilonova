@@ -88,8 +88,8 @@ export async function postNextForGenre(genre: string): Promise<PostResult> {
     const accountNum = GENRE_ACCOUNT_MAP[genre];
     if (!accountNum) return { success: false, error: `未対応ジャンル: ${genre}` };
 
-    const siteDb = getSiteClient();
-    const mgsDb  = getMgsClient();
+    const siteDb = await getSiteClient();
+    const mgsDb  = await getMgsClient();
     if (!siteDb || !mgsDb) return { success: false, error: 'DB接続エラー' };
 
     await initSiteSchema();
@@ -178,7 +178,7 @@ export async function postNextForGenre(genre: string): Promise<PostResult> {
 }
 
 export async function getQueueStatus(): Promise<Record<string, { queued: number; lastPostedAt: string | null; lastTweetId: string | null }>> {
-    const siteDb = getSiteClient();
+    const siteDb = await getSiteClient();
     if (!siteDb) return {};
     await initSiteSchema();
 

@@ -10,12 +10,10 @@
     "deploy:cf:only": "opennextjs-cloudflare deploy",
     "start": "next start",
     "preview": "wrangler pages dev",
-    "lint": "eslint",
-    "postinstall": "node scripts/patch-hrana.js"
+    "lint": "eslint"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
-    "@libsql/client": "^0.17.0",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-cpu": "^4.22.0",
     "jimp": "^1.6.1",

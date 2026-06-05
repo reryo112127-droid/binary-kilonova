@@ -38,8 +38,8 @@ export async function GET(
     let productImage = '';
 
     try {
-        const mgsClient = getMgsClient();
-        const fanzaClient = getFanzaClient();
+        const mgsClient = await getMgsClient();
+        const fanzaClient = await getFanzaClient();
 
         const [mgsRow, fanzaRow] = await Promise.all([
             mgsClient?.execute({

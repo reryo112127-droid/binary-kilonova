@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionId = request.headers.get('x-session-id') || '';
-    const mgsClient = getMgsClient();
+    const mgsClient = await getMgsClient();
 
     if (!mgsClient) {
         return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
             });
 
             // FANZAにも同じ作品があれば更新
-            const fanzaClient = getFanzaClient();
+            const fanzaClient = await getFanzaClient();
             if (fanzaClient) {
                 await fanzaClient.execute({
                     sql: `UPDATE products SET actresses = ? WHERE product_id = ?`,
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || 'pending';
     const productId = searchParams.get('product_id') || '';
 
-    const mgsClient = getMgsClient();
+    const mgsClient = await getMgsClient();
     if (!mgsClient) return NextResponse.json([], { status: 503 });
 
     const args: string[] = [status];

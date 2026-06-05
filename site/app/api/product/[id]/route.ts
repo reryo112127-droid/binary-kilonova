@@ -54,7 +54,7 @@ export async function GET(
     let fanzaProduct: Record<string, unknown> | null = null;
 
     // MGS を検索
-    const mgsClient = getMgsClient();
+    const mgsClient = await getMgsClient();
     if (mgsClient) {
         try {
             const result = await mgsClient.execute({
@@ -70,7 +70,7 @@ export async function GET(
     }
 
     // FANZA を検索
-    const fanzaClient = getFanzaClient();
+    const fanzaClient = await getFanzaClient();
     if (fanzaClient) {
         try {
             const result = await fanzaClient.execute({

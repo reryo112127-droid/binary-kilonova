@@ -234,8 +234,8 @@ export async function GET(request: NextRequest) {
         profileActresses = profileActresses.slice(0, 150);
     }
 
-    const mgsClient = (source === 'fanza') ? null : getMgsClient();
-    const fanzaClient = (source === 'mgs') ? null : getFanzaClient();
+    const mgsClient = (source === 'fanza') ? null : await getMgsClient();
+    const fanzaClient = (source === 'mgs') ? null : await getFanzaClient();
 
     if (!mgsClient && !fanzaClient) {
         return NextResponse.json([], { status: 503 });
@@ -433,7 +433,7 @@ export async function GET(request: NextRequest) {
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';
     }
 
-    async function queryTurso(client: ReturnType<typeof getMgsClient>, isMgs: boolean, perLimit: number) {
+    async function queryTurso(client: Awaited<ReturnType<typeof getMgsClient>>, isMgs: boolean, perLimit: number) {
         if (!client) return [];
         try {
             const { conditions, args } = buildConditions(isMgs);

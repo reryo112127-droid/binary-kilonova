@@ -6,15 +6,31 @@ compatibility_flags = ["nodejs_compat"]
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
 
 # 商品詳細 read-through キャッシュ用 R2 バケット
-# Tursoから初回1回だけ読んでR2に保存し、以降はR2から返す（Turso読み込み削減）
+# D1から初回1回だけ読んでR2に保存し、以降はR2から返す（D1読み込み削減）
 [[r2_buckets]]
 binding = "PRODUCTS_BUCKET"
 bucket_name = "avrankings-products"
 
-# cross-fetch を Workers ネイティブの fetch にエイリアス
-# @libsql/hrana-client が cross-fetch を使うが、Workers では node-fetch → https.request が使えないため
-[alias]
-"cross-fetch" = "./cf-cross-fetch-shim.js"
+# ─── D1 データベース（Turso 全廃の移行先）──────────────────────────────
+# database_id は `wrangler d1 create <name>` の出力で置き換えること。
+# 無料枠: 合計5GB / 読 500万行・書 10万行 per day / 10 DB まで。
+# DB_SITE   : いいね・レビュー・購入・出演者投稿・SNS/X投稿判定（可変ユーザーデータ）
+# DB_FANZA  : FANZAカタログ（products + products_fts、ロングテール検索のフォールバック専用）
+# DB_MGS    : MGSカタログ（同上）
+[[d1_databases]]
+binding = "DB_SITE"
+database_name = "avrankings-site"
+database_id = "a1161083-9be8-4338-85ee-aebd0900c0b0"
+
+[[d1_databases]]
+binding = "DB_FANZA"
+database_name = "avrankings-fanza"
+database_id = "d899665d-0959-4fec-b801-9bb8010a822d"
+
+[[d1_databases]]
+binding = "DB_MGS"
+database_name = "avrankings-mgs"
+database_id = "b16721a8-273b-460d-b476-89a814a8f459"
 
 [vars]
 # サイトURL（サイトマップ・canonical タグで使用）

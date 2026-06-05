@@ -17,9 +17,14 @@
 const path = require('path');
 const { execSync } = require('child_process');
 const Database = require('better-sqlite3');
-const { createClient } = require('@libsql/client');
+const { d1 } = require('./lib/d1');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+// Turso 廃止: カタログ書き込みは Cloudflare D1(FANZA) へ。
+// 必要 env: CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_FANZA_ID
+const hasD1 = !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_TOKEN && process.env.D1_FANZA_ID);
+const fanzaDb = () => d1('fanza');
 
 const DMM_API_ID      = process.env.DMM_API_ID;
 const DMM_AFFILIATE_ID = process.env.DMM_AFFILIATE_ID;
@@ -373,20 +378,8 @@ async function main() {
         process.exit(1);
     }
 
-    // ---- Turso スキーママイグレーション（sale_end_date カラム追加、冪等） ----
+    // ---- スキーママイグレーション（ローカルDBのみ。D1 のスキーマは site/migrations/* で管理）----
     {
-        const _url   = process.env.TURSO_FANZA_URL;
-        const _token = process.env.TURSO_FANZA_TOKEN;
-        if (_url && _token) {
-            const _turso = createClient({ url: _url, authToken: _token });
-            try { await _turso.execute('ALTER TABLE products ADD COLUMN sale_end_date TEXT'); } catch {}
-            try { await _turso.execute('ALTER TABLE products ADD COLUMN review_count INTEGER'); } catch {}
-            try { await _turso.execute('ALTER TABLE products ADD COLUMN review_average REAL'); } catch {}
-            try { await _turso.execute('ALTER TABLE products ADD COLUMN series_id TEXT'); } catch {}
-            try { await _turso.execute('ALTER TABLE products ADD COLUMN series_name TEXT'); } catch {}
-            try { await _turso.execute('ALTER TABLE products ADD COLUMN vr_flag INTEGER DEFAULT 0'); } catch {}
-            _turso.close();
-        }
         // ローカルDB マイグレーション
         if (!process.env.CI && require('fs').existsSync(DB_PATH)) {
             const _db = new Database(DB_PATH);
@@ -435,17 +428,15 @@ async function main() {
     const makerSkipped = afterCompilation.length - newItems.length;
     if (makerSkipped > 0) console.log(`  ブロックメーカースキップ: ${makerSkipped}件`);
 
-    // ---- STEP 2: 価格更新（Tursoが必要なためクライアントを先に作成） ----
-    const tursoUrl   = process.env.TURSO_FANZA_URL;
-    const tursoToken = process.env.TURSO_FANZA_TOKEN;
+    // ---- STEP 2: 価格更新（D1が必要なためクライアントを先に作成） ----
     let scanResult = { priceMap: new Map(), cutoffStr: null };
 
-    if (!NO_PRICE && tursoUrl && tursoToken) {
-        const tursoForScan = createClient({ url: tursoUrl, authToken: tursoToken });
-        scanResult = await refreshPricesByCid(tursoForScan);
-        tursoForScan.close();
+    if (!NO_PRICE && hasD1) {
+        const dbForScan = fanzaDb();
+        scanResult = await refreshPricesByCid(dbForScan);
+        dbForScan.close();
     } else if (!NO_PRICE) {
-        console.warn('  ⚠️ TURSO_FANZA_URL/TOKEN 未設定 — 価格更新スキップ');
+        console.warn('  ⚠️ CLOUDFLARE_ACCOUNT_ID/D1_TOKEN/D1_FANZA_ID 未設定 — 価格更新スキップ');
     }
     const { priceMap, cutoffStr } = scanResult;
 
@@ -540,15 +531,15 @@ async function main() {
     console.log(`  予約商品追加: ${newCount}件 / 価格更新: ${priceUpdated.toLocaleString()}件`);
     console.log(`  セール中: ${saleCountFromScan > 0 ? saleCountFromScan : saleStats.cnt}件 (最大割引率: ${saleStats.max_disc ?? 0}%)`);
 
-    // ---- Turso 書き込み ----
-    if (!tursoUrl || !tursoToken) {
-        console.warn('  ⚠️ TURSO_FANZA_URL/TOKEN 未設定 — Turso同期スキップ');
+    // ---- D1 書き込み ----
+    if (!hasD1) {
+        console.warn('  ⚠️ D1認証情報 未設定 — D1同期スキップ');
     } else {
-        console.log('\n[STEP 4] Turso 同期...');
-        const turso = createClient({ url: tursoUrl, authToken: tursoToken });
+        console.log('\n[STEP 4] D1 同期...');
+        const turso = fanzaDb();
 
-        // FTS5トリガーをDROP（libsql HTTP越しではUPDATE時にSQL logic errorが発生するため）
-        try { await turso.execute('DROP TRIGGER IF EXISTS products_au'); } catch {}
+        // FTS5 トリガー(products_au)は FTS列が変化した時のみ発火する WHEN ガード付き
+        // （site/migrations/0004_catalog_fts.sql）。価格更新では発火しないため DROP 不要。
 
         // 新作 upsert
         if (newItems.length > 0) {
@@ -643,11 +634,11 @@ async function main() {
         turso.close();
     }
 
-    // ---- 新出演女優のプロフィール自動取得 → Turso ----
-    if (newItems.length > 0 && DMM_API_ID && DMM_AFFILIATE_ID && tursoUrl && tursoToken) {
+    // ---- 新出演女優のプロフィール自動取得 → D1 ----
+    if (newItems.length > 0 && DMM_API_ID && DMM_AFFILIATE_ID && hasD1) {
         console.log('\n[STEP 5] 新出演女優プロフィール更新...');
         try {
-            const profilesDb = createClient({ url: tursoUrl, authToken: tursoToken });
+            const profilesDb = fanzaDb();
 
             // 新作から女優名を収集
             const newNames = new Set();
@@ -705,19 +696,17 @@ async function main() {
             }
 
             profilesDb.close();
-            console.log(`  ${fetched}名のプロフィールをTursoに保存`);
+            console.log(`  ${fetched}名のプロフィールをD1に保存`);
         } catch (e) {
             console.warn('  ⚠️ プロフィール更新失敗:', e.message);
         }
     }
 
-    // ---- 期限切れセール情報クリア（Turso FANZA） ----
+    // ---- 期限切れセール情報クリア（D1 FANZA） ----
     {
-        const tursoUrl   = process.env.TURSO_FANZA_URL;
-        const tursoToken = process.env.TURSO_FANZA_TOKEN;
-        if (tursoUrl && tursoToken) {
+        if (hasD1) {
             try {
-                const turso = createClient({ url: tursoUrl, authToken: tursoToken });
+                const turso = fanzaDb();
                 // JST で比較（DMM API の sale_end_date は JST 形式 "YYYY-MM-DD HH:MM:SS"）
                 const nowJST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 16);
                 // sale_end_date <= nowJST の条件をDB側で絞る（全件取得→JS側フィルタを廃止）
@@ -734,13 +723,13 @@ async function main() {
                             args: [String(row.product_id)],
                         });
                     }
-                    console.log(`[Turso] 🧹 期限切れセール ${expired.length}件 クリア`);
+                    console.log(`[D1] 🧹 期限切れセール ${expired.length}件 クリア`);
                 } else {
-                    console.log('[Turso] 期限切れセールなし');
+                    console.log('[D1] 期限切れセールなし');
                 }
                 turso.close();
             } catch (e) {
-                console.warn('[Turso] 期限切れクリアエラー:', e.message);
+                console.warn('[D1] 期限切れクリアエラー:', e.message);
             }
         }
     }

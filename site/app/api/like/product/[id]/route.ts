@@ -8,7 +8,7 @@ export async function GET(
 ) {
     const { id } = await params;
     const sessionId = req.headers.get('x-session-id') || '';
-    const db = getSiteClient();
+    const db = await getSiteClient();
 
     if (!db) return NextResponse.json({ count: 0, liked: false });
 
@@ -32,7 +32,7 @@ export async function POST(
     const sessionId = req.headers.get('x-session-id') || '';
     if (!sessionId) return NextResponse.json({ error: 'session required' }, { status: 400 });
 
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return NextResponse.json({ error: 'DB unavailable' }, { status: 503 });
 
     await initSiteSchema();

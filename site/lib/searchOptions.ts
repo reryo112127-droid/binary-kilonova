@@ -48,8 +48,8 @@ export async function getSearchOptions(): Promise<SearchOptions> {
     }
 
     // フォールバック: Tursoから取得（読み込み数を抑えるためSAMPLEを削減）
-    const mgsClient = getMgsClient();
-    const fanzaClient = getFanzaClient();
+    const mgsClient = await getMgsClient();
+    const fanzaClient = await getFanzaClient();
     const SAMPLE = 3000;
 
     const [mgsMakerRows, fanzaMakerRows, mgsGenreRows, fanzaGenreRows, mgsActressRows, fanzaActressRows] =
@@ -117,8 +117,8 @@ export async function getContextualSearchOptions(filter: ContextualFilter): Prom
     const cached = getCached<SearchOptions>(cacheKey, CONTEXTUAL_TTL);
     if (cached) return cached;
 
-    const mgsClient = getMgsClient();
-    const fanzaClient = getFanzaClient();
+    const mgsClient = await getMgsClient();
+    const fanzaClient = await getFanzaClient();
     const LIMIT = 1500;
 
     // SQL条件とargsを構築

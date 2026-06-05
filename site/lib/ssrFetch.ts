@@ -45,7 +45,7 @@ function addBestExcl(conds: string[], args: (string | number)[]) {
 export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
     const cached = await readStaticCache<Row[]>('home_preorder_curated_cache.json');
     if (cached && cached.length > 0) return cached.slice(0, limit);
-    const client = getFanzaClient();
+    const client = await getFanzaClient();
     if (!client) return [];
     const today = new Date().toISOString().slice(0, 10);
     const conds = ['sale_start_date > ?', "label NOT LIKE '%LadyHunter%'", `(${FANZA_MAKER_COND})`];
@@ -67,7 +67,7 @@ export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
 export async function ssrFetchFanzaNewProducts(limit: number): Promise<Row[]> {
     const cached = await readStaticCache<Row[]>('products_new_cache.json');
     if (cached && cached.length > 0) return cached.slice(0, limit);
-    const client = getFanzaClient();
+    const client = await getFanzaClient();
     if (!client) return [];
     const today = new Date().toISOString().slice(0, 10);
     const d3ago = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
@@ -97,8 +97,8 @@ export async function ssrFetchFanzaNewProducts(limit: number): Promise<Row[]> {
 export async function ssrFetchRanking(limit: number): Promise<Row[]> {
     const cached = await readStaticCache<Row[]>('ranking_2026_cache.json');
     if (cached && cached.length > 0) return cached.slice(0, limit);
-    const mgsClient = getMgsClient();
-    const fanzaClient = getFanzaClient();
+    const mgsClient = await getMgsClient();
+    const fanzaClient = await getFanzaClient();
     const yearStart = new Date().getFullYear() + '-01-01';
 
     const [mgsRows, fanzaRows] = await Promise.all([
@@ -140,8 +140,8 @@ export async function ssrFetchRanking(limit: number): Promise<Row[]> {
 export async function ssrFetchActressRanking(limit: number): Promise<Row[]> {
     const cached = await readStaticCache<Row[]>('actress_ranking_2026_cache.json');
     if (cached && cached.length > 0) return cached.slice(0, limit);
-    const mgsClient = getMgsClient();
-    const fanzaClient = getFanzaClient();
+    const mgsClient = await getMgsClient();
+    const fanzaClient = await getFanzaClient();
     const yearStart = new Date().getFullYear() + '-01-01';
     const CANDIDATE = 300;
 
@@ -217,8 +217,8 @@ export async function ssrFetchNewProductsPage(limit: number): Promise<Row[]> {
     const cached = getCached<Row[]>(cacheKey, SSR_PAGE_TTL);
     if (cached) return cached;
 
-    const mgsClient = getMgsClient();
-    const fanzaClient = getFanzaClient();
+    const mgsClient = await getMgsClient();
+    const fanzaClient = await getFanzaClient();
     const today = new Date().toISOString().slice(0, 10);
     const d30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
 
@@ -260,8 +260,8 @@ export async function ssrFetchPreOrdersPage(limit: number): Promise<Row[]> {
     const cached = getCached<Row[]>(cacheKey, SSR_PAGE_TTL);
     if (cached) return cached;
 
-    const mgsClient = getMgsClient();
-    const fanzaClient = getFanzaClient();
+    const mgsClient = await getMgsClient();
+    const fanzaClient = await getFanzaClient();
     const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
     const [mgsRows, fanzaRows] = await Promise.all([

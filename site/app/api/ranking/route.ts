@@ -62,9 +62,9 @@ export async function GET(request: NextRequest) {
     if (hit) return NextResponse.json(hit, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(300, 600) } });
     const excludeBest = searchParams.get('excludeBest') === '1';
 
-    const mgsClient = getMgsClient();
-    const fanzaClient = getFanzaClient();
-    const siteClient = getSiteClient();
+    const mgsClient = await getMgsClient();
+    const fanzaClient = await getFanzaClient();
+    const siteClient = await getSiteClient();
 
     if (!mgsClient && !fanzaClient) {
         return NextResponse.json([], { status: 503 });

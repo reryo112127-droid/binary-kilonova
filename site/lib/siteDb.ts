@@ -6,7 +6,7 @@ let schemaInitialized = false;
 
 export async function initSiteSchema() {
     if (schemaInitialized) return;
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return;
 
     const statements = [
@@ -101,7 +101,7 @@ export async function initSiteSchema() {
 // ─── サイトデータ取得 ─────────────────────────────────────
 
 export async function getProductSiteData(productId: string): Promise<ProductSiteData> {
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return { siteLikes: 0, reviewStarCounts: {}, purchaseCount: 0 };
 
     await initSiteSchema();
@@ -125,7 +125,7 @@ export async function getProductSiteData(productId: string): Promise<ProductSite
 }
 
 export async function getActressSiteData(actressName: string): Promise<ActressSiteData> {
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return { actressLikes: 0, workReviewStarCounts: {}, workPurchaseCount: 0 };
 
     await initSiteSchema();
@@ -150,7 +150,7 @@ export async function getActressSiteDataFull(
     actressName: string,
     productIds: string[]
 ): Promise<ActressSiteData> {
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return { actressLikes: 0, workReviewStarCounts: {}, workPurchaseCount: 0 };
 
     await initSiteSchema();
@@ -190,7 +190,7 @@ export async function getActressSiteDataFull(
 // ─── セッション状態確認 ──────────────────────────────────
 
 export async function hasProductLike(productId: string, sessionId: string): Promise<boolean> {
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return false;
     await initSiteSchema();
     const res = await db.execute({
@@ -201,7 +201,7 @@ export async function hasProductLike(productId: string, sessionId: string): Prom
 }
 
 export async function hasActressLike(actressName: string, sessionId: string): Promise<boolean> {
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return false;
     await initSiteSchema();
     const res = await db.execute({
@@ -212,7 +212,7 @@ export async function hasActressLike(actressName: string, sessionId: string): Pr
 }
 
 export async function getProductReviews(productId: string) {
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return [];
     await initSiteSchema();
     const res = await db.execute({
@@ -237,7 +237,7 @@ export function getContributorBadge(count: number) {
 
 // ─── 貢献記録 ─────────────────────────────────────────────────
 export async function recordContribution(sessionId: string, productId: string): Promise<void> {
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db || !sessionId) return;
     await initSiteSchema();
     // UNIQUE制約で重複は無視
@@ -253,7 +253,7 @@ export async function getMyContributions(sessionId: string): Promise<{
     badge: typeof CONTRIBUTOR_BADGES[number] | null;
     recent: { product_id: string; created_at: string }[];
 }> {
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db || !sessionId) return { count: 0, badge: null, recent: [] };
     await initSiteSchema();
 
@@ -283,7 +283,7 @@ export async function getContributorLeaderboard(limit = 20): Promise<{
     count: number;
     badge: typeof CONTRIBUTOR_BADGES[number] | null;
 }[]> {
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return [];
     await initSiteSchema();
 

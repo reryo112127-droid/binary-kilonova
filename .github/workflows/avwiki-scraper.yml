@@ -66,23 +66,23 @@ jobs:
         run: timeout 3h node scripts/scrape_avwiki_products.js --interval 15 || true
         env:
           CI: ''
-          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_MGS_ID:             ${{ secrets.D1_MGS_ID }}
+          D1_FANZA_ID:           ${{ secrets.D1_FANZA_ID }}
 
-      # タイムアウト強制終了時でもFTS5を確実に再構築（女優名検索に反映させる）
-      - name: Apply avwiki product map to DB + rebuild FTS5
+      # 女優名検索への反映は D1 トリガ(products_au)が自動同期
+      - name: Apply avwiki product map to DB
         run: node scripts/scrape_avwiki_products.js --apply || echo "apply failed (non-fatal)"
         env:
-          TURSO_MGS_URL:     ${{ secrets.TURSO_MGS_URL }}
-          TURSO_MGS_TOKEN:   ${{ secrets.TURSO_MGS_TOKEN }}
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_MGS_ID:             ${{ secrets.D1_MGS_ID }}
+          D1_FANZA_ID:           ${{ secrets.D1_FANZA_ID }}
 
-      # avwiki_full.jsonl → Turso actress_profiles に反映
+      # avwiki_full.jsonl → D1 actress_profiles に反映
       # 再スキャン時は --force でSNS・改名を上書き更新
-      - name: Build avwiki profiles (Turso)
+      - name: Build avwiki profiles (D1)
         run: |
           if [ "${{ steps.mode.outputs.rescan }}" = "true" ]; then
             node scripts/build_avwiki_profiles.js --force || echo "build_avwiki_profiles failed (non-fatal)"
@@ -90,8 +90,9 @@ jobs:
             node scripts/build_avwiki_profiles.js || echo "build_avwiki_profiles failed (non-fatal)"
           fi
         env:
-          TURSO_FANZA_URL:   ${{ secrets.TURSO_FANZA_URL }}
-          TURSO_FANZA_TOKEN: ${{ secrets.TURSO_FANZA_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_FANZA_ID:           ${{ secrets.D1_FANZA_ID }}
 
       # 進捗ファイルをコミットしてpush（次回の続き再開に使う）
       - name: Commit progress

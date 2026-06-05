@@ -43,3 +43,8 @@ data/*.html
 search_page_node.html
 scripts/fanza_review_checkpoint.json
 scripts/prefetch_mp4_progress.json
+
+# D1移行用の生成SQL(巨大)・SQLite WAL
+d1_export/
+*.db-shm
+*.db-wal

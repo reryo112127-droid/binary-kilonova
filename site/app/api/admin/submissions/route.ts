@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     try {
         if (type === 'cast') {
-            const mgsClient = getMgsClient();
+            const mgsClient = await getMgsClient();
             if (!mgsClient) return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
 
             const result = await mgsClient.execute({
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json(result.rows);
 
         } else if (type === 'sns') {
-            const db = getSiteClient();
+            const db = await getSiteClient();
             if (!db) return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
             await initSiteSchema();
 
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json(result.rows);
 
         } else if (type === 'rename') {
-            const db = getSiteClient();
+            const db = await getSiteClient();
             if (!db) return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
             await initSiteSchema();
 
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     try {
         // ── CAST ──────────────────────────────────────────────────────────────
         if (type === 'cast') {
-            const mgsClient = getMgsClient();
+            const mgsClient = await getMgsClient();
             if (!mgsClient) return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
 
             if (action === 'approve') {
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
                 });
 
                 // Update products in FANZA DB
-                const fanzaClient = getFanzaClient();
+                const fanzaClient = await getFanzaClient();
                 if (fanzaClient) {
                     await fanzaClient.execute({
                         sql: `UPDATE products SET actresses = ? WHERE product_id = ?`,
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 
         // ── SNS ───────────────────────────────────────────────────────────────
         } else if (type === 'sns') {
-            const db = getSiteClient();
+            const db = await getSiteClient();
             if (!db) return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
             await initSiteSchema();
 
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
                 });
 
                 // Update FANZA actress_profiles
-                const fanzaClient = getFanzaClient();
+                const fanzaClient = await getFanzaClient();
                 if (fanzaClient) {
                     await fanzaClient.execute({
                         sql: `UPDATE actress_profiles
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
 
         // ── RENAME ────────────────────────────────────────────────────────────
         } else if (type === 'rename') {
-            const db = getSiteClient();
+            const db = await getSiteClient();
             if (!db) return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
             await initSiteSchema();
 
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
                 });
 
                 // Update FANZA actress_profiles
-                const fanzaClient = getFanzaClient();
+                const fanzaClient = await getFanzaClient();
                 if (fanzaClient) {
                     await fanzaClient.execute({
                         sql: `UPDATE actress_profiles SET name = ? WHERE name = ?`,

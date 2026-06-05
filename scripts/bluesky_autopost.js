@@ -23,7 +23,7 @@
 require('dotenv').config({ path: './site/.env.local' });
 const { AtpAgent, RichText } = require('@atproto/api');
 const { rewritePhrase } = require('../lib/gemini_rewrite');
-const { createClient } = require('@libsql/client');
+const { d1 } = require('./lib/d1');
 
 // ==============================
 // 設定
@@ -104,13 +104,13 @@ const GENRE_CONFIG = {
 // ==============================
 
 function getSiteClient() {
-    return createClient({ url: process.env.TURSO_SITE_URL, authToken: process.env.TURSO_SITE_TOKEN });
+    return d1('site');
 }
 function getMgsClient() {
-    return createClient({ url: process.env.TURSO_MGS_URL, authToken: process.env.TURSO_MGS_TOKEN });
+    return d1('mgs');
 }
 function getFanzaClient() {
-    return createClient({ url: process.env.TURSO_FANZA_URL, authToken: process.env.TURSO_FANZA_TOKEN });
+    return d1('fanza');
 }
 
 // ==============================

@@ -10,7 +10,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createClient } from '@libsql/client';
+import { d1 } from '../../scripts/lib/d1.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -26,13 +26,14 @@ function loadEnv() {
 
 loadEnv();
 
-if (!process.env.TURSO_MGS_URL || !process.env.TURSO_FANZA_URL) {
-    console.error('TURSO_MGS_URL / TURSO_FANZA_URL が未設定です');
+if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_D1_TOKEN
+    || !process.env.D1_MGS_ID || !process.env.D1_FANZA_ID) {
+    console.error('CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_MGS_ID / D1_FANZA_ID が未設定です');
     process.exit(1);
 }
 
-const mgs   = createClient({ url: process.env.TURSO_MGS_URL,   authToken: process.env.TURSO_MGS_TOKEN });
-const fanza = createClient({ url: process.env.TURSO_FANZA_URL,  authToken: process.env.TURSO_FANZA_TOKEN });
+const mgs   = d1('mgs');
+const fanza = d1('fanza');
 
 function poster(url) {
     if (!url) return '';

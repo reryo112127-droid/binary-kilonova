@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'old_name と new_name は空にできません' }, { status: 400 });
     }
 
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) {
         return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
     }

@@ -17,12 +17,12 @@ export async function GET(request: NextRequest) {
     const genre = searchParams.get('genre') || 'new';
     const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 100);
 
-    const fanzaClient = getFanzaClient();
+    const fanzaClient = await getFanzaClient();
     if (!fanzaClient) {
         return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
     }
 
-    const siteDb = getSiteClient();
+    const siteDb = await getSiteClient();
     await initSiteSchema();
 
     // Build genre-specific WHERE clause
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
         }
 
         // product_safetyでNG判定された作品を除外（最大500件・NOT IN上限対策）
-        const siteClient = getSiteClient();
+        const siteClient = await getSiteClient();
         let ngExclude = '';
         if (siteClient) {
             const ngIds = await siteClient.execute(
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     const { product_id, decision, new_genre, post_type } = body;
 
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) {
         return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
     }

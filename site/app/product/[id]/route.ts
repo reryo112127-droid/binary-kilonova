@@ -35,7 +35,7 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
     const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date FROM products WHERE product_id = ? LIMIT 1';
     let result: Record<string, unknown> | null = null;
 
-    const fanzaClient = getFanzaClient();
+    const fanzaClient = await getFanzaClient();
     if (fanzaClient) {
         try {
             const r = await fanzaClient.execute({ sql: SQL, args: [id] });
@@ -43,7 +43,7 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
         } catch { /* fallthrough */ }
     }
     if (!result) {
-        const mgsClient = getMgsClient();
+        const mgsClient = await getMgsClient();
         if (mgsClient) {
             try {
                 const r = await mgsClient.execute({ sql: SQL, args: [id] });

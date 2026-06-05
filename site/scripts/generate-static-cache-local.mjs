@@ -18,7 +18,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createClient } from '@libsql/client';
+import { openLocal } from '../../scripts/lib/localsqlite.cjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -30,8 +30,8 @@ const FANZA_DB = path.join(DATA, 'fanza.db');
 if (!fs.existsSync(MGS_DB))   { console.error('mgs.db が見つかりません: ' + MGS_DB);   process.exit(1); }
 if (!fs.existsSync(FANZA_DB)) { console.error('fanza.db が見つかりません: ' + FANZA_DB); process.exit(1); }
 
-const mgs   = createClient({ url: 'file:' + MGS_DB });
-const fanza = createClient({ url: 'file:' + FANZA_DB });
+const mgs   = openLocal(MGS_DB);
+const fanza = openLocal(FANZA_DB);
 
 function poster(url) {
     if (!url) return '';

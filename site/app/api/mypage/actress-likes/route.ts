@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const sessionId = searchParams.get('sessionId') || '';
     if (!sessionId) return NextResponse.json([]);
 
-    const siteDb = getSiteClient();
+    const siteDb = await getSiteClient();
     if (!siteDb) return NextResponse.json([]);
 
     await initSiteSchema();

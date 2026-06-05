@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const sessionId = searchParams.get('sessionId') || '';
     if (!sessionId) return NextResponse.json([]);
 
-    const siteDb = getSiteClient();
+    const siteDb = await getSiteClient();
     if (!siteDb) return NextResponse.json([]);
 
     await initSiteSchema();
@@ -23,12 +23,12 @@ export async function GET(request: NextRequest) {
     const productIds = likesRes.rows.map(r => String(r.product_id));
     if (productIds.length === 0) return NextResponse.json([]);
 
-    const mgsClient = getMgsClient();
-    const fanzaClient = getFanzaClient();
+    const mgsClient = await getMgsClient();
+    const fanzaClient = await getFanzaClient();
 
     const placeholders = productIds.map(() => '?').join(',');
 
-    async function fetchFromDb(client: ReturnType<typeof getMgsClient>, isMgs: boolean) {
+    async function fetchFromDb(client: Awaited<ReturnType<typeof getMgsClient>>, isMgs: boolean) {
         if (!client) return [];
         try {
             const res = await client.execute({

@@ -4,13 +4,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // @libsql/isomorphic-ws の workerd 向け web.mjs が file tracing に含まれないため手動で追加
-  outputFileTracingIncludes: {
-    '/**': [
-      './node_modules/@libsql/isomorphic-ws/web.mjs',
-      './node_modules/@libsql/isomorphic-ws/web.cjs',
-    ],
-  },
   images: {
     remotePatterns: [
       // MGStage

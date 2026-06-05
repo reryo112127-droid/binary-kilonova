@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const sessionId = request.headers.get('x-session-id') || '';
 
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) {
         return NextResponse.json({ error: 'DB接続エラー' }, { status: 503 });
     }

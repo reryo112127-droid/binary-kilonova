@@ -100,7 +100,7 @@ export async function GET(
     }
 
     // ── 静的JSONがない場合のTursoフォールバック ──────────────────────
-    const db = getFanzaClient();
+    const db = await getFanzaClient();
     if (!db) return NextResponse.json({ name: actressName }, { status: 503 });
 
     const [aliasRow, profileRow] = await Promise.all([

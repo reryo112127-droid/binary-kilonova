@@ -299,26 +299,71 @@ Tursoによるクラウドネイティブ構成で、Cloudflare Workersにデプ
 
 ---
 
-## 🗄️ DB移行計画（Turso読み込み上限が6月も到達した場合）
+## 🗄️ Turso 完全廃止 → Cloudflare D1 移行（コード移行: 完了）
 
-**移行先: Oracle Cloud Autonomous Database (Always Free)**
-- 無料枠: 40GB × 2DB、CPU時間課金（行読み取り制限なし）
-- 条件: 6月のTurso上限に再び到達したら移行着手
+**移行先: Cloudflare D1（全て無料枠内）**。Turso 3 DB（MGS/FANZA カタログ + SITE 可変データ）を
+すべて D1 に統合。Oracle 案は不採用（CF 内で完結し追加サービス不要なため）。
 
-### 構成（案A: ハイブリッド）
-```
-デイリースクリプト(Node.js) → Oracle ATP（マスターDB）
-                                   ↓ 夜間エクスポート
-Cloudflare Workers ← Cloudflare D1（読み取り専用レプリカ）
-```
-- Node.js側: `oracledb` npm パッケージ（Instant Client必要）
-- CF Workers側: D1バインディング（FTS5そのまま使用可）
-- 課題: Oracle→D1の夜間同期スクリプト新規作成が必要
+### 無料枠の設計方針（D1 Free: 合計5GB / 読 500万行・書 10万行 per day / 10 DBまで）
+- **読**: ホットパス（ホーム/ランキング/新着/人気/商品詳細/サジェスト）は従来どおり静的JSON+R2（D1読み取り0）。
+  D1 はロングテール検索のフォールバック専用。テキスト検索は FTS5(trigram)、構造化は B-tree インデックスで
+  1クエリの rows_read を最小化。
+- **書**: 初期インポート約49万行(products)+約49万行(FTS)は **10万行/日**に合わせ日割り。
+  日次デルタは数百〜数千行で上限内。価格更新では FTS トリガを WHEN ガードで発火させず書き込み枠を温存。
 
-### 作業フロー（着手時）
-1. Oracle Cloud Always Free アカウント作成・ATP プロビジョニング
-2. SQLiteスキーマをOracle用に変換（型マッピング）
-3. データ移行: ローカルfanza.db / mgs.db → Oracle ATP
-4. デイリースクリプト: `turso.execute()` → `oracledb` に書き換え
-5. Cloudflare D1 作成 + Oracle→D1 夜間同期スクリプト作成
-6. CF Workers の DB接続を Turso → D1 に切り替え
+### コードに入った変更（このコミット）
+- `site/lib/turso.ts` … @libsql → **D1 バインディング(DB_MGS/DB_FANZA/DB_SITE)アダプタ**（execute互換、await化）
+- 全 route/lib（約23ファイル）… `getXxxClient()` を `await` 化（呼び出し本体は不変）
+- `site/wrangler.toml` … D1 バインディング3つ追記
+- `site/migrations/0001_site.sql` `0002_catalog_mgs.sql` `0003_catalog_fanza.sql` `0004_catalog_fts.sql`
+- 移行スクリプト: `scripts/export_turso_site_to_d1.mjs` / `scripts/export_catalog_to_d1.mjs`
+- D1 REST クライアント: `scripts/lib/d1.js`（libsql互換 execute/batch、位置アクセス対応、close no-op）
+- 日次/週次 書き込み: `fanza_daily_update.js` `phase3_daily_update.js` `build_suggest_cache.js`
+  `site/scripts/generate-weekly-cache.mjs` `site/scripts/generate-static-cache.mjs` を D1 化
+- workflows: `daily-update.yml` `weekly-price-refresh.yml` `weekly-sitemap-cache.yml` の env を D1 シークレットに更新
+
+### 進捗（2026-06-05 実施分）
+- ✅ **D1 3つ作成済み**（wrangler.toml に database_id 反映済み）:
+  `avrankings-site=a1161083-9be8-4338-85ee-aebd0900c0b0` /
+  `avrankings-fanza=d899665d-0959-4fec-b801-9bb8010a822d` /
+  `avrankings-mgs=b16721a8-273b-460d-b476-89a814a8f459`
+- ✅ **スキーマ投入済み**（0001 SITE / 0002 MGS / 0003 FANZA / 0004 FTS×2）
+- ✅ **カタログ全量投入済み**: MGS 117,695 + FANZA 374,727（products=FTS 一致、検索動作確認済み）。storage 計 約1.45GB（5GB枠内）。
+  ※ 1チャンク50k行＝約40万write（インデックス+FTS で約8倍）。累計約390万 write 投入したが**無料枠の書き込み上限ブロックは発生せず**完走。`wrangler d1 import` は当バージョンに存在せず **`d1 execute --remote --file`** で投入（`export_catalog_to_d1.mjs` はD1のSQL文上限~100KB対策でバイト分割、0004適用後はproducts投入時にトリガがFTS自動生成）。
+- ⏳ **未完**: SITE データ移行 / シークレット投入 / 本番デプロイ / Turso削除。
+
+### ✅ 残りのユーザー実行 runbook
+1. **SITE データ移行（要 Turso 読み取り回復）**: 現状 Turso SITE は**読み取り禁止（無料枠超過）**で吸い出せない。読み取りが回復したら:
+   ```
+   node ../scripts/export_turso_site_to_d1.mjs
+   for f in ../d1_export/site/*.sql; do wrangler d1 execute avrankings-site --remote --file="$f"; done
+   ```
+   （回復しない場合は既存いいね/レビューは諦め、空SITEで運用＝新規はD1に蓄積）
+2. **シークレット投入**（D1編集権限のAPIトークンを作成）:
+   - **GitHub Secrets**: `CLOUDFLARE_ACCOUNT_ID` `CLOUDFLARE_D1_TOKEN` `D1_FANZA_ID` `D1_MGS_ID`（投稿スクリプトでSITE書く場合 `D1_SITE_ID`）。
+   - **ローカル実行用**: `.env`（root, 日次スクリプト）と `site/.env.local`（generate系・投稿系）に同じ変数を追記。
+   - ランタイム（Workers）は wrangler.toml の binding 経由なのでダッシュボード変数追加は不要。
+3. **デプロイ**: `cd site && npm run deploy:cf`（※ SITE データ移行 or 諦めの判断後に。今は保留中）
+4. **検証**（下記「検証」）後、**Turso 3 DB を削除**し各所の `TURSO_*` を撤去。
+
+### 🔍 検証
+- ローカル: `wrangler d1 execute <db> --local --file=migrations/*.sql` でスキーマ確認 → `wrangler dev` でいいね/レビュー/検索を試す。
+- 本番デプロイ後: ホーム/ランキング/新着が静的経由で表示（D1読み取り0）。詳細検索のロングテール（マイナー女優/メーカー）が FTS 経由で返る。いいね/レビュー/購入/出演者投稿が D1 に記録される。
+- D1 メトリクスで日次 読/書 が無料枠内か 1〜2日観測。
+
+### ✅ 追加で D1 化済み（2026-06-05）
+- **avwiki**: `scrape_avwiki_products.js`（接続をd1化。FTSトリガ管理 DROP/rebuild/CREATE は `scripts/lib/d1.js` 側で
+  no-op 化＝D1のproducts_auトリガが自動同期）、`build_avwiki_profiles.js`、`avwiki-scraper.yml` の env。
+- **投稿系**: `bluesky_autopost.js` / `x_autopost.js` / `telegram_bot.js`（site/mgs/fanza クライアントを `d1(...)` に）。
+
+### ✅ 後始末も完了（2026-06-05）
+- `@libsql/client` を package.json(root/site) から削除。`site/wrangler.toml` の `[alias] cross-fetch` と
+  `postinstall: patch-hrana.js` を撤去。不要ファイル `cf-cross-fetch-shim.js` / `scripts/patch-hrana.js` /
+  `scripts/export_turso_site_to_d1.mjs` を削除。
+- `site/scripts/generate-static-cache-local.mjs` を `scripts/lib/localsqlite.cjs`(better-sqlite3 の libsql互換ラッパ)へ切替（動作確認済み）。
+- ランタイムは @libsql 非依存（バンドルの libsql 記載は Next の tracingIncludes のみで実importなし。次回ビルドで消える）。
+
+### ⏳ 任意の残り
+- 一回限りの保守/デバッグ系（`_*`, `migrate_*_to_turso.js`, `create_fts5.js`, `backfill_*`, `delete_*` 等）は
+  Turso 削除済みのため既に非機能。使う場合のみ D1 化。`npm ci` 後はこれらが `@libsql` 不在で起動時エラーになる点に注意。
+- 完全に反映するには次回の `npm install`（@libsqlをnode_modulesから除去）+ `npm run deploy:cf`（クリーンなバンドル再生成）。

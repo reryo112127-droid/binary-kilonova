@@ -9,7 +9,7 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id } = await params;
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return NextResponse.json([]);
 
     const reviews = await getProductReviews(id);
@@ -34,7 +34,7 @@ export async function POST(
         return NextResponse.json({ error: 'stars must be 1-5' }, { status: 400 });
     }
 
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return NextResponse.json({ error: 'DB unavailable' }, { status: 503 });
 
     await initSiteSchema();

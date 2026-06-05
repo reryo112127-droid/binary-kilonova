@@ -21,8 +21,8 @@ export async function GET(_request: NextRequest) {
     }
 
     // Tursoフォールバック
-    const mgsClient = getMgsClient();
-    const fanzaClient = getFanzaClient();
+    const mgsClient = await getMgsClient();
+    const fanzaClient = await getFanzaClient();
 
     const [mgsRows, fanzaRows] = await Promise.all([
         mgsClient ? mgsClient.execute({

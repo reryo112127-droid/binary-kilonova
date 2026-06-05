@@ -11,7 +11,7 @@
  */
 
 require('dotenv').config({ path: './site/.env.local' });
-const { createClient } = require('@libsql/client');
+const { d1 } = require('./lib/d1');
 const { TwitterApi } = require('twitter-api-v2');
 const { rewritePhrase } = require('../lib/gemini_rewrite');
 
@@ -76,17 +76,11 @@ const GENRE_PHRASES = {
 // ==============================
 
 function getSiteClient() {
-    const url = process.env.TURSO_SITE_URL;
-    const authToken = process.env.TURSO_SITE_TOKEN;
-    if (!url || !authToken) throw new Error('TURSO_SITE_URL / TURSO_SITE_TOKEN が未設定です');
-    return createClient({ url, authToken });
+    return d1('site');
 }
 
 function getFanzaClient() {
-    return createClient({
-        url: process.env.TURSO_FANZA_URL,
-        authToken: process.env.TURSO_FANZA_TOKEN,
-    });
+    return d1('fanza');
 }
 
 // ==============================

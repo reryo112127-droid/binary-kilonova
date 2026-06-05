@@ -13,7 +13,7 @@ export async function POST(
     try { body = await req.json(); } catch { /* platform は optional */ }
     const platform = body.platform || 'unknown';
 
-    const db = getSiteClient();
+    const db = await getSiteClient();
     if (!db) return NextResponse.json({ ok: true }); // サイレントフォールバック
 
     await initSiteSchema();

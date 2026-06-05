@@ -17,8 +17,13 @@ const path  = require('path');
 const fs    = require('fs');
 const https = require('https');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
-const { createClient } = require('@libsql/client');
+const { d1 } = require('./lib/d1');
 const db = require('../db/database');
+
+// Turso 廃止: MGS カタログ書き込みは Cloudflare D1(MGS) へ。
+// 必要 env: CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_MGS_ID
+const hasD1 = !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_TOKEN && process.env.D1_MGS_ID);
+const mgsDb = () => d1('mgs');
 const { fetchPage, politeWait, buildSearchUrl, buildDetailUrl } = require('../lib/fetcher');
 const { parseSearchPage, parseDetailPage } = require('../lib/parser');
 
@@ -134,37 +139,18 @@ async function buildPriceMap(pages) {
 }
 
 async function main() {
-    // ---- Turso スキーママイグレーション（価格カラム、冪等） ----
-    {
-        const _url   = process.env.TURSO_MGS_URL;
-        const _token = process.env.TURSO_MGS_TOKEN;
-        if (_url && _token) {
-            const _turso = createClient({ url: _url, authToken: _token });
-            for (const sql of [
-                'ALTER TABLE products ADD COLUMN list_price INTEGER',
-                'ALTER TABLE products ADD COLUMN current_price INTEGER',
-                'ALTER TABLE products ADD COLUMN discount_pct INTEGER DEFAULT 0',
-                'ALTER TABLE products ADD COLUMN sale_end_date TEXT',
-                'ALTER TABLE products ADD COLUMN price_updated_at TEXT',
-            ]) {
-                try { await _turso.execute(sql); } catch {} // 既存カラムは無視
-            }
-            _turso.close();
-        }
-    }
+    // ---- スキーママイグレーション: D1 のスキーマは site/migrations/* で管理（ここでは何もしない）----
 
-    // ---- CI環境: Tursoから既知IDを取得（ローカルDB代替） ----
+    // ---- CI環境: D1から既知IDを取得（ローカルDB代替） ----
     let knownIds   = new Set();
-    let tursoShared = null; // CI用に事前作成したTursoクライアント
+    let tursoShared = null; // CI用に事前作成したD1クライアント
 
     if (IS_CI) {
-        const tursoUrl   = process.env.TURSO_MGS_URL;
-        const tursoToken = process.env.TURSO_MGS_TOKEN;
-        if (!tursoUrl || !tursoToken) {
-            console.error('CI環境では TURSO_MGS_URL / TURSO_MGS_TOKEN が必要です');
+        if (!hasD1) {
+            console.error('CI環境では CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_MGS_ID が必要です');
             process.exit(1);
         }
-        tursoShared = createClient({ url: tursoUrl, authToken: tursoToken });
+        tursoShared = mgsDb();
 
         // ローカルキャッシュ優先、差分のみTursoから取得
         let cacheUpdatedAt = null;
@@ -400,59 +386,44 @@ async function main() {
             console.warn('[STEP 2] 価格更新エラー:', e.message);
         }
 
-        // ---- Turso 同期 ----
-        const tursoUrl   = process.env.TURSO_MGS_URL;
-        const tursoToken = process.env.TURSO_MGS_TOKEN;
-
+        // ---- D1 同期 ----
         // 30分未満の作品はTursoに登録しない
         const afterDuration = newProducts.filter(p => p.duration_min === null || p.duration_min >= 30);
         const shortSkipped = newProducts.length - afterDuration.length;
-        if (shortSkipped > 0) console.log(`[Turso] 30分未満スキップ: ${shortSkipped}件`);
+        if (shortSkipped > 0) console.log(`[D1] 30分未満スキップ: ${shortSkipped}件`);
 
         // Best/総集編/オムニバス/リマスターはTursoに登録しない
         const COMPILATION_RE = /BEST|ベスト|総集編|オムニバス|リマスター/i;
         const afterCompilation = afterDuration.filter(p => !COMPILATION_RE.test(p.title || ''));
         const compilationSkipped = afterDuration.length - afterCompilation.length;
-        if (compilationSkipped > 0) console.log(`[Turso] 総集編系スキップ: ${compilationSkipped}件`);
+        if (compilationSkipped > 0) console.log(`[D1] 総集編系スキップ: ${compilationSkipped}件`);
 
         // ブロックメーカーはTursoに登録しない
         const filteredNewProducts = afterCompilation.filter(p => !BLOCKED_MAKERS.has(p.maker || ''));
         const makerSkipped = afterCompilation.length - filteredNewProducts.length;
-        if (makerSkipped > 0) console.log(`[Turso] ブロックメーカースキップ: ${makerSkipped}件`);
+        if (makerSkipped > 0) console.log(`[D1] ブロックメーカースキップ: ${makerSkipped}件`);
 
         if (filteredNewProducts.length === 0 && priceMap.size === 0) {
-            console.log('[Turso] 更新なし — スキップ');
-        } else if (!tursoUrl || !tursoToken) {
-            console.warn('[Turso] TURSO_MGS_URL/TOKEN 未設定 — スキップ');
+            console.log('[D1] 更新なし — スキップ');
+        } else if (!hasD1) {
+            console.warn('[D1] D1認証情報 未設定 — スキップ');
         } else {
-            const turso = tursoShared || createClient({ url: tursoUrl, authToken: tursoToken });
-            // FTS5トリガーをDROP（libsql HTTP越しのUPDATEでSQL logic errorが発生するため）
-            try { await turso.execute('DROP TRIGGER IF EXISTS products_au'); } catch {}
+            const turso = tursoShared || mgsDb();
+            // FTS は products_au/ai/ad トリガ(WHENガード付き)で自動同期されるため DROP/手動更新は不要。
             // 新規作品 upsert
             if (filteredNewProducts.length > 0) {
-                console.log(`[Turso] 新規${filteredNewProducts.length}件 同期中...`);
+                console.log(`[D1] 新規${filteredNewProducts.length}件 同期中...`);
                 try {
                     await tursoUpsertBatch(turso, filteredNewProducts);
-                    console.log(`[Turso] ✅ 新規${filteredNewProducts.length}件 同期完了`);
-                    // FTS5差分更新（全件rebuildの代わりに新規分のみ）
-                    const newIds = filteredNewProducts.map(p => p.product_id);
-                    const CHUNK = 100;
-                    for (let ci = 0; ci < newIds.length; ci += CHUNK) {
-                        const chunk = newIds.slice(ci, ci + CHUNK);
-                        await turso.execute({
-                            sql: `INSERT OR IGNORE INTO products_fts(rowid, product_id, title, actresses, genres)
-                                  SELECT rowid, product_id, title, actresses, genres FROM products
-                                  WHERE product_id IN (${chunk.map(() => '?').join(',')})`,
-                            args: chunk,
-                        });
-                    }
+                    console.log(`[D1] ✅ 新規${filteredNewProducts.length}件 同期完了`);
+                    // FTS は INSERT OR REPLACE 時にトリガが自動でメンテナンスする（手動更新不要）
                     // キャッシュ更新（新規IDを追加）
                     try {
                         filteredNewProducts.forEach(p => knownIds.add(String(p.product_id)));
                         fs.writeFileSync(KNOWN_IDS_CACHE, JSON.stringify({ updated_at: new Date().toISOString(), ids: [...knownIds] }));
                     } catch {}
                 } catch (e) {
-                    console.error('[Turso] 新規同期エラー:', e.message);
+                    console.error('[D1] 新規同期エラー:', e.message);
                 }
             }
             // 価格 update（既存作品はUPDATE）
@@ -491,18 +462,16 @@ async function main() {
                     }
                     process.stdout.write(`  価格Turso更新: ${tUpdated}/${entries.length}\r`);
                 }
-                console.log(`\n[Turso] ✅ 価格${tUpdated.toLocaleString()}件 更新完了`);
+                console.log(`\n[D1] ✅ 価格${tUpdated.toLocaleString()}件 更新完了`);
             }
             if (!tursoShared) turso.close();
         }
 
-        // ---- 期限切れセール情報クリア（Turso MGS） ----
+        // ---- 期限切れセール情報クリア（D1 MGS） ----
         {
-            const tursoUrl   = process.env.TURSO_MGS_URL;
-            const tursoToken = process.env.TURSO_MGS_TOKEN;
-            if (tursoUrl && tursoToken) {
+            if (hasD1) {
                 try {
-                    const turso = tursoShared || createClient({ url: tursoUrl, authToken: tursoToken });
+                    const turso = tursoShared || mgsDb();
                     // JST で比較（sale_end_date は JST 形式 "YYYY/MM/DD HH:MM"）
                     const nowJST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 16);
                     // DB側でフィルタ（全件取得→JS側フィルタを廃止し行読み取り削減）
@@ -520,13 +489,13 @@ async function main() {
                             });
                         }
                         // FTS5はprice/discount_pctをインデックスしないためrebuild不要
-                        console.log(`[Turso] 🧹 期限切れセール ${expired.length}件 クリア`);
+                        console.log(`[D1] 🧹 期限切れセール ${expired.length}件 クリア`);
                     } else {
-                        console.log('[Turso] 期限切れセールなし');
+                        console.log('[D1] 期限切れセールなし');
                     }
                     if (!tursoShared) turso.close();
                 } catch (e) {
-                    console.warn('[Turso] 期限切れクリアエラー:', e.message);
+                    console.warn('[D1] 期限切れクリアエラー:', e.message);
                 }
             }
         }

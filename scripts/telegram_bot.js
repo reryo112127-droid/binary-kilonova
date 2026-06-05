@@ -19,7 +19,7 @@
 
 require('dotenv').config({ path: './site/.env.local' });
 const { Telegraf, Markup } = require('telegraf');
-const { createClient } = require('@libsql/client');
+const { d1 } = require('./lib/d1');
 
 // ==============================
 // 設定
@@ -35,9 +35,9 @@ const CH_SALE        = process.env.TELEGRAM_CHANNEL;    // 同じチャンネル
 // Tursoクライアント
 // ==============================
 
-const getSiteClient  = () => createClient({ url: process.env.TURSO_SITE_URL,  authToken: process.env.TURSO_SITE_TOKEN });
-const getMgsClient   = () => createClient({ url: process.env.TURSO_MGS_URL,   authToken: process.env.TURSO_MGS_TOKEN });
-const getFanzaClient = () => createClient({ url: process.env.TURSO_FANZA_URL, authToken: process.env.TURSO_FANZA_TOKEN });
+const getSiteClient  = () => d1('site');
+const getMgsClient   = () => d1('mgs');
+const getFanzaClient = () => d1('fanza');
 
 // ==============================
 // URL生成

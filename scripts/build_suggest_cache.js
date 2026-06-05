@@ -10,6 +10,12 @@
 const path = require('path');
 const fs   = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const { d1 } = require('./lib/d1');
+
+// Turso 廃止: CI(ローカルSQLite無し)では D1 から抽出。
+// 必要 env: CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_FANZA_ID / D1_MGS_ID
+const hasD1 = !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_TOKEN
+    && process.env.D1_FANZA_ID && process.env.D1_MGS_ID);
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const OUTPUT   = path.join(DATA_DIR, 'suggest_cache.json');
@@ -132,29 +138,22 @@ async function main() {
     console.log('========================================\n');
     const start = Date.now();
 
-    const tursoUrl   = process.env.TURSO_FANZA_URL;
-    const tursoToken = process.env.TURSO_FANZA_TOKEN;
-    const mgsUrl     = process.env.TURSO_MGS_URL;
-    const mgsToken   = process.env.TURSO_MGS_TOKEN;
-
     const hasSqlite = fs.existsSync(path.join(DATA_DIR, 'fanza.db'));
-    const hasTurso  = !!(tursoUrl && tursoToken && mgsUrl && mgsToken);
 
     let merged;
 
     if (hasSqlite) {
         console.log('[モード] ローカルSQLite\n');
         merged = extractFromSqlite();
-    } else if (hasTurso) {
-        console.log('[モード] Turso (CI環境)\n');
-        const { createClient } = require('@libsql/client');
-        const fanzaDb = createClient({ url: tursoUrl,  authToken: tursoToken });
-        const mgsDb   = createClient({ url: mgsUrl,    authToken: mgsToken });
+    } else if (hasD1) {
+        console.log('[モード] D1 (CI環境)\n');
+        const fanzaDb = d1('fanza');
+        const mgsDb   = d1('mgs');
         merged = await extractFromTurso(mgsDb, fanzaDb);
         fanzaDb.close();
         mgsDb.close();
     } else {
-        console.error('SQLite も Turso も利用できません。環境変数を確認してください。');
+        console.error('SQLite も D1 も利用できません。環境変数を確認してください。');
         process.exit(1);
     }
 
@@ -164,10 +163,9 @@ async function main() {
     fs.writeFileSync(OUTPUT, JSON.stringify(merged));
     const sizeKb = (fs.statSync(OUTPUT).size / 1024).toFixed(0);
 
-    // Turso に保存（設定されている場合）
-    if (hasTurso) {
-        const { createClient } = require('@libsql/client');
-        const fanzaDb = createClient({ url: tursoUrl, authToken: tursoToken });
+    // D1 に保存（設定されている場合）
+    if (hasD1) {
+        const fanzaDb = d1('fanza');
         await saveToTurso(fanzaDb, merged);
         fanzaDb.close();
     }

@@ -6,7 +6,7 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { createClient } = require('@libsql/client');
+const { d1 } = require('./lib/d1');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const JSONL_FILE = path.join(__dirname, '../data/avwiki_full.jsonl');
@@ -20,14 +20,12 @@ async function main() {
         process.exit(1);
     }
 
-    const url   = process.env.TURSO_FANZA_URL;
-    const token = process.env.TURSO_FANZA_TOKEN;
-    if (!url || !token) {
-        console.error('TURSO_FANZA_URL/TOKEN が未設定');
+    if (!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_D1_TOKEN || !process.env.D1_FANZA_ID) {
+        console.error('CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_FANZA_ID が未設定');
         process.exit(1);
     }
 
-    const db = createClient({ url, authToken: token });
+    const db = d1('fanza');
 
     const lines = fs.readFileSync(JSONL_FILE, 'utf-8').trim().split('\n').filter(Boolean);
     console.log(`avwiki_full.jsonl: ${lines.length} 件読み込み`);
