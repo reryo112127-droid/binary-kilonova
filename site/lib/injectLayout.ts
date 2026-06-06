@@ -35,6 +35,21 @@ const LIKE_UTILS_SCRIPT = `<script id="like-utils">
 })();
 <\/script>`;
 
+// ─── FANZA now_printing 差し替えスクリプト（全ページ共通） ─────────
+// FANZAは未発売(予約)/廃盤作品の画像を同一URLで now_printing(縦長590x800)へ302する。
+// 本来のFANZA pl.jpg は横長(800x538)なので「pl.jpgが縦長で読み込まれたら now_printing」と判定し、
+// きれいな「準備中」プレースホルダーに差し替える。MGSの縦型 pf_e_ はURLが別なので誤判定しない。
+const NOW_PRINTING_SCRIPT = `<script id="np-fix">(function(){
+  var SVG="<svg xmlns='http://www.w3.org/2000/svg' width='600' height='800' viewBox='0 0 600 800'><rect width='600' height='800' fill='#f1f2f4'/><g fill='none' stroke='#c7cbd2' stroke-width='13' stroke-linecap='round' stroke-linejoin='round'><rect x='205' y='312' width='190' height='150' rx='16'/><path d='M250 312l22-30h56l22 30'/><circle cx='300' cy='388' r='37'/></g><text x='300' y='548' font-family='-apple-system,sans-serif' font-size='33' fill='#9aa0a6' text-anchor='middle'>準備中</text></svg>";
+  var PH="data:image/svg+xml,"+encodeURIComponent(SVG);
+  function bad(img){var s=img.currentSrc||img.src||"";if(!s||s.indexOf("data:")===0)return false;if(!/pics\\.dmm\\.co\\.jp\\/digital\\/.*pl\\.jpg/.test(s))return false;return img.naturalWidth>0&&img.naturalHeight>img.naturalWidth;}
+  function fix(img){if(img.dataset.npFixed)return;img.dataset.npFixed="1";img.removeAttribute("srcset");img.src=PH;img.style.objectFit="cover";img.style.background="#f1f2f4";}
+  function scan(root){try{(root||document).querySelectorAll("img").forEach(function(im){if(im.complete&&bad(im))fix(im);});}catch(e){}}
+  document.addEventListener("load",function(e){var t=e.target;if(t&&t.tagName==="IMG"&&bad(t))fix(t);},true);
+  document.readyState==="loading"?document.addEventListener("DOMContentLoaded",function(){scan();}):scan();
+  try{new MutationObserver(function(muts){muts.forEach(function(m){m.addedNodes&&m.addedNodes.forEach(function(n){if(n.nodeType===1){if(n.tagName==="IMG"){if(n.complete&&bad(n))fix(n);}else if(n.querySelectorAll)scan(n);}});});}).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
+})();<\/script>`;
+
 // ─── CSS（モバイル共通） ───────────────────────────────────────
 const MOBILE_CSS = `<style id="layout-styles">
 .active-icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
@@ -163,7 +178,7 @@ export function injectMobileLayout(html: string, activePage = '', skipCleanOrOpt
     const scripts = opts.skipClean
         ? MOBILE_SEARCH_SCRIPT
         : MOBILE_SEARCH_SCRIPT + '\n' + STITCH_CLEAN_SCRIPT;
-    html = html.replace('</body>', scripts + '\n</body>');
+    html = html.replace('</body>', scripts + '\n' + NOW_PRINTING_SCRIPT + '\n</body>');
     return html;
 }
 
@@ -204,6 +219,6 @@ const WEB_CSS = `<style id="web-layout-styles">
 export function injectWebLayout(html: string): string {
     html = html.replace('</head>', WEB_CSS + '\n' + LIKE_UTILS_SCRIPT + '\n</head>');
     html = replaceHeader(html, WEB_HEADER);
-    html = html.replace('</body>', WEB_SEARCH_SCRIPT + '\n' + STITCH_CLEAN_SCRIPT + '\n</body>');
+    html = html.replace('</body>', WEB_SEARCH_SCRIPT + '\n' + STITCH_CLEAN_SCRIPT + '\n' + NOW_PRINTING_SCRIPT + '\n</body>');
     return html;
 }
