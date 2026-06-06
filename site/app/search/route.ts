@@ -13,8 +13,9 @@ function buildPrefetchUrl(base: string, sp: URLSearchParams): string | null {
     const maker   = sp.get('maker')   || '';
     const genre   = sp.get('genre')   || '';
     const label   = sp.get('label')   || '';
+    const series  = sp.get('series')  || '';
 
-    if (!q && !actress && !maker && !genre && !label) return null;
+    if (!q && !actress && !maker && !genre && !label && !series) return null;
 
     const p = new URLSearchParams();
     p.set('limit', '41'); // モバイル20件+1 / Web40件+1 の多い方
@@ -25,6 +26,7 @@ function buildPrefetchUrl(base: string, sp: URLSearchParams): string | null {
     if (maker)   p.set('maker',   maker);
     if (genre)   p.set('genre',   genre);
     if (label)   p.set('label',   label);
+    if (series)  p.set('series',  series);
 
     const origin = new URL(base).origin;
     return `${origin}/api/products?${p.toString()}`;

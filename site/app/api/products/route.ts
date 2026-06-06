@@ -392,8 +392,10 @@ export async function GET(request: NextRequest) {
             conditions.push('sample_video_url IS NOT NULL');
         }
         if (series && !isMgs) {
-            conditions.push('series_name LIKE ?');
-            args.push(`%${series}%`);
+            // 同一シリーズに限定（完全一致）。LIKEだと「ガンギマリ」が「ブリブリガンギマリ…」等の
+            // 別シリーズを誤って拾うため、シリーズ名の完全一致で絞る。
+            conditions.push('series_name = ?');
+            args.push(series);
         }
         if (vrOnly && !isMgs) {
             conditions.push('vr_flag = 1');
