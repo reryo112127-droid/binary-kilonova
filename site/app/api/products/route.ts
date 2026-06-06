@@ -234,7 +234,9 @@ export async function GET(request: NextRequest) {
         profileActresses = profileActresses.slice(0, 150);
     }
 
-    const mgsClient = (source === 'fanza') ? null : await getMgsClient();
+    // series はFANZAのみが持つメタデータ。MGSはseries列が無く絞り込めず全件流入するため、
+    // series指定時はFANZA限定にする。
+    const mgsClient = (source === 'fanza' || series) ? null : await getMgsClient();
     const fanzaClient = (source === 'mgs') ? null : await getFanzaClient();
 
     if (!mgsClient && !fanzaClient) {
