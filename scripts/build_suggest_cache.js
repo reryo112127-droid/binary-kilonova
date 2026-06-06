@@ -157,6 +157,16 @@ async function main() {
         process.exit(1);
     }
 
+    // ブロックメーカーをサジェスト候補から除外（作品削除済みでも将来の混入を防ぐ防御的フィルタ）
+    try {
+        const blocked = new Set(JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'blocked_makers.json'), 'utf-8')).makers || []);
+        if (blocked.size) {
+            const before = merged.makers.length;
+            merged.makers = merged.makers.filter(m => !blocked.has(m));
+            console.log(`  ブロックメーカー除外: ${before - merged.makers.length} 件`);
+        }
+    } catch (e) { console.warn('  [警告] blocked_makers.json 読み込み不可:', e.message); }
+
     merged.generated_at = new Date().toISOString();
 
     // ファイルに保存（ローカル環境用）
