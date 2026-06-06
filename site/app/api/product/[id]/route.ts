@@ -41,6 +41,12 @@ export async function GET(
     // R2 read-through: 永続キャッシュにあればTursoを叩かず返す
     const r2data = await r2GetProduct(id);
     if (r2data) {
+        // R2キャッシュ生成時は filterActresses 未適用のため、配信時に役名/通称を除去する
+        r2data.actresses = filterActresses(
+            (r2data.actresses as string | null) || null,
+            (r2data.genres as string | null) || null,
+            (r2data.maker as string | null) || null
+        );
         setCached(cacheKey, r2data);
         if (cfCache && cfCacheKey) {
             await cfCache.put(cfCacheKey, new Response(JSON.stringify(r2data), {
