@@ -1,35 +1,17 @@
 // 素人作品かどうかの判定や、女優名フィルタリングを行うユーティリティ
-// NOTE: fs/path は Cloudflare Workers で使用不可のため動的 require + try-catch で囲む
+// 実在女優のホワイトリストはビルド時に静的importしてバンドルに含める
+// （Cloudflare Workers では fs が使えないため。生成: scripts/build_actress_whitelist.js）
+import whitelistNames from '../data/actress_whitelist.json';
+
+// 名前正規化（前後trim + 内部空白除去）。whitelist側も同じ正規化で生成済み。
+function normName(s: string): string {
+    return String(s || '').trim().replace(/\s+/g, '');
+}
 
 let knownActresses: Set<string> | null = null;
-
 function getKnownActresses(): Set<string> {
     if (knownActresses) return knownActresses;
-    knownActresses = new Set<string>();
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const fs = require('fs') as typeof import('fs');
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const path = require('path') as typeof import('path');
-        const filePath = path.join(process.cwd(), 'data', 'actresses_all.json');
-        if (fs.existsSync(filePath)) {
-            const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-            data.forEach((a: any) => knownActresses!.add(a.name));
-        }
-
-        const aliasPath = path.join(process.cwd(), 'data', 'actress_aliases.json');
-        if (fs.existsSync(aliasPath)) {
-            const aliases = JSON.parse(fs.readFileSync(aliasPath, 'utf-8'));
-            aliases.forEach((group: string[]) => {
-                group.forEach(name => knownActresses!.add(name));
-            });
-        }
-    } catch (e) {
-        // Cloudflare Workers など fs が使えない環境では空セットで続行
-        if (process.env.NODE_ENV !== 'production') {
-            console.error('Failed to load known actresses', e);
-        }
-    }
+    knownActresses = new Set<string>(whitelistNames as string[]);
     return knownActresses;
 }
 
@@ -61,25 +43,24 @@ function looksLikeDescription(name: string): boolean {
 export function filterActresses(actressesStr: string | null, genres: string | null, maker: string | null): string | null {
     if (!actressesStr) return null;
 
-    const entries = actressesStr.split(/,|、/).map(s => s.trim()).filter(Boolean);
+    // 別名「澤村レイコ（高坂保奈美、高坂ますみ）」内のカンマで分割しないよう、括弧内を一時退避してから分割
+    const protectedStr = actressesStr.replace(/（[^）]*）/g, m => m.replace(/[,、]/g, ' '));
+    const entries = protectedStr.split(/[,、]/).map(s => s.trim()).filter(Boolean);
 
     // いずれかのエントリが説明文形式なら、素人作品とみなしてknown女優フィルターを適用
     const hasDescriptionEntry = entries.some(e => looksLikeDescription(e));
     const isAmateur = isAmateurWork(genres || '', maker || '') || hasDescriptionEntry;
 
     if (isAmateur) {
+        // 素人作品は役名/通称が混入しやすいため、実在女優ホワイトリストに載っている名前のみ採用。
+        // （avwikiで特定された名前もホワイトリストに含めてあるので残る）
         const knownSet = getKnownActresses();
-        const processed = entries.map(entry => {
-            // known女優はそのまま
-            if (knownSet.has(entry)) return entry;
-            // 説明文形式（役名・年齢・職業など）→ 特定できないためnull
-            if (looksLikeDescription(entry)) return null;
-            // クリーンな名前（説明なし）はそのまま表示
-            return entry;
-        }).filter((a): a is string => !!a);
+        const processed = entries
+            .map(entry => entry.replace(/（[^）]*）|\([^)]*\)/g, '')) // 別名/年号の括弧を外して照合（「矢野ありさ（2016）」等）
+            .filter(entry => knownSet.has(normName(entry)));
 
         if (processed.length === 0) return null;
-        return processed.join(', ');
+        return [...new Set(processed)].join(', ');
     }
 
     // 素人作品以外（メーカー品）は、そのまま表示する

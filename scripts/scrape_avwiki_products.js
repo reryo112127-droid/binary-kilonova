@@ -316,7 +316,8 @@ async function applyFromJsonl(clients) {
 
         for (const entry of chunk) {
             if (!entry.actresses || entry.actresses.length === 0) continue;
-            const actressStr = entry.actresses.join(', ');
+            // 名前ごとに内部スペースを除去（avwikiの「佐々木 ひな」→「佐々木ひな」。検索FTS・女優照合の精度向上）
+            const actressStr = entry.actresses.map(a => String(a).trim().replace(/\s+/g, '')).filter(Boolean).join(', ');
             if (entry.maker_pid) {
                 mgsStmts.push({
                     sql:  `UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ? AND (actresses IS NULL OR actresses = '')`,

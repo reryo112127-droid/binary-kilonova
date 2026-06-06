@@ -24,7 +24,15 @@ CREATE TABLE IF NOT EXISTS products (
     sale_end_date     TEXT,
     series_id         TEXT,
     series_name       TEXT,
-    vr_flag           INTEGER DEFAULT 0
+    vr_flag           INTEGER DEFAULT 0,
+    -- 日次スクリプトが書く小さなメタ列（sample_images_json(342MB)のみ除外。これらは小さいので保持）
+    review_count      INTEGER,
+    review_average    REAL,
+    detail_url        TEXT,
+    floor             TEXT,
+    scraped_at        TEXT,
+    updated_at        TEXT,
+    price_updated_at  TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_sale_start   ON products(sale_start_date DESC);

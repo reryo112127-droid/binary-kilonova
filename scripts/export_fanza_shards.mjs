@@ -19,7 +19,8 @@ const BYTES_PER_INSERT = 80 * 1024;
 
 const SLIM_COLS = ['product_id','title','actresses','maker','label','duration_min','genres',
     'sale_start_date','main_image_url','sample_video_url','affiliate_url','list_price','current_price',
-    'discount_pct','sale_end_date','series_id','series_name','vr_flag'];
+    'discount_pct','sale_end_date','series_id','series_name','vr_flag',
+    'review_count','review_average','detail_url','floor','scraped_at','updated_at','price_updated_at'];
 
 function sqlVal(v) {
     if (v === null || v === undefined) return 'NULL';

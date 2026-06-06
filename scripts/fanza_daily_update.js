@@ -463,9 +463,10 @@ async function main() {
         return;
     }
 
+    // sample_images_json はスリムシャードに無い(R2配信)ため除外。画像詳細は別途R2へ。
     const allColumns = [
         'product_id','title','actresses','maker','label','duration_min',
-        'genres','sale_start_date','main_image_url','sample_images_json',
+        'genres','sale_start_date','main_image_url',
         'sample_video_url','affiliate_url','detail_url',
         'list_price','current_price','discount_pct','sale_end_date',
         'review_count','review_average',
