@@ -1372,10 +1372,13 @@ async function scrapeMakerPage(clients, makerSlug) {
             const elHtml = $(el).html() || '';
 
             // 女優名: li.actress-name
+            // 1要素に「#名前1 #名前2 …」と連結される場合があるため # で分割して個別化する
             const actresses = [];
             $(el).find('li.actress-name').each((j, a) => {
-                const name = $(a).text().trim().replace(/^#/, '');
-                if (name) actresses.push(name);
+                const raw = $(a).text().trim();
+                raw.split('#').map(s => s.trim()).filter(Boolean).forEach(n => {
+                    if (!actresses.includes(n)) actresses.push(n);
+                });
             });
             if (actresses.length === 0) return;
 
