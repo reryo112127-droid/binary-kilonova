@@ -472,7 +472,7 @@ async function genSaleProducts() {
 // ── メーカー一覧 ──────────────────────────────────────────────────
 async function genMakersList() {
     console.log('[メーカー一覧] 取得中...');
-    const [mgsRows, fanzaRows] = await Promise.all([
+    const [mgsRows, fanzaRows, fanzaVideocRows] = await Promise.all([
         mgs.execute({
             sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image
                   FROM products
@@ -489,6 +489,18 @@ async function genMakersList() {
                   WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
                   GROUP BY maker HAVING cnt >= 3
                   ORDER BY cnt DESC LIMIT 400`,
+            args: [],
+        }).then(r => r.rows).catch(() => []),
+        // 素人(videoc)主体のメーカーは作品数が小さく上位400に入らず一覧から漏れるため、専用に取得して必ず含める。
+        // videoaも持つ大手(SOD等)を誤分類しないよう「videocが過半数」のメーカーに限定。
+        fanza.execute({
+            sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image,
+                         SUM(CASE WHEN floor = 'videoc' THEN 1 ELSE 0 END) as videoc_cnt
+                  FROM products
+                  WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
+                  GROUP BY maker
+                  HAVING videoc_cnt >= 3 AND videoc_cnt > cnt / 2
+                  ORDER BY cnt DESC LIMIT 1000`,
             args: [],
         }).then(r => r.rows).catch(() => []),
     ]);
@@ -509,7 +521,19 @@ async function genMakersList() {
         if (e) { e.count += cnt; e.sources.push('fanza'); if (floor === 'videoc') e.floor = 'videoc'; }
         else map.set(name, { name, count: cnt, sample_image: poster(String(row.sample_image ?? '')), sources: ['fanza'], floor });
     }
-    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 300);
+    // 素人(videoc)メーカーを必ず取り込む（上位400に入らない小規模シリーズも含める）
+    for (const row of fanzaVideocRows) {
+        const name = String(row.maker ?? '').trim();
+        if (!name) continue;
+        const e = map.get(name);
+        if (e) { e.floor = 'videoc'; if (!e.sources.includes('fanza')) e.sources.push('fanza'); }
+        else map.set(name, { name, count: Number(row.cnt ?? 0), sample_image: poster(String(row.sample_image ?? '')), sources: ['fanza'], floor: 'videoc' });
+    }
+    // videoc(素人)は全件、それ以外(videoa/MGS)は作品数上位300を採用
+    const all = Array.from(map.values());
+    const videoc = all.filter(m => m.floor === 'videoc');
+    const other  = all.filter(m => m.floor !== 'videoc').sort((a, b) => b.count - a.count).slice(0, 300);
+    return [...other, ...videoc].sort((a, b) => b.count - a.count);
 }
 
 // ── メイン ────────────────────────────────────────────────────────
