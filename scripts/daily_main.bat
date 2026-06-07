@@ -26,11 +26,12 @@ echo main daily update start: %date% %time% >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
 REM === [1] MGS動画 新作取得・価格更新 ===
+REM 注: CI=true にすると phase3 がローカルmgs.db更新をskipし、step4の
+REM generate-static-cache-local がローカルから生成するため新作が反映されない。
+REM CIは設定せず、ローカル+D1の両方を更新する。
 echo [1/4] MGS daily update: %time% >> "%LOG_FILE%"
-set CI=true
 "%NODE%" "%PROJECT_DIR%\scripts\phase3_daily_update.js" >> "%LOG_FILE%" 2>&1
 echo [1/4] done: %errorlevel% at %time% >> "%LOG_FILE%"
-set CI=
 
 REM === [2] 女優プロフィール更新（FANZA API・最新500件、日曜は全件） ===
 echo [2/4] actress profiles: %time% >> "%LOG_FILE%"
