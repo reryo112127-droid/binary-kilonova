@@ -19,14 +19,18 @@ END`;
 (async () => {
     for (let s = 0; s < FANZA_SHARDS; s++) {
         const db = d1(`fanza-${s}`);
-        // 対象 product_id を収集（maker IN、80<100バインド上限）
-        const mph = blocked.map(() => '?').join(',');
+        // 対象 product_id を収集。makerが多いとバインド上限(100)超のため80社ずつ分割。
         const ids = [];
         const PAGE = 5000;
-        for (let off = 0; ; off += PAGE) {
-            const r = await db.execute({ sql: `SELECT product_id FROM products WHERE maker IN (${mph}) LIMIT ? OFFSET ?`, args: [...blocked, PAGE, off] });
-            ids.push(...r.rows.map(x => String(x.product_id)));
-            if (r.rows.length < PAGE) break;
+        const MK = 80;
+        for (let mi = 0; mi < blocked.length; mi += MK) {
+            const mchunk = blocked.slice(mi, mi + MK);
+            const mph = mchunk.map(() => '?').join(',');
+            for (let off = 0; ; off += PAGE) {
+                const r = await db.execute({ sql: `SELECT product_id FROM products WHERE maker IN (${mph}) LIMIT ? OFFSET ?`, args: [...mchunk, PAGE, off] });
+                ids.push(...r.rows.map(x => String(x.product_id)));
+                if (r.rows.length < PAGE) break;
+            }
         }
         console.log(`[shard ${s}] 削除対象: ${ids.length.toLocaleString()} 件`);
         if (ids.length === 0) continue;

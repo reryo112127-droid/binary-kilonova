@@ -24,14 +24,19 @@ END`;
     local.close();
     console.log(`✅ ローカル mgs.db 削除: ${localN.toLocaleString()} 件`);
 
-    // 2) D1 avrankings-mgs から削除
+    // 2) D1 avrankings-mgs から削除（makerが多いとバインド上限超のため80社ずつ分割）
     const db = d1('mgs');
     const ids = [];
     const PAGE = 5000;
-    for (let off = 0; ; off += PAGE) {
-        const r = await db.execute({ sql: `SELECT product_id FROM products WHERE maker IN (${mph}) LIMIT ? OFFSET ?`, args: [...blocked, PAGE, off] });
-        ids.push(...r.rows.map(x => String(x.product_id)));
-        if (r.rows.length < PAGE) break;
+    const MK = 80;
+    for (let mi = 0; mi < blocked.length; mi += MK) {
+        const mchunk = blocked.slice(mi, mi + MK);
+        const mph2 = mchunk.map(() => '?').join(',');
+        for (let off = 0; ; off += PAGE) {
+            const r = await db.execute({ sql: `SELECT product_id FROM products WHERE maker IN (${mph2}) LIMIT ? OFFSET ?`, args: [...mchunk, PAGE, off] });
+            ids.push(...r.rows.map(x => String(x.product_id)));
+            if (r.rows.length < PAGE) break;
+        }
     }
     console.log(`[MGS D1] 削除対象: ${ids.length.toLocaleString()} 件`);
     if (ids.length === 0) { console.log('対象なし'); return; }
