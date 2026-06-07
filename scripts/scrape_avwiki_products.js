@@ -1166,10 +1166,12 @@ async function scrapeAllMakers(clients) {
                 const m = htmlStr.match(/mgstage\.com\/product\/product_detail\/([A-Z0-9]+-\d+)\//i);
                 pid = m ? m[1].toUpperCase() : null;
             }
+            // 「#名前1 #名前2 …」と1要素に連結される場合があるため # で分割して個別化
             const actresses = [];
             $(el).find('li.actress-name').each((j, a) => {
-                const name = $(a).text().trim().replace(/^#/, '');
-                if (name) actresses.push(name);
+                $(a).text().trim().split('#').map(s => s.trim()).filter(Boolean).forEach(n => {
+                    if (!actresses.includes(n)) actresses.push(n);
+                });
             });
             if (pid && actresses.length > 0) results.push({ pid, actresses });
         });
