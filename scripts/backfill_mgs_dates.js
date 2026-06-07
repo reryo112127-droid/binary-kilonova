@@ -7,7 +7,9 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const Database = require('better-sqlite3');
-const { fetchPage, politeWait, buildDetailUrl } = require('../lib/fetcher');
+const { fetchPage, buildDetailUrl } = require('../lib/fetcher');
+const WAIT_MS = 1000; // 詳細ページは軽量なので短め
+const politeWait = () => new Promise(r => setTimeout(r, WAIT_MS));
 const { parseDetailPage } = require('../lib/parser');
 const { d1 } = require('./lib/d1.js');
 
