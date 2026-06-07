@@ -479,7 +479,7 @@ async function genMakersList() {
                   WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
                     AND (duration_min IS NULL OR duration_min < 600)
                   GROUP BY maker HAVING cnt >= 3
-                  ORDER BY cnt DESC LIMIT 400`,
+                  ORDER BY cnt DESC LIMIT 2000`,
             args: [],
         }).then(r => r.rows).catch(() => []),
         fanza.execute({
@@ -488,7 +488,7 @@ async function genMakersList() {
                   FROM products
                   WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
                   GROUP BY maker HAVING cnt >= 3
-                  ORDER BY cnt DESC LIMIT 400`,
+                  ORDER BY cnt DESC LIMIT 3000`,
             args: [],
         }).then(r => r.rows).catch(() => []),
         // 素人(videoc)主体のメーカーは作品数が小さく上位400に入らず一覧から漏れるため、専用に取得して必ず含める。
@@ -529,11 +529,9 @@ async function genMakersList() {
         if (e) { e.floor = 'videoc'; if (!e.sources.includes('fanza')) e.sources.push('fanza'); }
         else map.set(name, { name, count: Number(row.cnt ?? 0), sample_image: poster(String(row.sample_image ?? '')), sources: ['fanza'], floor: 'videoc' });
     }
-    // videoc(素人)は全件、それ以外(videoa/MGS)は作品数上位300を採用
-    const all = Array.from(map.values());
-    const videoc = all.filter(m => m.floor === 'videoc');
-    const other  = all.filter(m => m.floor !== 'videoc').sort((a, b) => b.count - a.count).slice(0, 300);
-    return [...other, ...videoc].sort((a, b) => b.count - a.count);
+    // 作品が3件以上ある全メーカーを掲載（上限なし）。
+    // /makersページは platform×五十音×検索でフィルタ描画するため件数増でも軽量。
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
 }
 
 // ── メイン ────────────────────────────────────────────────────────
