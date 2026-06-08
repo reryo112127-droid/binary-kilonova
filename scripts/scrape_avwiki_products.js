@@ -90,8 +90,25 @@ async function managedBatchUpdate(client, statements) {
         console.warn('  [DROP TRIGGER skipped]', e.message);
         // Proceed anyway — if trigger is missing, updates will work; if present, may fail
     }
-    const results = await client.batch(statements, 'write');
-    const updated = results.reduce((acc, r) => acc + (r.rowsAffected || 0), 0);
+    // D1のCPU制限(429)回避のため小さくチャンク分割＋backoff＋小休止。大量メーカー(800件超)対策。
+    let updated = 0;
+    const CH = 50;
+    for (let i = 0; i < statements.length; i += CH) {
+        const chunk = statements.slice(i, i + CH);
+        let ok = false;
+        for (let a = 0; a < 4 && !ok; a++) {
+            try {
+                const results = await client.batch(chunk, 'write');
+                updated += results.reduce((acc, r) => acc + (r.rowsAffected || 0), 0);
+                ok = true;
+            } catch (e) {
+                if (/429|CPU/.test(e.message) && a < 3) { await sleep(5000 * (a + 1)); continue; }
+                for (const st of chunk) { try { const r = await client.execute(st); updated += (r.rowsAffected || 0); } catch {} }
+                ok = true;
+            }
+        }
+        await sleep(300);
+    }
     // Recreate trigger (FTS5 rebuild omitted — let generate-static-cache handle it)
     try {
         await withTimeout(client.execute(TRIGGER_DDL), 20000, 'CREATE TRIGGER');

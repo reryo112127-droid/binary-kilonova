@@ -45,7 +45,10 @@ export function filterActresses(actressesStr: string | null, genres: string | nu
 
     // 別名「澤村レイコ（高坂保奈美、高坂ますみ）」内のカンマで分割しないよう、括弧内を一時退避してから分割
     const protectedStr = actressesStr.replace(/（[^）]*）/g, m => m.replace(/[,、]/g, ' '));
-    const entries = protectedStr.split(/[,、]/).map(s => s.trim()).filter(Boolean);
+    // ＊＊＊（avwikiの出演者不明プレースホルダ）は除去
+    const entries = protectedStr.split(/[,、]/).map(s => s.trim()).filter(Boolean)
+        .filter(e => !/^[＊*]+$/.test(e));
+    if (entries.length === 0) return null;
 
     // いずれかのエントリが説明文形式なら、素人作品とみなしてknown女優フィルターを適用
     const hasDescriptionEntry = entries.some(e => looksLikeDescription(e));
@@ -63,6 +66,7 @@ export function filterActresses(actressesStr: string | null, genres: string | nu
         return [...new Set(processed)].join(', ');
     }
 
-    // 素人作品以外（メーカー品）は、そのまま表示する
-    return actressesStr;
+    // 素人作品以外（メーカー品）は、そのまま表示する（＊が無ければ原文、有れば＊除去済みで再構成）
+    if (!/[＊*]/.test(actressesStr)) return actressesStr;
+    return entries.join(', ');
 }
