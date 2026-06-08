@@ -1,0 +1,4 @@
+# Windowsバッチ/PowerShellは必ずCRLFでチェックアウト（cmd.exeはLF混在やUTF-8日本語で構文エラーになり失敗する）
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

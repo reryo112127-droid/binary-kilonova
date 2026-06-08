@@ -2,9 +2,9 @@
 setlocal
 
 REM ============================================================
-REM  FANZA日次取得バッチ（深夜1:00実行）
-REM  FANZAは深夜0:00に予約作品が公開されるため、その直後に取得する。
-REM  cache生成・deployは行わない（10:30のdaily_main.batでまとめて反映）。
+REM  FANZA1:00
+REM  FANZA0:00
+REM  cachedeploy10:30daily_main.bat
 REM ============================================================
 
 set PROJECT_DIR=C:\Users\Owner\.gemini\antigravity\playground\binary-kilonova
@@ -22,7 +22,7 @@ echo ======================================== >> "%LOG_FILE%"
 echo FANZA daily update start: %date% %time% >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
-REM FANZA新作・予約作品取得＋価格更新
+REM FANZA
 "%NODE%" "%PROJECT_DIR%\scripts\fanza_daily_update.js" >> "%LOG_FILE%" 2>&1
 echo FANZA done: %errorlevel% at %time% >> "%LOG_FILE%"
 

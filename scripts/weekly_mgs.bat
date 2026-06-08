@@ -11,14 +11,14 @@ for /f "delims=" %%D in ('%NODE% -e "process.stdout.write(new Date().toISOString
 set LOG_FILE=%LOG_DIR%\weekly_mgs_%TODAY%.log
 
 echo ======================================== >> "%LOG_FILE%"
-echo  MGS 週次価格更新開始: %date% %time% >> "%LOG_FILE%"
-echo  範囲: 700ページ（約6年分） >> "%LOG_FILE%"
+echo  MGS : %date% %time% >> "%LOG_FILE%"
+echo  : 7006 >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
 %NODE% "%PROJECT_DIR%\scripts\phase3_daily_update.js" --pages 700 >> "%LOG_FILE%" 2>&1
 
 echo ======================================== >> "%LOG_FILE%"
-echo  MGS 週次価格更新完了: %date% %time% (exit: %errorlevel%) >> "%LOG_FILE%"
+echo  MGS : %date% %time% (exit: %errorlevel%) >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
 endlocal

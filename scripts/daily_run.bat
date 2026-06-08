@@ -17,33 +17,33 @@ echo ======================================== >> "%LOG_FILE%"
 echo daily update start: %date% %time% >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
-REM === [1] FANZA新作取得・価格更新 ===
+REM === [1] FANZA ===
 echo [1/8] FANZA daily update: %time% >> "%LOG_FILE%"
 "%NODE%" "%PROJECT_DIR%\scripts\fanza_daily_update.js" >> "%LOG_FILE%" 2>&1
 echo [1/8] done: %errorlevel% at %time% >> "%LOG_FILE%"
 
-REM === [2] MGS動画 新作取得・価格更新 ===
+REM === [2] MGS  ===
 echo [2/8] MGS daily update: %time% >> "%LOG_FILE%"
 set CI=true
 "%NODE%" "%PROJECT_DIR%\scripts\phase3_daily_update.js" >> "%LOG_FILE%" 2>&1
 echo [2/8] done: %errorlevel% at %time% >> "%LOG_FILE%"
 set CI=
 
-REM === [3] avwiki 新着product ページから出演者情報取得 (RSS 100件) ===
+REM === [3] avwiki product  (RSS 100) ===
 echo [3/8] avwiki daily products: %time% >> "%LOG_FILE%"
 "%NODE%" "%PROJECT_DIR%\scripts\scrape_avwiki_products.js" --daily --count 100 >> "%LOG_FILE%" 2>&1
 echo [3/8] done: %errorlevel% at %time% >> "%LOG_FILE%"
 
-REM === [4] avwiki 更新女優ページから改名・SNS情報取得 ===
+REM === [4] avwiki SNS ===
 echo [4/8] avwiki daily actresses: %time% >> "%LOG_FILE%"
 "%NODE%" "%PROJECT_DIR%\scripts\scrape_avwiki_full.js" --daily >> "%LOG_FILE%" 2>&1
 echo [4/8] avwiki actresses done: %errorlevel% at %time% >> "%LOG_FILE%"
-REM 取得した女優情報を Turso に反映
+REM  Turso 
 "%NODE%" "%PROJECT_DIR%\scripts\build_avwiki_profiles.js" >> "%LOG_FILE%" 2>&1
 echo [4/8] profiles applied: %errorlevel% at %time% >> "%LOG_FILE%"
 
-REM === [5] AVWIKI未収録作品の出演者情報（SeesaaWiki）を反映 ===
-REM NOTE: seesaawiki_actress_map.jsonl が存在する場合のみ反映
+REM === [5] AVWIKISeesaaWiki ===
+REM NOTE: seesaawiki_actress_map.jsonl 
 echo [5/8] seesaawiki apply: %time% >> "%LOG_FILE%"
 if exist "%PROJECT_DIR%\data\seesaawiki_actress_map.jsonl" (
     "%NODE%" "%PROJECT_DIR%\scripts\seesaawiki_by_actress.js" --apply-only >> "%LOG_FILE%" 2>&1
@@ -52,8 +52,8 @@ if exist "%PROJECT_DIR%\data\seesaawiki_actress_map.jsonl" (
     echo [5/8] skipped ^(seesaawiki_actress_map.jsonl not found^) >> "%LOG_FILE%"
 )
 
-REM === [6] 女優プロフィール更新（FANZA API・最新500件） ===
-REM 全件更新は毎週日曜のみ、それ以外は最新500件のみ
+REM === [6] FANZA API500 ===
+REM 500
 echo [6/8] actress profiles: %time% >> "%LOG_FILE%"
 for /f %%W in ('powershell -NoProfile -Command "(Get-Date).DayOfWeek.value__"') do set DOW=%%W
 if "%DOW%"=="0" (
@@ -64,7 +64,7 @@ if "%DOW%"=="0" (
 )
 echo [6/8] done: %errorlevel% at %time% >> "%LOG_FILE%"
 
-REM === [7] actress_profiles.json → Turso 同期（月1回・毎日実行するとTurso行読み取りを消費するため） ===
+REM === [7] actress_profiles.json  Turso 1Turso ===
 echo [7/8] actress profiles sync to Turso: %time% >> "%LOG_FILE%"
 for /f %%M in ('powershell -NoProfile -Command "(Get-Date).Day"') do set DOM=%%M
 if "%DOM%"=="1" (
@@ -75,9 +75,9 @@ if "%DOM%"=="1" (
     echo [7/8] skipped ^(not day 1 of month: Turso sync runs monthly^) >> "%LOG_FILE%"
 )
 
-REM === [8] キャッシュ再生成 & デプロイ ===
-REM NOTE: generate-static-cache は Turso 行読み取りを大量消費するため毎日1回のみ実行
-REM       デプロイのみ行う場合は generate-static-cache をスキップして npm run deploy:cf のみ実行
+REM === [8]  &  ===
+REM NOTE: generate-static-cache  Turso 1
+REM        generate-static-cache  npm run deploy:cf 
 echo [8/8] cache+deploy: %time% >> "%LOG_FILE%"
 cd /d "%PROJECT_DIR%\site"
 "%NODE%" scripts\generate-static-cache.mjs >> "%LOG_FILE%" 2>&1

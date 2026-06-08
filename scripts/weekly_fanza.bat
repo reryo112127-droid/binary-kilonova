@@ -11,14 +11,14 @@ for /f "delims=" %%D in ('%NODE% -e "process.stdout.write(new Date().toISOString
 set LOG_FILE=%LOG_DIR%\weekly_fanza_%TODAY%.log
 
 echo ======================================== >> "%LOG_FILE%"
-echo  FANZA 週次価格更新開始: %date% %time% >> "%LOG_FILE%"
-echo  範囲: 直近72ヶ月（6年分） >> "%LOG_FILE%"
+echo  FANZA : %date% %time% >> "%LOG_FILE%"
+echo  : 726 >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
 %NODE% "%PROJECT_DIR%\scripts\fanza_daily_update.js" --months 72 >> "%LOG_FILE%" 2>&1
 
 echo ======================================== >> "%LOG_FILE%"
-echo  FANZA 週次価格更新完了: %date% %time% (exit: %errorlevel%) >> "%LOG_FILE%"
+echo  FANZA : %date% %time% (exit: %errorlevel%) >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
 endlocal
