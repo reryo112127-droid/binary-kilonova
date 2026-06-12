@@ -65,6 +65,8 @@ REM === [4]  &  ===
 REM Turso()SQLite
 REM (fanza.db/mgs.db) generate-static-cache-local.mjs 
 REM Turso generate-static-cache.mjs (Turso) 
+REM cross-platform作品のMGSダウンロード買い切り価格を補完(未取得分のみ、最大500件/日で時間制限)
+"%NODE%" "%PROJECT_DIR%\scripts\build_mgs_buy_price.js" --limit 500 >> "%LOG_FILE%" 2>&1
 echo [4/5] cache+deploy (local DB): %time% >> "%LOG_FILE%"
 cd /d "%PROJECT_DIR%\site"
 "%NODE%" scripts\generate-static-cache-local.mjs >> "%LOG_FILE%" 2>&1

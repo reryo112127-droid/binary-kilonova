@@ -33,8 +33,18 @@ async function enrichCrossPlatform(data: Record<string, unknown>, id: string): P
         ? { current: pCur, list: (data.list_price ?? null) as number | null, discount: Number(data.discount_pct ?? 0) }
         : null;
 
+    // MGSのD1価格は最安(視聴/ストリーミング)のため、FANZAのdownloadと条件が揃わない。
+    // ダウンロード買い切り価格を別キャッシュ(mgs_buy_price.json)から引いて優先する。
+    const buyMap = await readStaticCacheAsync<Record<string, { list: number; current: number }>>('mgs_buy_price.json').catch(() => null);
+    const buyPlat = (e?: { list: number; current: number } | null): PlatPrice | null => {
+        if (!e || e.current == null) return null;
+        const list = e.list ?? null;
+        const discount = (list && e.current && list > e.current) ? Math.round((list - e.current) / list * 100) : 0;
+        return { current: e.current, list, discount };
+    };
+
     // プライマリ側の価格は先に確定させる（相手側の取得が失敗しても片側価格は必ず表示する）。
-    if (primarySource === 'mgs') { data.mgs_price = primaryPrice; data.fanza_price = null; }
+    if (primarySource === 'mgs') { data.mgs_price = buyPlat(buyMap?.[id]) || primaryPrice; data.fanza_price = null; }
     else { data.fanza_price = primaryPrice; data.mgs_price = null; }
     data.cheaper_platform = null;
     data.cheaper_saving = 0;
@@ -72,7 +82,7 @@ async function enrichCrossPlatform(data: Record<string, unknown>, id: string): P
             data.fanza_price = cpPrice;
             if (cpAffiliate) data.fanza_affiliate_url = cpAffiliate;
         } else {
-            data.mgs_price = cpPrice;
+            data.mgs_price = buyPlat(buyMap?.[counterpartId]) || cpPrice;
             if (cpAffiliate) data.mgs_affiliate_url = cpAffiliate;
         }
 

@@ -328,6 +328,7 @@ binary-kilonova/
 ### サイト改善
 - **人気順の統一マージ**: MGS(お気に入り)×FANZA(レビュー)を各PF内で z-score 標準化し統一スコアで混在（`mergeByZScore`）
 - **クロスプラットフォーム価格比較**: 商品詳細でMGS↔FANZA同一作品の両アフィリンク＋安い方を表示（`build_cross_platform.js`）
+  - **価格条件の統一**: FANZA=ダウンロード価格 / MGS=最安(視聴)価格で不公平比較になっていた問題を修正。MGSのダウンロード買い切り価格を詳細ページから収集(`build_mgs_buy_price.js` → `mgs_buy_price.json`)し、APIが優先参照。両PFともダウンロード買い切りで比較（日次更新では上書きされない別キャッシュ管理）
 - **画像品質の是正**: `poster()` で MGS裏表紙`pb_e_`→表紙`pf_e_`、素人`jm.jpg`(100×100)→`jp-001.jpg`、`pt/ps`→`pl`。詳細ヒーローにも適用。DB正規化(`normalize_main_images.js`)＋R2商品キャッシュ無効化で生値も是正（amateur 46,135件リフレッシュ）
 - **詳細検索のページ文脈化**: 新作/メーカー一覧から、その文脈のメーカー・女優・ジャンルを数の多い順で絞り込み
 - **モバイル作品一覧の整理**: 未配線ボタン(filter/calendar/昇降順)を削除、ボタン配置統一、bfcacheでスクロール位置復元(`no-store`→`max-age=60`)
