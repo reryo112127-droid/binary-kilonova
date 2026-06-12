@@ -126,6 +126,8 @@
 (function(){
   var ps = new URLSearchParams(location.search);
   var actress=ps.get('actress')||'', maker=ps.get('maker')||'', label=ps.get('label')||'', genre=ps.get('genre')||'', q=ps.get('q')||'', series=ps.get('series')||'';
+  // 詳細検索の追加条件（身体的特徴・ソース等。組み合わせてAPIへ渡す）
+  var fCup=ps.get('cup')||'', fCups=ps.get('cups')||'', fHeight=ps.get('height')||'', fAgeMin=ps.get('ageMin')||'', fAgeMax=ps.get('ageMax')||'', fSource=ps.get('source')||'', fMinDiscount=ps.get('minDiscount')||'';
   var term = actress||maker||label||genre||q||series;
   // サーバーサイド注入データ（初回API呼び出し不要）
   var __ssrData = window.__SD__ || null;
@@ -137,7 +139,7 @@
   function poster(url){if(!url)return'';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;}
 
   var urlSort = ps.get('sort') || '';
-  var filters = { contentType:'all', sortOrder: urlSort === 'wish_count' ? 'popular' : 'new', source:'', showBest:false, vrOnly:false, fromDate:'', toDate:'' };
+  var filters = { contentType:'all', sortOrder: urlSort === 'wish_count' ? 'popular' : 'new', source:fSource, showBest:false, vrOnly:false, fromDate:ps.get('fromDate')||'', toDate:ps.get('toDate')||'' };
   var LIMIT = 20;
   var fetchOffset = 0;
   var isLoading = false;
@@ -167,12 +169,20 @@
     p.set('offset', String(off || 0));
     // 注: VR除外・sourceはクライアントサイドフィルター
     if (!filters.showBest) p.set('excludeBest','1');
+    // 構造化フィルターは複数同時指定可（詳細検索で組み合わせる）
     if (series) p.set('series',series);
-    else if (actress) p.set('actress',actress);
-    else if (maker) p.set('maker',maker);
-    else if (label) p.set('label',label);
-    else if (genre) p.set('genre',genre);
-    else if (q) p.set('q',q);
+    if (actress) p.set('actress',actress);
+    if (maker) p.set('maker',maker);
+    if (label) p.set('label',label);
+    if (genre) p.set('genre',genre);
+    if (q) p.set('q',q);
+    // 身体的特徴（女優プロフィールで絞り込み）
+    if (fCup) p.set('cup',fCup);
+    if (fCups) p.set('cups',fCups);
+    if (fHeight) p.set('height',fHeight);
+    if (fAgeMin) p.set('ageMin',fAgeMin);
+    if (fAgeMax) p.set('ageMax',fAgeMax);
+    if (fMinDiscount) p.set('minDiscount',fMinDiscount);
 
     if (filters.contentType==='pre-order') p.set('sort','pre-order');
     else if (filters.contentType==='new') p.set('sort','new');
@@ -276,7 +286,9 @@
     var url = buildUrl(0);
 
     // SSR注入データが現在の検索条件と一致する場合は即表示（API呼び出し不要）
-    if (__ssrData && __ssrData.p) {
+    // SSRは身体的特徴・割引を含まないため、それらが指定された詳細検索ではSSRを使わずAPI取得する
+    var hasExtra = !!(fCup||fCups||fHeight||fAgeMin||fAgeMax||fMinDiscount);
+    if (__ssrData && __ssrData.p && !hasExtra) {
       var sp = __ssrData.p;
       if (sp.q===q && sp.actress===actress && sp.maker===maker && sp.genre===genre && sp.label===label) {
         var raw = __ssrData.d;

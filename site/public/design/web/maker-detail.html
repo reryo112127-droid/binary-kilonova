@@ -103,7 +103,7 @@ body { font-family: 'Noto Sans JP', sans-serif; }
 <!-- VR除外 -->
 <button id="qf-vr" onclick="toggleVR()" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600">VR除外</button>
 <!-- 詳細検索 -->
-<a href="/search/advanced" class="inline-flex items-center text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition border border-blue-100">
+<a id="md-detail-link" href="/search/advanced" class="inline-flex items-center text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition border border-blue-100">
 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-width="2.5"/></svg>
 詳細検索
 </a>
@@ -130,6 +130,7 @@ body { font-family: 'Noto Sans JP', sans-serif; }
 
 <script>(function(){
 var makerName = decodeURIComponent(location.pathname.split('/maker/')[1] || '');
+(function(){ var dl=document.getElementById('md-detail-link'); if(dl&&makerName) dl.href='/search/advanced?ctx=maker&maker='+encodeURIComponent(makerName); })();
 var g = document.getElementById('products-grid');
 var pgWrap = document.getElementById('pagination-wrap');
 var titleEl = document.getElementById('md-title');

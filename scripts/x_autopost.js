@@ -14,6 +14,49 @@ require('dotenv').config({ path: './site/.env.local' });
 const { d1, fanzaShards } = require('./lib/d1');
 const { TwitterApi } = require('twitter-api-v2');
 const { rewritePhrase } = require('../lib/gemini_rewrite');
+const jpeg = require('jpeg-js');
+
+// ── シャドウバン対策: パッケージ画像を加工してハッシュを変える ──
+// MGSは pb_e_(裏)→pf_e_(表紙) に変換してから使う
+function posterUrl(url) {
+    if (!url) return '';
+    if (url.includes('pb_e_')) return url.replace('pb_e_', 'pf_e_');
+    if (url.includes('/digital/amateur/') && url.endsWith('jm.jpg')) return url.replace('jm.jpg', 'jp-001.jpg');
+    return url;
+}
+function uniquifyJpeg(buf) {
+    if (buf.length < 2 || buf[0] !== 0xFF || buf[1] !== 0xD8) return buf;
+    const c = Buffer.from('av-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8), 'utf8');
+    const len = c.length + 2;
+    if (len > 0xFFFF) return buf;
+    const seg = Buffer.concat([Buffer.from([0xFF, 0xFE, (len >> 8) & 0xFF, len & 0xFF]), c]);
+    return Buffer.concat([buf.subarray(0, 2), seg, buf.subarray(2)]);
+}
+// 端を約3%クロップ＋品質ランダムで再エンコード → ファイル/知覚ハッシュを変える
+function processPosterForX(buf) {
+    if (buf.length < 4 || buf[0] !== 0xFF || buf[1] !== 0xD8) return buf;
+    try {
+        const img = jpeg.decode(buf, { useTArray: true, maxMemoryUsageInMB: 512 });
+        const w = img.width, h = img.height, data = img.data;
+        if (!w || !h) return uniquifyJpeg(buf);
+        const cx = Math.max(2, Math.round(w * 0.03)), cy = Math.max(2, Math.round(h * 0.03));
+        const nw = w - cx * 2, nh = h - cy * 2;
+        if (nw < 80 || nh < 80) return uniquifyJpeg(buf);
+        const out = new Uint8Array(nw * nh * 4);
+        for (let y = 0; y < nh; y++) {
+            const sr = (y + cy) * w, dr = y * nw;
+            for (let x = 0; x < nw; x++) {
+                const si = (sr + x + cx) * 4, di = (dr + x) * 4;
+                out[di] = data[si]; out[di + 1] = data[si + 1]; out[di + 2] = data[si + 2]; out[di + 3] = 255;
+            }
+        }
+        const q = 78 + Math.floor(Math.random() * 8);
+        const enc = jpeg.encode({ data: out, width: nw, height: nh }, q);
+        return Buffer.from(enc.data);
+    } catch {
+        return uniquifyJpeg(buf);
+    }
+}
 
 // ==============================
 // 設定
@@ -108,8 +151,8 @@ function getTwitterClient(account) {
 // ==============================
 
 function buildCushionUrl(productId) {
-    // FANZAの作品詳細URL（管理画面はFANZAのみ）
-    return `${SITE_BASE_URL}/product/fanza-${productId}`;
+    // 作品詳細URL（/product/[id] はMGS/FANZA両方のidを解決する）
+    return `${SITE_BASE_URL}/product/${productId}`;
 }
 
 function buildActressHashtags(actressesRaw) {
@@ -211,12 +254,12 @@ async function main() {
 
     console.log(`[キュー] ID:${id}  作品:${product_id}  ジャンル:${genre}  アカウント:${account}`);
 
-    // FANZA DBから作品詳細取得
-    const fanzaDb = getFanzaClient();
-    const productResult = await fanzaDb.execute({
-        sql: `SELECT product_id, title, actresses FROM products WHERE product_id = ? LIMIT 1`,
-        args: [product_id],
-    });
+    // 作品詳細取得: MGS優先 → FANZAフォールバック（画像URLも取得）
+    const sqlSel = `SELECT product_id, title, actresses, main_image_url FROM products WHERE product_id = ? LIMIT 1`;
+    let productResult = await d1('mgs').execute({ sql: sqlSel, args: [product_id] }).catch(() => ({ rows: [] }));
+    if (!productResult.rows.length) {
+        productResult = await getFanzaClient().execute({ sql: sqlSel, args: [product_id] }).catch(() => ({ rows: [] }));
+    }
 
     if (!productResult.rows.length) {
         console.error(`[ERROR] 作品が見つかりません: ${product_id}`);
@@ -240,13 +283,34 @@ async function main() {
         return;
     }
 
-    // ランダム遅延（ボット検知回避）
-    await randomDelay(1000 * 60 * 2);
+    // ランダム遅延（ボット検知回避）。--now で省略（テスト用）
+    if (!process.argv.includes('--now')) await randomDelay(1000 * 60 * 2);
 
     // X投稿
     const twitterClient = getTwitterClient(account);
-    const posted = await twitterClient.v2.tweet(tweetText);
-    console.log(`[投稿] Tweet ID: ${posted.data.id}`);
+
+    // シャドウバン対策: パッケージ画像を加工(クロップ+再エンコード)して添付
+    let mediaId = null;
+    const imgUrl = posterUrl(String(product.main_image_url || ''));
+    if (imgUrl && !process.argv.includes('--no-image')) {
+        try {
+            const res = await fetch(imgUrl);
+            if (res.ok) {
+                const raw = Buffer.from(await res.arrayBuffer());
+                const processed = processPosterForX(raw);
+                mediaId = await twitterClient.v1.uploadMedia(processed, { mimeType: 'image/jpeg' });
+                console.log(`[画像] 加工添付: ${raw.length} → ${processed.length} bytes`);
+            }
+        } catch (e) {
+            console.warn('[画像] 添付スキップ(テキストのみ投稿):', e.message);
+        }
+    }
+
+    const posted = await twitterClient.v2.tweet({
+        text: tweetText,
+        ...(mediaId ? { media: { media_ids: [mediaId] } } : {}),
+    });
+    console.log(`[投稿] Tweet ID: ${posted.data.id}${mediaId ? ' (画像付き)' : ' (テキストのみ)'}`);
 
     // 投稿済みマーク
     await markAsPosted(siteDb, id);

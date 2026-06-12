@@ -1,6 +1,6 @@
 # AVコンシェルジュ — 進捗記録
 
-> 最終更新: 2026-05-13
+> 最終更新: 2026-06-15
 
 ---
 
@@ -320,6 +320,29 @@ binary-kilonova/
         ├── actress/[name]/route.ts  # retired フィールド追加
         └── mgs-video/route.ts       # MGSサンプル動画プロキシ
 ```
+
+---
+
+## ✅ 2026-06 — UI/データ品質・SNS自動投稿
+
+### サイト改善
+- **人気順の統一マージ**: MGS(お気に入り)×FANZA(レビュー)を各PF内で z-score 標準化し統一スコアで混在（`mergeByZScore`）
+- **クロスプラットフォーム価格比較**: 商品詳細でMGS↔FANZA同一作品の両アフィリンク＋安い方を表示（`build_cross_platform.js`）
+- **画像品質の是正**: `poster()` で MGS裏表紙`pb_e_`→表紙`pf_e_`、素人`jm.jpg`(100×100)→`jp-001.jpg`、`pt/ps`→`pl`。詳細ヒーローにも適用。DB正規化(`normalize_main_images.js`)＋R2商品キャッシュ無効化で生値も是正（amateur 46,135件リフレッシュ）
+- **詳細検索のページ文脈化**: 新作/メーカー一覧から、その文脈のメーカー・女優・ジャンルを数の多い順で絞り込み
+- **モバイル作品一覧の整理**: 未配線ボタン(filter/calendar/昇降順)を削除、ボタン配置統一、bfcacheでスクロール位置復元(`no-store`→`max-age=60`)
+- **女優ランキングをD1生成に切替**: `build_actress_ranking_d1.js`（ローカルDBの旧出演者名による取り違え=Ruru等を解消）。手動補正(改名/除外/顔写真上書き)対応
+- **データ清掃**: 画像403消失のテスト/ジャンク作品 `pf_o2_` 17件を削除
+
+### SNS自動投稿（新規）
+- **Bluesky自動投稿**: 無料・OG画像カード＋`sexual`セルフラベル（`bluesky_autopost.js`）
+- **X自動投稿（Playwright実ブラウザ）**: `x_browser_post.js`。公式API/Cookie方式は不可(402/code32)だが実ブラウザで投稿成功。**ツリー型**=1ポスト目:紹介文＋**サンプル動画**(FANZA/MGSを5〜15秒/冒頭5秒に`ffmpeg`自動編集) / 2ポスト目:女優ハッシュタグ＋URL。6アカウント自動振り分け、タスクスケジューラで1日6回
+- **投稿キュー自動充填**: `x_queue_fill.js`（VR=FANZA配信済み、anon=FANZA C(videoc)+MGS、Now Printing除外）
+
+### データ供給・運用
+- **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）
+- **MGS新作の発売日NULL問題修正** ＋ `daily_main.bat` 再構成（新作→価格分離、D1ランキング再生成、R2無効化）。bat類のCRLF/ASCII化(255失敗の真因)
+- **全メーカー出演者回収(AVWIKI)** をDBへ反映、whitelist追加
 
 ---
 

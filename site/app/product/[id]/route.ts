@@ -14,6 +14,14 @@ function escHtml(s: string): string {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// パッケージ画像のSNS用URL（MGS裏→表紙、素人jm→jp-001）
+function posterUrl(u: string): string {
+    if (!u) return '';
+    if (u.includes('pb_e_')) return u.replace('pb_e_', 'pf_e_');
+    if (u.includes('/digital/amateur/') && u.endsWith('jm.jpg')) return u.replace('jm.jpg', 'jp-001.jpg');
+    return u;
+}
+
 // SSR用プロダクトデータの取得（R2 read-through）
 const _ssrProductCache = new Map<string, { data: Record<string, unknown>; at: number }>();
 const SSR_PRODUCT_TTL = 24 * 60 * 60 * 1000;
@@ -68,7 +76,7 @@ async function fetchActressImageUrl(actressName: string): Promise<string | null>
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 
-function injectSEOMeta(html: string, product: Record<string, unknown> | null, id: string, actressImageUrl: string | null): string {
+function injectSEOMeta(html: string, product: Record<string, unknown> | null, id: string, actressImageUrl: string | null, preferPackage = false): string {
     const displayId = id.toUpperCase();
 
     // 女優名フィルタ適用
@@ -97,9 +105,9 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
     if (saleDate)  descParts.push(`配信: ${saleDate}`);
     const desc = descParts.join(' | ').slice(0, 130);
 
-    // OGP画像: 女優プロフィール写真（非露骨）を優先。なければ og:image を省略
-    // ※ パッケージ画像（main_image_url）は露骨なため SNS シェア時に使用しない
-    const ogImageUrl = actressImageUrl || '';
+    // OGP画像: 通常は女優プロフィール写真（非露骨）を優先。
+    // ?og=pkg（SNS自動投稿フィード経由）の時はパッケージ表紙を使う（投稿で画像カードを出すため）。
+    const ogImageUrl = preferPackage ? (posterUrl(imgUrl) || actressImageUrl || '') : (actressImageUrl || '');
 
     // JSON-LD (VideoObject) にはパッケージ画像を使用（検索エンジン向け）
     const actorList = actresses
@@ -167,7 +175,9 @@ export async function GET(
             }
         }
 
-        html = injectSEOMeta(html, product, id, actressImageUrl);
+        // ?og=pkg のときは og:image にパッケージ表紙を使う（SNS自動投稿フィード用）
+        const preferPackage = new URL(request.url).searchParams.get('og') === 'pkg';
+        html = injectSEOMeta(html, product, id, actressImageUrl, preferPackage);
 
         html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
         return new NextResponse(html, {

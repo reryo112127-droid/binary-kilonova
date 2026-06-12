@@ -308,9 +308,11 @@ export async function GET(request: NextRequest) {
         }
 
         return new NextResponse(html, {
+            // no-store は bfcache（戻る/進む復元）を無効化しスクロール位置が失われるため避ける。
+            // private + max-age=60 なら bfcache 有効（CDN共有はされない）。
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'private, no-store',
+                'Cache-Control': 'private, max-age=60',
             },
         });
     } catch {

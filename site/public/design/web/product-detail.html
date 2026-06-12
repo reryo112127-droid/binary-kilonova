@@ -244,9 +244,11 @@
 </a>
 <a id="pd-mgs-btn" class="flex flex-col items-center justify-center gap-1 bg-[#005BAC] hover:bg-[#004d99] text-white py-5 px-6 rounded-2xl font-black shadow-lg shadow-blue-200/60 transition-all hover:scale-[1.02] active:scale-[0.98]" href="#" target="_blank" rel="noopener noreferrer" style="display:none">
 <span class="text-lg tracking-wide">▶ MGS動画で視聴する</span>
+<span id="pd-mgs-price" class="text-xs font-medium opacity-90" style="display:none"></span>
 <span class="text-[11px] opacity-70 font-normal mt-0.5">PR・外部サービス</span>
 </a>
 </div>
+<p id="pd-cheaper" class="mt-4 text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-center" style="display:none"></p>
 </section>
 </div>
 <!-- Right Column: Actress Profiles -->
@@ -293,13 +295,15 @@ var _sampleImgs = [];
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function set(elId, val){ var el=document.getElementById(elId); if(el) el.textContent=val||'-'; }
   function show(elId){ var el=document.getElementById(elId); if(el) el.style.display=''; }
+  // MGS pb_e_(横長裏)→pf_e_(縦長表紙=顔あり)、素人 jm.jpg→jp-001.jpg、FANZA pl.jpgは鮮明なので維持
+  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;}
 
   fetch('/api/product/'+encodeURIComponent(id))
     .then(function(r){ return r.json(); })
     .then(function(p){
       // ヒーロー画像
       var heroImg = document.getElementById('pd-hero-img');
-      if (heroImg && p.main_image_url) heroImg.src = p.main_image_url;
+      if (heroImg && p.main_image_url) heroImg.src = poster(p.main_image_url);
 
       // タイトル
       set('pd-title', p.title);
@@ -504,6 +508,18 @@ var _sampleImgs = [];
           priceLine.style.display = '';
         }
       }
+      // プラットフォーム別の価格表示（API: fanza_price / mgs_price）。
+      // 片方しか無い場合は従来どおり p.current_price をフォールバックに使う。
+      function priceLabel(pp, fallbackCur, fallbackDisc) {
+        var cur = (pp && pp.current != null) ? pp.current : fallbackCur;
+        var disc = (pp && pp.discount) ? pp.discount : fallbackDisc;
+        if (cur == null) return null;
+        var t = '¥' + Number(cur).toLocaleString();
+        if (disc > 0) t = disc + '%OFF ' + t;
+        return t;
+      }
+      var fanzaPrimary = (p.source === 'fanza') ? p.current_price : null;
+      var mgsPrimary   = (p.source === 'mgs')   ? p.current_price : null;
       if (p.fanza_affiliate_url) {
         var fb = document.getElementById('pd-fanza-btn');
         if (fb) {
@@ -511,12 +527,8 @@ var _sampleImgs = [];
           fb.style.display = '';
           fb.addEventListener('click', function(){ trackPurchase('fanza'); }, {once:true});
           var fpriceEl = document.getElementById('pd-fanza-price');
-          if (fpriceEl && p.current_price) {
-            var fpText = '¥' + Number(p.current_price).toLocaleString();
-            if (p.discount_pct > 0) fpText = p.discount_pct + '%OFF ' + fpText;
-            fpriceEl.textContent = fpText;
-            fpriceEl.style.display = '';
-          }
+          var fpText = priceLabel(p.fanza_price, fanzaPrimary, p.discount_pct);
+          if (fpriceEl && fpText) { fpriceEl.textContent = fpText; fpriceEl.style.display = ''; }
         }
       }
       if (p.mgs_affiliate_url) {
@@ -525,6 +537,20 @@ var _sampleImgs = [];
           mb.href = p.mgs_affiliate_url;
           mb.style.display = '';
           mb.addEventListener('click', function(){ trackPurchase('mgs'); }, {once:true});
+          var mpriceEl = document.getElementById('pd-mgs-price');
+          var mpText = priceLabel(p.mgs_price, mgsPrimary, p.discount_pct);
+          if (mpriceEl && mpText) { mpriceEl.textContent = mpText; mpriceEl.style.display = ''; }
+        }
+      }
+      // どちらのプラットフォームが安いか（両方の現在価格が判明している場合のみ）
+      if (p.cheaper_platform && p.fanza_affiliate_url && p.mgs_affiliate_url) {
+        var chEl = document.getElementById('pd-cheaper');
+        if (chEl) {
+          var who = p.cheaper_platform === 'fanza' ? 'FANZA' : 'MGS';
+          var msg = '💰 今は ' + who + ' の方が安い';
+          if (p.cheaper_saving > 0) msg += '（¥' + Number(p.cheaper_saving).toLocaleString() + 'お得）';
+          chEl.textContent = msg;
+          chEl.style.display = '';
         }
       }
 
@@ -626,7 +652,7 @@ var _sampleImgs = [];
             var noAct = !(q.actresses&&q.actresses.trim());
             return '<div class="group cursor-pointer" onclick="location.href=\'/product/'+esc(q.product_id)+'\'">'
               +'<div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-100 mb-3 shadow-sm group-hover:shadow-md transition-all relative">'
-              +'<img class="w-full h-full object-cover object-right group-hover:scale-105 transition-transform duration-500" src="'+esc(q.main_image_url||'')+'" loading="lazy" alt=""/>'
+              +'<img class="w-full h-full object-cover object-right group-hover:scale-105 transition-transform duration-500" src="'+esc(poster(q.main_image_url||''))+'" loading="lazy" alt=""/>'
               +'<div class="absolute bottom-2 right-2 flex gap-1.5">'
               +(noAct?'<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-primary transition-colors" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-sm">add_circle</span></button>':'')
               +'<button class="w-7 h-7 flex items-center justify-center bg-white/90 backdrop-blur rounded-full shadow-sm hover:text-rose-500 transition-colors" onclick="event.stopPropagation()"><span class="material-symbols-outlined text-sm">favorite</span></button>'

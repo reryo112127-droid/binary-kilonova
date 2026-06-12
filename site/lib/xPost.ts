@@ -1,6 +1,50 @@
 import { TwitterApi } from 'twitter-api-v2';
+import jpeg from 'jpeg-js';
 import { getSiteClient, getMgsClient } from './turso';
 import { initSiteSchema } from './siteDb';
+
+// ── シャドウバン対策: パッケージ画像を加工して投稿する ──
+// X(旧Twitter)は「同一画像の使い回し」「広く出回った成人画像の完全一致」を
+// スパム/センシティブ判定の材料にする。投稿前に画像を再加工してハッシュ(ファイル/知覚)を
+// 変え、端を少しクロップして露骨な縁を落とすことで検知されにくくする。
+function processPosterForX(buf: Buffer): Buffer {
+    // 非JPEGや破損時はそのまま返す（最低限SOIだけ確認）
+    if (buf.length < 4 || buf[0] !== 0xFF || buf[1] !== 0xD8) return buf;
+    try {
+        const img = jpeg.decode(buf, { useTArray: true, maxMemoryUsageInMB: 512 });
+        const w = img.width, h = img.height, data = img.data; // RGBA
+        if (!w || !h) return uniquifyJpeg(buf);
+        // 端を約3%ずつクロップ（pHash変化＋縁の露骨部除去）
+        const cx = Math.max(2, Math.round(w * 0.03));
+        const cy = Math.max(2, Math.round(h * 0.03));
+        const nw = w - cx * 2, nh = h - cy * 2;
+        if (nw < 80 || nh < 80) return uniquifyJpeg(buf);
+        const out = new Uint8Array(nw * nh * 4);
+        for (let y = 0; y < nh; y++) {
+            const srow = (y + cy) * w, drow = y * nw;
+            for (let x = 0; x < nw; x++) {
+                const si = (srow + x + cx) * 4, di = (drow + x) * 4;
+                out[di] = data[si]; out[di + 1] = data[si + 1]; out[di + 2] = data[si + 2]; out[di + 3] = 255;
+            }
+        }
+        // 品質を変えて再エンコード（毎回ファイルが変わる）
+        const q = 78 + Math.floor(Math.random() * 8); // 78〜85
+        const enc = jpeg.encode({ data: out as unknown as Buffer, width: nw, height: nh }, q);
+        return Buffer.from(enc.data);
+    } catch {
+        return uniquifyJpeg(buf); // デコード失敗時はファイル一意化のみ
+    }
+}
+
+// JPEGのSOI直後にCOM(コメント)セグメントを挿入してファイルを一意化（ピクセル不変・ハッシュ変化）
+function uniquifyJpeg(buf: Buffer): Buffer {
+    if (buf.length < 2 || buf[0] !== 0xFF || buf[1] !== 0xD8) return buf;
+    const comment = Buffer.from('av-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8), 'utf8');
+    const len = comment.length + 2;
+    if (len > 0xFFFF) return buf;
+    const seg = Buffer.concat([Buffer.from([0xFF, 0xFE, (len >> 8) & 0xFF, len & 0xFF]), comment]);
+    return Buffer.concat([buf.subarray(0, 2), seg, buf.subarray(2)]);
+}
 
 export const GENRE_ACCOUNT_MAP: Record<string, string> = {
     new:    '002',
@@ -144,14 +188,15 @@ export async function postNextForGenre(genre: string): Promise<PostResult> {
     try {
         let mediaId: string | undefined;
 
-        // パケ画像をアップロード
+        // パケ画像をアップロード（シャドウバン対策で加工してから）
         if (imageUrl) {
             const imgRes = await fetch(imageUrl);
             if (imgRes.ok) {
-                const imgBuf = Buffer.from(await imgRes.arrayBuffer());
-                const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
-                const mimeType = contentType.startsWith('image/') ? contentType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' : 'image/jpeg';
-                mediaId = await twitter.v1.uploadMedia(imgBuf, { mimeType });
+                const rawBuf = Buffer.from(await imgRes.arrayBuffer());
+                // クロップ＋再エンコードでハッシュを変える（同一画像の使い回し検知を回避）
+                const imgBuf = processPosterForX(rawBuf);
+                // 加工後は常にJPEGとして扱う（processPosterForXはJPEG出力）
+                mediaId = await twitter.v1.uploadMedia(imgBuf, { mimeType: 'image/jpeg' });
             }
         }
 

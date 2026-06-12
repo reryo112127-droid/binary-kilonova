@@ -89,7 +89,7 @@ body { min-height: max(884px, 100dvh); }
         <span class="material-symbols-outlined text-[18px]">calendar_today</span>
       </button>
       <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0"></div>
-      <a href="/search/advanced" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-primary px-3 py-1 text-white">
+      <a id="md-detail-link" href="/search/advanced" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-primary px-3 py-1 text-white">
         <span class="material-symbols-outlined text-[16px]">tune</span>
         <span class="text-xs font-bold">詳細検索</span>
       </a>
@@ -136,6 +136,7 @@ body { min-height: max(884px, 100dvh); }
 <script>
 (function(){
   var makerName = decodeURIComponent(location.pathname.split('/maker/')[1] || '');
+  (function(){ var dl=document.getElementById('md-detail-link'); if(dl&&makerName) dl.href='/search/advanced?ctx=maker&maker='+encodeURIComponent(makerName); })();
   var grid = document.getElementById('products-grid');
   var sort = 'date_all', excludeBest = true, excludeVR = false, fromDate = '', toDate = '';
   var page = 0, loading = false, hasMore = true, LIMIT = 30;

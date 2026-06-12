@@ -96,8 +96,9 @@
   fetch('/api/product/' + encodeURIComponent(id))
     .then(function(r){ return r.json(); })
     .then(function(p){
+      var poster=function(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;};
       var img = document.getElementById('rv-img');
-      if (img && p.main_image_url) img.src = p.main_image_url;
+      if (img && p.main_image_url) img.src = poster(p.main_image_url);
       var ttl = document.getElementById('rv-title');
       if (ttl) ttl.textContent = p.title || '';
       var meta = document.getElementById('rv-meta');

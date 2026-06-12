@@ -66,6 +66,26 @@ function getKnownActresses() {
     return _knownActresses;
 }
 
+// actress_profiles.json（DMM ActressSearch由来）: 顔写真image_url + FANZA実在確認に使う
+let _profiles = null;
+function getActressProfiles() {
+    if (_profiles) return _profiles;
+    _profiles = { img: new Map(), names: new Set() };
+    try {
+        const p = path.join(ROOT, '..', 'data', 'actress_profiles.json');
+        if (fs.existsSync(p)) {
+            const m = JSON.parse(fs.readFileSync(p, 'utf-8'));
+            for (const k of Object.keys(m)) {
+                const pr = m[k];
+                if (!pr || !pr.name) continue;
+                _profiles.names.add(pr.name);
+                if (pr.image_url) _profiles.img.set(pr.name, pr.image_url);
+            }
+        }
+    } catch { /* ignore */ }
+    return _profiles;
+}
+
 const ROLE_ATTR_RE = /カップ|アイドル|レイヤー|素人|ナンパ|人妻|熟女|美少女|お姉さん|奥様|奥さん|先生|店員|社員|職員|店長|彼女|新妻|若妻|ギャル|コスプレ|ナース|女医|教師|秘書|OL/;
 
 // 女優ランキングに採用してよい名前か（FANZA登録ホワイトリスト方式）
@@ -190,13 +210,31 @@ async function genPopularProducts() {
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
-    const combined = [];
-    const maxLen = Math.max(mgsRows.length, fanzaRows.length);
-    for (let i = 0; i < maxLen; i++) {
-        if (mgsRows[i])   combined.push({ ...mgsRows[i],   main_image_url: poster(mgsRows[i].main_image_url),   source: 'mgs' });
-        if (fanzaRows[i]) combined.push({ ...fanzaRows[i], main_image_url: poster(fanzaRows[i].main_image_url), source: 'fanza' });
-    }
-    return combined;
+    // 統一人気度: MGSはお気に入り数、FANZAはレビュー数×評価と指標が異なりスケールも違うため、
+    // 各プラットフォーム内で z-score（平均からの偏差/標準偏差）に標準化してから1本に混ぜる。
+    // 「そのPF内でどれだけ突出して人気か」で公平に比較でき、強い作品同士が自然に上位で混在する。
+    return mergeByZScore(
+        mgsRows,   r => Number(r.wish_count) || 0,
+        fanzaRows, r => (Number(r.review_count) || 0) * (Number(r.review_average) || 0)
+    );
+}
+
+// 2つの行配列を、それぞれの指標を z-score 標準化した統一スコア降順で1本にマージする。
+function mergeByZScore(mgsRows, mgsMetric, fanzaRows, fanzaMetric) {
+    const zFn = (vals) => {
+        const n = vals.length || 1;
+        const mean = vals.reduce((a, b) => a + b, 0) / n;
+        const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) * (b - mean), 0) / n) || 1;
+        return (v) => (v - mean) / sd;
+    };
+    const zM = zFn(mgsRows.map(mgsMetric));
+    const zF = zFn(fanzaRows.map(fanzaMetric));
+    const combined = [
+        ...mgsRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'mgs', _pop: zM(mgsMetric(r)) })),
+        ...fanzaRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'fanza', _pop: zF(fanzaMetric(r)) })),
+    ];
+    combined.sort((a, b) => b._pop - a._pop);
+    return combined.map(({ _pop, ...rest }) => rest);
 }
 
 // ── 作品ランキング (2026) ─────────────────────────────────────────
@@ -301,7 +339,8 @@ async function genActressRanking2026() {
         ).then(r => r.rows).catch(() => []),
     ]);
 
-    return buildActressRanking(mgsRows, fanzaRows, profileRows, 50);
+    // 候補を多めに作り、出演メーカー数が多い同名別人混在の汎用名を除外して上位50名に絞る
+    return renameRanking(await excludeAmbiguousNames(buildActressRanking(mgsRows, fanzaRows, profileRows, 200), 50));
 }
 
 // ── 女優ランキング（デフォルト・直近1年） ──────────────────────
@@ -328,7 +367,22 @@ async function genActressRankingDefault() {
         ).then(r => r.rows).catch(() => []),
     ]);
 
-    return buildActressRanking(mgsRows, fanzaRows, profileRows, 50);
+    // 候補を多めに作り、出演メーカー数が多い同名別人混在の汎用名を除外して上位50名に絞る
+    return renameRanking(await excludeAmbiguousNames(buildActressRanking(mgsRows, fanzaRows, profileRows, 200), 50));
+}
+
+// 女優ランキングの手動補正（曖昧な短縮名の正式名化・誤検出の除外）。再生成しても維持される。
+const ACTRESS_RENAME = { 'いちか': '松本いちか', 'ちな': '千咲ちな', 'かすみ': '月野かすみ' }; // 表示名差し替え
+const ACTRESS_EXCLUDE = new Set(['あいな', 'りん', 'みちる', 'Ruru']);   // ランキングから除外
+// 改名後の名前→正しい顔写真URLの上書き（元名の画像が別人/欠落のとき）
+const ACTRESS_IMAGE_OVERRIDE = { '松本いちか': 'https://pics.dmm.co.jp/mono/actjpgs/matumoto_itika.jpg' };
+// 改名・画像上書きを適用し、同名衝突は先勝ち（高スコア優先）で重複排除
+function renameRanking(list) {
+    const seen = new Set();
+    return list.map(e => {
+        const name = ACTRESS_RENAME[e.name] || e.name;
+        return { ...e, name, image_url: ACTRESS_IMAGE_OVERRIDE[name] || e.image_url };
+    }).filter(e => (seen.has(e.name) ? false : seen.add(e.name)));
 }
 
 function buildActressRanking(mgsRows, fanzaRows, profileRows, topN) {
@@ -348,18 +402,46 @@ function buildActressRanking(mgsRows, fanzaRows, profileRows, topN) {
     processRows(mgsRows);
     processRows(fanzaRows);
 
-    const profileMap = new Map(profileRows.map(r => [String(r.name), String(r.image_url)]));
+    // 顔写真＆実在確認は actress_profiles.json（DMM ActressSearch由来）から。
+    const { img: profileImg, names: profileNames } = getActressProfiles();
 
     return Array.from(actressMap.values())
+        // FANZAに名前が完全一致で実在する女優のみ採用（実在しない/誤抽出を除外）＋手動除外
+        .filter(e => (profileNames.size === 0 || profileNames.has(e.name)) && !ACTRESS_EXCLUDE.has(e.name))
         .sort((a, b) => b.wishScore - a.wishScore)
         .slice(0, topN)
         .map(e => ({
             name: e.name,
             score: e.wishScore,
             work_count: e.workCount,
-            image_url: profileMap.get(e.name) || null,
+            image_url: (profileImg.get(e.name) || '').replace(/^http:\/\//, 'https://') || null,
             sample_image: e.sampleImage,
         }));
+}
+
+// 女優名 → 出演メーカー数（data/actress_makers.json、scripts/build_actress_makers.js がD1から構築）。
+// ローカルDBは出演者が古いため、D1集計済みのファイルを使う。
+let _nameMakerCount = null;
+function getNameMakerCount() {
+    if (_nameMakerCount) return _nameMakerCount;
+    _nameMakerCount = {};
+    try {
+        const p = path.join(ROOT, '..', 'data', 'actress_makers.json');
+        if (fs.existsSync(p)) _nameMakerCount = JSON.parse(fs.readFileSync(p, 'utf-8'));
+    } catch { /* ignore */ }
+    return _nameMakerCount;
+}
+
+// 出演メーカー数が閾値を超える名前は「同名別人が混在する汎用名（ちな/いちか等）」として除外。
+// 本物の女優は出演メーカーが少ない（涼森れむ=3、鈴村あいり=7）。
+function excludeAmbiguousNames(candidates, limit, threshold = 20) {
+    const counts = getNameMakerCount();
+    const out = [];
+    for (const c of candidates) {
+        if (out.length >= limit) break;
+        if ((counts[c.name] || 0) <= threshold) out.push(c);
+    }
+    return out;
 }
 
 // ── 予約作品・全メーカー ──────────────────────────────────────────
@@ -535,6 +617,27 @@ async function genMakersList() {
 }
 
 // ── メイン ────────────────────────────────────────────────────────
+// 品番を共通コア(label+番号)に正規化。MGS「MAAN-1174」「230ORECZ-562」と
+// FANZA「h_1711maan01174」「orecz562」を同一キー(maan1174/orecz562)にする。
+function coreId(id) {
+    let s = String(id || '').toLowerCase();
+    s = s.replace(/^h_\d+/, '').replace(/^\d+/, '').replace(/[^a-z0-9]/g, '');
+    const m = s.match(/^([a-z]+)0*(\d+)$/);
+    return m ? m[1] + m[2] : s;
+}
+// MGSとFANZAに同一作品が両方ある場合、先頭(=MGS優先)を残して重複カードを除去。
+function dedupeWorks(arr) {
+    if (!Array.isArray(arr)) return arr;
+    const seen = new Set();
+    return arr.filter(p => {
+        const k = coreId(p && p.product_id);
+        if (!k) return true;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+    });
+}
+
 async function main() {
     const dataDir = path.join(ROOT, 'data');
     const pubDir  = path.join(ROOT, 'public', 'data');
@@ -547,15 +650,16 @@ async function main() {
     };
 
     // 順次実行（@libsql/client file:// はシリアルが安全）
-    write('products_new_cache.json',              await genNewProducts());
-    write('products_popular_cache.json',          await genPopularProducts());
-    write('ranking_2026_cache.json',              await genRanking2026());
-    write('ranking_default_cache.json',           await genRankingDefault());
+    // 作品系キャッシュは MGS と FANZA に同一作品が両方あると2枚カードが出るため dedupeWorks で1枚に統一
+    write('products_new_cache.json',              dedupeWorks(await genNewProducts()));
+    write('products_popular_cache.json',          dedupeWorks(await genPopularProducts()));
+    write('ranking_2026_cache.json',              dedupeWorks(await genRanking2026()));
+    write('ranking_default_cache.json',           dedupeWorks(await genRankingDefault()));
     write('actress_ranking_2026_cache.json',      await genActressRanking2026());
     write('actress_ranking_default_cache.json',   await genActressRankingDefault());
-    write('home_preorder_cache.json',             await genPreorderProducts());
-    write('home_preorder_curated_cache.json',     await genHomePreorderCurated());
-    write('sale_cache.json',                      await genSaleProducts());
+    write('home_preorder_cache.json',             dedupeWorks(await genPreorderProducts()));
+    write('home_preorder_curated_cache.json',     dedupeWorks(await genHomePreorderCurated()));
+    write('sale_cache.json',                      dedupeWorks(await genSaleProducts()));
     write('makers_cache.json',                    await genMakersList());
 
     console.log('\n完了！次のコマンドでデプロイしてください:');

@@ -25,7 +25,7 @@ echo ======================================== >> "%LOG_FILE%"
 echo AVWiki products scraper start: %date% %time% >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
-"%NODE%" "%SCRIPT%" >> "%LOG_FILE%" 2>&1
+"%NODE%" "%SCRIPT%" --daily --count 200 >> "%LOG_FILE%" 2>&1
 set EXIT_CODE=%errorlevel%
 
 echo [%time%] exit: %EXIT_CODE% >> "%LOG_FILE%"

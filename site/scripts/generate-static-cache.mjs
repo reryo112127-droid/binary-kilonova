@@ -97,6 +97,17 @@ function isValidActressName(name) {
     return true;
 }
 
+// 女優ランキングの手動補正（曖昧な短縮名の正式名化・誤検出の除外）。再生成しても維持される。
+const ACTRESS_RENAME = { 'いちか': '松本いちか', 'ちな': '千咲ちな', 'かすみ': '月野かすみ' }; // 表示名差し替え
+const ACTRESS_EXCLUDE = new Set(['あいな', 'りん', 'みちる', 'Ruru']);   // ランキングから除外
+// 改名後の名前→正しい顔写真URLの上書き（元名の画像が別人/欠落のとき）
+const ACTRESS_IMAGE_OVERRIDE = { '松本いちか': 'https://pics.dmm.co.jp/mono/actjpgs/matumoto_itika.jpg' };
+// 改名で同名衝突した場合は先勝ち（高スコア優先）で重複排除
+function dedupRankingByName(list) {
+    const seen = new Set();
+    return list.filter(e => (seen.has(e.name) ? false : seen.add(e.name)));
+}
+
 // MGS優先マージ: 同一product_idのFANZA重複を除去してインターリーブ
 function mergeDedup(mgsRows, fanzaRows, mgsSource, fanzaSource) {
     const mgsIds = new Set(mgsRows.map(r => String(r.product_id)));
@@ -108,6 +119,26 @@ function mergeDedup(mgsRows, fanzaRows, mgsSource, fanzaSource) {
         if (deduped[i])  combined.push({ ...deduped[i],  main_image_url: poster(String(deduped[i].main_image_url   || '')), source: fanzaSource || 'fanza' });
     }
     return combined;
+}
+
+// 統一人気度マージ: MGS(お気に入り)とFANZA(レビュー)を各PF内で z-score 標準化し、統一スコア降順で混ぜる。
+function mergeByZScore(mgsRows, mgsMetric, fanzaRows, fanzaMetric) {
+    const mgsIds = new Set(mgsRows.map(r => String(r.product_id)));
+    const fz = fanzaRows.filter(r => !mgsIds.has(String(r.product_id)));
+    const zFn = (vals) => {
+        const n = vals.length || 1;
+        const mean = vals.reduce((a, b) => a + b, 0) / n;
+        const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) * (b - mean), 0) / n) || 1;
+        return (v) => (v - mean) / sd;
+    };
+    const zM = zFn(mgsRows.map(mgsMetric));
+    const zF = zFn(fz.map(fanzaMetric));
+    const combined = [
+        ...mgsRows.map(r => ({ ...r, main_image_url: poster(String(r.main_image_url || '')), source: 'mgs', _pop: zM(mgsMetric(r)) })),
+        ...fz.map(r => ({ ...r, main_image_url: poster(String(r.main_image_url || '')), source: 'fanza', _pop: zF(fanzaMetric(r)) })),
+    ];
+    combined.sort((a, b) => b._pop - a._pop);
+    return combined.map(({ _pop, ...rest }) => rest);
 }
 
 const BEST = ['%BEST%','%ベスト%','%総集編%','%コレクション%','%Best%','%リマスター%','%AIリマスター%'];
@@ -206,14 +237,16 @@ async function genPopularProducts() {
                          COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, sale_end_date
                   FROM products
                   WHERE ${bestConds}
-                  ORDER BY review_count DESC, sale_start_date DESC LIMIT 200`,
+                  ORDER BY COALESCE(review_count,0)*COALESCE(review_average,0) DESC, sale_start_date DESC LIMIT 200`,
             args: bestArgs,
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
-    const combined = mergeDedup(mgsRows, fanzaRows);
-
-    return combined;
+    // 統一人気度（z-score）でマージ: MGSお気に入り数 と FANZAレビュー(数×評価) を公平に混ぜる
+    return mergeByZScore(
+        mgsRows,   r => Number(r.wish_count) || 0,
+        fanzaRows, r => (Number(r.review_count) || 0) * (Number(r.review_average) || 0)
+    );
 }
 
 // ── 作品ランキング (2026) ─────────────────────────────────────────
@@ -337,16 +370,21 @@ async function genActressRanking2026() {
     processRows(fanzaRows, false);
 
     const profileMap = new Map(Object.entries(localProfiles).map(([n, p]) => [n, p?.image_url]).filter(([,v]) => v));
+    const profileNames = new Set(Object.keys(localProfiles)); // FANZA実在女優(完全一致)
 
-    return Array.from(actressMap.values())
+    return dedupRankingByName(Array.from(actressMap.values())
+        .filter(e => (profileNames.size === 0 || profileNames.has(e.name)) && !ACTRESS_EXCLUDE.has(e.name))
         .sort((a, b) => b.wishScore - a.wishScore)
         .slice(0, 50)
-        .map(e => ({
-            name: e.name,
-            score: e.wishScore,
-            work_count: e.workCount,
-            image_url: profileMap.get(e.name) || null,
-            sample_image: e.sampleImage,
+        .map(e => {
+            const dispName = ACTRESS_RENAME[e.name] || e.name;
+            return {
+                name: dispName,
+                score: e.wishScore,
+                work_count: e.workCount,
+                image_url: ACTRESS_IMAGE_OVERRIDE[dispName] || (profileMap.get(e.name) || '').replace(/^http:\/\//, 'https://') || null,
+                sample_image: e.sampleImage,
+            };
         }));
 }
 
@@ -392,16 +430,21 @@ async function genActressRankingDefault() {
     processRows(fanzaRows);
 
     const profileMap = new Map(Object.entries(localProfiles).map(([n, p]) => [n, p?.image_url]).filter(([,v]) => v));
+    const profileNames = new Set(Object.keys(localProfiles)); // FANZA実在女優(完全一致)
 
-    return Array.from(actressMap.values())
+    return dedupRankingByName(Array.from(actressMap.values())
+        .filter(e => (profileNames.size === 0 || profileNames.has(e.name)) && !ACTRESS_EXCLUDE.has(e.name))
         .sort((a, b) => b.wishScore - a.wishScore)
         .slice(0, 50)
-        .map(e => ({
-            name: e.name,
-            score: e.wishScore,
-            work_count: e.workCount,
-            image_url: profileMap.get(e.name) || null,
-            sample_image: e.sampleImage,
+        .map(e => {
+            const dispName = ACTRESS_RENAME[e.name] || e.name;
+            return {
+                name: dispName,
+                score: e.wishScore,
+                work_count: e.workCount,
+                image_url: ACTRESS_IMAGE_OVERRIDE[dispName] || (profileMap.get(e.name) || '').replace(/^http:\/\//, 'https://') || null,
+                sample_image: e.sampleImage,
+            };
         }));
 }
 

@@ -824,30 +824,53 @@ fetch('/api/actress/'+encodeURIComponent(actressName)).then(function(r){return r
   }
 }).catch(function(){});
 
-// 作品一覧
+// 作品一覧（全作品を1回取得 → スクロールで30件ずつ描画）
+// 注: APIはMGS/FANZAを別々にoffsetページングして結合するためサーバoffsetページングは
+// グローバル日付順では破綻する。offset=0で全件取得し、クライアント側で分割描画する。
 var grid=document.getElementById('products-grid');
 if(grid){
+  var CHUNK=30, rendered=0, allItems=[];
   grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">読み込み中...</p>';
-  fetch('/api/products?actress='+encodeURIComponent(actressName)+'&sort=new&limit=30').then(function(r){return r.json();}).then(function(items){
-    if(!items||!items.length){grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">作品がありません</p>';return;}
+  var sentinel=document.createElement('div');
+  sentinel.id='scroll-sentinel';
+  sentinel.style.height='1px';
+  if(grid.parentNode)grid.parentNode.insertBefore(sentinel,grid.nextSibling);
+  function poster(u){if(!u)return '';if(u.includes('pb_e_'))return u.replace('pb_e_','pf_e_');if(u.includes('/digital/amateur/')&&u.endsWith('jm.jpg'))return u.replace('jm.jpg','jp-001.jpg');return u;}
+  function cardHtml(p){
+    var img=poster(p.main_image_url||'');
+    var t=esc((p.title||'').substring(0,40));
+    var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
+    var pid=encodeURIComponent(p.product_id||'');
+    var genres=p.genres||'';
+    var isAmateur=genres.includes('素人')||genres.includes('ハメ撮り');
+    var isNew=p.sale_start_date&&(Date.now()-new Date(p.sale_start_date).getTime())<30*24*3600*1000;
+    var badge=isAmateur?'<span class="absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">素人</span>'
+             :isNew?'<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">NEW</span>':'';
+    return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
+      +'<div class="bg-gray-50 relative overflow-hidden aspect-[3/4]">'
+      +(img?'<img alt="" class="w-full h-full object-cover object-right block group-hover:scale-105 transition duration-500" src="'+img+'"/>':'')
+      +badge+'</div>'
+      +'<div class="p-3 flex flex-col flex-1"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8 group-hover:text-blue-600 transition">'+t+'</h3>'
+      +'<p class="text-[10px] text-gray-400">'+dt+'</p></div></article>';
+  }
+  function renderChunk(){
+    if(rendered>=allItems.length)return;
+    var next=allItems.slice(rendered,rendered+CHUNK);
+    grid.insertAdjacentHTML('beforeend',next.map(cardHtml).join(''));
+    rendered+=next.length;
+  }
+  fetch('/api/products?actress='+encodeURIComponent(actressName)+'&sort=new&limit=1000').then(function(r){return r.json();}).then(function(items){
+    if(!Array.isArray(items)||items.length===0){grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">作品がありません</p>';return;}
+    allItems=items;
     if(photoEl&&!photoEl.dataset.set&&items[0]&&items[0].main_image_url)photoEl.src=items[0].main_image_url;
-    grid.innerHTML=items.map(function(p){
-      var img=(function(u){return u&&u.includes('pb_e_')?u.replace('pb_e_','pf_e_'):u;})(p.main_image_url||'');
-      var t=esc((p.title||'').substring(0,40));
-      var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
-      var pid=encodeURIComponent(p.product_id||'');
-      var genres=p.genres||'';
-      var isAmateur=genres.includes('素人')||genres.includes('ハメ撮り');
-      var isNew=p.sale_start_date&&(Date.now()-new Date(p.sale_start_date).getTime())<30*24*3600*1000;
-      var badge=isAmateur?'<span class="absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">素人</span>'
-               :isNew?'<span class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">NEW</span>':'';
-      return '<article class="bg-white border border-gray-100 rounded-xl overflow-hidden flex flex-col hover:shadow-xl transition duration-300 group cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
-        +'<div class="bg-gray-50 relative overflow-hidden aspect-[3/4]">'
-        +(img?'<img alt="" class="w-full h-full object-cover object-right block group-hover:scale-105 transition duration-500" src="'+img+'"/>':'')
-        +badge+'</div>'
-        +'<div class="p-3 flex flex-col flex-1"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8 group-hover:text-blue-600 transition">'+t+'</h3>'
-        +'<p class="text-[10px] text-gray-400">'+dt+'</p></div></article>';
-    }).join('');
+    grid.innerHTML='';
+    renderChunk();
+    if('IntersectionObserver' in window){
+      var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)renderChunk();});},{rootMargin:'500px'});
+      io.observe(sentinel);
+    }else{
+      window.addEventListener('scroll',function(){if(window.innerHeight+window.scrollY>=document.body.offsetHeight-600)renderChunk();});
+    }
   }).catch(function(){grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">エラーが発生しました</p>';});
 }
 })();

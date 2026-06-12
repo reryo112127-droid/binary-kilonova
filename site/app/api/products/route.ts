@@ -78,7 +78,10 @@ export async function GET(request: NextRequest) {
             readStaticCache<Record<string, unknown[]>>('actress_extended_products.json'),
         ]);
         const products = topCache?.[actressParam] ?? extCache?.[actressParam];
-        if (products && products.length > 0) {
+        // キャッシュ(actress_top/extended)は女優あたり最大20件程度に打ち切られているため、
+        // 要求件数を満たせる場合のみキャッシュを返す。満たせない（=全作品を見たい）場合は
+        // D1のFTSクエリ(軽量)にフォールスルーして出演作品をすべて取得する。
+        if (products && products.length >= limit) {
             const page = products.slice(0, limit + 1);
             const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 600) } });
             if (cfCache && cfCacheKey) {
@@ -497,6 +500,34 @@ export async function GET(request: NextRequest) {
             if (mgsResults[i]) combined.push(mgsResults[i]);
             if (dedupedFanza[i]) combined.push(dedupedFanza[i]);
         }
+    }
+
+    // 女優検索: FTS(trigram)/短名LIKEは部分一致（「ちな」→「ちなみ」「ちなつ」等）で
+    // 別人を巻き込む。actressesのcomma区切りエントリと完全一致するものだけに絞る。
+    if (actress && actressList.length > 0) {
+        const wanted = new Set(actressList);
+        combined = combined.filter(p => {
+            const acts = String((p as Record<string, unknown>).actresses ?? '')
+                .split(/[,、]/).map(s => s.trim());
+            return acts.some(a => wanted.has(a));
+        });
+    }
+
+    // MGSとFANZAに同一作品が両方ある場合、品番コアで重複カードを1枚に統一（MGS優先=先頭を残す）
+    {
+        const coreId = (id: string) => {
+            let s = String(id || '').toLowerCase().replace(/^h_\d+/, '').replace(/^\d+/, '').replace(/[^a-z0-9]/g, '');
+            const m = s.match(/^([a-z]+)0*(\d+)$/);
+            return m ? m[1] + m[2] : s;
+        };
+        const seen = new Set<string>();
+        combined = combined.filter(p => {
+            const k = coreId(String((p as Record<string, unknown>).product_id ?? ''));
+            if (!k) return true;
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+        });
     }
 
     const result = combined.slice(0, limit);

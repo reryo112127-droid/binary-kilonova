@@ -106,7 +106,11 @@
     <!-- ③ ジャンル -->
     <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
       <h2 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">ジャンル <span class="normal-case font-normal text-gray-400">（複数選択可）</span></h2>
-      <div id="as-genre-grid" class="grid grid-cols-3 gap-1.5"></div>
+      <div class="relative mb-3">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">search</span>
+        <input id="as-genre-filter" type="text" placeholder="ジャンルを絞り込む" class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#ec5b13]"/>
+      </div>
+      <div id="as-genre-grid" class="grid grid-cols-3 gap-1.5 max-h-64 overflow-y-auto pr-1"></div>
     </section>
 
     <!-- ④ 発売日 -->
@@ -210,15 +214,132 @@
   ];
   var CUPS = ['A','B','C','D','E','F','G','H','I','J','K'];
 
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+  // ── 入力補完ピッカー（メーカー・女優を一覧から選択） ──
+  function setupPicker(input, fetchList){
+    if(!input) return;
+    var wrap = input.parentNode;
+    var panel = document.createElement('div');
+    panel.className = 'absolute z-40 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden';
+    wrap.appendChild(panel);
+    var cur = [];
+    function show(list){
+      cur = list || [];
+      if(!cur.length){ panel.classList.add('hidden'); return; }
+      panel.innerHTML = cur.map(function(o,i){
+        return '<button type="button" data-i="'+i+'" class="w-full text-left px-3 py-2 text-sm active:bg-orange-50 flex justify-between items-center gap-2 border-b border-gray-50 last:border-0">'
+          +'<span class="truncate">'+esc(o.name)+'</span>'
+          +(o.count?'<span class="text-[10px] text-gray-400 shrink-0">'+o.count+'</span>':'')+'</button>';
+      }).join('');
+      panel.classList.remove('hidden');
+    }
+    var t;
+    function go(){ var q=input.value.trim(); clearTimeout(t); t=setTimeout(function(){ fetchList(q, show); }, 150); }
+    input.addEventListener('input', go);
+    input.addEventListener('focus', go);
+    panel.addEventListener('mousedown', function(e){
+      var b = e.target.closest('[data-i]'); if(!b) return;
+      e.preventDefault();
+      input.value = cur[parseInt(b.getAttribute('data-i'))].name;
+      panel.classList.add('hidden');
+    });
+    document.addEventListener('click', function(e){ if(!wrap.contains(e.target)) panel.classList.add('hidden'); });
+  }
+
+  var CTX = { makers:null, actresses:null, genres:null, sort:null };
+  var GENRE_SKIP = {'フルハイビジョン(FHD)':1,'ハイビジョン':1,'独占配信':1,'配信専用':1,'DMM配信限定':1,'DMM専属':1,'数量限定':1,'予約特典あり':1,'16時間以上作品':1,'ベスト・総集編':1,'デジモ':1};
+  var MAKERS = [];
+  fetch('/data/makers_cache.json').then(function(r){return r.json();}).then(function(arr){
+    MAKERS = (arr||[]).map(function(m){ return { name:m.name, count:m.count }; });
+  }).catch(function(){});
+  setupPicker(document.getElementById('as-maker'), function(q, cb){
+    var src = CTX.makers || MAKERS, list = src;
+    if(q){ var lq=q.toLowerCase(); list = src.filter(function(m){ return m.name.toLowerCase().indexOf(lq)>=0; }); }
+    cb(list.slice(0, 60));
+  });
+  setupPicker(document.getElementById('as-actress'), function(q, cb){
+    if(CTX.actresses){
+      var src = CTX.actresses, list = src;
+      if(q){ var lq=q.toLowerCase(); list = src.filter(function(a){ return a.name.toLowerCase().indexOf(lq)>=0; }); }
+      cb(list.slice(0, 60)); return;
+    }
+    if(!q){ cb([]); return; }
+    fetch('/api/suggest?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(d){
+      cb((d.actresses||[]).slice(0, 40).map(function(n){ return { name:n }; }));
+    }).catch(function(){ cb([]); });
+  });
+
+  // ── ジャンル: 定番＋API全件をフィルタ付きで一覧 ──
   var genreGrid = document.getElementById('as-genre-grid');
-  if (genreGrid) {
-    genreGrid.innerHTML = GENRES.map(function(g){
+  var ALL_GENRES = GENRES.slice();
+  function renderGenres(list){
+    if(!genreGrid) return;
+    var checked = {};
+    genreGrid.querySelectorAll('.genre-chk:checked').forEach(function(c){ checked[c.value]=1; });
+    genreGrid.innerHTML = list.map(function(g){
       return '<label class="cursor-pointer">'
-        +'<input type="checkbox" value="'+g+'" class="hidden peer genre-chk"/>'
-        +'<span class="block text-center text-[11px] px-2 py-1.5 rounded-lg border border-gray-200 text-gray-600 peer-checked:border-orange-500 peer-checked:bg-orange-50 peer-checked:text-orange-500 peer-checked:font-bold transition select-none">'+g+'</span>'
+        +'<input type="checkbox" value="'+esc(g)+'" '+(checked[g]?'checked':'')+' class="hidden peer genre-chk"/>'
+        +'<span class="block text-center text-[11px] px-2 py-1.5 rounded-lg border border-gray-200 text-gray-600 peer-checked:border-orange-500 peer-checked:bg-orange-50 peer-checked:text-orange-500 peer-checked:font-bold transition select-none">'+esc(g)+'</span>'
         +'</label>';
     }).join('');
   }
+  function activeGenres(){ return CTX.genres ? CTX.genres.map(function(o){return o.name;}) : ALL_GENRES; }
+  renderGenres(GENRES);
+  fetch('/api/search/options').then(function(r){return r.json();}).then(function(d){
+    var seen = {}; GENRES.forEach(function(g){ seen[g]=1; });
+    (d.genres||[]).forEach(function(o){ if(o.name && !seen[o.name] && !GENRE_SKIP[o.name]){ seen[o.name]=1; ALL_GENRES.push(o.name); } });
+    if(!CTX.genres) renderGenres(ALL_GENRES);
+  }).catch(function(){});
+  var genreFilter = document.getElementById('as-genre-filter');
+  if(genreFilter) genreFilter.addEventListener('input', function(){
+    var q = genreFilter.value.trim(), base = activeGenres();
+    renderGenres(q ? base.filter(function(g){ return g.indexOf(q)>=0; }) : base);
+  });
+
+  // ── ページ毎の文脈絞り込み: 呼び出し元一覧(?ctx=)の作品を集計して候補を「数の多い順」に ──
+  (function(){
+    var sp = new URLSearchParams(location.search);
+    var ctx = sp.get('ctx') || '';
+    var preMaker = sp.get('maker') || '', preActress = sp.get('actress') || '', preSource = sp.get('source') || '';
+    if(preMaker)  document.getElementById('as-maker').value = preMaker;
+    if(preActress)document.getElementById('as-actress').value = preActress;
+    if(preSource){ var r = document.querySelector('input[name=source][value="'+preSource+'"]'); if(r) r.checked = true; }
+    if(!ctx && !preMaker && !preActress) return;
+
+    var sortMap = { 'new':'new', 'popular':'wish_count', 'pre-order':'pre-order', 'sale':'discount' };
+    var qp = new URLSearchParams(); qp.set('limit','500');
+    if(sortMap[ctx]) qp.set('sort', sortMap[ctx]);
+    if(ctx === 'sale') qp.set('minDiscount','1');
+    if(preMaker)  qp.set('maker', preMaker);
+    if(preActress)qp.set('actress', preActress);
+    if(preSource) qp.set('source', preSource);
+    if(sortMap[ctx]){ CTX.sort = sortMap[ctx]; var ss=document.getElementById('as-sort'); if(ss) ss.value = sortMap[ctx]; }
+
+    var LABELS = { 'new':'新作', 'popular':'人気作品', 'pre-order':'予約作品', 'sale':'セール作品' };
+    var ctxLabel = LABELS[ctx] || (preMaker ? '「'+preMaker+'」' : preActress ? '「'+preActress+'」' : 'この一覧');
+
+    var main = document.querySelector('main > div') || document.querySelector('main');
+    var banner = document.createElement('div');
+    banner.className = 'mb-3 px-3 py-2.5 rounded-xl bg-[#ec5b13]/5 border border-[#ec5b13]/20 text-[13px] text-gray-700 flex items-center gap-2';
+    banner.innerHTML = '<span class="material-symbols-outlined text-[#ec5b13] text-[18px]">filter_alt</span><span><b>'+esc(ctxLabel)+'</b> の中から絞り込み中…</span>';
+    if(main) main.insertBefore(banner, main.firstChild);
+
+    fetch('/api/products?'+qp.toString()).then(function(r){return r.json();}).then(function(items){
+      if(!Array.isArray(items) || !items.length){ banner.querySelector('span:last-child').innerHTML='<b>'+esc(ctxLabel)+'</b> の作品が取得できませんでした'; return; }
+      var mk={}, gn={}, ac={};
+      items.forEach(function(p){
+        var mkr=(p.label && p.label!=='----')?p.label:p.maker;
+        if(mkr) mk[mkr]=(mk[mkr]||0)+1;
+        String(p.genres||'').split(',').forEach(function(g){g=g.trim();if(g && !GENRE_SKIP[g])gn[g]=(gn[g]||0)+1;});
+        String(p.actresses||'').split(',').forEach(function(a){a=a.trim();if(a)ac[a]=(ac[a]||0)+1;});
+      });
+      function sortObj(o){return Object.keys(o).map(function(k){return {name:k,count:o[k]};}).sort(function(a,b){return b.count-a.count;});}
+      CTX.makers=sortObj(mk); CTX.genres=sortObj(gn); CTX.actresses=sortObj(ac);
+      renderGenres(activeGenres());
+      banner.querySelector('span:last-child').innerHTML='<b>'+esc(ctxLabel)+'</b>（'+items.length+'件）から絞り込み — メーカー'+CTX.makers.length+'・女優'+CTX.actresses.length+'・ジャンル'+CTX.genres.length;
+    }).catch(function(){ banner.querySelector('span:last-child').innerHTML='<b>'+esc(ctxLabel)+'</b> の中から絞り込み'; });
+  })();
 
   var cupGrid = document.getElementById('as-cup-grid');
   if (cupGrid) {
@@ -323,8 +444,7 @@
     var maker = document.getElementById('as-maker').value.trim();
     if (maker) p.set('maker', maker);
     var genres = Array.from(document.querySelectorAll('.genre-chk:checked')).map(function(el){return el.value;});
-    if (genres.length === 1) p.set('genre', genres[0]);
-    else if (genres.length > 1) p.set('genre', genres[0]);
+    if (genres.length) p.set('genre', genres.join(',')); // 複数選択はカンマ区切りで全て渡す（API側でAND）
     var from = document.getElementById('as-from').value;
     var to = document.getElementById('as-to').value;
     if (from) p.set('fromDate', from);

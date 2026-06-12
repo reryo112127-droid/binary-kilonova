@@ -48,3 +48,11 @@ scripts/prefetch_mp4_progress.json
 d1_export/
 *.db-shm
 *.db-wal
+
+# SNS投稿の一時出力
+data/x_tmp/
+data/x_outbox/
+
+# スクレイパー進捗のバックアップ
+data/*.bak.json
+data/*.bak2.json

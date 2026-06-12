@@ -36,7 +36,7 @@
 <div class="relative flex min-h-screen w-full flex-col max-w-md mx-auto bg-white dark:bg-background-dark shadow-xl">
 <!-- Header -->
 <header class="sticky top-0 z-50 flex items-center bg-white/90 dark:bg-background-dark/90 backdrop-blur-md p-4 border-b border-slate-200 dark:border-slate-800 justify-between">
-<button class="flex size-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<button onclick="if(history.length>1){history.back();}else{location.href='/';}" class="flex size-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
 <span class="material-symbols-outlined text-slate-700 dark:text-slate-200">arrow_back_ios_new</span>
 </button>
 <h1 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center">作品詳細</h1>
@@ -134,9 +134,10 @@
 <div class="absolute top-0 right-0 bg-black/20 px-2 py-0.5 text-[10px] rounded-bl-lg">PR</div>
 <div class="flex flex-col items-center gap-0.5">
 <span class="text-base font-black tracking-wide">▶ MGS動画で今すぐ見る</span>
-<span class="text-xs font-medium opacity-90">見放題プレミアム対応</span>
+<span id="pd-mgs-price" class="text-xs font-medium opacity-90" style="display:none"></span>
 </div>
 </a>
+<p id="pd-cheaper" class="text-center text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2" style="display:none"></p>
 <p class="text-center text-[10px] text-slate-400">※外部サービスへ移動します</p>
 </div>
 <!-- 7. Review Section -->
@@ -217,7 +218,7 @@ var _sampleImgs = [];
   var id = decodeURIComponent((location.pathname.match(/\/product\/(.+)/) || [])[1] || '');
   if (!id) return;
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(u){if(!u)return'';if(u.includes('pb_e_'))return u.replace('pb_e_','pf_e_');if(u.includes('/digital/amateur/')&&u.endsWith('jm.jpg'))return u.replace('jm.jpg','jp-001.jpg');return u;}
+  function poster(u){if(!u)return'';if(u.includes('pb_e_'))u=u.replace('pb_e_','pf_e_');if(u.includes('/digital/amateur/')&&u.endsWith('jm.jpg'))u=u.replace('jm.jpg','jp-001.jpg');else if(u.includes('/digital/video/')&&/p[ts]\.jpg$/.test(u))u=u.replace(/p[ts]\.jpg$/,'pl.jpg');return u;}
   function set(elId, val){ var el=document.getElementById(elId); if(el) el.textContent=val||'-'; }
   function show(elId){ var el=document.getElementById(elId); if(el) el.style.display=''; }
   function hide(elId){ var el=document.getElementById(elId); if(el) el.style.display='none'; }
@@ -225,9 +226,9 @@ var _sampleImgs = [];
   fetch('/api/product/'+encodeURIComponent(id))
     .then(function(r){ return r.json(); })
     .then(function(p){
-      // ヒーロー画像: pl.jpg（800×538）をCSSクロップで縦型ポスター表示
+      // ヒーロー画像: poster()で素人jm.jpg(100x100)→jp-001.jpg(800x450)・MGS裏→表紙に補正してから表示
       var heroImg = document.getElementById('pd-hero-img');
-      if (heroImg && p.main_image_url) heroImg.src = p.main_image_url;
+      if (heroImg && p.main_image_url) heroImg.src = poster(p.main_image_url);
 
       // タイトル
       set('pd-title', p.title);
@@ -424,23 +425,29 @@ var _sampleImgs = [];
       function trackPurchase(platform) {
         try { fetch('/api/purchase/'+encodeURIComponent(id), {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platform:platform})}); } catch(e){}
       }
+      // プラットフォーム別の価格表示（API: fanza_price / mgs_price）。
+      // 片方しか無い場合は p.current_price をフォールバックに使う。
+      function platPrice(pp, fallbackCur, fallbackList, fallbackDisc) {
+        var cur = (pp && pp.current != null) ? pp.current : fallbackCur;
+        var list = (pp && pp.list != null) ? pp.list : fallbackList;
+        var disc = (pp && pp.discount) ? pp.discount : fallbackDisc;
+        if (cur == null) return null;
+        var t = '¥' + Number(cur).toLocaleString();
+        if (list && list > cur) t = '¥' + Number(list).toLocaleString() + ' → ' + t;
+        if (disc > 0) t = disc + '%OFF ' + t;
+        return t;
+      }
+      var fanzaPrimary = (p.source === 'fanza') ? p.current_price : null;
+      var mgsPrimary   = (p.source === 'mgs')   ? p.current_price : null;
       if (p.fanza_affiliate_url) {
         var fb = document.getElementById('pd-fanza-btn');
         if (fb) {
           fb.href = p.fanza_affiliate_url;
           fb.style.display = '';
           fb.addEventListener('click', function(){ trackPurchase('fanza'); }, {once:true});
-          // 価格表示
           var priceEl = document.getElementById('pd-fanza-price');
-          if (priceEl && p.current_price) {
-            var priceText = '¥' + Number(p.current_price).toLocaleString();
-            if (p.list_price && p.list_price > p.current_price) {
-              priceText = '¥' + Number(p.list_price).toLocaleString() + ' → ' + priceText;
-            }
-            if (p.discount_pct > 0) priceText = p.discount_pct + '%OFF ' + priceText;
-            priceEl.textContent = priceText;
-            priceEl.style.display = '';
-          }
+          var ftext = platPrice(p.fanza_price, fanzaPrimary, (p.source === 'fanza' ? p.list_price : null), p.discount_pct);
+          if (priceEl && ftext) { priceEl.textContent = ftext; priceEl.style.display = ''; }
         }
       }
       if (p.mgs_affiliate_url) {
@@ -449,6 +456,20 @@ var _sampleImgs = [];
           mb.href = p.mgs_affiliate_url;
           mb.style.display = '';
           mb.addEventListener('click', function(){ trackPurchase('mgs'); }, {once:true});
+          var mpriceEl = document.getElementById('pd-mgs-price');
+          var mtext = platPrice(p.mgs_price, mgsPrimary, (p.source === 'mgs' ? p.list_price : null), p.discount_pct);
+          if (mpriceEl && mtext) { mpriceEl.textContent = mtext; mpriceEl.style.display = ''; }
+        }
+      }
+      // どちらのプラットフォームが安いか
+      if (p.cheaper_platform && p.fanza_affiliate_url && p.mgs_affiliate_url) {
+        var chEl = document.getElementById('pd-cheaper');
+        if (chEl) {
+          var who = p.cheaper_platform === 'fanza' ? 'FANZA' : 'MGS';
+          var msg = '💰 今は ' + who + ' の方が安い';
+          if (p.cheaper_saving > 0) msg += '（¥' + Number(p.cheaper_saving).toLocaleString() + 'お得）';
+          chEl.textContent = msg;
+          chEl.style.display = '';
         }
       }
 

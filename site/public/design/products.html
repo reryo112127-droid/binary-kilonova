@@ -71,11 +71,6 @@
 </div>
 <!-- 2. その下: フィルタとトグルボタン -->
 <div class="flex items-center gap-2 overflow-x-auto px-4 no-scrollbar">
-<button class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1">
-<span class="material-symbols-outlined text-[18px]">filter_list</span>
-<span class="material-symbols-outlined text-[16px]">expand_more</span>
-</button>
-<div class="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0"></div>
 <button id="btn-best" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
 <span class="text-xs font-medium">BEST/総集編</span>
 <span class="material-symbols-outlined text-[18px] text-primary">toggle_on</span>
@@ -83,9 +78,6 @@
 <button id="btn-vr" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
 <span class="text-xs font-medium">VR作品</span>
 <span class="material-symbols-outlined text-[18px] text-slate-400">toggle_off</span>
-</button>
-<button class="flex h-9 shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 px-3">
-<span class="material-symbols-outlined text-[18px]">calendar_today</span>
 </button>
 <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 shrink-0"></div>
 <button id="btn-fanza" class="flex h-9 shrink-0 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1">
@@ -95,7 +87,7 @@
 <span class="text-xs font-medium">MGS動画</span>
 </button>
 </div>
-<!-- 3. その下: 新着/人気順と昇順/降順 -->
+<!-- 3. その下: 新着/人気順 -->
 <div class="flex items-center gap-2 px-4">
 <div class="flex h-9 flex-1 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
 <label class="flex h-full grow cursor-pointer items-center justify-center rounded-md px-2 text-xs font-bold transition-all has-[:checked]:bg-white has-[:checked]:text-primary dark:has-[:checked]:bg-slate-700 shadow-sm has-[:checked]:shadow-none">
@@ -107,9 +99,9 @@
 <input class="hidden" name="sort-order" type="radio" value="popular"/>
 </label>
 </div>
-<button class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
-<span class="material-symbols-outlined text-[20px]">south</span>
-</button>
+<a id="pr-adv-link" href="/search/advanced?ctx=new" onclick="var ct=document.querySelector('input[name=content-type]:checked'),so=document.querySelector('input[name=sort-order]:checked');var c=(ct&&ct.value==='pre-order')?'pre-order':(so&&so.value==='popular')?'popular':'new';this.href='/search/advanced?ctx='+c;" class="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-primary px-3 py-1 text-white text-xs font-bold">
+<span class="material-symbols-outlined text-[16px]">tune</span>詳細検索
+</a>
 </div>
 </div>
 <!-- 5. 下部の作品グリッド (3列維持) -->

@@ -149,8 +149,8 @@ function buildCushionUrl(productId, source) {
 
 function buildActressHashtags(actressesRaw, source) {
     if (!actressesRaw) return [];
-    const sep = source === 'fanza' ? /,\s*/ : /\s*\/\s*/;
-    const names = actressesRaw.split(sep).map(n => n.trim()).filter(Boolean);
+    // MGS/FANZAともカンマ区切りが基本。スラッシュ・読点も区切りとして扱う
+    const names = actressesRaw.split(/[,、/／]+/).map(n => n.trim()).filter(Boolean);
     return names
         .filter(name => {
             if (/\d+歳/.test(name)) return false;
@@ -209,7 +209,7 @@ async function buildPostText(genre, product, actressNames) {
 
     // ハッシュタグ（テキスト内に入れる）
     const tags = actressNames.map(n => `#${n}`).join(' ');
-    const genreConfig = GENRE_CONFIG[genre];
+    const genreConfig = GENRE_CONFIG[genre] || GENRE_CONFIG.ranking;
     const genreTag = `#AV${genreConfig.label}`;
 
     const parts = [phrase];
@@ -337,15 +337,19 @@ async function main() {
     }
 
     const { id, product_id, new_genre } = pending;
-    const genre = new_genre || 'ranking';
+    // 承認キューのジャンル名(new/anon/lady/collab) を Bluesky の GENRE_CONFIG キーに対応付け
+    const GENRE_ALIAS = { new: 'newwork', anon: 'amateur', lady: 'milf', collab: 'kyouen' };
+    const genre = GENRE_ALIAS[new_genre] || (GENRE_CONFIG[new_genre] ? new_genre : 'ranking');
     console.log(`[キュー] ID:${id}  作品:${product_id}  ジャンル:${genre}`);
 
-    // FANZA DBから作品詳細取得
-    const fanzaDb = getFanzaClient();
-    const productResult = await fanzaDb.execute({
-        sql: `SELECT product_id, title, actresses FROM products WHERE product_id = ? LIMIT 1`,
-        args: [product_id],
-    });
+    // 作品詳細取得: MGS優先 → FANZAフォールバック
+    const sqlSel = `SELECT product_id, title, actresses, main_image_url FROM products WHERE product_id = ? LIMIT 1`;
+    let source = 'mgs';
+    let productResult = await getMgsClient().execute({ sql: sqlSel, args: [product_id] }).catch(() => ({ rows: [] }));
+    if (!productResult.rows.length) {
+        source = 'fanza';
+        productResult = await getFanzaClient().execute({ sql: sqlSel, args: [product_id] }).catch(() => ({ rows: [] }));
+    }
 
     if (!productResult.rows.length) {
         console.error(`[ERROR] 作品が見つかりません: ${product_id}`);
@@ -353,11 +357,11 @@ async function main() {
     }
 
     const product = productResult.rows[0];
-    console.log(`[作品] ${product.product_id} : ${product.title}`);
+    console.log(`[作品] ${product.product_id} : ${product.title} (${source})`);
 
     // URL & テキスト生成
-    const cushionUrl = buildCushionUrl(product.product_id, 'fanza');
-    const actressNames = buildActressHashtags(product.actresses, 'fanza');
+    const cushionUrl = buildCushionUrl(product.product_id, source);
+    const actressNames = buildActressHashtags(product.actresses, source);
     const postText = await buildPostText(genre, product, actressNames);
 
     // OGカード取得

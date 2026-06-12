@@ -164,13 +164,13 @@
 <option>人気順</option>
 </select>
 </div>
+<button id="qf-best" onclick="toggleBest()" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600">BEST除外</button>
+<button id="qf-vr" onclick="toggleVR()" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600">VR除外</button>
 <!-- 詳細検索ボタン -->
-<a class="inline-flex items-center text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition border border-blue-100" href="/search">
+<a class="inline-flex items-center text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition border border-blue-100" href="/search/advanced?ctx=pre-order">
 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-width="2.5"></path></svg>
               詳細検索
             </a>
-<button id="qf-best" onclick="toggleBest()" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600">BEST除外</button>
-<button id="qf-vr" onclick="toggleVR()" class="inline-flex items-center text-[11px] px-2.5 py-1.5 rounded-lg border transition bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200 hover:text-blue-600">VR除外</button>
 </div>
 <p id="result-count" class="text-xs text-gray-400">-- 件</p>
 </div>
@@ -356,8 +356,10 @@ function buildUrl(off){
   if(state.genre)url+='&genre='+encodeURIComponent(state.genre);
   return url;
 }
+// MGS pb_e_(横長裏)→pf_e_(縦長表紙=顔あり)、素人 jm.jpg→jp-001.jpg、FANZA pl.jpgは鮮明なので維持
+function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;}
 function cardHtml(p){
-  var img=p.main_image_url||'';
+  var img=poster(p.main_image_url||'');
   var t=((p.title||'').substring(0,40)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   var dt=(p.sale_start_date||'').substring(0,10).replace(/-/g,'/');
   var pid=encodeURIComponent(p.product_id||'');

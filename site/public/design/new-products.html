@@ -91,6 +91,9 @@
 <button class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
 <span class="material-symbols-outlined text-[20px]">south</span>
 </button>
+<a id="np-adv-link" href="/search/advanced?ctx=new" onclick="var s=document.querySelector('input[name=sort-order]:checked');this.href='/search/advanced?ctx='+(s&&s.value==='popular'?'popular':'new');" class="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary/10 text-primary px-3 text-xs font-bold">
+<span class="material-symbols-outlined text-[18px]">tune</span>詳細検索
+</a>
 </div>
 <!-- 4. 期間フィルター -->
 <div class="flex gap-2 px-4">
@@ -258,8 +261,11 @@ function getRange(period){
   return{fromDate:fromDate,toDate:toDate};
 }
 function setLoadMoreBtn(v){var b=document.getElementById('load-more-btn');if(b)b.style.display=v?'flex':'none';}
+// MGSは pb_e_(横長の裏/ワイド)→pf_e_(縦長の表紙=顔あり)、素人は jm.jpg→jp-001.jpg。
+// FANZAの pl.jpg は800×538の鮮明画像なのでそのまま使う（pt.jpgは90×122の極小サムネで劣化するため使わない）。
+function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;}
 function cardHtml(p){
-  var img=(p.main_image_url||'').replace(/pl\.jpg$/,'pt.jpg');
+  var img=poster(p.main_image_url||'');
   var t=((p.title||'').substring(0,30)).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   var pid=encodeURIComponent(p.product_id||'');
   return '<div class="flex flex-col gap-1.5 cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
