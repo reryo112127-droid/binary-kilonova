@@ -237,6 +237,15 @@ function mergeByZScore(mgsRows, mgsMetric, fanzaRows, fanzaMetric) {
     return combined.map(({ _pop, ...rest }) => rest);
 }
 
+// FANZA人気スコア(sort=rank由来, content_id→0..1)。作品ランキングの両PF公平化に使う(B成分)
+const _fanzaPop = (() => { try { return JSON.parse(fs.readFileSync(path.join(DATA, 'fanza_popularity.json'), 'utf-8')); } catch { return {}; } })();
+// FANZA作品の統一人気度: 人気順(rank)を主、レビューを補助に混ぜる(0..1)
+function fanzaPopMetric(r) {
+    const rank = Number(_fanzaPop[String(r.product_id)] || 0);
+    const rev = Math.min(1, ((Number(r.review_count) || 0) * (Number(r.review_average) || 0)) / 200);
+    return 0.6 * rank + 0.4 * rev;
+}
+
 // ── 作品ランキング (2026) ─────────────────────────────────────────
 async function genRanking2026() {
     console.log('[作品ランキング2026] 取得中...');
@@ -264,16 +273,11 @@ async function genRanking2026() {
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
-    const mgsPool   = mgsRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'mgs' }));
-    const fanzaPool = fanzaRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'fanza' }));
-
-    const result = [];
-    let mi = 0, fi = 0;
-    while (result.length < 100 && (mi < mgsPool.length || fi < fanzaPool.length)) {
-        for (let k = 0; k < 2 && mi < mgsPool.length && result.length < 100; k++) result.push(mgsPool[mi++]);
-        if (fi < fanzaPool.length && result.length < 100) result.push(fanzaPool[fi++]);
-    }
-    return result;
+    // 両PF公平: MGS=お気に入り / FANZA=人気順(rank)+レビュー を各PF内でz-score化し統一スコア降順で混ぜる
+    return mergeByZScore(
+        mgsRows,   r => Number(r.wish_count) || 0,
+        fanzaRows, fanzaPopMetric
+    ).slice(0, 100);
 }
 
 // ── 作品ランキング（日付範囲なし・デフォルト） ──────────────────
@@ -302,16 +306,11 @@ async function genRankingDefault() {
         }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
-    const mgsPool   = mgsRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'mgs' }));
-    const fanzaPool = fanzaRows.map(r => ({ ...r, main_image_url: poster(r.main_image_url), source: 'fanza' }));
-
-    const result = [];
-    let mi = 0, fi = 0;
-    while (result.length < 100 && (mi < mgsPool.length || fi < fanzaPool.length)) {
-        for (let k = 0; k < 2 && mi < mgsPool.length && result.length < 100; k++) result.push(mgsPool[mi++]);
-        if (fi < fanzaPool.length && result.length < 100) result.push(fanzaPool[fi++]);
-    }
-    return result;
+    // 両PF公平: MGS=お気に入り / FANZA=人気順(rank)+レビュー を各PF内でz-score化し統一スコア降順で混ぜる
+    return mergeByZScore(
+        mgsRows,   r => Number(r.wish_count) || 0,
+        fanzaRows, fanzaPopMetric
+    ).slice(0, 100);
 }
 
 // ── 女優ランキング (2026) ─────────────────────────────────────────
