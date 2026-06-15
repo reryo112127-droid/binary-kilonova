@@ -340,6 +340,9 @@ binary-kilonova/
 - **Bluesky自動投稿**: 無料・OG画像カード＋`sexual`セルフラベル（`bluesky_autopost.js`）
 - **X自動投稿（Playwright実ブラウザ）**: `x_browser_post.js`。公式API/Cookie方式は不可(402/code32)だが実ブラウザで投稿成功。**ツリー型**=1ポスト目:紹介文＋**サンプル動画**(FANZA/MGSを5〜15秒/冒頭5秒に`ffmpeg`自動編集) / 2ポスト目:女優ハッシュタグ＋URL。6アカウント自動振り分け、タスクスケジューラで1日6回
 - **投稿キュー自動充填**: `x_queue_fill.js`（VR=FANZA配信済み、anon=FANZA C(videoc)+MGS、Now Printing除外）
+  - **作品選定をホーム特定メーカー＋MGS独占に限定(2026-06)**: X投稿はホーム予約掲載の特定メーカー(HOME_MAKERS 18ブランド)の作品のみ。MGS作品はFANZAに無い独占配信(`cross_platform.json`で判定、独占355件)のみ。MGSの不足はFANZA特定メーカー(52,013件)でカバー(new/collab/ladyにFANZAソース追加)
+  - **VR投稿は1枚目のサンプル画像**: 動画(VR形式は平面で歪む)もパッケージも使わず `pl.jpg→jp-1.jpg`(本編1枚目)を投稿
+  - **共演とアンソロジーの判別**: 共演ジャンルから総集編/アンソロジーを除外(女優5人以上・240分以上・総集編系タイトルを除外、構造指標を主に)
 
 ### データ供給・運用
 - **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）

@@ -45,6 +45,12 @@ function posterUrl(u) {
     if (u.includes('/digital/amateur/') && u.endsWith('jm.jpg')) return u.replace('jm.jpg', 'jp-001.jpg');
     return u;
 }
+// 1枚目のサンプル画像URL(VR用)。FANZA videoa: pl.jpg → jp-1.jpg(本編1枚目, jp-001は2732bのプレースホルダ)
+function firstSampleImage(u) {
+    if (!u) return '';
+    if (/\/digital\/video\/.*pl\.jpg$/.test(u)) return u.replace(/pl\.jpg$/, 'jp-1.jpg');
+    return '';
+}
 function toPortrait(buf) {
     if (buf.length < 4 || buf[0] !== 0xFF || buf[1] !== 0xD8) return buf;
     try {
@@ -248,22 +254,39 @@ async function prepareItems(site, account, batch, dir) {
         // ツリー型: 1ポスト目=紹介文＋(サンプル動画 or 画像) / 2ポスト目(リプライ)=女優ハッシュタグ＋URL
         const text1 = phrase;
         const text2 = [actressTags(String(p.actresses || '')), `${SITE}/product/${pid}`].filter(Boolean).join('\n');
-        // まずサンプル動画(FANZA)を5〜15秒に編集。取れなければパッケージ画像にフォールバック
-        let videoPath = await makeSampleClip(pid, String(p.sample_video_url || ''), account, dir);
-        let imgPath = '';
-        if (!videoPath) {
-            const iurl = posterUrl(String(p.main_image_url || ''));
-            if (iurl) {
+        const safe = pid.replace(/[^a-zA-Z0-9_-]/g, '_');
+        let videoPath = '', imgPath = '';
+        if (genre === 'vr') {
+            // VRは動画(VR形式は平面で歪む)を使わず、パッケージでもなく「1枚目のサンプル画像」を投稿
+            const su = firstSampleImage(String(p.main_image_url || '')) || posterUrl(String(p.main_image_url || ''));
+            if (su) {
                 try {
-                    const r = await fetch(iurl);
+                    const r = await fetch(su, { headers: { Referer: 'https://www.dmm.co.jp/' } });
                     if (r.ok) {
                         const raw = Buffer.from(await r.arrayBuffer());
-                        // 表紙未完成(Now Printing)はパッケージとして投稿しない→この作品はスキップ(次へ)
                         if (isNowPrinting(raw)) { console.log(`  - skip(Now Printing): [${genre}] ${pid}`); continue; }
-                        imgPath = path.join(dir, `${account}_${pid.replace(/[^a-zA-Z0-9_-]/g, '_')}.jpg`);
+                        imgPath = path.join(dir, `${account}_${safe}.jpg`);
                         fs.writeFileSync(imgPath, toPortrait(raw));
                     }
-                } catch (e) { console.warn('画像取得失敗:', pid, e.message); }
+                } catch (e) { console.warn('VRサンプル画像取得失敗:', pid, e.message); }
+            }
+            if (!imgPath) continue; // サンプル画像が取れなければ次の作品へ
+        } else {
+            // まずサンプル動画(FANZA/MGS)を編集。取れなければパッケージ画像にフォールバック
+            videoPath = await makeSampleClip(pid, String(p.sample_video_url || ''), account, dir);
+            if (!videoPath) {
+                const iurl = posterUrl(String(p.main_image_url || ''));
+                if (iurl) {
+                    try {
+                        const r = await fetch(iurl);
+                        if (r.ok) {
+                            const raw = Buffer.from(await r.arrayBuffer());
+                            if (isNowPrinting(raw)) { console.log(`  - skip(Now Printing): [${genre}] ${pid}`); continue; }
+                            imgPath = path.join(dir, `${account}_${safe}.jpg`);
+                            fs.writeFileSync(imgPath, toPortrait(raw));
+                        }
+                    } catch (e) { console.warn('画像取得失敗:', pid, e.message); }
+                }
             }
         }
         items.push({ id: d.id, pid, genre, text1, text2, videoPath, imgPath });
