@@ -272,22 +272,9 @@ async function prepareItems(site, account, batch, dir) {
             }
             if (!imgPath) continue; // サンプル画像が取れなければ次の作品へ
         } else {
-            // まずサンプル動画(FANZA/MGS)を編集。取れなければパッケージ画像にフォールバック
+            // VR以外はサンプル動画のみ投稿。動画が取れない作品はスキップ(パッケージ画像へはフォールバックしない)
             videoPath = await makeSampleClip(pid, String(p.sample_video_url || ''), account, dir);
-            if (!videoPath) {
-                const iurl = posterUrl(String(p.main_image_url || ''));
-                if (iurl) {
-                    try {
-                        const r = await fetch(iurl);
-                        if (r.ok) {
-                            const raw = Buffer.from(await r.arrayBuffer());
-                            if (isNowPrinting(raw)) { console.log(`  - skip(Now Printing): [${genre}] ${pid}`); continue; }
-                            imgPath = path.join(dir, `${account}_${safe}.jpg`);
-                            fs.writeFileSync(imgPath, toPortrait(raw));
-                        }
-                    } catch (e) { console.warn('画像取得失敗:', pid, e.message); }
-                }
-            }
+            if (!videoPath) { console.log(`  - skip(サンプル動画なし): [${genre}] ${pid}`); continue; }
         }
         items.push({ id: d.id, pid, genre, text1, text2, videoPath, imgPath });
     }
