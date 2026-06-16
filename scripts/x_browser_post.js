@@ -17,7 +17,7 @@
 require('dotenv').config({ path: './site/.env.local' });
 const fs = require('fs');
 const path = require('path');
-const { execFile } = require('child_process');
+const { execFile, execFileSync } = require('child_process');
 const { promisify } = require('util');
 const execFileP = promisify(execFile);
 const { d1, fanzaShards } = require('./lib/d1');
@@ -139,13 +139,28 @@ async function makeSampleClip(pid, sampleUrl, account, dir) {
         const vr = await fetch(dl, { headers: { Referer: ref } });
         if (!vr.ok) return null;
         fs.writeFileSync(raw, Buffer.from(await vr.arrayBuffer()));
-        // 切り出し位置: FANZAは冒頭にタイトルカードが出るので5秒目から10秒(5〜15秒)。MGSは冒頭5秒(0〜5秒)。
-        const ss = isFanza ? '5' : '0';
-        const dur = isFanza ? '10' : '5';
-        await execFileP(ffmpegBin, ['-y', '-ss', ss, '-i', raw, '-t', dur,
-            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '24', '-pix_fmt', 'yuv420p',
-            '-c:a', 'aac', '-b:a', '96k', '-vf', 'scale=720:-2', '-movflags', '+faststart', out],
-            { timeout: 120000 });
+        // 動画の長さを取得(ffmpegのstderrから。ffmpeg-staticにffprobeは無い)
+        let dsec = 0;
+        try { execFileSync(ffmpegBin, ['-i', raw], { stdio: 'pipe' }); }
+        catch (e) { const m = String(e.stderr || '').match(/Duration:\s*(\d+):(\d+):(\d+\.?\d*)/); if (m) dsec = (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]); }
+        const ENC = ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '24', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart'];
+        const SEG = 4; // 1シーンの秒数
+        if (dsec >= 20) {
+            // 見栄え・テンポ重視: 30/50/70%地点から各SEG秒を抜き、繋いでダイジェスト(本編中盤〜後半なので女優も自然に写る)
+            const starts = [0.30, 0.50, 0.70].map(p => Math.max(1, Math.round(dsec * p)));
+            let fc = '', cc = '';
+            starts.forEach((s, i) => {
+                fc += `[0:v]trim=start=${s}:end=${s + SEG},setpts=PTS-STARTPTS,scale=720:-2,setsar=1[v${i}];`
+                    + `[0:a]atrim=start=${s}:end=${s + SEG},asetpts=PTS-STARTPTS[a${i}];`;
+                cc += `[v${i}][a${i}]`;
+            });
+            fc += `${cc}concat=n=${starts.length}:v=1:a=1[v][a]`;
+            await execFileP(ffmpegBin, ['-y', '-i', raw, '-filter_complex', fc, '-map', '[v]', '-map', '[a]', ...ENC, out], { timeout: 180000 });
+        } else {
+            // 短い動画は中盤(30%)から10秒1カット
+            const ss = String(Math.max(0, Math.round(dsec * 0.3)));
+            await execFileP(ffmpegBin, ['-y', '-ss', ss, '-i', raw, '-t', '10', '-vf', 'scale=720:-2', ...ENC, out], { timeout: 120000 });
+        }
         try { fs.unlinkSync(raw); } catch {}
         return fs.existsSync(out) && fs.statSync(out).size > 1000 ? out : null;
     } catch (e) { console.warn('動画編集失敗:', pid, e.message); try { fs.unlinkSync(raw); } catch {} return null; }
