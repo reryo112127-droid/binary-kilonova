@@ -27,6 +27,32 @@ try { ffmpegBin = require('ffmpeg-static'); } catch { /* 動画編集はffmpeg-s
 
 const SITE = 'https://avrankings.com';
 const GENRE_ACCOUNT = { new: '005', sale: '004', vr: '007', collab: '002', anon: '008', lady: '006' };
+const ACCOUNT_LABEL = { '005': '新作', '004': 'セール', '007': 'VR', '002': '共演', '008': '素人', '006': '人妻' };
+
+// Discord通知(webhookは site/.env.local の DISCORD_WEBHOOK_URL から。未設定なら何もしない)
+async function notifyDiscord(content) {
+    const url = process.env.DISCORD_WEBHOOK_URL || process.env.DISCORD_WEBHOOK;
+    if (!url) { console.warn('  ⚠ DISCORD_WEBHOOK_URL 未設定のため通知スキップ'); return false; }
+    try {
+        const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+        if (r.status === 204 || r.ok) return true;
+        console.warn('  ⚠ Discord通知失敗:', r.status); return false;
+    } catch (e) { console.warn('  ⚠ Discord通知エラー:', e.message); return false; }
+}
+// Cookie失効アラート(同一アカウント6時間に1回まで。ログイン成功で解除)
+const ALERT_FILE = path.join(__dirname, '..', 'data', 'x_cookie_alert.json');
+const loadAlerts = () => { try { return JSON.parse(fs.readFileSync(ALERT_FILE, 'utf-8')); } catch { return {}; } };
+const saveAlerts = (a) => { try { fs.writeFileSync(ALERT_FILE, JSON.stringify(a)); } catch {} };
+async function alertCookieExpired(account) {
+    const a = loadAlerts(), now = Date.now();
+    if (a[account] && now - a[account] < 6 * 3600000) return; // 直近6h以内に通知済みなら抑制
+    const sent = await notifyDiscord(`⚠️ **X自動投稿: Cookie失効** @${account}（${ACCOUNT_LABEL[account] || ''}）\nアカウント ${account} のCookieが失効し、自動投稿できません。\n→ Xに再ログインして \`XCK_${account}_AUTH_TOKEN\` / \`XCK_${account}_CT0\` を取得し直し、\`site/.env.local\` を更新してください。`);
+    if (sent) { a[account] = now; saveAlerts(a); } // 送信できた時だけ抑制(未設定/失敗時は次回リトライ)
+}
+function clearCookieAlert(account) {
+    const a = loadAlerts();
+    if (a[account]) { delete a[account]; saveAlerts(a); }
+}
 const PHRASES = {
     new:   ['新作きた！これ絶対チェックして', '今日配信開始のやつ。第一印象めちゃくちゃ良い', 'ついに出た…！待ってた人多いでしょこれ'],
     sale:  ['今セール中だから今のうちに！', 'このタイミング逃したらもったいない。お得すぎ', 'セール情報きた！これはマジで買い'],
@@ -317,7 +343,11 @@ async function runAccount(browser, site, account, opts) {
         const page = await ctx.newPage();
         await gotoRetry(page, 'https://x.com/home');
         await page.waitForTimeout(3000);
-        if (/\/(login|i\/flow\/login)/.test(page.url())) throw new Error('Cookieでログインできていません（再取得が必要）');
+        if (/\/(login|i\/flow\/login)/.test(page.url())) {
+            await alertCookieExpired(account); // Cookie失効 → Discord通知(6h抑制)
+            throw new Error('Cookieでログインできていません（再取得が必要）');
+        }
+        clearCookieAlert(account); // ログイン成功 → 失効フラグ解除(次回失効時に再通知できるよう)
         await page.getByRole('button', { name: /Got it|閉じる|OK/i }).first().click({ timeout: 3000 }).catch(() => {});
 
         for (let i = 0; i < items.length; i++) {

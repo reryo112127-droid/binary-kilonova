@@ -56,3 +56,6 @@ data/x_outbox/
 # スクレイパー進捗のバックアップ
 data/*.bak.json
 data/*.bak2.json
+
+# X Cookie失効アラートの状態
+data/x_cookie_alert.json
