@@ -86,10 +86,10 @@ const GENRES = [
           order: `ORDER BY RANDOM()`, whereArgs: () => [], limit: PER * 8 },
     ] },
     { genre: 'collab', sources: [
-        // 共演=2〜4人の本編。アンソロジー/総集編(5人以上・4時間以上・総集編系)は除外
-        { platform: 'mgs', where: `actresses LIKE '%,%' AND TRIM(actresses)<>'' AND ${NOT_ANTHOLOGY}`,
+        // 共演=2〜4人の本編。アンソロジー/総集編(5人以上・4時間以上・総集編系)は全ジャンル共通でSQL組み立て時に除外
+        { platform: 'mgs', where: `actresses LIKE '%,%' AND TRIM(actresses)<>''`,
           order: `ORDER BY RANDOM()`, whereArgs: () => [], limit: PER * 8 },
-        { platform: 'fanza', where: `actresses LIKE '%,%' AND TRIM(actresses)<>'' AND ${NOT_ANTHOLOGY}`,
+        { platform: 'fanza', where: `actresses LIKE '%,%' AND TRIM(actresses)<>''`,
           order: `ORDER BY RANDOM()`, whereArgs: () => [], limit: PER * 8 },
     ] },
 ];
@@ -119,7 +119,8 @@ const GENRES = [
             const dateCond = `${dateCol} >= ?`;
             // VRジャンル以外はVR作品を除外(VRジャンルはそのまま)
             const vrCond = g.genre === 'vr' ? '1=1' : NOT_VR;
-            const sql = `SELECT product_id FROM products WHERE ${src.where} AND ${makerCond} AND ${dateCond} AND ${vrCond} ${src.order} LIMIT ?`;
+            // 総集編/アンソロジーは全ジャンル共通で除外
+            const sql = `SELECT product_id FROM products WHERE ${src.where} AND ${makerCond} AND ${dateCond} AND ${vrCond} AND ${NOT_ANTHOLOGY} ${src.order} LIMIT ?`;
             const args = [...src.whereArgs(), ...makerArgs, FIVE_YEARS_AGO, src.limit];
             let rows = [];
             try { rows = (await client.execute({ sql, args })).rows; }
