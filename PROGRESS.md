@@ -348,6 +348,8 @@ binary-kilonova/
   - **配信5年以内に限定(2026-06)**: 全ジャンルの選定に `sale_start_date >= 5年前` を追加(MGSは `YYYY/MM/DD` を `REPLACE` で `-` 化して比較、FANZAはそのまま)。古い作品を投稿しない。NULL日付は除外。
   - **non-VRジャンルからVR作品を除外(2026-06)**: `NOT_VR`(`title`/`genres` の `%VR%` ＋品番 `%vr%`=dsvr/fcvr/juvr等)をvr以外の全ジャンルに付与。VR作品はサンプル動画を平面MP4化できず毎回スキップされ、キュー先頭(decided_at ASC)に居座って担当アカウント(sale/collab/lady等)を「対象なし」で塞いでいたため。既存キューに滞留していたVR品番5件(sale3/lady1/collab1)も削除済み。
   - **総集編/アンソロジーを全ジャンルで除外(2026-06)**: 旧来collabのみだった `NOT_ANTHOLOGY`(女優5人以上・240分以上・総集編系タイトル・`genres`の総集編/アンソロジー)をSQL組み立て時に全ジャンル一律で付与。lady等に2012年マドンナ総集編(`jusd00439`=478分/女優75人)が混入して投稿された事例への対処。既存キューの古い作品(配信5年超4件)＋総集編2件も削除済み。
+  - **投稿前キュー補充で枯渇防止(2026-06)**: 旧来は「SNS Daily Pipeline」(毎日11:00)が `x_queue_fill --per=8` を1日1回だけ実行 → セールが16時に在庫0で停止した。`sns_x_browser.bat` を**各投稿回(2時間毎・10回/日)の投稿前に `x_queue_fill --per=8` を実行**するよう変更し、終日継続補充に。INSERT OR IGNOREで重複登録は回避。供給が構造的に細いジャンル(sale等)は新規割引が出た分を随時取り込む。
+  - **セールの下段にセール期間を明記(2026-06)**: `x_browser_post.js` の `saleInfoLine(p)`。ツリー2ポスト目(下段)の先頭に `🔥{discount_pct}%OFFセール中 {M}/{D}まで` を表示。`sale_end_date`(FANZA `YYYY-MM-DD`/MGS `YYYY/MM/DD`)を正規表現でM/D抽出。**終了日がDBにNULLの作品(FANZAは多い)は割引率のみ**表示。SELECTに `discount_pct`/`sale_end_date` を追加。
 
 ### データ供給・運用
 - **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）

@@ -105,6 +105,17 @@ function actressTags(raw) {
         .slice(0, 3).map(n => '#' + n.replace(/\s+/g, '_')).join(' ');
 }
 
+// セールの下段表記: 割引率＋(あれば)終了日を「いつまで安いか」明記する。
+// sale_end_date は FANZA='YYYY-MM-DD'/MGS='YYYY/MM/DD' 等まちまちなので正規表現でM/Dを抽出。
+// 終了日がDBに無い(NULL)場合は割引率のみ。
+function saleInfoLine(p) {
+    const pct = parseInt(p && p.discount_pct, 10) || 0;
+    const m = String((p && p.sale_end_date) || '').match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    const until = m ? ` ${Number(m[2])}/${Number(m[3])}まで` : '';
+    if (pct >= 1) return `🔥${pct}%OFFセール中${until}`;
+    return until ? `🔥セール中${until}` : '🔥セール中';
+}
+
 // 予約日時をセット（Xのカレンダー(予約)機能）。when=Date。失敗時はfalse。
 async function setSchedule(page, when) {
     await page.locator('[data-testid="scheduleOption"]').first().click();
@@ -286,15 +297,17 @@ async function prepareItems(site, account, batch, dir) {
     for (const d of dec.rows) {
         if (items.length >= batch) break;
         const pid = String(d.product_id), genre = String(d.new_genre || 'new');
-        const sel = `SELECT title, actresses, main_image_url, sample_video_url FROM products WHERE product_id=? LIMIT 1`;
+        const sel = `SELECT title, actresses, main_image_url, sample_video_url, discount_pct, sale_end_date FROM products WHERE product_id=? LIMIT 1`;
         let pr = await d1('mgs').execute({ sql: sel, args: [pid] }).catch(() => ({ rows: [] }));
         if (!pr.rows.length) pr = await fanzaShards().execute({ sql: sel, args: [pid] }).catch(() => ({ rows: [] }));
         if (!pr.rows.length) continue;
         const p = pr.rows[0];
         const phrase = PHRASES[genre] ? PHRASES[genre][Math.floor(Math.random() * PHRASES[genre].length)] : PHRASES.new[0];
-        // ツリー型: 1ポスト目=紹介文＋(サンプル動画 or 画像) / 2ポスト目(リプライ)=女優ハッシュタグ＋URL
+        // ツリー型: 1ポスト目=紹介文＋(サンプル動画 or 画像) / 2ポスト目(リプライ)=セール情報＋女優ハッシュタグ＋URL
         const text1 = phrase;
-        const text2 = [actressTags(String(p.actresses || '')), `${SITE}/product/${pid}`].filter(Boolean).join('\n');
+        // セールジャンルは下段に割引率と終了日を明記(終了日がDBにあれば「〜M/Dまで」、無ければ割引率のみ)
+        const saleLine = genre === 'sale' ? saleInfoLine(p) : '';
+        const text2 = [saleLine, actressTags(String(p.actresses || '')), `${SITE}/product/${pid}`].filter(Boolean).join('\n');
         const safe = pid.replace(/[^a-zA-Z0-9_-]/g, '_');
         let videoPath = '', imgPath = '';
         if (genre === 'vr') {

@@ -9,6 +9,10 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 for /f "delims=" %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd"') do set TODAY=%%D
 set LOG_FILE=%LOG_DIR%\sns_x_%TODAY%.log
 cd /d "%PROJECT_DIR%"
+REM [0] top up the post queue before each posting run so genres never run dry mid-day (5yr/VR/anthology filters applied in x_queue_fill.js)
+echo [%time%] queue fill start >> "%LOG_FILE%"
+"%NODE%" "%PROJECT_DIR%\scripts\x_queue_fill.js" --per=8 >> "%LOG_FILE%" 2>&1
+echo [%time%] queue fill done: %errorlevel% >> "%LOG_FILE%"
 echo [%time%] x browser post start >> "%LOG_FILE%"
 "%NODE%" "%PROJECT_DIR%\scripts\x_browser_post.js" --all --now >> "%LOG_FILE%" 2>&1
 echo [%time%] x browser post done: %errorlevel% >> "%LOG_FILE%"
