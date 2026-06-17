@@ -18,6 +18,13 @@ const PER = parseInt((process.argv.find(a => a.startsWith('--per')) || '').split
 const today = new Date().toISOString().slice(0, 10);
 const ago = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 
+// 配信5年以内の作品のみ投稿対象にする(古い作品を投稿しない)。
+// sale_start_date は MGS='YYYY/MM/DD' / FANZA='YYYY-MM-DD' と桁区切りが異なるため、
+// MGSは REPLACE で '-' 化してから文字列比較する。NULL日付は比較で除外される(=5年以内と確認できない)。
+const fiveYearsAgoDate = new Date();
+fiveYearsAgoDate.setFullYear(fiveYearsAgoDate.getFullYear() - 5);
+const FIVE_YEARS_AGO = fiveYearsAgoDate.toISOString().slice(0, 10);
+
 // ホーム予約掲載の特定メーカー(generate-static-cache-local.mjs の HOME_MAKERS と一致させる)
 const HOME_MAKERS = [
     ['like', 'エスワン'], ['exact', 'ムーディーズ'], ['exact', 'アイデアポケット'], ['exact', 'OPPAI'],
@@ -37,6 +44,11 @@ const NOT_ANTHOLOGY = `actresses NOT LIKE '%,%,%,%,%' AND (duration_min IS NULL 
     + ` AND title NOT LIKE '%総集編%' AND title NOT LIKE '%アンソロジー%' AND title NOT LIKE '%オムニバス%'`
     + ` AND title NOT LIKE '%ベスト%' AND title NOT LIKE '%BEST%' AND title NOT LIKE '%コレクション%'`
     + ` AND genres NOT LIKE '%総集編%' AND genres NOT LIKE '%アンソロジー%'`;
+
+// VR作品の判別。VR以外のジャンルに混入するとサンプル動画を平面MP4化できず毎回スキップされ、
+// キュー先頭に居座って担当アカウントを塞ぐため、non-VRジャンルからは除外する。
+// VR品番(dsvr/fcvr/juvr 等の '...vr...')はSQLite LIKEが大小無視なので '%vr%' で拾える。
+const NOT_VR = `title NOT LIKE '%VR%' AND genres NOT LIKE '%VR%' AND product_id NOT LIKE '%vr%'`;
 
 // cross_platform.json: キーに含まれるMGS品番=FANZAに対作品あり=独占ではない
 let crossMap = {};
@@ -102,8 +114,13 @@ const GENRES = [
             const makerCond = isMgs ? MGS_MAKER_COND : FZ_MAKER_COND;
             const makerArgs = isMgs ? MGS_MAKER_ARGS : FZ_MAKER_ARGS;
             const client = isMgs ? d1('mgs') : fanzaShards();
-            const sql = `SELECT product_id FROM products WHERE ${src.where} AND ${makerCond} ${src.order} LIMIT ?`;
-            const args = [...src.whereArgs(), ...makerArgs, src.limit];
+            // 配信5年以内に限定(MGSは '/' を '-' に正規化して比較)
+            const dateCol = isMgs ? `REPLACE(sale_start_date,'/','-')` : `sale_start_date`;
+            const dateCond = `${dateCol} >= ?`;
+            // VRジャンル以外はVR作品を除外(VRジャンルはそのまま)
+            const vrCond = g.genre === 'vr' ? '1=1' : NOT_VR;
+            const sql = `SELECT product_id FROM products WHERE ${src.where} AND ${makerCond} AND ${dateCond} AND ${vrCond} ${src.order} LIMIT ?`;
+            const args = [...src.whereArgs(), ...makerArgs, FIVE_YEARS_AGO, src.limit];
             let rows = [];
             try { rows = (await client.execute({ sql, args })).rows; }
             catch (e) { console.warn(`  ${g.genre}(${src.platform}) 選定エラー:`, e.message); continue; }
