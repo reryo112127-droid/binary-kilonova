@@ -350,6 +350,7 @@ binary-kilonova/
   - **総集編/アンソロジーを全ジャンルで除外(2026-06)**: 旧来collabのみだった `NOT_ANTHOLOGY`(女優5人以上・240分以上・総集編系タイトル・`genres`の総集編/アンソロジー)をSQL組み立て時に全ジャンル一律で付与。lady等に2012年マドンナ総集編(`jusd00439`=478分/女優75人)が混入して投稿された事例への対処。既存キューの古い作品(配信5年超4件)＋総集編2件も削除済み。
   - **投稿前キュー補充で枯渇防止(2026-06)**: 旧来は「SNS Daily Pipeline」(毎日11:00)が `x_queue_fill --per=8` を1日1回だけ実行 → セールが16時に在庫0で停止した。`sns_x_browser.bat` を**各投稿回(2時間毎・10回/日)の投稿前に `x_queue_fill --per=8` を実行**するよう変更し、終日継続補充に。INSERT OR IGNOREで重複登録は回避。供給が構造的に細いジャンル(sale等)は新規割引が出た分を随時取り込む。
   - **セールの下段にセール期間を明記(2026-06)**: `x_browser_post.js` の `saleInfoLine(p)`。ツリー2ポスト目(下段)の先頭に `🔥{discount_pct}%OFFセール中 {M}/{D}まで` を表示。`sale_end_date`(FANZA `YYYY-MM-DD`/MGS `YYYY/MM/DD`)を正規表現でM/D抽出。**終了日がDBにNULLの作品(FANZAは多い)は割引率のみ**表示。SELECTに `discount_pct`/`sale_end_date` を追加。
+  - **anon(素人)はHOME_MAKERS条件を除外(2026-06)**: HOME_MAKERSがプレミアム18ブランド縛りなのに対し、素人は `floor='videoc'`/素人ジャンルで定義されメーカー縛りに該当しない。全ソース一律でmakerCondを掛けていたため「素人 かつ プレミアムメーカー」=常に0件 → anon在庫が枯渇し008(素人)アカウントが「対象なし」で投稿停止していた。`g.genre==='anon'` のときmakerCond/makerArgsをスキップ(=`1=1`)に修正。素人videoc(5年以内)は181件あり供給回復。
 
 ### データ供給・運用
 - **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）

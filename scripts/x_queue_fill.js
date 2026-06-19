@@ -111,8 +111,11 @@ const GENRES = [
         for (const src of g.sources) {
             if (n >= PER) break;
             const isMgs = src.platform === 'mgs';
-            const makerCond = isMgs ? MGS_MAKER_COND : FZ_MAKER_COND;
-            const makerArgs = isMgs ? MGS_MAKER_ARGS : FZ_MAKER_ARGS;
+            // anon(素人)はHOME_MAKERS(プレミアム18ブランド)に該当しない=メーカー条件を掛けると常に0件になるため除外。
+            // 素人は floor='videoc'/素人ジャンルで定義され、特定メーカー縛りの対象外。
+            const skipMaker = g.genre === 'anon';
+            const makerCond = skipMaker ? '1=1' : (isMgs ? MGS_MAKER_COND : FZ_MAKER_COND);
+            const makerArgs = skipMaker ? [] : (isMgs ? MGS_MAKER_ARGS : FZ_MAKER_ARGS);
             const client = isMgs ? d1('mgs') : fanzaShards();
             // 配信5年以内に限定(MGSは '/' を '-' に正規化して比較)
             const dateCol = isMgs ? `REPLACE(sale_start_date,'/','-')` : `sale_start_date`;
