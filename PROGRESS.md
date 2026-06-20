@@ -356,6 +356,7 @@ binary-kilonova/
 - **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）
 - **MGS新作の発売日NULL問題修正** ＋ `daily_main.bat` 再構成（新作→価格分離、D1ランキング再生成、R2無効化）。bat類のCRLF/ASCII化(255失敗の真因)
 - **全メーカー出演者回収(AVWIKI)** をDBへ反映、whitelist追加
+- **ホームが更新されない＝デプロイ未到達問題(2026-06-20)**: `daily_main.bat`(タスク「AVConcierge_DailyUpdate」10:30)は毎日キャッシュを生成するが、45分超の長いバッチ終盤(cross_platform.json出力直後)で**PCスリープ/電源により強制終了(0xFF)**し、最後の `npm run deploy:cf` に到達せず。**直近10日連続でデプロイ未実行**→本番ホームが約7日前(ローカル6/20生成 vs ライブ6/13配信)で停止していた。**対策**: デプロイを長バッチから切り離し、**専用タスク「AVConcierge Deploy」(毎日12:30、`scripts/deploy_only.bat`=`cd site && npm run deploy:cf`のみ)を新設**(WakeToRun＋StartWhenAvailable)。daily_main本体が死んでも生成済みキャッシュを確実に本番反映する。
 
 ---
 
