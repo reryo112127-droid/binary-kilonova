@@ -41,6 +41,8 @@ async function notifyDiscord(content) {
 }
 // Cookie失効アラート(同一アカウント6時間に1回まで。ログイン成功で解除)
 const ALERT_FILE = path.join(__dirname, '..', 'data', 'x_cookie_alert.json');
+// 女優別パフォーマンス(x_engagement_collect.js が生成。伸びる女優ほど高スコア)。承認キュー内の並べ替えに使う。
+const PERF_FILE = path.join(__dirname, '..', 'data', 'x_actress_perf.json');
 const loadAlerts = () => { try { return JSON.parse(fs.readFileSync(ALERT_FILE, 'utf-8')); } catch { return {}; } };
 const saveAlerts = (a) => { try { fs.writeFileSync(ALERT_FILE, JSON.stringify(a)); } catch {} };
 async function alertCookieExpired(account) {
@@ -103,6 +105,104 @@ function actressTags(raw) {
     return String(raw || '').split(/[,、/／]+/).map(s => s.trim())
         .filter(n => n && n.length > 1 && !/\d+歳|[（()【】\[\]]/.test(n))
         .slice(0, 3).map(n => '#' + n.replace(/\s+/g, '_')).join(' ');
+}
+
+// ─── 投稿文の動的生成（ルールベース） ───────────────────────────────
+// Xは同一文の反復をスパム減点するため、固定3フレーズの使い回しをやめ、作品メタ
+// (女優名/人数/割引率/配信日)から「固有名・数字・フック」入りの一文を毎回組み立てる。
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+// 女優名の配列（#なし・slice なし。先頭/人数の判定に使う）
+function actressNames(raw) {
+    return String(raw || '').split(/[,、/／]+/).map(s => s.trim())
+        .filter(n => n && n.length > 1 && !/\d+歳|[（()【】\[\]]/.test(n));
+}
+// 日付文字列(YYYY-MM-DD / YYYY/MM/DD 等)が「今日」かどうか
+function isToday(dateStr) {
+    const m = String(dateStr || '').match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if (!m) return false;
+    const now = new Date();
+    return Number(m[1]) === now.getFullYear() && Number(m[2]) === now.getMonth() + 1 && Number(m[3]) === now.getDate();
+}
+// 1ポスト目のフック文。女優名・人数・割引・配信日を織り込む。素材が無い時は genre 既定フレーズ。
+function buildHook(genre, p) {
+    const names = actressNames(p.actresses);
+    const a = names[0] || '';
+    const pct = parseInt(p && p.discount_pct, 10) || 0;
+    switch (genre) {
+        case 'new': {
+            const tag = isToday(p.sale_start_date) ? '【本日配信】' : '【新作】';
+            if (a) return pick([
+                `${tag}${a}の新作きた。これ待ってた人多いはず`,
+                `${tag}${a}、第一印象めちゃくちゃ良い。今日チェックして`,
+                `${tag}${a}の最新作。これは見逃せないやつ`,
+            ]);
+            return pick([`${tag}今日配信のこれ、第一印象がかなり良い`, `${tag}新作きた。完成度高い`]);
+        }
+        case 'sale': {
+            const off = pct >= 1 ? `${pct}%OFF` : 'セール';
+            if (a) return pick([
+                `${a}の作品が今${off}。このタイミング逃すと損`,
+                `${off}きた。${a}気になってた人は今のうち`,
+            ]);
+            return pick([`今${off}中。気になってたやつ今のうちに`, `${off}のお得情報。これはマジで買い`]);
+        }
+        case 'vr': {
+            if (a) return pick([
+                `${a}のVR、没入感やばすぎた。距離感バグる`,
+                `${a}が目の前にいる感覚がリアルすぎるVR作品`,
+            ]);
+            return pick([`VRで見たら没入感やばすぎた`, `これVR持ってる人は絶対見て。距離感バグる`]);
+        }
+        case 'collab': {
+            if (names.length >= 2) return pick([
+                `${names[0]}×${names[1]}の共演、神すぎる…この組み合わせは今しかない`,
+                `${names[0]}と${names[1]}が揃った。共演派にこれは刺さる`,
+            ]);
+            if (a) return `${a}の豪華共演作。この組み合わせは奇跡`;
+            return pick([`この共演、神すぎる…`, `共演って奇跡だよね。この面子は今しかない`]);
+        }
+        case 'anon':
+            return pick([`この素人感がリアルでめちゃくちゃ良い`, `ガチ感がすごい。演技じゃ出せないリアクション`, `隠れた名作見つけた。素人系の当たり`]);
+        case 'lady': {
+            if (a) return pick([`${a}の大人の色気、こういうことだよね`, `${a}、夜にゆっくり見てほしい一本`]);
+            return pick([`大人の色気ってこういうことだよね`, `癒されたい夜にぴったりの一本`]);
+        }
+        default:
+            return pick(PHRASES.new);
+    }
+}
+// 2ポスト目に置く返信誘発の一言。Xは reply を最大級に重み付け(≒×13.5)するため会話のきっかけを作る。
+const CTA = {
+    new:   ['この女優の他のおすすめ作品あったら教えて', '気になった人はRT、感想はリプで'],
+    sale:  ['気になってたやつあった？', 'セールで何買うか迷ってる人いる？'],
+    vr:    ['VRゴーグル何使ってる？おすすめ教えて', 'VR派の人いる？'],
+    collab:['単体派？共演派？', 'この共演どう？感想聞かせて'],
+    anon:  ['素人系で当たり引いたことある？', 'ガチ系好きな人いる？'],
+    lady:  ['こういう大人系もっと知りたい人いる？', '熟女・人妻好きな人RT'],
+};
+const replyCta = (genre) => pick(CTA[genre] || CTA.new);
+
+// ─── エンゲージ計測の還流（女優別パフォーマンス） ───────────────────
+// x_engagement_collect.js が書き出す女優→スコア表。無ければ空(=従来のFIFO順)。
+function loadActressPerf() {
+    try { return JSON.parse(fs.readFileSync(PERF_FILE, 'utf-8')) || {}; } catch { return {}; }
+}
+// 作品の出演女優のうち最も実績の高いスコア。候補の並べ替えに使う。
+function actressScore(perf, actressesRaw) {
+    let best = 0;
+    for (const n of actressNames(actressesRaw)) { const v = perf[n]; if (typeof v === 'number' && v > best) best = v; }
+    return best;
+}
+// 投稿実績テーブル(初回のみ作成)。投稿時にコンテキストを記録し、後で計測ジョブが指標を埋める。
+async function ensureMetricsTable(site) {
+    await site.execute(`CREATE TABLE IF NOT EXISTS x_post_metrics (
+        tweet_id TEXT PRIMARY KEY,
+        account TEXT, genre TEXT, product_id TEXT, actresses TEXT, hook TEXT,
+        posted_hour INTEGER, posted_at TEXT,
+        impressions INTEGER DEFAULT 0, likes INTEGER DEFAULT 0,
+        replies INTEGER DEFAULT 0, reposts INTEGER DEFAULT 0,
+        checked_at TEXT
+    )`).catch(() => {});
 }
 
 // セールの下段表記: 割引率＋(あれば)終了日を「いつまで安いか」明記する。
@@ -275,8 +375,16 @@ async function composeOne(page, item, scheduleAt) {
     await btn.click();
     const toast = page.locator('[data-testid="toast"]');
     let ok = await toast.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false);
+    // 実ツイートIDをトーストの「表示」リンクから取得(計測に使う)。トーストは数秒で消えるので即座に拾う。
+    let tweetId = '';
+    if (ok && !scheduled) {
+        const href = await page.locator('[data-testid="toast"] a[href*="/status/"]').first()
+            .getAttribute('href', { timeout: 4000 }).catch(() => null);
+        const m = href && href.match(/status\/(\d+)/);
+        if (m) tweetId = m[1];
+    }
     if (!ok) ok = !(await page.locator('[data-testid="tweetTextarea_0"]').first().isVisible().catch(() => true));
-    return { ok, scheduled };
+    return { ok, scheduled, tweetId };
 }
 
 // account -> 担当ジャンル一覧（GENRE_ACCOUNTの逆引き）
@@ -293,21 +401,31 @@ async function prepareItems(site, account, batch, dir) {
         sql: `SELECT id, product_id, new_genre FROM x_post_decisions WHERE decision='approve' AND posted_at IS NULL AND new_genre IN (${ph}) ORDER BY decided_at ASC LIMIT ?`,
         args: [...genres, batch * 6],
     });
-    const items = [];
-    for (const d of dec.rows) {
-        if (items.length >= batch) break;
+    // 候補の作品メタを先読みし、過去実績の高い女優を優先(枯渇防止のため候補は承認キュー内に限定)。
+    // 同点は元のFIFO順(decided_at ASC)を維持。実績データが無い初期は全員0=従来どおりFIFO。
+    const perf = loadActressPerf();
+    const cands = [];
+    for (let idx = 0; idx < dec.rows.length; idx++) {
+        const d = dec.rows[idx];
         const pid = String(d.product_id), genre = String(d.new_genre || 'new');
-        const sel = `SELECT title, actresses, main_image_url, sample_video_url, discount_pct, sale_end_date FROM products WHERE product_id=? LIMIT 1`;
+        const sel = `SELECT title, actresses, main_image_url, sample_video_url, discount_pct, sale_start_date, sale_end_date FROM products WHERE product_id=? LIMIT 1`;
         let pr = await d1('mgs').execute({ sql: sel, args: [pid] }).catch(() => ({ rows: [] }));
         if (!pr.rows.length) pr = await fanzaShards().execute({ sql: sel, args: [pid] }).catch(() => ({ rows: [] }));
         if (!pr.rows.length) continue;
-        const p = pr.rows[0];
-        const phrase = PHRASES[genre] ? PHRASES[genre][Math.floor(Math.random() * PHRASES[genre].length)] : PHRASES.new[0];
-        // ツリー型: 1ポスト目=紹介文＋(サンプル動画 or 画像) / 2ポスト目(リプライ)=セール情報＋女優ハッシュタグ＋URL
-        const text1 = phrase;
+        cands.push({ d, pid, genre, p: pr.rows[0], idx, score: actressScore(perf, pr.rows[0].actresses) });
+    }
+    cands.sort((a, b) => (b.score - a.score) || (a.idx - b.idx));
+
+    const items = [];
+    for (const c of cands) {
+        if (items.length >= batch) break;
+        const { d, pid, genre, p } = c;
+        // ツリー型: 1ポスト目=動的フック文＋(サンプル動画 or 画像) / 2ポスト目(リプライ)=セール情報＋返信CTA＋女優ハッシュタグ＋URL
+        const text1 = buildHook(genre, p);
         // セールジャンルは下段に割引率と終了日を明記(終了日がDBにあれば「〜M/Dまで」、無ければ割引率のみ)
         const saleLine = genre === 'sale' ? saleInfoLine(p) : '';
-        const text2 = [saleLine, actressTags(String(p.actresses || '')), `${SITE}/product/${pid}`].filter(Boolean).join('\n');
+        // 返信誘発のCTA(reply は最大級の重み)。本文URLの減点を避けるためURLは2ポスト目のまま。
+        const text2 = [saleLine, replyCta(genre), actressTags(String(p.actresses || '')), `${SITE}/product/${pid}`].filter(Boolean).join('\n');
         const safe = pid.replace(/[^a-zA-Z0-9_-]/g, '_');
         let videoPath = '', imgPath = '';
         if (genre === 'vr') {
@@ -330,7 +448,7 @@ async function prepareItems(site, account, batch, dir) {
             videoPath = await makeSampleClip(pid, String(p.sample_video_url || ''), account, dir);
             if (!videoPath) { console.log(`  - skip(サンプル動画なし): [${genre}] ${pid}`); continue; }
         }
-        items.push({ id: d.id, pid, genre, text1, text2, videoPath, imgPath });
+        items.push({ id: d.id, pid, genre, text1, text2, videoPath, imgPath, actresses: String(p.actresses || '') });
     }
     return items;
 }
@@ -373,8 +491,17 @@ async function runAccount(browser, site, account, opts) {
             });
             if (res.ok) {
                 done++;
-                await site.execute({ sql: `UPDATE x_post_decisions SET posted_at=datetime('now'), tweet_id=? WHERE id=?`, args: [res.scheduled ? 'scheduled' : 'browser', it.id] });
-                console.log(`  ✅ ${it.pid} ${res.scheduled ? '予約' : '投稿'}完了`);
+                const tid = res.tweetId || (res.scheduled ? 'scheduled' : 'browser');
+                await site.execute({ sql: `UPDATE x_post_decisions SET posted_at=datetime('now'), tweet_id=? WHERE id=?`, args: [tid, it.id] });
+                // 実IDが取れた即時投稿のみ計測対象として記録(予約は live IDが無いので除外)
+                if (res.tweetId) {
+                    await site.execute({
+                        sql: `INSERT OR IGNORE INTO x_post_metrics (tweet_id, account, genre, product_id, actresses, hook, posted_hour, posted_at)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+                        args: [res.tweetId, account, it.genre, it.pid, it.actresses || '', it.text1, new Date().getHours()],
+                    }).catch(() => {});
+                }
+                console.log(`  ✅ ${it.pid} ${res.scheduled ? '予約' : '投稿'}完了${res.tweetId ? ` (id:${res.tweetId})` : ''}`);
             } else {
                 const shot = path.join(dir, `fail_${account}_${it.pid}_${Date.now()}.png`);
                 await page.screenshot({ path: shot }).catch(() => {});
@@ -391,7 +518,12 @@ async function runAccount(browser, site, account, opts) {
 
 (async () => {
     const site = d1('site');
-    const batch = Math.max(1, parseInt(arg('batch') || '1', 10) || 1);
+    // 時間帯の重み付け: ゴールデンタイム(22-26時=22,23,0,1時JST)は初速が伸びやすいので1回あたりの投稿数を増やす。
+    // --batch 明示時はそれを優先。投稿の発火間隔自体はタスクスケジューラ(2時間毎)が制御する。
+    const PRIMETIME_HOURS = [22, 23, 0, 1];
+    const batchArg = arg('batch');
+    const batch = batchArg ? Math.max(1, parseInt(batchArg, 10) || 1)
+        : (PRIMETIME_HOURS.includes(new Date().getHours()) ? 2 : 1);
     const everyH = parseFloat(arg('every') || '2') || 2;
     const firstH = parseFloat(arg('first') || '2') || 2;
     const immediate = process.argv.includes('--now');
@@ -413,9 +545,18 @@ async function runAccount(browser, site, account, opts) {
     const total = plan.reduce((n, p) => n + p.items.length, 0);
     if (!total) { console.log('X未投稿の承認作品がありません（x_queue_fill.js でキュー補充を）'); return; }
     if (DRY) {
-        plan.forEach(p => { console.log(`@${p.account}: ${p.items.map(it => `[${it.genre}]${it.pid}${it.videoPath ? '(動画)' : ''}`).join(', ') || 'なし'}`); p.items.forEach(it => { for (const f of [it.imgPath, it.videoPath]) if (f) try { fs.unlinkSync(f); } catch {} }); });
+        plan.forEach(p => {
+            console.log(`@${p.account}: ${p.items.length ? '' : 'なし'}`);
+            p.items.forEach(it => {
+                console.log(`  ┌ [${it.genre}] ${it.pid}${it.videoPath ? ' (動画)' : it.imgPath ? ' (画像)' : ''}`);
+                console.log(`  │ ①: ${it.text1}`);
+                console.log(`  └ ②: ${String(it.text2).replace(/\n/g, ' / ')}`);
+                for (const f of [it.imgPath, it.videoPath]) if (f) try { fs.unlinkSync(f); } catch {}
+            });
+        });
         console.log('[DRY RUN] 終了'); return;
     }
+    await ensureMetricsTable(site); // 投稿実績テーブルを用意(計測の還流ループ用)
 
     let chromium;
     try { ({ chromium } = require('playwright')); }

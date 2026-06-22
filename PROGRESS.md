@@ -352,6 +352,27 @@ binary-kilonova/
   - **セールの下段にセール期間を明記(2026-06)**: `x_browser_post.js` の `saleInfoLine(p)`。ツリー2ポスト目(下段)の先頭に `🔥{discount_pct}%OFFセール中 {M}/{D}まで` を表示。`sale_end_date`(FANZA `YYYY-MM-DD`/MGS `YYYY/MM/DD`)を正規表現でM/D抽出。**終了日がDBにNULLの作品(FANZAは多い)は割引率のみ**表示。SELECTに `discount_pct`/`sale_end_date` を追加。
   - **anon(素人)はHOME_MAKERS条件を除外(2026-06)**: HOME_MAKERSがプレミアム18ブランド縛りなのに対し、素人は `floor='videoc'`/素人ジャンルで定義されメーカー縛りに該当しない。全ソース一律でmakerCondを掛けていたため「素人 かつ プレミアムメーカー」=常に0件 → anon在庫が枯渇し008(素人)アカウントが「対象なし」で投稿停止していた。`g.genre==='anon'` のときmakerCond/makerArgsをスキップ(=`1=1`)に修正。素人videoc(5年以内)は181件あり供給回復。
 
+### SNS投稿のバズ最適化（Xアルゴリズム対応 / 2026-06-22）
+> 根拠: Xが公開した推薦アルゴリズム(the-algorithm)の重み付け。reply≒×13.5 / プロフクリック×12 / 動画完走・滞在=大 / like×0.5 / **本文URLは強い減点** / 初速(投稿後30分)が露出量を決定。既存実装の「URLを2ポスト目に逃がす」「サンプル動画添付」は元々この方向に合致。
+- **動的フック文(`buildHook` in `x_browser_post.js`)**: 固定3フレーズ(`PHRASES`)のランダム使い回しを廃止。ジャンル×作品メタ(女優名/人数/割引率/`sale_start_date`=本日配信判定)から「固有名・数字・フック」入りの一文を毎回生成。各ジャンル複数バリアントから`pick()`で多様化(同一文反復のスパム減点回避)。collabは女優2名を`×`連結。素材が無い時はジャンル既定フレーズにフォールバック。
+- **返信誘発CTA(`replyCta`)**: 2ポスト目に「単体派？共演派？」等の会話の呼び水を挿入(reply最大重み対策)。URLは引き続き2ポスト目(本文URL減点回避)。
+- **時間帯の重み付け**: `--batch`未指定時、ゴールデンタイム(22-26時=22,23,0,1時JST)は`batch=2`/それ以外`batch=1`。投稿タスク「SNS X Browser Post」は2時間毎発火のうち**22:00と0:00の回が自動で2件投稿**になる(初速ゲー対策、スケジューラ変更不要)。
+- **エンゲージ計測の還流ループ(新規)**:
+  - `x_browser_post.js`: 投稿成功時にトーストの`/status/`リンクから**実ツイートID**を取得し、`x_post_metrics`(tweet_id/account/genre/product_id/actresses/hook/posted_hour/posted_at + impressions/likes/replies/reposts/checked_at)へINSERT。`ensureMetricsTable()`で初回自動作成。
+  - **`scripts/x_engagement_collect.js`(新規)**: 直近7日・未計測/6h超の投稿のツイートページをPlaywrightで開き、aria-labelからいいね/返信/RT/インプレッションをスクレイプ→`x_post_metrics`更新。`weighted = replies*13.5 + reposts*1 + likes*0.5`で集計し、**女優別`data/x_actress_perf.json`**＋**時間帯別`data/x_hour_perf.json`**を生成。Discordに高反応時間帯を通知。
+  - **選定への還流**: `prepareItems`が`x_actress_perf.json`を読み、承認キュー候補(枯渇防止のためキュー内に限定)を**実績の高い女優順**に並べ替え(同点はFIFO=`decided_at ASC`)。データ無しの初期は全員0=従来どおりFIFO。
+  - **`scripts/sns_x_engagement.bat`(新規)**: `x_engagement_collect.js --days=7`を実行。**※専用スケジューラタスク「SNS X Engagement」(daily 11:30/翌1:30, WakeToRun)は未登録**。下記コマンドを管理者で実行して登録すること。
+  - dry-runで①②本文プレビュー表示に改善(`node scripts/x_browser_post.js --all --dry-run`)。
+
+### SEO・流入拡大（アクセス数増 / 2026-06-22）
+> 背景: カタログ型サイトの本命は長尾検索だが、**申告URLが約15,000=全体の3%**しか無かった(最大の取りこぼし)。さらにTurso→D1移行で `actress_profiles` がほぼ空(76行)になり、現行サイトマップの女優は実質~37件まで激減していた(バグ)。
+- **WS1 サイトマップ全網羅**: `app/sitemap.ts`(単一)を撤去し **`app/sitemap.xml/route.ts`(インデックス)＋`app/sitemaps/[type]/[page]/route.ts`(45k/チャンク)** に置換。`generate-weekly-cache.mjs` の `genSitemapCache()` のLIMIT撤廃→**全作品ID(406,464)＋出演実績ベースの女優(ホワイトリスト照合29,212)＋ハブ＋LP** を申告(約44万URL)。IDのみ5.7MBで25MiB/ファイル上限内・ASSETS常時バンドルで日次デプロイでも消えない。`--sitemap-only`フラグ追加。robots は既に `/sitemap.xml` 参照。
+- **WS2 長尾LP量産(programmatic SEO)**: 共通レンダラ **`lib/landingPage.ts`**(`renderLandingPage`/`renderIndexPage`)。`products.html`(埋め込みローダ無し)をベースに、固有 title/meta/canonical/OG/**唯一のH1**/パンくず/JSON-LD(ItemList+BreadcrumbList)＋**実HTMLの作品カード(内部 `/api/products` をSSRフェッチ)** を注入。クライアントは offset=30 から無限スクロール(SSR空なら0から復帰)。ルート: **`/genre/[name]`・`/maker/[name]`・`/series/[name]`・`/cup/[letter]`** ＋ ハブ **`/genres`・`/series`・`/cup`**(`/makers`は既存)。slugは各キャッシュで検証し非掲載は404(薄いページ回避)。`generate-weekly-cache.mjs` に **`genres_cache.json`(297・技術タグ除外)/`series_cache.json`(45)** を追加(`makers_cache`既存3,829)。LP総数 約4,187。`--lp-caches`フラグ追加。週次ワークフローが genres/series cache もコミット。
+  - 設計注記: `/api/products` の絞り込み(genre/maker/cup=actress_profiles.json経由 等)は **D1バインディング必須**で `next dev` では空になる(SSRカードは本番でのみ確認可)。`/area`(出身地)はD1にprefecturesが無く保留。web版`new-products.html`は独自ローダがSSRを上書きするため不使用(モバイルファースト索引で `products.html` を全UAに)。
+- **WS3 内部リンク強化**: `injectLayout.ts` に**共通フッター(`#site-footer`)** を全ページ注入=人気ジャンル12＋各ハブ(/genres,/makers,/series,/cup,/ranking,/new,/sale,/video)への実リンク→どのページからもLPをクロール発見。`product/[id]` に**作品のジャンル/メーカーのLP内部リンク**を注入(キャッシュ掲載=有効ページのみ＝404リンクを作らない)。LP/ハブのパンくずは WS2 で実装済み。
+- **WS4 SNSハブ投稿**: **`scripts/sns_hub_post.js`**(＋`sns_hub.bat`)。`/ranking`・`/genres`・`/genre/X`(genres_cache上位20)・`/sale` へのまとめ誘導をBlueskyに週次投稿(OGカード＋sexualラベル)。LP集客とソーシャルシグナルの両取り。※専用スケジューラタスクは未登録(手動)。X版ハブ投稿はPlaywright改修が要るため follow-up。
+- **デプロイ後の運用**: `npm run deploy:cf` → Google Search Console に `https://avrankings.com/sitemap.xml` を送信 → 数日後に検出URL数が3%水準から大幅増を観測。LP実カードの最終確認は本番URLを curl(`/genre/巨乳` 等のSSR `<a href="/product/...">` 件数)。
+
 ### データ供給・運用
 - **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）
 - **MGS新作の発売日NULL問題修正** ＋ `daily_main.bat` 再構成（新作→価格分離、D1ランキング再生成、R2無効化）。bat類のCRLF/ASCII化(255失敗の真因)

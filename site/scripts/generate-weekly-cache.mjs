@@ -3,7 +3,7 @@
  * 使い方: node scripts/generate-weekly-cache.mjs
  *
  * 生成ファイル:
- *   data/sitemap_cache.json   - サイトマップ用URL一覧（女優5000件+作品10000件）
+ *   data/sitemap_cache.json   - サイトマップ用URL一覧（全作品ID＋写真あり全女優名。IDのみ ~8MB）
  *   data/makers_cache.json    - メーカー一覧（300件）
  */
 
@@ -42,27 +42,58 @@ function poster(url) {
     return url;
 }
 
+// 任意クライアントの baseSql を LIMIT/OFFSET でページングして全行取得。
+// fanzaShards.execute は OFFSET がシャード毎に効くため、呼び出し側で .shards を個別に渡すこと。
+async function fetchAllPaged(client, baseSql, PAGE = 25000) {
+    const out = [];
+    for (let offset = 0; ; offset += PAGE) {
+        const r = await client.execute({ sql: `${baseSql} LIMIT ${PAGE} OFFSET ${offset}` }).catch(() => ({ rows: [] }));
+        const rows = r.rows || [];
+        out.push(...rows);
+        if (rows.length < PAGE) break;
+    }
+    return out;
+}
+
 // ── サイトマップ用URLキャッシュ ────────────────────────────────────
+// 全作品ID＋全(写真あり)女優名を申告対象に。IDのみなので ~8MB で 25MiB/ファイル上限内。
+// app/sitemap.xml/route.ts がこのキャッシュを 45k/チャンクに分割して出力する。
 async function genSitemapCache() {
     console.log('[サイトマップキャッシュ] 取得中...');
-    const [actressRows, mgsRows, fanzaRows] = await Promise.all([
-        fanza.execute(
-            'SELECT name FROM actress_profiles WHERE image_url IS NOT NULL ORDER BY name LIMIT 5000'
-        ).then(r => r.rows).catch(() => []),
-        mgs.execute(
-            'SELECT product_id FROM products WHERE (duration_min IS NULL OR duration_min != 1) ORDER BY wish_count DESC LIMIT 5000'
-        ).then(r => r.rows).catch(() => []),
-        fanza.execute(
-            'SELECT product_id FROM products ORDER BY sale_start_date DESC LIMIT 5000'
-        ).then(r => r.rows).catch(() => []),
-    ]);
+    const fetchAll = fetchAllPaged;
 
-    const actresses = actressRows.map(r => String(r.name));
     const seen = new Set();
     const products = [];
-    for (const r of mgsRows)   { const p = String(r.product_id); if (!seen.has(p)) { seen.add(p); products.push(p); } }
-    for (const r of fanzaRows) { const p = String(r.product_id); if (!seen.has(p)) { seen.add(p); products.push(p); } }
+    const names = new Set();
+    // 女優名のクリーニング(actressTags/actressFilter と同方針): 1文字超・30文字以下・年齢/括弧/プレースホルダを除外
+    const cleanName = (s) => !!s && s.length > 1 && s.length <= 30 && !/\d+歳|[（()【】\[\]]/.test(s) && s !== '----';
+    const ingest = (rows) => {
+        for (const r of rows) {
+            const p = String(r.product_id);
+            if (p && !seen.has(p)) { seen.add(p); products.push(p); }
+            if (r.actresses) for (const n of String(r.actresses).split(/[,、/／]+/)) { const t = n.trim(); if (cleanName(t)) names.add(t); }
+        }
+    };
+    // 作品IDと出演者を1スキャンで取得(actress_profiles は D1 にほぼ空のため、出演実績のある女優を products から導出)。
+    // プレースホルダ(duration_min=1)は除外。FANZA は OFFSET がシャード毎に効くので .shards を個別ページング。
+    const SEL = `SELECT product_id, actresses FROM products WHERE (duration_min IS NULL OR duration_min != 1) ORDER BY product_id`;
+    ingest(await fetchAll(mgs, SEL));
+    for (const shard of fanza.shards) ingest(await fetchAll(shard, SEL));
 
+    // 実在女優ホワイトリスト(lib/actressFilter.ts と同じ data/actress_whitelist.json)で絞り、
+    // タイトル断片/役名/通称(「20時間戦う女」「@なつ」等)の混入＝薄いゴミページを排除する。
+    // URLは products に実在する文字列のまま出す(actress ページがその文字列で作品を引けるため)。
+    const norm = (s) => String(s || '').trim().replace(/\s+/g, '');
+    let whitelist = new Set();
+    try {
+        const wl = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'actress_whitelist.json'), 'utf-8'));
+        whitelist = new Set(wl.map(norm));
+    } catch (e) { console.warn('  ⚠ actress_whitelist.json 読込失敗(全女優を採用):', e.message); }
+    const actresses = (whitelist.size
+        ? [...names].filter(n => whitelist.has(norm(n)))
+        : [...names]).sort();
+
+    console.log(`  作品 ${products.length}件 / 女優 ${actresses.length}件(導出${names.size}→WL照合)`);
     return { actresses, products };
 }
 
@@ -155,6 +186,50 @@ async function genMakersList() {
     const labelList = Array.from(labelMap.values()).sort((a, b) => b.count - a.count);
     console.log(`[メーカー一覧] メーカー ${makerList.length}件 + レーベル ${labelList.length}件`);
     return [...makerList, ...labelList].sort((a, b) => b.count - a.count);
+}
+
+// ── ジャンル一覧（LP/サイトマップ用） ───────────────────────────
+// genres_cache.json: [{name,count}] 作品100件以上のジャンルのみ(薄いLPを避ける)
+async function genGenresCache() {
+    console.log('[ジャンル一覧] 取得中...');
+    const counts = new Map();
+    // 検索需要の無い技術/フォーマット/販売形態タグはLP化しない(薄い・無価値ページ回避)
+    const BLOCK = new Set([
+        'ハイビジョン', 'フルハイビジョン(FHD)', '4K', '8K', '独占配信', '配信専用', 'デジモ',
+        'アウトレット', '数量限定', 'セット商品', 'ダウンロード版限定', 'DMM限定', 'FANZA限定',
+        '4時間以上作品', '16時間以上作品', '20時間以上作品', 'ベスト・総集編', '昔の作品',
+    ]);
+    const bad = (g) => !g || g.length < 2 || g.length > 20 || /\d{4}年|\d+歳|[【】\[\]]/.test(g) || g === '----' || BLOCK.has(g);
+    const accumulate = (rows) => {
+        for (const r of rows) {
+            const cnt = Number(r.cnt || 0);
+            for (const g of String(r.genres || '').split(/[,、]+/)) { const t = g.trim(); if (!bad(t)) counts.set(t, (counts.get(t) || 0) + cnt); }
+        }
+    };
+    const SQL = `SELECT genres, COUNT(*) cnt FROM products WHERE genres IS NOT NULL AND genres != '' AND (duration_min IS NULL OR duration_min != 1) GROUP BY genres ORDER BY genres`;
+    accumulate(await fetchAllPaged(mgs, SQL));
+    for (const shard of fanza.shards) accumulate(await fetchAllPaged(shard, SQL));
+    const list = [...counts.entries()].filter(([, c]) => c >= 100).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+    console.log(`  ジャンル ${list.length}件(count>=100)`);
+    return list;
+}
+
+// ── シリーズ一覧（LP/サイトマップ用） ───────────────────────────
+// series_cache.json: [{name,count}] FANZA series_name、作品5件以上
+async function genSeriesCache() {
+    console.log('[シリーズ一覧] 取得中...');
+    const counts = new Map();
+    // HAVING はシャード跨ぎで漏れるため付けず、マージ後に >=5 で絞る
+    const SQL = `SELECT series_name, COUNT(*) cnt FROM products WHERE series_name IS NOT NULL AND series_name != '' AND series_name != '----' GROUP BY series_name ORDER BY series_name`;
+    for (const shard of fanza.shards) {
+        for (const r of await fetchAllPaged(shard, SQL)) {
+            const n = String(r.series_name || '').trim();
+            if (n && n.length <= 40) counts.set(n, (counts.get(n) || 0) + Number(r.cnt || 0));
+        }
+    }
+    const list = [...counts.entries()].filter(([, c]) => c >= 5).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+    console.log(`  シリーズ ${list.length}件(count>=5)`);
+    return list;
 }
 
 // ── 女優表示用フルプロフィールキャッシュ ─────────────────────────
@@ -423,18 +498,16 @@ async function genExtendedActressProducts(existingNames) {
 // ── メイン ────────────────────────────────────────────────────────
 async function main() {
     const dataDir = path.join(ROOT, 'data');
-
-    const wait = ms => new Promise(r => setTimeout(r, ms));
-    const sitemapData        = await genSitemapCache();        await wait(200);
-    const makersList         = await genMakersList();          await wait(200);
-    const actressMap         = await genActressDisplayCache(); await wait(200);
-    const topActressProducts = await genTopActressProducts();  await wait(200);
-    const extActressProducts = await genExtendedActressProducts(Object.keys(topActressProducts));
+    // sitemap_cache.json だけを素早く再生成する(週次フルランや動作確認用)
+    const sitemapOnly = process.argv.includes('--sitemap-only');
+    // LP用キャッシュ(genres/series)だけを再生成する
+    const lpCachesOnly = process.argv.includes('--lp-caches');
 
     const write = (filename, data) => {
         const p = path.join(dataDir, filename);
         const pubP = path.join(ROOT, 'public', 'data', filename);
         const json = JSON.stringify(data, null, 0);
+        fs.mkdirSync(path.dirname(p), { recursive: true });
         fs.writeFileSync(p, json);
         fs.mkdirSync(path.dirname(pubP), { recursive: true });
         fs.writeFileSync(pubP, json);
@@ -442,14 +515,38 @@ async function main() {
         console.log(`✓ ${filename} (${count}件)`);
     };
 
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+
+    if (lpCachesOnly) {
+        write('makers_cache.json', await genMakersList()); await wait(200);
+        write('genres_cache.json', await genGenresCache()); await wait(200);
+        write('series_cache.json', await genSeriesCache());
+        console.log('\n[--lp-caches] 完了！'); process.exit(0);
+    }
+
+    const sitemapData = await genSitemapCache();
     const sitemapPath    = path.join(dataDir, 'sitemap_cache.json');
     const sitemapPubPath = path.join(ROOT, 'public', 'data', 'sitemap_cache.json');
     const sitemapJson = JSON.stringify(sitemapData, null, 0);
+    fs.mkdirSync(dataDir, { recursive: true });
     fs.writeFileSync(sitemapPath, sitemapJson);
+    fs.mkdirSync(path.dirname(sitemapPubPath), { recursive: true });
     fs.writeFileSync(sitemapPubPath, sitemapJson);
     console.log(`✓ sitemap_cache.json (女優:${sitemapData.actresses.length}件, 作品:${sitemapData.products.length}件)`);
 
+    if (sitemapOnly) { console.log('\n[--sitemap-only] 完了！'); process.exit(0); }
+    await wait(200);
+
+    const makersList         = await genMakersList();          await wait(200);
+    const genresList         = await genGenresCache();         await wait(200);
+    const seriesList         = await genSeriesCache();         await wait(200);
+    const actressMap         = await genActressDisplayCache(); await wait(200);
+    const topActressProducts = await genTopActressProducts();  await wait(200);
+    const extActressProducts = await genExtendedActressProducts(Object.keys(topActressProducts));
+
     write('makers_cache.json', makersList);
+    write('genres_cache.json', genresList);
+    write('series_cache.json', seriesList);
     write('actress_display_cache.json', actressMap);
     write('actress_top_products.json', topActressProducts);
     write('actress_extended_products.json', extActressProducts);

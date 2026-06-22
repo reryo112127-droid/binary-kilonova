@@ -56,8 +56,12 @@ jobs:
           git add \
             site/data/sitemap_cache.json \
             site/data/makers_cache.json \
+            site/data/genres_cache.json \
+            site/data/series_cache.json \
             site/public/data/sitemap_cache.json \
             site/public/data/makers_cache.json \
+            site/public/data/genres_cache.json \
+            site/public/data/series_cache.json \
             || true
           if ! git diff --staged --quiet; then
             git commit -m "cache: 週次サイトマップ・メーカーキャッシュ更新 [skip ci]"

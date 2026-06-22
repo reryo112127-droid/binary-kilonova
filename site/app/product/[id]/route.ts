@@ -5,6 +5,7 @@ import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { filterActresses } from '../../../lib/actressFilter';
 import { readStaticCacheAsync as readStaticCache } from '../../../lib/staticCache';
 import { r2GetProduct } from '../../../lib/productR2';
+import { loadGenres, loadMakers } from '../../../lib/lpData';
 
 export const dynamic = 'force-dynamic';
 
@@ -143,6 +144,31 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
     return html.replace(/<title>[^<]*<\/title>/, metaBlock);
 }
 
+// 作品の出演ジャンル・メーカーを、対応LPが存在するもの(キャッシュ掲載=有効ページ)に限り
+// クロール可能な内部リンクとして本文末に挿入する(404リンクを作らない)。
+async function injectProductLinks(html: string, product: Record<string, unknown> | null): Promise<string> {
+    if (!product) return html;
+    const [genres, makers] = await Promise.all([loadGenres(), loadMakers()]);
+    const gset = new Set(genres.map(g => g.name));
+    const mset = new Set(makers.map(m => m.name));
+    const chip = (href: string, label: string) =>
+        `<a class="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1 text-xs hover:border-primary hover:text-primary transition-colors" href="${href}">${escHtml(label)}</a>`;
+    const links: string[] = [];
+    for (const g of String(product.genres || '').split(/[,、]/).map(s => s.trim()).filter(Boolean)) {
+        if (gset.has(g)) links.push(chip(`/genre/${encodeURIComponent(g)}`, g));
+        if (links.length >= 10) break;
+    }
+    const maker = String(product.maker || '').trim();
+    if (maker && mset.has(maker)) links.push(chip(`/maker/${encodeURIComponent(maker)}`, maker));
+    const label = String(product.label || '').trim();
+    if (label && label !== maker && mset.has(label)) links.push(chip(`/maker/${encodeURIComponent(label)}`, label));
+    if (!links.length) return html;
+    const block = `<section class="px-4 py-4 border-t border-slate-200 dark:border-slate-800">`
+        + `<p class="font-bold text-xs mb-2 text-slate-700 dark:text-slate-300">関連ジャンル・メーカー</p>`
+        + `<div class="flex flex-wrap gap-2">${links.join('')}</div></section>`;
+    return html.replace('</body>', block + '\n</body>');
+}
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -178,6 +204,7 @@ export async function GET(
         // ?og=pkg のときは og:image にパッケージ表紙を使う（SNS自動投稿フィード用）
         const preferPackage = new URL(request.url).searchParams.get('og') === 'pkg';
         html = injectSEOMeta(html, product, id, actressImageUrl, preferPackage);
+        html = await injectProductLinks(html, product); // 関連ジャンル/メーカーへの内部リンク
 
         html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
         return new NextResponse(html, {
