@@ -36,22 +36,22 @@ export interface LandingOptions {
     canonicalPath: string;
 }
 
-function esc(s: unknown): string {
+export function esc(s: unknown): string {
     return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // MGS裏表紙→表紙 / 素人サムネ補正(products/route.ts の poster と同じ)
-function poster(url: string): string {
+export function poster(url: string): string {
     if (!url) return '';
     if (url.includes('pb_e_')) return url.replace('pb_e_', 'pf_e_');
     if (url.includes('/digital/amateur/') && url.endsWith('jm.jpg')) return url.replace('jm.jpg', 'jp-001.jpg');
     return url;
 }
 
-type Product = { product_id: string; title?: string; actresses?: string; main_image_url?: string };
+export type Product = { product_id: string; title?: string; actresses?: string; main_image_url?: string };
 
 // SSR用の作品カード(実 <a> リンク = クロール可能)
-function cardHtml(p: Product): string {
+export function cardHtml(p: Product): string {
     const pid = String(p.product_id);
     const img = poster(String(p.main_image_url || ''));
     const act = p.actresses ? String(p.actresses).split(',')[0].trim() : '';
@@ -67,8 +67,13 @@ function cardHtml(p: Product): string {
         + `</a>`;
 }
 
+// 作品配列を SSR カード列に
+export function productCardsHtml(products: Product[]): string {
+    return products.map(cardHtml).join('');
+}
+
 // #products-grid の中身を SSR カードに差し替える(対応する </div> を深さカウントで特定)
-function replaceGridInner(html: string, inner: string): string {
+export function replaceGridInner(html: string, inner: string): string {
     const m = html.match(/<div[^>]*id="products-grid"[^>]*>/);
     if (!m || m.index === undefined) return html;
     const start = m.index + m[0].length;
@@ -84,11 +89,11 @@ function replaceGridInner(html: string, inner: string): string {
     return html.slice(0, start) + inner + html.slice(closeStart);
 }
 
-// 先頭 SSR_COUNT 件を取得。Workersは自分の公開URLへの自己fetchが失敗するため、
-// /api/products の GET ハンドラを同一プロセスで直接呼ぶ(D1バインディングを共有)。
-async function fetchFirstPage(req: NextRequest, apiQuery: string): Promise<Product[]> {
+// Workersは自分の公開URLへの自己fetchが失敗するため、/api/products の GET を同一プロセスで直接呼ぶ
+// (D1バインディングを共有)。offset対応でページネーション/女優ページからも再利用する。
+export async function fetchProducts(req: NextRequest, apiQuery: string, count = SSR_COUNT, offset = 0): Promise<Product[]> {
     try {
-        const url = new URL(`/api/products?${apiQuery}&limit=${SSR_COUNT}&offset=0`, req.url);
+        const url = new URL(`/api/products?${apiQuery}&limit=${count}&offset=${offset}`, req.url);
         const res = await productsGET(new NextRequest(url));
         if (!res.ok) return [];
         const data = await res.json();
@@ -97,14 +102,14 @@ async function fetchFirstPage(req: NextRequest, apiQuery: string): Promise<Produ
     } catch { return []; }
 }
 
-// クライアント無限スクロール(offset=SSR_COUNT から続ける)
-function paginatorScript(apiQuery: string): string {
+// クライアント無限スクロール(SSR済みの続き startOffset から続ける)
+function paginatorScript(apiQuery: string, startOffset: number): string {
     return `<script id="lp-paginate">(function(){
   var Q=${JSON.stringify(apiQuery)};var grid=document.getElementById('products-grid');
   if(!grid)return;
-  // SSRカードが入っていれば続き(offset=SSR_COUNT)から、空(=SSR失敗)なら先頭から取得
+  // SSRカードが入っていれば続き(startOffset)から、空(=SSR失敗)なら先頭から取得
   var hasSSR=grid.querySelector('a[href^="/product/"]')!=null;
-  var offset=hasSSR?${SSR_COUNT}:0,loading=false,hasMore=true,LIMIT=30;
+  var offset=hasSSR?${startOffset}:0,loading=false,hasMore=true,LIMIT=30;
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function poster(u){if(!u)return'';if(u.indexOf('pb_e_')>-1)return u.replace('pb_e_','pf_e_');if(u.indexOf('/digital/amateur/')>-1&&/jm\\.jpg$/.test(u))return u.replace('jm.jpg','jp-001.jpg');return u;}
   function card(p){var pid=String(p.product_id);var img=poster(p.main_image_url);var act=p.actresses?String(p.actresses).split(',')[0].trim():'';
@@ -124,14 +129,26 @@ function paginatorScript(apiQuery: string): string {
 })();<\/script>`;
 }
 
-function jsonLd(opts: LandingOptions, products: Product[]): string {
-    const canonical = BASE + opts.canonicalPath;
+type Faq = { q: string; a: string };
+type PageNav = { canonical: string; prevUrl: string; nextUrl: string; noindex: boolean };
+
+// カタログ機能に即した汎用FAQ(露骨でない・薄いページ対策＋固有テキスト)
+function faqFor(opts: LandingOptions): Faq[] {
+    const n = opts.h1;
+    return [
+        { q: `${n}はどんな順番で表示されますか？`, a: `${n}の作品をお気に入り数・レビュー評価に基づく人気順で一覧表示しています。上位の作品から探せます。` },
+        { q: `${n}の新作はありますか？`, a: `はい。新着・配信日順での並び替えに対応し、データは日次で更新しています。` },
+        { q: `サンプル動画や最安値は確認できますか？`, a: `多くの作品でサンプル動画・サンプル画像を掲載し、MGS・FANZAの価格を比較して安い方を表示します。` },
+    ];
+}
+
+function jsonLd(opts: LandingOptions, products: Product[], nav: PageNav, faq: Faq[]): string {
     const breadcrumb = {
         '@context': 'https://schema.org', '@type': 'BreadcrumbList',
         itemListElement: [
             { '@type': 'ListItem', position: 1, name: 'ホーム', item: BASE + '/' },
             { '@type': 'ListItem', position: 2, name: opts.hub.label, item: BASE + opts.hub.path },
-            { '@type': 'ListItem', position: 3, name: opts.h1, item: canonical },
+            { '@type': 'ListItem', position: 3, name: opts.h1, item: BASE + opts.canonicalPath },
         ],
     };
     const itemList = {
@@ -140,23 +157,30 @@ function jsonLd(opts: LandingOptions, products: Product[]): string {
             '@type': 'ListItem', position: i + 1, url: `${BASE}/product/${encodeURIComponent(String(p.product_id))}`,
         })),
     };
-    const blocks = [breadcrumb];
-    if (products.length) blocks.push(itemList as unknown as typeof breadcrumb);
+    const faqPage = {
+        '@context': 'https://schema.org', '@type': 'FAQPage',
+        mainEntity: faq.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+    };
+    const blocks: object[] = [breadcrumb];
+    if (products.length) blocks.push(itemList);
+    if (faq.length) blocks.push(faqPage);
     return blocks.map(b => `<script type="application/ld+json">${JSON.stringify(b)}</script>`).join('\n');
 }
 
-function seoHead(opts: LandingOptions, products: Product[]): string {
-    const canonical = BASE + opts.canonicalPath;
+function seoHead(opts: LandingOptions, products: Product[], nav: PageNav, faq: Faq[]): string {
     const title = `${opts.title} | AVランキング`;
     const desc = opts.description.slice(0, 160);
     return `<title>${esc(title)}</title>\n`
         + `<meta name="description" content="${esc(desc)}"/>\n`
-        + `<link rel="canonical" href="${esc(canonical)}"/>\n`
+        + (nav.noindex ? `<meta name="robots" content="noindex,follow"/>\n` : '')
+        + `<link rel="canonical" href="${esc(nav.canonical)}"/>\n`
+        + (nav.prevUrl ? `<link rel="prev" href="${esc(nav.prevUrl)}"/>\n` : '')
+        + (nav.nextUrl ? `<link rel="next" href="${esc(nav.nextUrl)}"/>\n` : '')
         + `<meta property="og:title" content="${esc(title)}"/>\n`
         + `<meta property="og:description" content="${esc(desc)}"/>\n`
         + `<meta property="og:type" content="website"/>\n`
-        + `<meta property="og:url" content="${esc(canonical)}"/>\n`
-        + jsonLd(opts, products);
+        + `<meta property="og:url" content="${esc(nav.canonical)}"/>\n`
+        + jsonLd(opts, products, nav, faq);
 }
 
 // H1＋説明文ブロック(グリッド直前に差し込む索引テキスト)
@@ -168,25 +192,52 @@ function headingBlock(opts: LandingOptions): string {
         + `</section>`;
 }
 
+// 可視ページネーション(クロール可能な実リンク。?page=N)
+function pagePath(path: string, p: number): string { return p > 0 ? `${path}?page=${p}` : path; }
+function paginationNav(opts: LandingOptions, page: number, hasNext: boolean): string {
+    if (page === 0 && !hasNext) return '';
+    const link = (href: string, label: string) =>
+        `<a class="rounded-full border border-slate-200 dark:border-slate-700 px-4 py-1.5 text-xs font-medium hover:border-primary hover:text-primary" href="${esc(href)}">${label}</a>`;
+    const prev = page > 0 ? link(pagePath(opts.canonicalPath, page - 1), '‹ 前へ') : '<span></span>';
+    const next = hasNext ? link(pagePath(opts.canonicalPath, page + 1), '次へ ›') : '<span></span>';
+    return `<nav class="flex items-center justify-between px-4 py-4">${prev}<span class="text-[11px] text-slate-400">ページ ${page + 1}</span>${next}</nav>`;
+}
+
+// 可視FAQ(索引テキスト。FAQPage構造化データと対応)
+function faqVisible(faq: Faq[]): string {
+    return `<section class="px-4 py-5 border-t border-slate-200 dark:border-slate-800">`
+        + `<h2 class="text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">よくある質問</h2>`
+        + faq.map(f => `<div class="mb-2"><p class="text-xs font-bold text-slate-700 dark:text-slate-300">Q. ${esc(f.q)}</p><p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">${esc(f.a)}</p></div>`).join('')
+        + `</section>`;
+}
+
 /** LPをレンダリングして NextResponse を返す。slug不正(空結果)時は呼び出し側で404にしてもよい。 */
 export async function renderLandingPage(req: NextRequest, opts: LandingOptions): Promise<NextResponse> {
-    // モバイルファースト索引に合わせ、埋め込みローダの無いクリーンな products.html を全UAで使う
-    // (web/new-products.html は独自の /api/products ローダを持ち SSR カードを上書きするため使わない)。
-    const products = await fetchFirstPage(req, opts.apiQuery);
+    // モバイルファースト索引に合わせ、埋め込みローダの無いクリーンな products.html を全UAで使う。
+    const page = Math.max(0, parseInt(new URL(req.url).searchParams.get('page') || '0', 10) || 0);
+    const offset = page * SSR_COUNT;
+    const products = await fetchProducts(req, opts.apiQuery, SSR_COUNT, offset);
+    const hasNext = products.length === SSR_COUNT;
+    const faq = faqFor(opts);
+    const nav: PageNav = {
+        canonical: BASE + pagePath(opts.canonicalPath, page),
+        prevUrl: page > 0 ? BASE + pagePath(opts.canonicalPath, page - 1) : '',
+        nextUrl: hasNext ? BASE + pagePath(opts.canonicalPath, page + 1) : '',
+        noindex: products.length === 0, // 範囲外/空ページは索引させない
+    };
 
     let html = await readHtml(req.url, '/design/products.html');
     html = injectMobileLayout(html, '', { skipHeader: true });
 
     // テンプレ上部バーの汎用H1「作品一覧」をdivへ降格(キーワードH1を唯一のH1にする)
     html = html.replace(/<h1([^>]*)>作品一覧<\/h1>/, (_m, attrs) => `<div${attrs}>${esc(opts.slug)}</div>`);
-    // SEO head
-    html = html.replace('</head>', seoHead(opts, products) + '\n</head>');
-    // H1＋説明をグリッド直前に挿入
+    html = html.replace('</head>', seoHead(opts, products, nav, faq) + '\n</head>');
     html = html.replace(/<div[^>]*id="products-grid"[^>]*>/, m => headingBlock(opts) + m);
-    // グリッド中身を SSR カードへ
-    html = replaceGridInner(html, products.map(cardHtml).join(''));
-    // 既存ページスクリプト(PRODUCTS_SCRIPT等)が走らないこのページ専用のページャを付与
-    html = html.replace('</body>', paginatorScript(opts.apiQuery) + '\n</body>');
+    html = replaceGridInner(html, productCardsHtml(products));
+    // グリッド後・フッター前に ページネーション＋FAQ を挿入(injectFooterで </body>直前にfooterが入っている)
+    html = html.replace('<footer id="site-footer"', paginationNav(opts, page, hasNext) + faqVisible(faq) + '<footer id="site-footer"');
+    // このページ専用のページャ(SSR済みの続きから無限スクロール)
+    html = html.replace('</body>', paginatorScript(opts.apiQuery, offset + products.length) + '\n</body>');
 
     return new NextResponse(html, {
         headers: {
