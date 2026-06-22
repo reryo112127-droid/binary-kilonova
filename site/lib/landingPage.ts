@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readHtml } from './readHtml';
 import { injectMobileLayout } from './injectLayout';
+import { GET as productsGET } from '../app/api/products/route';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 const SSR_COUNT = 30;
@@ -83,11 +84,12 @@ function replaceGridInner(html: string, inner: string): string {
     return html.slice(0, start) + inner + html.slice(closeStart);
 }
 
-// 内部APIを1回叩いて先頭 SSR_COUNT 件を取得(失敗時は空配列)
+// 先頭 SSR_COUNT 件を取得。Workersは自分の公開URLへの自己fetchが失敗するため、
+// /api/products の GET ハンドラを同一プロセスで直接呼ぶ(D1バインディングを共有)。
 async function fetchFirstPage(req: NextRequest, apiQuery: string): Promise<Product[]> {
     try {
         const url = new URL(`/api/products?${apiQuery}&limit=${SSR_COUNT}&offset=0`, req.url);
-        const res = await fetch(url, { headers: { 'user-agent': 'lp-ssr' } });
+        const res = await productsGET(new NextRequest(url));
         if (!res.ok) return [];
         const data = await res.json();
         const arr = Array.isArray(data) ? data : (data.products || []);
