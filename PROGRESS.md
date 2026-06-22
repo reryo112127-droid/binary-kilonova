@@ -373,6 +373,14 @@ binary-kilonova/
 - **WS4 SNSハブ投稿**: **`scripts/sns_hub_post.js`**(＋`sns_hub.bat`)。`/ranking`・`/genres`・`/genre/X`(genres_cache上位20)・`/sale` へのまとめ誘導をBlueskyに週次投稿(OGカード＋sexualラベル)。LP集客とソーシャルシグナルの両取り。※専用スケジューラタスクは未登録(手動)。X版ハブ投稿はPlaywright改修が要るため follow-up。
 - **デプロイ後の運用**: `npm run deploy:cf` → Google Search Console に `https://avrankings.com/sitemap.xml` を送信 → 数日後に検出URL数が3%水準から大幅増を観測。LP実カードの最終確認は本番URLを curl(`/genre/巨乳` 等のSSR `<a href="/product/...">` 件数)。
 
+#### A: 索引されるためのコンテンツ強化（2026-06-23・デプロイ済み）
+> 全網羅サイトマップで申告しても、薄い/重複ページは「検出—インデックス未登録」で載らない。実体のあるページにして索引率・順位を上げる。
+- **A1 女優ページSSR化(最重要・女優名＝最大長尾)**: `app/actress/[name]/route.ts`。`search-actress.html`は生HTMLのH1が placeholder「女優名」で作品もJS描画だった→ `/api/products?actress=` を**同一プロセス直呼び**(`lib/landingPage.ts:fetchProducts`)で取得し、**実名H1置換・固有intro・SSR作品カード・ItemList/BreadcrumbList JSON-LD・共演女優リンク・ページネーション**を生HTMLに注入。**作品0件は `noindex,follow`**(無実体の女優URLを索引させない)。本番で実名H1・SSRカード30・共演リンク・noindex無し(実在女優)を確認。
+- **A2 LPのFAQ＋固有テキスト**: `lib/landingPage.ts` に**FAQPage JSON-LD＋可視FAQ**(カタログ機能に即した3問)を追加し薄いページ脱却。
+- **A3 クロール可能ページネーション**: `?page=N` 対応(SSR offset・`rel=prev/next`・可視「前へ/次へ」・page付きcanonical・空ページnoindex)。全作品はサイトマップ申告済みのため発見性の主役ではなく、行き止まり回避＋奥作品への内部リンクが目的。
+- 共有部品(`cardHtml`/`productCardsHtml`/`replaceGridInner`/`fetchProducts`/`esc`/`poster`)を `landingPage.ts` から export し女優ルートと共有。
+- **次の運用**: GSCで人気女優ページ/主要ハブを URL検査→インデックス登録リクエスト(数ページ)。数週間後に「ページ(インデックス作成)」登録数・検索パフォーマンスの推移で効果測定→次手判断。
+
 ### データ供給・運用
 - **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）
 - **MGS新作の発売日NULL問題修正** ＋ `daily_main.bat` 再構成（新作→価格分離、D1ランキング再生成、R2無効化）。bat類のCRLF/ASCII化(255失敗の真因)
