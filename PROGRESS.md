@@ -387,6 +387,13 @@ binary-kilonova/
 - **セール: 期限切れ除外の二重防御**: 生成側 `genSaleProducts`(generate-static-cache.mjs/-local.mjs)に `sale_end_date>=today OR NULL` を追加＋読み込み側 `api/products` discountキャッシュ返却前に `sale_end_date` 過去を除外。本番sale_cacheは**116件中60件が終了済み(06-12の50%OFF)で先頭を占有**していた→除外で現行セールが前面に。`/sale`ページも改善。NULL終了日(主にMGS)は進行中扱いで残す。
 - 根治した運用課題(daily_main.bat の長時間ステップ0xFF強制終了でキャッシュ再生成・デプロイ未到達)は別件(未解決)。本修正はホームをその失敗から**切り離す**(D1直参照/読み込み時フィルタ)ため、バッチが直らなくてもホームは毎日更新される。
 
+#### daily_main.bat の信頼化（自動スリープ対策 / 2026-06-23）
+> ログ解析で判明: バッチは [3/4]10:34→[4/5]11:10 の間、`build_mgs_buy_price`＋`build_fanza_popularity` で**約36分間ノーログで走り**、その低活動中に**Windowsが自動スリープ→バッチが0xFFで強制終了**し、キャッシュ再生成・デプロイ([4/5])に到達していなかった。スケジューラ設定(WakeToRun/StartWhenAvailable/バッテリ可/PT6H/再試行3)は既に良好で犯人ではない。
+- **`scripts/keep_awake.ps1`(新規)**: `SetThreadExecutionState(ES_CONTINUOUS|ES_SYSTEM_REQUIRED|ES_AWAYMODE_REQUIRED)` でバッチ実行中だけPCを起こしたままにする(プロセス生存中のみ抑止、kill/終了で自動解除、最大360分で自己終了)。※16進リテラル `0x80000041` はPS5.1で負のInt32と解釈され `[uint32]` 変換に失敗するので10進(2147483713)で渡す。BOM無しUTF-8＋日本語コメントはPS5.1のパースを壊すのでASCIIで記述。
+- **`daily_main.bat`**: 先頭で keep_awake をバックグラウンド起動(PIDをファイルに記録)、末尾で `taskkill` 解除。36分の無言ステップに進捗echo([3b]/[3c])追加(「固まって見える」解消)。
+- 検証: keep_awakeのAPI呼び出し成功・プロセス保持/解除・cmdの `start /b`→PID記録→`taskkill` フローをE2Eで確認。次回10:30実行から有効(Web資産ではないのでデプロイ不要)。
+- 残課題: バッテリ枯渇/手動シャットダウンは別(keep_awakeは自動スリープのみ防ぐ)。step2 `fetch_fanza_actresses` の HTTP 400 は非致命だが別途要調査。
+
 ### データ供給・運用
 - **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）
 - **MGS新作の発売日NULL問題修正** ＋ `daily_main.bat` 再構成（新作→価格分離、D1ランキング再生成、R2無効化）。bat類のCRLF/ASCII化(255失敗の真因)

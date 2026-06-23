@@ -25,6 +25,13 @@ echo ======================================== >> "%LOG_FILE%"
 echo main daily update start: %date% %time% >> "%LOG_FILE%"
 echo ======================================== >> "%LOG_FILE%"
 
+REM === keep the PC awake for the whole batch (prevents auto-sleep killing it = 0xFF) ===
+REM keep_awake.ps1 holds SetThreadExecutionState while it lives; we kill it at the end.
+set KEEPAWAKE_PID=%LOG_DIR%\keepawake.pid
+del "%KEEPAWAKE_PID%" 2>nul
+start "" /b powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_DIR%\scripts\keep_awake.ps1" -PidFile "%KEEPAWAKE_PID%" -MaxMinutes 360
+echo [awake] keep-awake started at %time% >> "%LOG_FILE%"
+
 REM === [1] MGS  ===
 REM : CI=true  phase3 mgs.dbskipstep4
 REM generate-static-cache-local 
@@ -66,9 +73,13 @@ REM Turso()SQLite
 REM (fanza.db/mgs.db) generate-static-cache-local.mjs 
 REM Turso generate-static-cache.mjs (Turso) 
 REM cross-platform作品のMGSダウンロード買い切り価格を補完(未取得分のみ、最大500件/日で時間制限)
+echo [3b/6] MGS buy-price backfill (slow): %time% >> "%LOG_FILE%"
 "%NODE%" "%PROJECT_DIR%\scripts\build_mgs_buy_price.js" --limit 500 >> "%LOG_FILE%" 2>&1
+echo [3b/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
 REM FANZA人気順(rank)スコアを収集(ランキング両PF公平化のB成分。-localと女優ランキングの前に)
+echo [3c/6] FANZA popularity (slow): %time% >> "%LOG_FILE%"
 "%NODE%" "%PROJECT_DIR%\scripts\build_fanza_popularity.js" >> "%LOG_FILE%" 2>&1
+echo [3c/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
 echo [4/5] cache+deploy (local DB): %time% >> "%LOG_FILE%"
 cd /d "%PROJECT_DIR%\site"
 "%NODE%" scripts\generate-static-cache-local.mjs >> "%LOG_FILE%" 2>&1
@@ -104,6 +115,11 @@ cd /d "%PROJECT_DIR%\site"
 "%NODE%" "%PROJECT_DIR%\scripts\build_actress_ranking_d1.js" >> "%LOG_FILE%" 2>&1
 "%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
 echo [6/6] price re-deploy done: %time% >> "%LOG_FILE%"
+
+REM === release keep-awake (allow normal sleep again) ===
+for /f "usebackq delims=" %%P in ("%KEEPAWAKE_PID%") do taskkill /PID %%P /F >nul 2>&1
+del "%KEEPAWAKE_PID%" 2>nul
+echo [awake] keep-awake released at %time% >> "%LOG_FILE%"
 
 echo ======================================== >> "%LOG_FILE%"
 echo main daily update done: %date% %time% >> "%LOG_FILE%"
