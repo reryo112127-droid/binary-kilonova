@@ -381,6 +381,12 @@ binary-kilonova/
 - 共有部品(`cardHtml`/`productCardsHtml`/`replaceGridInner`/`fetchProducts`/`esc`/`poster`)を `landingPage.ts` から export し女優ルートと共有。
 - **次の運用**: GSCで人気女優ページ/主要ハブを URL検査→インデックス登録リクエスト(数ページ)。数週間後に「ページ(インデックス作成)」登録数・検索パフォーマンスの推移で効果測定→次手判断。
 
+#### ホームの予約・セールが更新されない問題の修正（2026-06-23・デプロイ済み）
+> 症状: PC/モバイル両方でホームの予約作品・セール作品の並びが何日も同じ。原因は**ローカル日次バッチ(daily_main.bat 0xFF)製の静的キャッシュが凍結/期限切れを含む一方、D1本体は GitHub Actions で毎日更新されている**のに、ホームが古いキャッシュを見ていたこと。
+- **予約: D1優先化** (`lib/ssrFetch.ts:ssrFetchFanzaPreOrders`): キャッシュ優先をやめ、毎日更新されるD1から「`sale_start_date>today`・HOME_MAKERS・BEST除外」を FANZA+MGS マージで配信日DESC取得(30分TTL)。D1不可/0件時のみ静的キャッシュ(>todayで絞りDESC)へフォールバック。本番で先頭が旧キャッシュ(07-07)に無い新規予約(07-25)に変化＝D1反映を確認。並び順はDESC維持(ユーザー選択)。
+- **セール: 期限切れ除外の二重防御**: 生成側 `genSaleProducts`(generate-static-cache.mjs/-local.mjs)に `sale_end_date>=today OR NULL` を追加＋読み込み側 `api/products` discountキャッシュ返却前に `sale_end_date` 過去を除外。本番sale_cacheは**116件中60件が終了済み(06-12の50%OFF)で先頭を占有**していた→除外で現行セールが前面に。`/sale`ページも改善。NULL終了日(主にMGS)は進行中扱いで残す。
+- 根治した運用課題(daily_main.bat の長時間ステップ0xFF強制終了でキャッシュ再生成・デプロイ未到達)は別件(未解決)。本修正はホームをその失敗から**切り離す**(D1直参照/読み込み時フィルタ)ため、バッチが直らなくてもホームは毎日更新される。
+
 ### データ供給・運用
 - **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）
 - **MGS新作の発売日NULL問題修正** ＋ `daily_main.bat` 再構成（新作→価格分離、D1ランキング再生成、R2無効化）。bat類のCRLF/ASCII化(255失敗の真因)
