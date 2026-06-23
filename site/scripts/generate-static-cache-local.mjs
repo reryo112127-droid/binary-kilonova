@@ -524,10 +524,11 @@ async function genSaleProducts() {
                          ${FANZA_EXT_VR}
                   FROM products
                   WHERE discount_pct >= 1
+                    AND (sale_end_date IS NULL OR SUBSTR(REPLACE(sale_end_date,'/','-'),1,10) >= ?)
                     AND (${fanzaMakerCond})
                     AND ${bestConds}
                   ORDER BY discount_pct DESC, sale_start_date DESC LIMIT 120`,
-            args: [...fanzaMakerArgs, ...bestArgs],
+            args: [today, ...fanzaMakerArgs, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('FANZA sale error:', e.message); return []; }),
         mgs.execute({
             sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date,
@@ -535,10 +536,11 @@ async function genSaleProducts() {
                          NULL AS series_name, NULL AS series_id, 0 AS vr_flag, sale_end_date
                   FROM products
                   WHERE discount_pct >= 1
+                    AND (sale_end_date IS NULL OR SUBSTR(REPLACE(sale_end_date,'/','-'),1,10) >= ?)
                     AND (duration_min IS NULL OR duration_min < 600)
                     AND ${bestConds}
                   ORDER BY discount_pct DESC, REPLACE(sale_start_date,'/','-') DESC LIMIT 60`,
-            args: bestArgs,
+            args: [today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('MGS sale error:', e.message); return []; }),
     ]);
 

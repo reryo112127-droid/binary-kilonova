@@ -22,8 +22,27 @@ const HOME_MAKERS = [
 // FANZA用メーカー条件（label列 OR maker列）
 const FANZA_MAKER_COND = HOME_MAKERS.map(() => '(label LIKE ? OR maker LIKE ?)').join(' OR ');
 const FANZA_MAKER_ARGS = HOME_MAKERS.flatMap(m => [`%${m}%`, `%${m}%`]);
+// MGS用メーカー条件（maker列 OR label列）
+const MGS_MAKER_COND = HOME_MAKERS.map(() => '(maker LIKE ? OR label LIKE ?)').join(' OR ');
+const MGS_MAKER_ARGS = HOME_MAKERS.flatMap(m => [`%${m}%`, `%${m}%`]);
+
+const PREORDER_TTL = 30 * 60 * 1000; // 予約のライブD1結果を30分メモリキャッシュ
 
 type Row = Record<string, unknown>;
+
+// sale_start_date を 'YYYY-MM-DD' に正規化（FANZA '-' / MGS '/'、時刻付きにも対応）。不正は ''。
+function normDate(v: unknown): string {
+    const m = String(v ?? '').match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    return m ? `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` : '';
+}
+// product_id で重複排除し、sale_start_date 降順に並べる
+function dedupByDateDesc(rows: Row[]): Row[] {
+    const seen = new Set<string>();
+    const out: Row[] = [];
+    for (const r of rows) { const id = String(r.product_id); if (id && !seen.has(id)) { seen.add(id); out.push(r); } }
+    out.sort((a, b) => normDate(b.sale_start_date).localeCompare(normDate(a.sale_start_date)));
+    return out;
+}
 
 function mapRow(row: Row, source: string): Row {
     const r = { ...row } as Row;
@@ -42,25 +61,53 @@ function addBestExcl(conds: string[], args: (string | number)[]) {
 }
 
 /** ホーム用: 予約作品（厳選メーカー・配信日降順） */
+// D1優先: 毎日更新されるD1から「明日以降の予約」を引く（凍結しがちなローカルバッチ製キャッシュに依存しない）。
+// FANZA+MGS をマージし配信日DESC。TTLで読み取りを抑制。D1が無い/0件のときだけ静的キャッシュ(>todayで絞る)へフォールバック。
 export async function ssrFetchFanzaPreOrders(limit: number): Promise<Row[]> {
-    const cached = await readStaticCache<Row[]>('home_preorder_curated_cache.json');
-    if (cached && cached.length > 0) return cached.slice(0, limit);
-    const client = await getFanzaClient();
-    if (!client) return [];
+    const cacheKey = `ssr_home_preorder_${limit}`;
+    const memo = getCached<Row[]>(cacheKey, PREORDER_TTL);
+    if (memo) return memo;
+
     const today = new Date().toISOString().slice(0, 10);
-    const conds = ['sale_start_date > ?', "label NOT LIKE '%LadyHunter%'", `(${FANZA_MAKER_COND})`];
-    const args: (string | number)[] = [today, ...FANZA_MAKER_ARGS];
-    addBestExcl(conds, args);
-    try {
-        const r = await client.execute({
-            sql: `SELECT product_id, title, actresses, main_image_url, genres, maker, sale_start_date,
-                         COALESCE(discount_pct,0) AS discount_pct, list_price, current_price
-                  FROM products WHERE ${conds.join(' AND ')}
-                  ORDER BY sale_start_date DESC LIMIT ${limit}`,
-            args,
-        });
-        return r.rows.map(row => mapRow(row as Row, 'fanza'));
-    } catch { return []; }
+    const [fanzaClient, mgsClient] = await Promise.all([getFanzaClient(), getMgsClient()]);
+
+    if (fanzaClient || mgsClient) {
+        const fanzaConds = ['sale_start_date > ?', "label NOT LIKE '%LadyHunter%'", `(${FANZA_MAKER_COND})`];
+        const fanzaArgs: (string | number)[] = [today, ...FANZA_MAKER_ARGS];
+        addBestExcl(fanzaConds, fanzaArgs);
+        const mgsConds = ["REPLACE(sale_start_date,'/','-') > ?", `(${MGS_MAKER_COND})`];
+        const mgsArgs: (string | number)[] = [today, ...MGS_MAKER_ARGS];
+        addBestExcl(mgsConds, mgsArgs);
+
+        const [fanzaRows, mgsRows] = await Promise.all([
+            fanzaClient ? fanzaClient.execute({
+                sql: `SELECT product_id, title, actresses, main_image_url, genres, maker, sale_start_date,
+                             COALESCE(discount_pct,0) AS discount_pct, list_price, current_price
+                      FROM products WHERE ${fanzaConds.join(' AND ')}
+                      ORDER BY sale_start_date DESC LIMIT ${limit * 2}`,
+                args: fanzaArgs,
+            }).then(r => r.rows.map(row => mapRow(row as Row, 'fanza'))).catch(() => [] as Row[]) : [],
+            mgsClient ? mgsClient.execute({
+                sql: `SELECT product_id, title, actresses, main_image_url, genres, maker, sale_start_date,
+                             0 AS discount_pct, NULL AS list_price, NULL AS current_price
+                      FROM products WHERE ${mgsConds.join(' AND ')}
+                      ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT ${limit * 2}`,
+                args: mgsArgs,
+            }).then(r => r.rows.map(row => mapRow(row as Row, 'mgs'))).catch(() => [] as Row[]) : [],
+        ]);
+
+        const merged = dedupByDateDesc([...fanzaRows, ...mgsRows]).slice(0, limit);
+        if (merged.length > 0) { setCached(cacheKey, merged); return merged; }
+    }
+
+    // フォールバック: 静的キャッシュ（配信済み=過去を除外し、配信日DESCで返す）
+    const cached = await readStaticCache<Row[]>('home_preorder_curated_cache.json');
+    if (cached && cached.length > 0) {
+        return cached.filter(p => normDate((p as Row).sale_start_date) > today)
+            .sort((a, b) => normDate((b as Row).sale_start_date).localeCompare(normDate((a as Row).sale_start_date)))
+            .slice(0, limit);
+    }
+    return [];
 }
 
 /** ホーム用: FANZA新作（当日→直近3日フォールバック） */

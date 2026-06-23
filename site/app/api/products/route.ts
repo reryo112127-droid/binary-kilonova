@@ -124,12 +124,17 @@ export async function GET(request: NextRequest) {
 
     // セール: sort=discount, offset=0 → 静的キャッシュ（sourceなし時のみ。source指定時はDBから取得してsale_end_dateを含める）
     if (sort === 'discount' && offset === 0 && !searchParams.get('source')) {
-        const saleCached = await readStaticCache<unknown[]>('sale_cache.json');
+        const saleCached = await readStaticCache<Array<Record<string, unknown>>>('sale_cache.json');
         if (saleCached && saleCached.length > 0) {
+            // 終了済みセール(sale_end_date が過去)を除外。終了日不明(NULL)は進行中扱いで残す。
+            // 古いキャッシュがデプロイされていても期限切れの高割引が先頭に居座らない＝自己修復。
+            const today = new Date().toISOString().slice(0, 10);
+            const notExpired = (p: Record<string, unknown>) => {
+                const m = String(p.sale_end_date ?? '').match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+                return !m || `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` >= today;
+            };
             const minD = parseInt(searchParams.get('minDiscount') || '0', 10);
-            const filtered = minD > 0
-                ? (saleCached as Array<Record<string, unknown>>).filter(p => Number(p.discount_pct) >= minD)
-                : saleCached;
+            const filtered = saleCached.filter(p => notExpired(p) && (minD <= 0 || Number(p.discount_pct) >= minD));
             const page = filtered.slice(0, limit);
             const res = NextResponse.json(
                 page,
