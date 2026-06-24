@@ -60,7 +60,12 @@ async function fetchAllPaged(client, baseSql, PAGE = 25000) {
 // app/sitemap.xml/route.ts がこのキャッシュを 45k/チャンクに分割して出力する。
 async function genSitemapCache() {
     console.log('[サイトマップキャッシュ] 取得中...');
-    const fetchAll = fetchAllPaged;
+    // ── クロール量(=Cloudflare Workers起動数, 無料10万/日)を超えないため、サイトマップを高価値な部分集合に絞る。
+    //    44万URL全申告だとGooglebotが10万req/日を突破しサイトが日次ダウンするため。余裕が出たら上限を引き上げる(段階拡大)。
+    //    作品が全体の大半なので作品を強く絞る: MGS=お気に入り上位 / FANZA=新着上位。女優はその作品群から導出。
+    const MGS_CAP = 10000;    // MGS: wish_count(お気に入り)上位
+    const FANZA_CAP = 15000;  // FANZA: sale_start_date(新着)上位(全シャード合算の目安)
+    const perShard = Math.ceil(FANZA_CAP / Math.max(1, fanza.shards.length));
 
     const seen = new Set();
     const products = [];
@@ -74,11 +79,13 @@ async function genSitemapCache() {
             if (r.actresses) for (const n of String(r.actresses).split(/[,、/／]+/)) { const t = n.trim(); if (cleanName(t)) names.add(t); }
         }
     };
-    // 作品IDと出演者を1スキャンで取得(actress_profiles は D1 にほぼ空のため、出演実績のある女優を products から導出)。
-    // プレースホルダ(duration_min=1)は除外。FANZA は OFFSET がシャード毎に効くので .shards を個別ページング。
-    const SEL = `SELECT product_id, actresses FROM products WHERE (duration_min IS NULL OR duration_min != 1) ORDER BY product_id`;
-    ingest(await fetchAll(mgs, SEL));
-    for (const shard of fanza.shards) ingest(await fetchAll(shard, SEL));
+    // 高価値な作品だけを取得(MGS人気上位＋FANZA新着上位)。女優はこの作品群の出演者から導出する。
+    const [mgsRows, ...fanzaRowsArr] = await Promise.all([
+        mgs.execute({ sql: `SELECT product_id, actresses FROM products WHERE (duration_min IS NULL OR duration_min != 1) ORDER BY wish_count DESC LIMIT ${MGS_CAP}` }).then(r => r.rows).catch(() => []),
+        ...fanza.shards.map(s => s.execute({ sql: `SELECT product_id, actresses FROM products WHERE (duration_min IS NULL OR duration_min != 1) AND sale_start_date IS NOT NULL ORDER BY sale_start_date DESC LIMIT ${perShard}` }).then(r => r.rows).catch(() => [])),
+    ]);
+    ingest(mgsRows);
+    for (const rows of fanzaRowsArr) ingest(rows);
 
     // 実在女優ホワイトリスト(lib/actressFilter.ts と同じ data/actress_whitelist.json)で絞り、
     // タイトル断片/役名/通称(「20時間戦う女」「@なつ」等)の混入＝薄いゴミページを排除する。

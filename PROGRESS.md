@@ -394,6 +394,13 @@ binary-kilonova/
 - 検証: keep_awakeのAPI呼び出し成功・プロセス保持/解除・cmdの `start /b`→PID記録→`taskkill` フローをE2Eで確認。次回10:30実行から有効(Web資産ではないのでデプロイ不要)。
 - 残課題: バッテリ枯渇/手動シャットダウンは別(keep_awakeは自動スリープのみ防ぐ)。step2 `fetch_fanza_actresses` の HTTP 400 は非致命だが別途要調査。
 
+#### Cloudflare無料枠超過(Workers 10万req/日)対応（2026-06-24）
+> 44万URLサイトマップをGSC送信→**Googlebotの大量クロールでWorkers無料枠(10万req/日)を突破**→超過後はその日サイトがエラー(429)で実質ダウン＋GooglebotにエラーをみせSEO逆効果。ユーザー確認で上限種別=**Workersリクエスト数**と判明。ユーザー選択=**無料で粘る(A)**。
+- **エッジキャッシュ(Cache API)**: `site/lib/edgeCache.ts`(`caches.default`)で product/home/actress/LP を明示キャッシュ(キーは mobile/web・?page で分離)。再アクセスは D1/R2/生成を叩かず返す(応答時間≒半減で確認)。**注: Worker起動数自体は減らない**(Cache APIはD1/CPU削減)。Worker応答は Cache-Control だけでは edge キャッシュされない(cf-cache-status無)＋ Cache Ruleは端末別キー不可(モバイル/PC出し分けが壊れる)ため Cache Rule は不採用。
+- **サイトマップ縮小(=クロール量削減)**: `genSitemapCache` を全44万→**高価値部分集合**に。MGS=wish_count上位`MGS_CAP=10000`／FANZA=新着上位`FANZA_CAP=15000`、女優はその作品群から導出(→作品25,000・女優4,237・LP4,187・static=計~33,400URL)。**上限は段階拡大できるよう定数化**。
+- **robots.txt**: `Disallow: /*?` でクエリ付きURL(特に `?page=` ページャ=URL増殖の主因)をクロール禁止。正規(クエリ無し)ページのみ巡回。
+- 効果: クロール対象を約92%削減＋ページャ巡回停止で Worker起動を無料枠内に。**ただしGoogleは内部リンクも辿るため「削減+監視+調整」**。数日後にダッシュボードのWorkers Requestsを見て、まだ上限近ければ caps を更に下げ、余裕があれば上げる。根治はWorkers Paid($5/月)だが今回は無料運用を選択。
+
 ### データ供給・運用
 - **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）
 - **MGS新作の発売日NULL問題修正** ＋ `daily_main.bat` 再構成（新作→価格分離、D1ランキング再生成、R2無効化）。bat類のCRLF/ASCII化(255失敗の真因)
