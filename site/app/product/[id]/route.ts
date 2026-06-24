@@ -6,6 +6,7 @@ import { filterActresses } from '../../../lib/actressFilter';
 import { readStaticCacheAsync as readStaticCache } from '../../../lib/staticCache';
 import { r2GetProduct } from '../../../lib/productR2';
 import { loadGenres, loadMakers } from '../../../lib/lpData';
+import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -177,6 +178,10 @@ export async function GET(
     const ua = request.headers.get('user-agent') || '';
     const isMobile = MOBILE_UA.test(ua);
 
+    // エッジキャッシュ(Cache API)優先。ヒットすれば Worker/D1/R2 を一切叩かず返す＝無料枠を保護。
+    const edge = await edgeLookup(request.url, isMobile ? 'm' : 'w');
+    if (edge.hit) return edge.hit;
+
     const htmlFile = isMobile
         ? '/design/product-detail.html'
         : '/design/web/product-detail.html';
@@ -207,12 +212,17 @@ export async function GET(
         html = await injectProductLinks(html, product); // 関連ジャンル/メーカーへの内部リンク
 
         html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
-        return new NextResponse(html, {
+        const resp = new NextResponse(html, {
+            // Cache API に保存され、再クロール・リピート訪問は Worker非起動で返る=無料枠の消費を大幅削減。
+            // max-age=60 で bfcache(戻る復元)維持。価格は最大1時間古くなり得るが R2 read-through(1h)もあり許容。
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'private, max-age=60',
+                'Cache-Control': 'public, s-maxage=3600, max-age=60',
+                'CDN-Cache-Control': 'public, s-maxage=3600',
             },
         });
+        await edgeStore(edge, resp);
+        return resp;
     } catch {
         return new NextResponse('Not found', { status: 404 });
     }

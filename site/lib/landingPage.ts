@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readHtml } from './readHtml';
 import { injectMobileLayout } from './injectLayout';
 import { GET as productsGET } from '../app/api/products/route';
+import { edgeLookup, edgeStore } from './edgeCache';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 const SSR_COUNT = 30;
@@ -213,6 +214,10 @@ function faqVisible(faq: Faq[]): string {
 
 /** LPをレンダリングして NextResponse を返す。slug不正(空結果)時は呼び出し側で404にしてもよい。 */
 export async function renderLandingPage(req: NextRequest, opts: LandingOptions): Promise<NextResponse> {
+    // エッジキャッシュ優先(全UA同一HTMLなので variant は 'lp' 固定。?page は req.url に含まれ別キー化)
+    const edge = await edgeLookup(req.url, 'lp');
+    if (edge.hit) return edge.hit as NextResponse;
+
     // モバイルファースト索引に合わせ、埋め込みローダの無いクリーンな products.html を全UAで使う。
     const page = Math.max(0, parseInt(new URL(req.url).searchParams.get('page') || '0', 10) || 0);
     const offset = page * SSR_COUNT;
@@ -239,13 +244,15 @@ export async function renderLandingPage(req: NextRequest, opts: LandingOptions):
     // このページ専用のページャ(SSR済みの続きから無限スクロール)
     html = html.replace('</body>', paginatorScript(opts.apiQuery, offset + products.length) + '\n</body>');
 
-    return new NextResponse(html, {
+    const resp = new NextResponse(html, {
         headers: {
             'Content-Type': 'text/html; charset=utf-8',
             'Cache-Control': 'public, s-maxage=3600, max-age=120',
             'CDN-Cache-Control': 'public, s-maxage=3600',
         },
     });
+    await edgeStore(edge, resp);
+    return resp;
 }
 
 // ─── ハブ(一覧)ページ: /genres・/series・/cup ───────────────────
@@ -279,6 +286,9 @@ function indexSeoHead(opts: IndexOptions): string {
 }
 
 export async function renderIndexPage(req: NextRequest, opts: IndexOptions): Promise<NextResponse> {
+    const edge = await edgeLookup(req.url, 'idx');
+    if (edge.hit) return edge.hit as NextResponse;
+
     let html = await readHtml(req.url, '/design/products.html');
     html = injectMobileLayout(html, '', { skipHeader: true });
 
@@ -297,11 +307,13 @@ export async function renderIndexPage(req: NextRequest, opts: IndexOptions): Pro
     ).join('');
     html = replaceGridInner(html, `<div class="col-span-3 flex flex-wrap gap-2 px-4 pb-24">${chips}</div>`);
 
-    return new NextResponse(html, {
+    const resp = new NextResponse(html, {
         headers: {
             'Content-Type': 'text/html; charset=utf-8',
             'Cache-Control': 'public, s-maxage=21600, max-age=300',
             'CDN-Cache-Control': 'public, s-maxage=21600',
         },
     });
+    await edgeStore(edge, resp);
+    return resp;
 }

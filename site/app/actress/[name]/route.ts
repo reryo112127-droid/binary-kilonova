@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 import { fetchProducts, productCardsHtml, replaceGridInner, esc, type Product } from '../../../lib/landingPage';
+import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +39,10 @@ export async function GET(
 
     const page = Math.max(0, parseInt(new URL(request.url).searchParams.get('page') || '0', 10) || 0);
     const offset = page * SSR_COUNT;
+
+    // エッジキャッシュ優先(再クロール・リピート訪問は Worker非起動=無料枠を保護)
+    const edge = await edgeLookup(request.url, isMobile ? 'm' : 'w');
+    if (edge.hit) return edge.hit;
 
     try {
         // 出演作品をD1から同一プロセスで取得(本番でSSRカード化＝索引可能に)。空なら薄いページ→noindex。
@@ -114,9 +119,11 @@ export async function GET(
         }
         if (extra) html = html.replace('<footer id="site-footer"', extra + '<footer id="site-footer"');
 
-        return new NextResponse(html, {
+        const resp = new NextResponse(html, {
             headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, s-maxage=3600, max-age=120', 'CDN-Cache-Control': 'public, s-maxage=3600' },
         });
+        await edgeStore(edge, resp);
+        return resp;
     } catch {
         return new NextResponse('Not found', { status: 404 });
     }
