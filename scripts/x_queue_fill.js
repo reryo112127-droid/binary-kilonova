@@ -111,9 +111,9 @@ const GENRES = [
         for (const src of g.sources) {
             if (n >= PER) break;
             const isMgs = src.platform === 'mgs';
-            // anon(素人)はHOME_MAKERS(プレミアム18ブランド)に該当しない=メーカー条件を掛けると常に0件になるため除外。
-            // 素人は floor='videoc'/素人ジャンルで定義され、特定メーカー縛りの対象外。
-            const skipMaker = g.genre === 'anon';
+            // anon(素人)/vr はHOME_MAKERS(プレミアム18ブランド)に該当しない=メーカー条件を掛けると常に0件になるため除外。
+            // 素人は floor='videoc'/素人ジャンル、VRは genres='VR専用'(KMPVR等のVR専業メーカー中心)で定義され、特定メーカー縛りの対象外。
+            const skipMaker = g.genre === 'anon' || g.genre === 'vr';
             const makerCond = skipMaker ? '1=1' : (isMgs ? MGS_MAKER_COND : FZ_MAKER_COND);
             const makerArgs = skipMaker ? [] : (isMgs ? MGS_MAKER_ARGS : FZ_MAKER_ARGS);
             const client = isMgs ? d1('mgs') : fanzaShards();
