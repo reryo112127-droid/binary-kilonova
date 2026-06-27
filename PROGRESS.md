@@ -399,7 +399,8 @@ binary-kilonova/
 - **エッジキャッシュ(Cache API)**: `site/lib/edgeCache.ts`(`caches.default`)で product/home/actress/LP を明示キャッシュ(キーは mobile/web・?page で分離)。再アクセスは D1/R2/生成を叩かず返す(応答時間≒半減で確認)。**注: Worker起動数自体は減らない**(Cache APIはD1/CPU削減)。Worker応答は Cache-Control だけでは edge キャッシュされない(cf-cache-status無)＋ Cache Ruleは端末別キー不可(モバイル/PC出し分けが壊れる)ため Cache Rule は不採用。
 - **サイトマップ縮小(=クロール量削減)**: `genSitemapCache` を全44万→**高価値部分集合**に。MGS=wish_count上位`MGS_CAP=10000`／FANZA=新着上位`FANZA_CAP=15000`、女優はその作品群から導出(→作品25,000・女優4,237・LP4,187・static=計~33,400URL)。**上限は段階拡大できるよう定数化**。
 - **robots.txt**: `Disallow: /*?` でクエリ付きURL(特に `?page=` ページャ=URL増殖の主因)をクロール禁止。正規(クエリ無し)ページのみ巡回。
-- 効果: クロール対象を約92%削減＋ページャ巡回停止で Worker起動を無料枠内に。**ただしGoogleは内部リンクも辿るため「削減+監視+調整」**。数日後にダッシュボードのWorkers Requestsを見て、まだ上限近ければ caps を更に下げ、余裕があれば上げる。根治はWorkers Paid($5/月)だが今回は無料運用を選択。
+- 効果: クロール対象を約92%削減＋ページャ巡回停止で Worker起動を無料枠内に。**ただしGoogleは内部リンクも辿るため「削減+監視+調整」**。根治はWorkers Paid($5/月)だが今回は無料運用を選択。
+- **再調整(2026-06-27): 一旦131kに再上昇**(Googleが旧44万URLのバックログを消化中)→ 索引対象を**「18メーカー＋人気作」に明確化**: `genSitemapCache` を **MGS=18メーカー OR wish_count≥500 ／ FANZA=(18メーカー&直近3年) OR review_count≥10** に変更(=43,786作品＋5,052女優＋ハブ＝**約53k**, 旧44万から−88%)。さらに **`product/[id]` は索引対象集合(`sitemap_cache.products`)に無い作品を `noindex,follow`**(`lib/lpData.ts:isIndexableProduct`)にして、Googleの索引/クロールを売れ筋に集中＋対象外を徐々にデクロール。本番で in-set=indexed / out-of-set=noindex を確認。バックログ消化に1〜3週かかるため移行期は監視。HOME_MAKERS定義はホーム/SNSと共通。
 
 ### データ供給・運用
 - **VR新作**: MGS→FANZA `VR専用` 配信済みに変更（KMPVR等のVR専業メーカー中心、Now Printing除外）

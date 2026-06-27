@@ -60,12 +60,17 @@ async function fetchAllPaged(client, baseSql, PAGE = 25000) {
 // app/sitemap.xml/route.ts がこのキャッシュを 45k/チャンクに分割して出力する。
 async function genSitemapCache() {
     console.log('[サイトマップキャッシュ] 取得中...');
-    // ── クロール量(=Cloudflare Workers起動数, 無料10万/日)を超えないため、サイトマップを高価値な部分集合に絞る。
-    //    44万URL全申告だとGooglebotが10万req/日を突破しサイトが日次ダウンするため。余裕が出たら上限を引き上げる(段階拡大)。
-    //    作品が全体の大半なので作品を強く絞る: MGS=お気に入り上位 / FANZA=新着上位。女優はその作品群から導出。
-    const MGS_CAP = 10000;    // MGS: wish_count(お気に入り)上位
-    const FANZA_CAP = 15000;  // FANZA: sale_start_date(新着)上位(全シャード合算の目安)
-    const perShard = Math.ceil(FANZA_CAP / Math.max(1, fanza.shards.length));
+    // ── クロール量(=Cloudflare Workers起動数, 無料10万/日)を売れ筋に集中させて無料枠内に収める。
+    //    索引対象 = 「18メーカー」＋「人気作(MGS wish_count>=500 / FANZA review_count>=10)」。
+    //    FANZAメーカーは長年の大量カタログ(56k)があるため新着3年に絞る。女優はこの作品群から導出。
+    //    ※ この定義は product/[id] の noindex 判定(sitemap_cache.products に無い=noindex)と一致させること。
+    const HOME_MAKERS = ['エスワン', 'ムーディーズ', 'アイデアポケット', 'OPPAI', 'E-BODY', 'Fitch',
+        'マドンナ', '本中', 'ダスッ', 'kawaii', 'Hunter', 'ワンズファクトリー',
+        'SODクリエイト', 'FALENO', 'TAMEIKE', 'million', 'プレミアム', 'DAHLIA'];
+    const makerLit = HOME_MAKERS.map(m => `(maker LIKE '%${m}%' OR label LIKE '%${m}%')`).join(' OR ');
+    const d3 = new Date(); d3.setFullYear(d3.getFullYear() - 3);
+    const date3 = d3.toISOString().slice(0, 10);
+    const NP = '(duration_min IS NULL OR duration_min != 1)';
 
     const seen = new Set();
     const products = [];
@@ -79,13 +84,11 @@ async function genSitemapCache() {
             if (r.actresses) for (const n of String(r.actresses).split(/[,、/／]+/)) { const t = n.trim(); if (cleanName(t)) names.add(t); }
         }
     };
-    // 高価値な作品だけを取得(MGS人気上位＋FANZA新着上位)。女優はこの作品群の出演者から導出する。
-    const [mgsRows, ...fanzaRowsArr] = await Promise.all([
-        mgs.execute({ sql: `SELECT product_id, actresses FROM products WHERE (duration_min IS NULL OR duration_min != 1) ORDER BY wish_count DESC LIMIT ${MGS_CAP}` }).then(r => r.rows).catch(() => []),
-        ...fanza.shards.map(s => s.execute({ sql: `SELECT product_id, actresses FROM products WHERE (duration_min IS NULL OR duration_min != 1) AND sale_start_date IS NOT NULL ORDER BY sale_start_date DESC LIMIT ${perShard}` }).then(r => r.rows).catch(() => [])),
-    ]);
-    ingest(mgsRows);
-    for (const rows of fanzaRowsArr) ingest(rows);
+    // MGS: 18メーカー OR wish_count>=500
+    ingest(await fetchAllPaged(mgs, `SELECT product_id, actresses FROM products WHERE ${NP} AND ((${makerLit}) OR wish_count >= 500) ORDER BY wish_count DESC`));
+    // FANZA: (18メーカー かつ 直近3年) OR review_count>=10（各シャード個別）
+    const fanzaSql = `SELECT product_id, actresses FROM products WHERE ${NP} AND (((${makerLit}) AND SUBSTR(sale_start_date,1,10) >= '${date3}') OR COALESCE(review_count,0) >= 10) ORDER BY SUBSTR(sale_start_date,1,10) DESC`;
+    for (const shard of fanza.shards) ingest(await fetchAllPaged(shard, fanzaSql));
 
     // 実在女優ホワイトリスト(lib/actressFilter.ts と同じ data/actress_whitelist.json)で絞り、
     // タイトル断片/役名/通称(「20時間戦う女」「@なつ」等)の混入＝薄いゴミページを排除する。

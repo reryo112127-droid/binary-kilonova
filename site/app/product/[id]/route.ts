@@ -5,7 +5,7 @@ import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { filterActresses } from '../../../lib/actressFilter';
 import { readStaticCacheAsync as readStaticCache } from '../../../lib/staticCache';
 import { r2GetProduct } from '../../../lib/productR2';
-import { loadGenres, loadMakers } from '../../../lib/lpData';
+import { loadGenres, loadMakers, isIndexableProduct } from '../../../lib/lpData';
 import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
 
 export const dynamic = 'force-dynamic';
@@ -209,6 +209,10 @@ export async function GET(
         // ?og=pkg のときは og:image にパッケージ表紙を使う（SNS自動投稿フィード用）
         const preferPackage = new URL(request.url).searchParams.get('og') === 'pkg';
         html = injectSEOMeta(html, product, id, actressImageUrl, preferPackage);
+        // 索引対象(18メーカー＋人気作)以外は noindex。Googleの索引/クロールを売れ筋に集中させ無料枠超過を防ぐ。
+        if (!(await isIndexableProduct(id))) {
+            html = html.replace('</head>', '<meta name="robots" content="noindex,follow"/>\n</head>');
+        }
         html = await injectProductLinks(html, product); // 関連ジャンル/メーカーへの内部リンク
 
         html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);

@@ -30,3 +30,15 @@ export async function findMaker(name: string): Promise<MakerEntry | null> {
 export function isValidCup(letter: string): boolean {
     return CUPS.includes(String(letter || '').toUpperCase());
 }
+
+// 索引対象の作品集合(= sitemap_cache.products = 18メーカー＋人気作)。これに無い作品は noindex にして
+// Googleの索引/クロールを売れ筋に集中させ、Cloudflare Workers 無料枠超過を防ぐ。
+let _indexableSet: Set<string> | null = null;
+export async function isIndexableProduct(id: string): Promise<boolean> {
+    if (!_indexableSet) {
+        const c = await readStaticCache<{ products: string[] }>('sitemap_cache.json');
+        _indexableSet = new Set((c?.products ?? []).map(String));
+    }
+    // 集合が空(キャッシュ未生成)のときは安全側で index 扱い(全部noindexにしない)
+    return _indexableSet.size === 0 || _indexableSet.has(String(id));
+}
