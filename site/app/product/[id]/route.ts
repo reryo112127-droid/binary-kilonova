@@ -95,17 +95,23 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
     const imgUrl   = product ? String(product.main_image_url || '') : '';
     const saleDate = product ? String(product.sale_start_date || '') : '';
 
-    // タイトル: 「出演者名 品番 | AVコンシェルジュ」が最も検索に強い形式
-    const seoTitle = actresses
-        ? `${actresses} ${displayId} | AVコンシェルジュ`
-        : `${displayId}${title ? ' ' + title.slice(0, 40) : ''} | AVコンシェルジュ`;
+    // タイトル: 「作品タイトル 出演者(最大2名) 品番 | AVランキング」。
+    // 流入はほぼ品番検索なので品番は必須。旧実装は女優名を全員羅列し作品タイトルを使わず(20人羅列/品番のみ)
+    // 検索スニペットが弱くCTRを取りこぼしていた。作品名を主役にし女優は先頭2名までに絞る。ブランド名はホームと統一。
+    const actShort = actresses
+        ? actresses.split(',').map(s => s.trim()).filter(Boolean).slice(0, 2).join(', ')
+        : '';
+    const titleHead = [title.slice(0, 42), actShort].filter(Boolean).join(' ');
+    const seoTitle = titleHead
+        ? `${titleHead} ${displayId} | AVランキング`
+        : `${displayId} | AVランキング`;
 
-    // Description: 130字以内
+    // Description: 130字以内(作品名を先頭に、空要素は除外)
     const descParts = [title.slice(0, 80)];
-    if (actresses) descParts.push(`出演: ${actresses}`);
+    if (actresses) descParts.push(`出演: ${actresses.split(',').slice(0, 5).join(', ')}`);
     if (maker)     descParts.push(`制作: ${maker}`);
     if (saleDate)  descParts.push(`配信: ${saleDate}`);
-    const desc = descParts.join(' | ').slice(0, 130);
+    const desc = descParts.filter(Boolean).join(' | ').slice(0, 130);
 
     // OGP画像: 通常は女優プロフィール写真（非露骨）を優先。
     // ?og=pkg（SNS自動投稿フィード経由）の時はパッケージ表紙を使う（投稿で画像カードを出すため）。
