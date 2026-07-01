@@ -29,6 +29,36 @@ export async function GET(request: NextRequest) {
         let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html, 'home') : injectWebLayout(html);
 
+        // ホームのSEOメタ(旧: title「〜アートワークデータベース」のみ・description/canonical/構造化データ無し)。
+        // title最適化＋description＋canonical＋OG＋WebSite(SearchActionでサイトリンク検索ボックス)/Organization を注入。
+        const SITE = 'https://avrankings.com';
+        const seoTitle = 'AVランキング｜FANZA・MGSの人気AV作品ランキング・新作・女優検索';
+        const seoDesc = 'FANZA・MGSのAV作品を人気順にランキング。新作・予約・セール情報、女優別の出演作・サンプル動画・最安値比較まで無料でチェックできます。';
+        const ld = [
+            { '@context': 'https://schema.org', '@type': 'WebSite', name: 'AVランキング', url: SITE + '/',
+              potentialAction: { '@type': 'SearchAction', target: { '@type': 'EntryPoint', urlTemplate: `${SITE}/search?q={search_term_string}` }, 'query-input': 'required name=search_term_string' } },
+            { '@context': 'https://schema.org', '@type': 'Organization', name: 'AVランキング', url: SITE + '/' },
+        ];
+        const metaBlock = [
+            `<title>${seoTitle}</title>`,
+            `<meta name="description" content="${seoDesc}"/>`,
+            `<link rel="canonical" href="${SITE}/"/>`,
+            `<meta property="og:title" content="${seoTitle}"/>`,
+            `<meta property="og:description" content="${seoDesc}"/>`,
+            `<meta property="og:type" content="website"/>`,
+            `<meta property="og:url" content="${SITE}/"/>`,
+            `<meta name="twitter:card" content="summary"/>`,
+            ...ld.map(j => `<script type="application/ld+json">${JSON.stringify(j)}</script>`),
+        ].join('\n');
+        html = html.replace(/<title>[^<]*<\/title>/, metaBlock);
+
+        // PC版home.htmlにはH1が無い(h2のみ)ため、索引用のH1を <main> 直後に補う(モバイルは既存H1あり)。
+        if (!isMobile) {
+            html = html.replace(/<main[^>]*>/, m => m
+                + '<h1 class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 text-xl font-bold tracking-tight text-slate-900 dark:text-white">'
+                + 'AVランキング — FANZA・MGSの人気AV作品ランキング</h1>');
+        }
+
         // SSRデータ取得・注入（失敗してもクライアントfetchにフォールバック）
         try {
             const [preOrders, newProducts, ranking] = await Promise.all([
