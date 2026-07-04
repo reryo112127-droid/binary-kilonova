@@ -17,7 +17,14 @@ interface R2BucketLike {
 
 const productKey = (id: string) => `product/${id}.json`;
 
+// R2無料枠(Storage 10GB / Class A 100万・Class B 1000万 /月)を「絶対に超えない」ため read-through を無効化。
+// 商品詳細は D1 直取得＋エッジキャッシュ(lib/edgeCache.ts)で代替する。R2の読み書き(Class A/B操作)は一切発生しない。
+// 既存の保存済みオブジェクト(Storage課金分)は R2 の Object lifecycle rule で削除すること(下記関数は全て no-op)。
+// 将来 R2 を再有効化する場合はこのフラグを true に戻す。
+const R2_ENABLED = false;
+
 async function getBucket(): Promise<R2BucketLike | null> {
+    if (!R2_ENABLED) return null;
     try {
         const { env } = await getCloudflareContext({ async: true });
         return (env as unknown as { PRODUCTS_BUCKET?: R2BucketLike }).PRODUCTS_BUCKET ?? null;
