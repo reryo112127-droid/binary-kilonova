@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readStaticCacheAsync as readStaticCache } from '../../../../lib/staticCache';
 import { loadGenres, loadMakers, loadSeries, CUPS } from '../../../../lib/lpData';
+import { edgeLookup, edgeStore } from '../../../../lib/edgeCache';
 
 // 子サイトマップ。/sitemaps/<type>/<page>.xml で 1ページ最大 CHUNK 件の <url> を返す。
 // type = static | products | actresses。products/actresses は ASSETS の sitemap_cache.json を slice。
@@ -44,6 +45,10 @@ export async function GET(
     const { type, page: pageRaw } = await params;
     const page = parseInt(pageRaw, 10) || 0; // "0.xml" → 0
 
+    // 重いXML生成(products/0.xml=5.3MB)をエッジキャッシュし、Googlebotの取得を Worker非生成で返す=負荷削減
+    const edge = await edgeLookup(_req.url, `sm-${type}-${page}`);
+    if (edge.hit) return edge.hit as NextResponse;
+
     let urls: Url[] = [];
     if (type === 'static') {
         urls = STATIC_PATHS.map(s => ({ loc: BASE + s.path, changefreq: s.changefreq, priority: s.priority }));
@@ -69,11 +74,13 @@ export async function GET(
         return new NextResponse('Not found', { status: 404 });
     }
 
-    return new NextResponse(buildUrlset(urls), {
+    const resp = new NextResponse(buildUrlset(urls), {
         headers: {
             'Content-Type': 'application/xml; charset=utf-8',
             'Cache-Control': 'public, s-maxage=86400, max-age=3600',
             'CDN-Cache-Control': 'public, s-maxage=86400',
         },
     });
+    await edgeStore(edge, resp);
+    return resp;
 }
