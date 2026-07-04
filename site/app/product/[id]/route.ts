@@ -193,10 +193,13 @@ export async function GET(
         : '/design/web/product-detail.html';
 
     try {
-        let html = await readHtml(request.url, htmlFile);
-
-        // 作品データ取得
+        // 作品データ取得（先に取得し、存在しない品番は空HTMLの200ではなく404を返す）。
+        // 削除済み作品(Best/総集編/低品質メーカー約8.8万件削除)やD1に無い品番のURLを200で返すと
+        // Googleが「ソフト404(中身が空)」と判定しインデックス品質を落とすため、実データが無ければ404にする。
         const product = await fetchProduct(id);
+        if (!product) return new NextResponse('Not found', { status: 404 });
+
+        let html = await readHtml(request.url, htmlFile);
 
         // OGP用: 女優プロフィール画像を並列取得（露骨なパッケージ画像の代替）
         let actressImageUrl: string | null = null;

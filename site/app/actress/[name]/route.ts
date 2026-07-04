@@ -45,12 +45,14 @@ export async function GET(
     if (edge.hit) return edge.hit;
 
     try {
-        // 出演作品をD1から同一プロセスで取得(本番でSSRカード化＝索引可能に)。空なら薄いページ→noindex。
+        // 出演作品をD1から同一プロセスで取得(本番でSSRカード化＝索引可能に)。
         const apiQuery = `actress=${encodeURIComponent(actressName)}&sort=wish_count`;
         const products = await fetchProducts(request, apiQuery, SSR_COUNT, offset);
+        // 作品0件(=中身が空)は 200の薄いHTMLだとGoogleが「ソフト404」と判定するため404を返す。
+        if (products.length === 0) return new NextResponse('Not found', { status: 404 });
         const hasNext = products.length === SSR_COUNT;
         const coStars = collectCoStars(products, actressName);
-        const noindex = products.length === 0; // 作品が無い/範囲外ページは索引させない(薄いページ対策)
+        const noindex = false; // 0件は上で404済み。ここに来るのは作品ありのページ
 
         let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html, 'search') : injectWebLayout(html);
