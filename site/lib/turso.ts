@@ -13,6 +13,7 @@
  * 呼び出し側の既存フォールバック（静的JSON 等）が働く。
  */
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { mergeShardRows } from './shardMerge';
 
 // ─── D1 最小型定義（@cloudflare/workers-types に依存しない）─────────────
 interface D1Meta {
@@ -79,7 +80,7 @@ export async function getMgsClient(): Promise<CompatClient | null> {
 }
 
 // FANZA は無料D1(500MB/DB)に収めるため product_id ハッシュで複数シャードに分割している。
-// 読み取りは全シャードに同じSELECTを投げて行をマージする（ランタイムは読み取り専用）。
+// 読み取りは全シャードに同じSELECTを投げ、mergeShardRows でグローバル順序へ復元する。
 // 注意: 行を返すSELECT用。COUNT等の集約クエリはシャードごとの部分結果になる（主に静的キャッシュ
 //       フォールバックでのみ発生し、ロングテール検索の行取得には影響しない）。
 export async function getFanzaClient(): Promise<CompatClient | null> {
@@ -90,17 +91,47 @@ export async function getFanzaClient(): Promise<CompatClient | null> {
         const single = await getBinding('DB_FANZA');
         return single ? wrap(single) : null;
     }
+    if (dbs.length === 1) return wrap(dbs[0]);
     const clients = dbs.map(wrap);
     return {
         async execute(stmt: ExecuteArg): Promise<CompatResult> {
+            const sql = typeof stmt === 'string' ? stmt : stmt.sql;
             const results = await Promise.all(clients.map(c => c.execute(stmt)));
             return {
-                rows: results.flatMap(r => r.rows),
+                rows: mergeShardRows(sql, results.flatMap(r => r.rows)),
                 rowsAffected: results.reduce((a, r) => a + r.rowsAffected, 0),
                 lastInsertRowid: null,
             };
         },
     };
+}
+
+/**
+ * D1 は 1クエリあたりのバインド変数が **100個まで**。
+ * `WHERE col IN (?,?,...)` を数百件で組むと必ずエラーになるため、キーを分割して実行し行をマージする。
+ * @param buildSql プレースホルダ文字列（"?,?,?"）を受け取り SQL を返す
+ * @param keys     IN に渡すキー配列
+ * @param extraArgs SQL 内の IN より前に現れる固定バインド引数
+ */
+export const D1_MAX_BOUND_PARAMS = 100;
+
+export async function executeInChunks(
+    client: CompatClient,
+    buildSql: (placeholders: string) => string,
+    keys: (string | number)[],
+    extraArgs: (string | number)[] = [],
+): Promise<Record<string, unknown>[]> {
+    if (keys.length === 0) return [];
+    const chunkSize = Math.max(1, D1_MAX_BOUND_PARAMS - extraArgs.length - 1);
+    const chunks: (string | number)[][] = [];
+    for (let i = 0; i < keys.length; i += chunkSize) chunks.push(keys.slice(i, i + chunkSize));
+    const results = await Promise.all(chunks.map(chunk =>
+        client.execute({
+            sql: buildSql(chunk.map(() => '?').join(',')),
+            args: [...extraArgs, ...chunk],
+        })
+    ));
+    return results.flatMap(r => r.rows);
 }
 
 export async function getSiteClient(): Promise<CompatClient | null> {

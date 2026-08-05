@@ -59,3 +59,10 @@ data/*.bak2.json
 
 # X Cookie失効アラートの状態
 data/x_cookie_alert.json
+
+# 女優表示キャッシュのシャード（actress_display_cache.json から build:shards で生成される派生物）
+# 48MB あり、元データが commit されているので追跡しない。deploy:cf が毎回生成する。
+site/data/actress_display/
+site/public/data/actress_display/
+site/data/actress_display_alias_index.json
+site/public/data/actress_display_alias_index.json

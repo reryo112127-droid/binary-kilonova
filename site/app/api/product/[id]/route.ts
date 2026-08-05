@@ -170,40 +170,21 @@ export async function GET(
         return NextResponse.json(r2data, { headers: cacheHeaders(86400, 3600) });
     }
 
-    let mgsProduct: Record<string, unknown> | null = null;
-    let fanzaProduct: Record<string, unknown> | null = null;
-
-    // MGS を検索
-    const mgsClient = await getMgsClient();
-    if (mgsClient) {
-        try {
-            const result = await mgsClient.execute({
-                sql: 'SELECT * FROM products WHERE product_id = ?',
-                args: [id],
-            });
-            if (result.rows.length > 0) {
-                mgsProduct = { ...result.rows[0] } as Record<string, unknown>;
-            }
-        } catch (e) {
-            console.error('MGS Turso error:', e);
-        }
-    }
-
-    // FANZA を検索
-    const fanzaClient = await getFanzaClient();
-    if (fanzaClient) {
-        try {
-            const result = await fanzaClient.execute({
-                sql: 'SELECT * FROM products WHERE product_id = ?',
-                args: [id],
-            });
-            if (result.rows.length > 0) {
-                fanzaProduct = { ...result.rows[0] } as Record<string, unknown>;
-            }
-        } catch (e) {
-            console.error('FANZA Turso error:', e);
-        }
-    }
+    // MGS と FANZA を並列検索（直列だと片方の往復ぶん丸ごと遅くなる）
+    const [mgsClient, fanzaClient] = await Promise.all([getMgsClient(), getFanzaClient()]);
+    const PRODUCT_SQL = 'SELECT * FROM products WHERE product_id = ? LIMIT 1';
+    const [mgsProduct, fanzaProduct] = await Promise.all([
+        mgsClient
+            ? mgsClient.execute({ sql: PRODUCT_SQL, args: [id] })
+                .then(r => (r.rows.length > 0 ? { ...r.rows[0] } as Record<string, unknown> : null))
+                .catch(e => { console.error('MGS D1 error:', e); return null; })
+            : Promise.resolve(null),
+        fanzaClient
+            ? fanzaClient.execute({ sql: PRODUCT_SQL, args: [id] })
+                .then(r => (r.rows.length > 0 ? { ...r.rows[0] } as Record<string, unknown> : null))
+                .catch(e => { console.error('FANZA D1 error:', e); return null; })
+            : Promise.resolve(null),
+    ]);
 
     if (!mgsProduct && !fanzaProduct) {
         return NextResponse.json({ error: 'Product not found' }, { status: 404 });

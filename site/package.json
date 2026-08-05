@@ -5,12 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cf": "opennextjs-cloudflare build",
-    "deploy:cf": "opennextjs-cloudflare build && wrangler deploy",
+    "build:cf": "node scripts/build_actress_display_shards.mjs && opennextjs-cloudflare build",
+    "deploy:cf": "node scripts/build_actress_display_shards.mjs && opennextjs-cloudflare build && wrangler deploy",
     "deploy:cf:only": "opennextjs-cloudflare deploy",
     "start": "next start",
     "preview": "wrangler pages dev",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:shards": "node scripts/build_actress_display_shards.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",

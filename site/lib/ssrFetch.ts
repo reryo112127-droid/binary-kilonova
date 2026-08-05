@@ -4,7 +4,7 @@
 //  window.__SSR_*_DATA__ として注入するためのヘルパー関数
 // ============================================================
 
-import { getMgsClient, getFanzaClient } from './turso';
+import { getMgsClient, getFanzaClient, executeInChunks } from './turso';
 import { filterActresses } from './actressFilter';
 import { readStaticCacheAsync as readStaticCache } from './staticCache';
 import { getCached, setCached } from './apiCache';
@@ -160,13 +160,16 @@ export async function ssrFetchRanking(limit: number): Promise<Row[]> {
             args: [yearStart],
         }).then(r => r.rows).catch(() => []) : [],
         fanzaClient ? fanzaClient.execute({
+            // review_score はエイリアスとして SELECT に出す（FANZAはシャード分割されており、
+            // ORDER BY 式が結果列に無いとマージ時にグローバル順へ並べ直せないため）。
             sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count,
-                         genres, maker, sale_start_date, COALESCE(discount_pct,0) AS discount_pct
+                         genres, maker, sale_start_date, COALESCE(discount_pct,0) AS discount_pct,
+                         COALESCE(review_count,0)*COALESCE(review_average,0) AS review_score
                   FROM products
                   WHERE sale_start_date >= ?
                     AND title NOT LIKE '%BEST%' AND title NOT LIKE '%ベスト%'
                     AND title NOT LIKE '%総集編%' AND (duration_min IS NULL OR duration_min <= 200)
-                  ORDER BY COALESCE(review_count,0)*COALESCE(review_average,0) DESC, sale_start_date DESC
+                  ORDER BY review_score DESC, sale_start_date DESC
                   LIMIT ${limit}`,
             args: [yearStart],
         }).then(r => r.rows).catch(() => []) : [],
@@ -237,13 +240,12 @@ export async function ssrFetchActressRanking(limit: number): Promise<Row[]> {
     const actressImageMap = new Map<string, string>();
     if (fanzaClient && topEntries.length > 0) {
         try {
+            // D1のバインド変数上限(100)のため分割実行
             const names = topEntries.map(([n]) => n);
-            const placeholders = names.map(() => '?').join(',');
-            const imgRes = await fanzaClient.execute({
-                sql: `SELECT name, image_url FROM actress_profiles WHERE name IN (${placeholders}) AND image_url IS NOT NULL`,
-                args: names,
-            });
-            for (const row of imgRes.rows) {
+            const imgRows = await executeInChunks(fanzaClient,
+                ph => `SELECT name, image_url FROM actress_profiles WHERE name IN (${ph}) AND image_url IS NOT NULL`,
+                names);
+            for (const row of imgRows) {
                 if (row.image_url) actressImageMap.set(String(row.name), String(row.image_url));
             }
         } catch { /* ignore */ }
