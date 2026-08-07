@@ -66,3 +66,6 @@ site/data/actress_display/
 site/public/data/actress_display/
 site/data/actress_display_alias_index.json
 site/public/data/actress_display_alias_index.json
+
+# 出演者不明の旧作を削除した際のバックアップ(復旧用・大容量なので追跡しない)
+data/purged/

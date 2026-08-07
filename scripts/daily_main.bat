@@ -116,6 +116,18 @@ cd /d "%PROJECT_DIR%\site"
 "%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
 echo [6/6] price re-deploy done: %time% >> "%LOG_FILE%"
 
+REM === [7] purge works with unknown cast, older than 3 months (best-effort, LAST) ===
+REM Deletes 30,000 rows per run to stay under the D1 free-tier write cap (100k rows/day;
+REM the FTS sync trigger writes on top of each delete). The script re-selects by condition
+REM every run, so it just resumes the next day until the backlog is gone (~6 days).
+REM Runs after the deploy so a slow or sleep-killed purge can never block the site update.
+REM HOME_MAKERS brands are excluded, and every deleted row is backed up to
+REM data\purged\purge_YYYY-MM-DD.jsonl so it can be restored.
+cd /d "%PROJECT_DIR%"
+echo [7/7] purge unknown-cast old works: %time% >> "%LOG_FILE%"
+"%NODE%" "%PROJECT_DIR%\scripts\purge_unknown_actress.js" --limit=30000 >> "%LOG_FILE%" 2>&1
+echo [7/7] purge done: %errorlevel% at %time% >> "%LOG_FILE%"
+
 REM === release keep-awake (allow normal sleep again) ===
 for /f "usebackq delims=" %%P in ("%KEEPAWAKE_PID%") do taskkill /PID %%P /F >nul 2>&1
 del "%KEEPAWAKE_PID%" 2>nul

@@ -33,6 +33,41 @@ if (!fs.existsSync(FANZA_DB)) { console.error('fanza.db が見つかりません
 const mgs   = openLocal(MGS_DB);
 const fanza = openLocal(FANZA_DB);
 
+// ── FANZAの「鮮度が要るデータ」はD1から読む ────────────────────────────
+// FANZAの新作・価格・セールは GitHub Actions (scripts/fanza_daily_update.js) が **D1だけ**を
+// 更新しており、ローカルの data/fanza.db には反映されない。そのため fanza.db は
+//   ・sale_start_date が数日古い（新作にFANZA分が出てこない）
+//   ・sale_end_date が全件NULL・discount_pct が凍結（セールが何週間も同じ並びのまま）
+// という状態になる。実際 sale_cache.json は2026-07-01から56件が1件も変わっていなかった。
+// → 新作/セールだけ D1 から取得する。1日1回の生成なのでD1無料枠への影響は無視できる。
+// D1の環境変数が無い環境（オフライン等）ではローカルDBへ自動フォールバックする。
+let fanzaFresh = fanza;
+let fanzaFreshIsD1 = false;
+try {
+    const dotenv = (await import('dotenv')).default;
+    dotenv.config({ path: path.join(ROOT, '..', '.env') });
+    const { fanzaShards } = (await import('../../scripts/lib/d1.js')).default;
+    fanzaFresh = fanzaShards();
+    fanzaFreshIsD1 = true;
+    console.log('[D1] FANZAの新作/セールはD1から取得します');
+} catch (e) {
+    console.warn(`[D1] FANZAのD1接続に失敗、ローカルfanza.dbを使用します（新作/セールが古い可能性）: ${e.message}`);
+}
+
+// D1のFANZAは2シャードに分割されており、SELECTは各シャードの結果を単純連結して返す。
+// = ORDER BY / LIMIT がグローバルに効かない（「シャード0の上位N件→シャード1の上位N件」になる）。
+// そのため取得後にJS側で必ず並べ直して切り詰める。
+function sortAndCap(rows, keyFn, limit, desc = true) {
+    if (!fanzaFreshIsD1) return rows.slice(0, limit);
+    const sorted = [...rows].sort((a, b) => {
+        const ka = keyFn(a), kb = keyFn(b);
+        const c = ka < kb ? -1 : ka > kb ? 1 : 0;
+        return desc ? -c : c;
+    });
+    return sorted.slice(0, limit);
+}
+const dateKey = r => String(r.sale_start_date ?? '').replace(/\//g, '-').slice(0, 10);
+
 function poster(url) {
     if (!url) return '';
     if (url.includes('pb_e_')) return url.replace('pb_e_', 'pf_e_');
@@ -164,7 +199,7 @@ async function genNewProducts() {
                   ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 300`,
             args: [twoWeeksAgo, today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
-        fanza.execute({
+        fanzaFresh.execute({
             sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
                          ${FANZA_EXT}
                   FROM products
@@ -174,8 +209,9 @@ async function genNewProducts() {
                     AND ${bestConds}
                   ORDER BY sale_start_date DESC LIMIT 300`,
             args: [twoWeeksAgo, today, ...bestArgs],
-        }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
+        }).then(r => sortAndCap(r.rows, dateKey, 300)).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
+    console.log(`[新着作品] MGS ${mgsRows.length}件 / FANZA ${fanzaRows.length}件（FANZA最新: ${fanzaRows[0] ? dateKey(fanzaRows[0]) : 'なし'}）`);
 
     const combined = [];
     const maxLen = Math.max(mgsRows.length, fanzaRows.length);
@@ -458,7 +494,8 @@ async function genPreorderProducts() {
                   ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 300`,
             args: [today, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
-        fanza.execute({
+        // 予約(未来日付)はローカルfanza.dbには存在しない(最新が数日前で止まるため常に0件)。D1から取る。
+        fanzaFresh.execute({
             sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
                          ${FANZA_EXT_VR}
                   FROM products
@@ -466,7 +503,7 @@ async function genPreorderProducts() {
                     AND ${bestConds}
                   ORDER BY SUBSTR(sale_start_date,1,10) DESC LIMIT 300`,
             args: [today, ...bestArgs],
-        }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
+        }).then(r => sortAndCap(r.rows, dateKey, 300)).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
     const combined = [];
@@ -494,7 +531,8 @@ async function genHomePreorderCurated() {
                   ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 60`,
             args: [today, ...mgsMakerArgs, ...bestArgs],
         }).then(r => r.rows).catch(e => { console.error('MGS error:', e.message); return []; }),
-        fanza.execute({
+        // 予約はD1から（ローカルfanza.dbは未来日付を持たない）
+        fanzaFresh.execute({
             sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
                          ${FANZA_EXT_VR}
                   FROM products
@@ -503,7 +541,7 @@ async function genHomePreorderCurated() {
                     AND ${bestConds}
                   ORDER BY SUBSTR(sale_start_date,1,10) DESC LIMIT 60`,
             args: [today, ...fanzaMakerArgs, ...bestArgs],
-        }).then(r => r.rows).catch(e => { console.error('FANZA error:', e.message); return []; }),
+        }).then(r => sortAndCap(r.rows, dateKey, 60)).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
     const combined = [];
@@ -519,7 +557,7 @@ async function genHomePreorderCurated() {
 async function genSaleProducts() {
     console.log('[セール作品] 取得中...');
     const [fanzaRows, mgsRows] = await Promise.all([
-        fanza.execute({
+        fanzaFresh.execute({
             sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
                          ${FANZA_EXT_VR}
                   FROM products
@@ -529,7 +567,7 @@ async function genSaleProducts() {
                     AND ${bestConds}
                   ORDER BY discount_pct DESC, sale_start_date DESC LIMIT 120`,
             args: [today, ...fanzaMakerArgs, ...bestArgs],
-        }).then(r => r.rows).catch(e => { console.error('FANZA sale error:', e.message); return []; }),
+        }).then(r => sortAndCap(r.rows, x => Number(x.discount_pct ?? 0), 120)).catch(e => { console.error('FANZA sale error:', e.message); return []; }),
         mgs.execute({
             sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date,
                          COALESCE(discount_pct,0) AS discount_pct, list_price, current_price,
@@ -549,6 +587,7 @@ async function genSaleProducts() {
         ...mgsRows.map(r  => ({ ...r, main_image_url: poster(r.main_image_url),  source: 'mgs'   })),
     ];
     combined.sort((a, b) => Number(b.discount_pct) - Number(a.discount_pct));
+    console.log(`[セール作品] FANZA ${fanzaRows.length}件 / MGS ${mgsRows.length}件`);
     return combined;
 }
 
