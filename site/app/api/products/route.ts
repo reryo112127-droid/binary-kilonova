@@ -60,7 +60,9 @@ export async function GET(request: NextRequest) {
         && !searchParams.get('cup') && !searchParams.get('cups') && !searchParams.get('height')
         && !searchParams.get('vr') && !searchParams.get('series') && !searchParams.get('hasVideo')
         && !searchParams.get('excludeBest') && !searchParams.get('minDiscount')
-        && !searchParams.get('ageMin') && !searchParams.get('ageMax');
+        && !searchParams.get('ageMin') && !searchParams.get('ageMax')
+        // 除外系も静的キャッシュには反映されていない（指定時に無視すると絞り込みが効かなくなる）
+        && !searchParams.get('excludeGenres') && !searchParams.get('excludeLabel');
 
     // 女優別商品リストを静的JSONから返す（Tursoクエリ不要）
     // top_products(top200) → extended_products(~2000人) の順で検索
@@ -73,11 +75,11 @@ export async function GET(request: NextRequest) {
         !searchParams.get('fromDate') && !searchParams.get('toDate') && !searchParams.get('source') &&
         !searchParams.get('vr') && !searchParams.get('hasVideo')
     ) {
-        const [topCache, extCache] = await Promise.all([
-            readStaticCache<Record<string, unknown[]>>('actress_top_products.json'),
-            readStaticCache<Record<string, unknown[]>>('actress_extended_products.json'),
-        ]);
-        const products = topCache?.[actressParam] ?? extCache?.[actressParam];
+        // extended は約19MBあり、パースするとisolateメモリ(128MB)を大きく削る。
+        // top(2MB)で当たる女優のほうが多いので、外れたときだけ extended を読み込む。
+        const topCache = await readStaticCache<Record<string, unknown[]>>('actress_top_products.json');
+        const products = topCache?.[actressParam]
+            ?? (await readStaticCache<Record<string, unknown[]>>('actress_extended_products.json'))?.[actressParam];
         // キャッシュ(actress_top/extended)は女優あたり最大20件程度に打ち切られているため、
         // 要求件数を満たせる場合のみキャッシュを返す。満たせない（=全作品を見たい）場合は
         // D1のFTSクエリ(軽量)にフォールスルーして出演作品をすべて取得する。
@@ -436,11 +438,19 @@ export async function GET(request: NextRequest) {
         return { conditions, args };
     }
 
-    function buildOrderBy(isMgs: boolean) {
+    // ランダム抽出の候補プール。ORDER BY RANDOM() は「条件に合う全行」を実体化してから
+    // ソートするため、117k件のMGSに素で当てるとD1の1日読み取り枠(500万行)を数十リクエストで
+    // 使い切る。日付インデックスで新しい方から N 件だけ取り、その中でシャッフルする。
+    const RANDOM_POOL = 500;
+
+    function dateOrderBy(isMgs: boolean) {
         // MGSは YYYY/MM/DD 形式のため REPLACE で正規化 → 関数インデックス idx_sale_date_norm が効く
-        if (sort === 'new' || sort === 'date_all') return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY sale_start_date DESC';
+        return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY sale_start_date DESC';
+    }
+
+    function buildOrderBy(isMgs: boolean) {
+        if (sort === 'new' || sort === 'date_all') return dateOrderBy(isMgs);
         if (sort === 'pre-order') return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY SUBSTR(sale_start_date,1,10) DESC';
-        if (sort === 'random') return 'ORDER BY RANDOM()';
         if (sort === 'discount') return 'ORDER BY discount_pct DESC';         // 割引率が高い順
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';
     }
@@ -450,13 +460,16 @@ export async function GET(request: NextRequest) {
         try {
             const { conditions, args } = buildConditions(isMgs);
             const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-            const orderBy = buildOrderBy(isMgs);
-            const sql = `SELECT product_id, title, actresses, main_image_url,
+            const cols = `product_id, title, actresses, main_image_url,
                          ${isMgs ? 'wish_count,' : '0 AS wish_count,'}
                          genres, maker, duration_min, sale_start_date,
                          sample_video_url,
-                         ${isMgs ? 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag, sale_end_date' : 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag, 0) AS vr_flag, sale_end_date'}
-                         FROM products ${where} ${orderBy} LIMIT ${perLimit} OFFSET ${perOffset}`;
+                         ${isMgs ? 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag, sale_end_date' : 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag, 0) AS vr_flag, sale_end_date'}`;
+            const sql = sort === 'random'
+                // 新着 RANDOM_POOL 件に絞ってからシャッフル（OFFSETはランダムでは無意味なので使わない）
+                ? `SELECT * FROM (SELECT ${cols} FROM products ${where} ${dateOrderBy(isMgs)} LIMIT ${RANDOM_POOL})
+                   ORDER BY RANDOM() LIMIT ${perLimit}`
+                : `SELECT ${cols} FROM products ${where} ${buildOrderBy(isMgs)} LIMIT ${perLimit} OFFSET ${perOffset}`;
 
             const result = await client.execute({ sql, args });
             return result.rows.map(row => {

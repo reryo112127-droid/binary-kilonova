@@ -1,4 +1,4 @@
-import { getSiteClient } from './turso';
+import { getSiteClient, executeInChunks } from './turso';
 import type { ProductSiteData, ActressSiteData } from './scoring';
 
 // ─── スキーマ初期化 ───────────────────────────────────────
@@ -155,35 +155,31 @@ export async function getActressSiteDataFull(
 
     await initSiteSchema();
 
-    const placeholders = productIds.map(() => '?').join(',');
-    const [likesRes, reviewsRes, purchasesRes] = await Promise.all([
+    // D1のバインド変数上限(100)を超えないよう IN句は分割実行する。
+    // stars別集計と購入総数はチャンクをまたぐため、JS側で合算する。
+    const [likesRes, reviewRows, purchaseRows] = await Promise.all([
         db.execute({
             sql: 'SELECT COUNT(*) as cnt FROM actress_likes WHERE actress_name = ?',
             args: [actressName],
         }),
-        productIds.length > 0
-            ? db.execute({
-                sql: `SELECT stars, COUNT(*) as cnt FROM product_reviews WHERE product_id IN (${placeholders}) GROUP BY stars`,
-                args: productIds,
-              })
-            : Promise.resolve({ rows: [] }),
-        productIds.length > 0
-            ? db.execute({
-                sql: `SELECT COUNT(*) as cnt FROM purchase_events WHERE product_id IN (${placeholders})`,
-                args: productIds,
-              })
-            : Promise.resolve({ rows: [{ cnt: 0 }] }),
+        executeInChunks(db,
+            ph => `SELECT stars, COUNT(*) as cnt FROM product_reviews WHERE product_id IN (${ph}) GROUP BY stars`,
+            productIds),
+        executeInChunks(db,
+            ph => `SELECT COUNT(*) as cnt FROM purchase_events WHERE product_id IN (${ph})`,
+            productIds),
     ]);
 
     const workReviewStarCounts: Partial<Record<number, number>> = {};
-    for (const row of reviewsRes.rows) {
-        workReviewStarCounts[Number(row.stars)] = Number(row.cnt);
+    for (const row of reviewRows) {
+        const stars = Number(row.stars);
+        workReviewStarCounts[stars] = (workReviewStarCounts[stars] ?? 0) + Number(row.cnt ?? 0);
     }
 
     return {
         actressLikes:         Number(likesRes.rows[0]?.cnt ?? 0),
         workReviewStarCounts,
-        workPurchaseCount:    Number(purchasesRes.rows[0]?.cnt ?? 0),
+        workPurchaseCount:    purchaseRows.reduce((a, r) => a + Number(r.cnt ?? 0), 0),
     };
 }
 

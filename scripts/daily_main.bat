@@ -88,13 +88,19 @@ REM actress ranking from D1 (fresh names) overwrites the local-DB ranking to avo
 REM cross-platform id map (MGS<->FANZA) for product detail price compare
 "%NODE%" "%PROJECT_DIR%\scripts\build_cross_platform.js" >> "%LOG_FILE%" 2>&1
 REM : products_new_cache 0()
+REM Guard: never deploy an empty cache (a failed generation must not wipe the live site).
+REM The count is written to a temp file and read back with `set /p`. The previous
+REM `for /f` one-liner was a cmd.exe SYNTAX ERROR that aborted this batch right here,
+REM so steps [5]-[7] (R2 invalidate / MGS price update / purge) never ran at all.
 set CACHE_CNT=0
-for /f %%C in ('""%NODE%" -e "try{console.log(require(String.raw`./public/data/products_new_cache.json`).length)}catch(e){console.log(0)}""') do set CACHE_CNT=%%C
+"%NODE%" -e "const a=require('./public/data/products_new_cache.json');process.stdout.write(String(a.length))" > "%LOG_DIR%\cache_cnt.txt" 2>nul
+if exist "%LOG_DIR%\cache_cnt.txt" set /p CACHE_CNT=<"%LOG_DIR%\cache_cnt.txt"
+del "%LOG_DIR%\cache_cnt.txt" 2>nul
 if "%CACHE_CNT%"=="0" (
-    echo [4/5]  >> "%LOG_FILE%"
+    echo [4/5] SKIP deploy: products_new_cache.json is empty >> "%LOG_FILE%"
 ) else (
-    "%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
-    echo [4/5] done (%CACHE_CNT%): %time% >> "%LOG_FILE%"
+    call "%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
+    echo [4/5] done ^(%CACHE_CNT%^): %time% >> "%LOG_FILE%"
 )
 
 REM === [5] R2 ===
@@ -113,8 +119,20 @@ echo [6/6] price update done: %errorlevel% at %time% >> "%LOG_FILE%"
 cd /d "%PROJECT_DIR%\site"
 "%NODE%" scripts\generate-static-cache-local.mjs >> "%LOG_FILE%" 2>&1
 "%NODE%" "%PROJECT_DIR%\scripts\build_actress_ranking_d1.js" >> "%LOG_FILE%" 2>&1
-"%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
+call "%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
 echo [6/6] price re-deploy done: %time% >> "%LOG_FILE%"
+
+REM === [7] purge works with unknown cast, older than 3 months (best-effort, LAST) ===
+REM Deletes 30,000 rows per run to stay under the D1 free-tier write cap (100k rows/day;
+REM the FTS sync trigger writes on top of each delete). The script re-selects by condition
+REM every run, so it just resumes the next day until the backlog is gone (~6 days).
+REM Runs after the deploy so a slow or sleep-killed purge can never block the site update.
+REM HOME_MAKERS brands are excluded, and every deleted row is backed up to
+REM data\purged\purge_YYYY-MM-DD.jsonl so it can be restored.
+cd /d "%PROJECT_DIR%"
+echo [7/7] purge unknown-cast old works: %time% >> "%LOG_FILE%"
+"%NODE%" "%PROJECT_DIR%\scripts\purge_unknown_actress.js" --limit=30000 >> "%LOG_FILE%" 2>&1
+echo [7/7] purge done: %errorlevel% at %time% >> "%LOG_FILE%"
 
 REM === release keep-awake (allow normal sleep again) ===
 for /f "usebackq delims=" %%P in ("%KEEPAWAKE_PID%") do taskkill /PID %%P /F >nul 2>&1

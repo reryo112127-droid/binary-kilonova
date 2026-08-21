@@ -396,11 +396,29 @@ async function prepareItems(site, account, batch, dir) {
     const genres = ACCOUNT_GENRES[account] || [];
     if (!genres.length) return [];
     const ph = genres.map(() => '?').join(',');
-    // Now Printing をスキップする分、多めに取得して batch 件そろうまで回す
-    const dec = await site.execute({
-        sql: `SELECT id, product_id, new_genre FROM x_post_decisions WHERE decision='approve' AND posted_at IS NULL AND new_genre IN (${ph}) ORDER BY decided_at ASC LIMIT ?`,
-        args: [...genres, batch * 6],
-    });
+    // Now Printing をスキップする分、多めに取得して batch 件そろうまで回す。
+    // 単純な decided_at ASC の FIFO だと、FANZAの巨大な滞留(例: lady は FANZA 3,131件が
+    // MGS 149件より前に積まれている)に阻まれて MGS が候補ウィンドウに一生入らず、
+    // 「MGS動画の作品が投稿されない」状態になる。→ プラットフォーム別に同数ずつ取り、
+    // 交互に並べてから実績スコアで並べ替えることで MGS に必ず枠を確保する。
+    // MGS品番は必ず '-' を含み、FANZAのcontent_idは含まない(承認キュー13,858件で検証済み)。
+    const want = batch * 6;
+    const perPf = Math.max(1, Math.ceil(want / 2));
+    const pick = async (pfCond) => (await site.execute({
+        sql: `SELECT id, product_id, new_genre FROM x_post_decisions
+              WHERE decision='approve' AND posted_at IS NULL AND new_genre IN (${ph}) AND ${pfCond}
+              ORDER BY decided_at ASC LIMIT ?`,
+        args: [...genres, perPf],
+    }).catch(() => ({ rows: [] }))).rows;
+    const mgsRows = await pick(`product_id GLOB '*-*'`);
+    const fzRows  = await pick(`product_id NOT GLOB '*-*'`);
+    // 交互マージ(片方が尽きたらもう片方で埋める=片PFしか無いジャンルは従来どおり)
+    const merged = [];
+    for (let i = 0; i < Math.max(mgsRows.length, fzRows.length) && merged.length < want; i++) {
+        if (i < mgsRows.length && merged.length < want) merged.push(mgsRows[i]);
+        if (i < fzRows.length  && merged.length < want) merged.push(fzRows[i]);
+    }
+    const dec = { rows: merged };
     // 候補の作品メタを先読みし、過去実績の高い女優を優先(枯渇防止のため候補は承認キュー内に限定)。
     // 同点は元のFIFO順(decided_at ASC)を維持。実績データが無い初期は全員0=従来どおりFIFO。
     const perf = loadActressPerf();

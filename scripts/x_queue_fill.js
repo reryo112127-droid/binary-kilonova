@@ -32,9 +32,20 @@ const HOME_MAKERS = [
     ['exact', 'kawaii'], ['exact', 'Hunter'], ['exact', 'ワンズファクトリー'], ['exact', 'SODクリエイト'],
     ['exact', 'FALENO'], ['exact', 'TAMEIKE'], ['like', 'million'], ['exact', 'プレミアム'], ['exact', 'DAHLIA'],
 ];
+// MGSは HOME_MAKERS(FANZAのプレミアムブランド名)とメーカー名がほとんど重ならないため、
+// これで絞ると SODクリエイト/FALENO 程度しか当たらずMGS候補が枯渇していた。
+// 実測: メーカー縛りを免除している anon だけ3,802件、new=138 / lady=45 / collab=35 という偏り。
+// → MGSにはMGS自身の主要ブランド(作品数上位)のホワイトリストを使う。
+// 独占判定(cross_platform.json)は従来どおり掛かるのでFANZAと重複する作品は入らない。
+const MGS_MAKERS = [
+    ['exact', 'シロウトTV'], ['exact', 'SODクリエイト'], ['exact', 'DOC'], ['like', 'プレステージ'],
+    ['exact', 'ナンパTV'], ['exact', 'ラグジュTV'], ['exact', 'NEXT'], ['exact', 'プラネットプラス'],
+    ['exact', 'アロマ企画'], ['exact', 'h.m.p'], ['exact', 'FALENO'], ['exact', 'マジック'],
+    ['exact', 'MAXING'], ['exact', 'WAAP'], ['exact', 'ムーディーズ'], ['exact', 'エスワン'],
+];
 // MGS: maker列のみ / FANZA: maker列 OR label列
-const MGS_MAKER_COND = '(' + HOME_MAKERS.map(([t]) => t === 'exact' ? 'maker = ?' : 'maker LIKE ?').join(' OR ') + ')';
-const MGS_MAKER_ARGS = HOME_MAKERS.map(([t, v]) => t === 'exact' ? v : `%${v}%`);
+const MGS_MAKER_COND = '(' + MGS_MAKERS.map(([t]) => t === 'exact' ? 'maker = ?' : 'maker LIKE ?').join(' OR ') + ')';
+const MGS_MAKER_ARGS = MGS_MAKERS.map(([t, v]) => t === 'exact' ? v : `%${v}%`);
 const FZ_MAKER_COND = '(' + HOME_MAKERS.map(([t]) => t === 'exact' ? '(maker = ? OR label = ?)' : '(maker LIKE ? OR label LIKE ?)').join(' OR ') + ')';
 const FZ_MAKER_ARGS = HOME_MAKERS.flatMap(([t, v]) => t === 'exact' ? [v, v] : [`%${v}%`, `%${v}%`]);
 
@@ -66,6 +77,10 @@ const GENRES = [
     ] },
     { genre: 'sale', sources: [
         { platform: 'fanza', where: `COALESCE(discount_pct,0) >= 30 AND actresses IS NOT NULL AND TRIM(actresses)<>''`,
+          order: `ORDER BY discount_pct DESC, RANDOM()`, whereArgs: () => [], limit: PER * 8 },
+        // MGSの割引作品。※現状 MGS D1 の discount_pct は全件0(価格がD1へ同期されていない)ため
+        //   このソースは0件を返す。ローカルmgs.dbには224件あるので、同期が入れば自動的に投稿対象になる。
+        { platform: 'mgs', where: `COALESCE(discount_pct,0) >= 30 AND actresses IS NOT NULL AND TRIM(actresses)<>''`,
           order: `ORDER BY discount_pct DESC, RANDOM()`, whereArgs: () => [], limit: PER * 8 },
     ] },
     { genre: 'vr', sources: [
@@ -108,8 +123,16 @@ const GENRES = [
     let added = 0;
     for (const g of GENRES) {
         let n = 0;
+        // ソースは順番に消化して n>=PER で打ち切るため、先頭プラットフォームが枠を全部食うと
+        // 2番目(多くはMGS)が毎回0件になる。まず各ソースに均等枠を配り、余ったら2周目で埋める。
+        const share = Math.ceil(PER / g.sources.length);
+        const perSource = new Map();
+        for (const pass of [1, 2]) {
         for (const src of g.sources) {
             if (n >= PER) break;
+            // 1周目は均等枠まで、2周目は残り全部(片方が枯渇していても総数PERは満たす)
+            const cap = pass === 1 ? Math.min(PER, (perSource.get(src) ?? 0) + share) : PER;
+            if ((perSource.get(src) ?? 0) >= cap) continue;
             const isMgs = src.platform === 'mgs';
             // anon(素人)/vr はHOME_MAKERS(プレミアム18ブランド)に該当しない=メーカー条件を掛けると常に0件になるため除外。
             // 素人は floor='videoc'/素人ジャンル、VRは genres='VR専用'(KMPVR等のVR専業メーカー中心)で定義され、特定メーカー縛りの対象外。
@@ -129,7 +152,7 @@ const GENRES = [
             try { rows = (await client.execute({ sql, args })).rows; }
             catch (e) { console.warn(`  ${g.genre}(${src.platform}) 選定エラー:`, e.message); continue; }
             for (const row of rows) {
-                if (n >= PER) break;
+                if (n >= PER || (perSource.get(src) ?? 0) >= cap) break;
                 const pid = String(row.product_id);
                 if (existing.has(pid)) continue;
                 if (isMgs && crossMap[pid]) continue; // FANZAに対作品あり=独占ではない→MGSは除外
@@ -138,8 +161,10 @@ const GENRES = [
                     args: [pid, g.genre],
                 });
                 existing.add(pid); added++; n++;
+                perSource.set(src, (perSource.get(src) ?? 0) + 1);
                 console.log(`  + [${g.genre}/${src.platform}] ${pid}`);
             }
+        }
         }
     }
     console.log(`✅ ${added}件をキューに追加`);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readHtml } from '../../../../lib/readHtml';
-import { getMgsClient, getFanzaClient, getSiteClient } from '../../../../lib/turso';
+import { getMgsClient, getFanzaClient, getSiteClient, executeInChunks } from '../../../../lib/turso';
 import { initSiteSchema } from '../../../../lib/siteDb';
 import { filterActresses } from '../../../../lib/actressFilter';
 import { getCached, setCached } from '../../../../lib/apiCache';
@@ -217,14 +217,12 @@ export async function GET(request: NextRequest) {
     if (siteClient && topEntries.length > 0) {
         try {
             await initSiteSchema();
-            // 一括でいいね数取得
+            // 一括でいいね数取得（D1のバインド変数上限100のため分割実行）
             const names = topEntries.map(e => e.name);
-            const placeholders = names.map(() => '?').join(',');
-            const likesRes = await siteClient.execute({
-                sql: `SELECT actress_name, COUNT(*) as cnt FROM actress_likes WHERE actress_name IN (${placeholders}) GROUP BY actress_name`,
-                args: names,
-            });
-            for (const row of likesRes.rows) {
+            const likesRows = await executeInChunks(siteClient,
+                ph => `SELECT actress_name, COUNT(*) as cnt FROM actress_likes WHERE actress_name IN (${ph}) GROUP BY actress_name`,
+                names);
+            for (const row of likesRows) {
                 actressLikesMap.set(String(row.actress_name), Number(row.cnt ?? 0));
             }
         } catch (err) {

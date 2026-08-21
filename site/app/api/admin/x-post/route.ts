@@ -60,47 +60,43 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        // Fetch decided product_ids from siteDb (separate DB — can't use subquery cross-DB)
-        let excludePlaceholder = '';
+        // 除外リスト（投稿済み・NG判定）は最大1,000件になり得るが、D1のバインド変数は
+        // 1クエリ100個までなので NOT IN(?,?...) には載せられない（載せると常に失敗し
+        // 除外が一切効かないまま候補が返る）。SQLでは多めに取り、除外はJS側で行う。
+        const excluded = new Set<string>();
+        const [decidedIds, ngIds] = await Promise.all([
+            siteDb
+                ? siteDb.execute('SELECT product_id FROM x_post_decisions ORDER BY decided_at DESC LIMIT 500')
+                    .then(r => r.rows.map(r => String(r.product_id))).catch(() => [] as string[])
+                : Promise.resolve([] as string[]),
+            siteDb
+                ? siteDb.execute("SELECT product_id FROM product_safety WHERE x_safe = 0 ORDER BY checked_at DESC LIMIT 500")
+                    .then(r => r.rows.map(r => String(r.product_id))).catch(() => [] as string[])
+                : Promise.resolve([] as string[]),
+        ]);
+        decidedIds.forEach(id => excluded.add(id));
+        ngIds.forEach(id => excluded.add(id));
+
         const args: (string | number)[] = [];
-        if (siteDb) {
-            const decided = await siteDb.execute('SELECT product_id FROM x_post_decisions ORDER BY decided_at DESC LIMIT 500');
-            const decidedIds = decided.rows.map(r => String(r.product_id));
-            if (decidedIds.length > 0) {
-                excludePlaceholder = `AND product_id NOT IN (${decidedIds.map(() => '?').join(',')})`;
-                args.push(...decidedIds);
-            }
-        }
-
-        // product_safetyでNG判定された作品を除外（最大500件・NOT IN上限対策）
-        const siteClient = await getSiteClient();
-        let ngExclude = '';
-        if (siteClient) {
-            const ngIds = await siteClient.execute(
-                "SELECT product_id FROM product_safety WHERE x_safe = 0 ORDER BY checked_at DESC LIMIT 500"
-            ).then(r => r.rows.map(r => String(r.product_id))).catch(() => [] as string[]);
-            if (ngIds.length > 0) {
-                ngExclude = `AND product_id NOT IN (${ngIds.map(() => '?').join(',')})`;
-                args.push(...ngIds);
-            }
-        }
-
+        // 除外分を吸収するため候補を多めに取得してからJSで絞る
+        const fetchLimit = limit + excluded.size;
         const sql = `
             SELECT product_id, title, main_image_url, sample_images_json,
                    affiliate_url, actresses, discount_pct, sale_start_date
             FROM products
             WHERE 1=1
-            ${ngExclude}
-            ${excludePlaceholder}
             ${genreWhere}
             ${orderBy}
             LIMIT ?
         `;
-        args.push(limit);
+        args.push(fetchLimit);
 
         const result = await fanzaClient.execute({ sql, args });
+        const candidateRows = result.rows
+            .filter(r => !excluded.has(String(r.product_id)))
+            .slice(0, limit);
 
-        const products = result.rows.map(row => {
+        const products = candidateRows.map(row => {
             let sampleImages: string[] = [];
             try {
                 if (row.sample_images_json) {

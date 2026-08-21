@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMgsClient, getFanzaClient, getSiteClient } from '../../../lib/turso';
+import { getMgsClient, getFanzaClient, getSiteClient, executeInChunks } from '../../../lib/turso';
 import { initSiteSchema } from '../../../lib/siteDb';
 import { computeProductScore, PRODUCT_SCORE } from '../../../lib/scoring';
 import { filterActresses } from '../../../lib/actressFilter';
@@ -207,22 +207,23 @@ export async function GET(request: NextRequest) {
     if (siteClient && productIds.length > 0) {
         try {
             await initSiteSchema();
-            const placeholders = productIds.map(() => '?').join(',');
 
-            const [likesRes, reviewsRes, purchasesRes] = await Promise.all([
-                siteClient.execute({
-                    sql: `SELECT product_id, COUNT(*) as cnt FROM product_likes WHERE product_id IN (${placeholders}) GROUP BY product_id`,
-                    args: productIds,
-                }),
-                siteClient.execute({
-                    sql: `SELECT product_id, stars, COUNT(*) as cnt FROM product_reviews WHERE product_id IN (${placeholders}) GROUP BY product_id, stars`,
-                    args: productIds,
-                }),
-                siteClient.execute({
-                    sql: `SELECT product_id, COUNT(*) as cnt FROM purchase_events WHERE product_id IN (${placeholders}) GROUP BY product_id`,
-                    args: productIds,
-                }),
+            // D1のバインド変数上限(100)を超えるため IN句は分割実行する。
+            // 集計は product_id 単位＝1つのチャンクに閉じるので、行を連結するだけで正しい。
+            const [likesRows, reviewsRows, purchasesRows] = await Promise.all([
+                executeInChunks(siteClient,
+                    ph => `SELECT product_id, COUNT(*) as cnt FROM product_likes WHERE product_id IN (${ph}) GROUP BY product_id`,
+                    productIds),
+                executeInChunks(siteClient,
+                    ph => `SELECT product_id, stars, COUNT(*) as cnt FROM product_reviews WHERE product_id IN (${ph}) GROUP BY product_id, stars`,
+                    productIds),
+                executeInChunks(siteClient,
+                    ph => `SELECT product_id, COUNT(*) as cnt FROM purchase_events WHERE product_id IN (${ph}) GROUP BY product_id`,
+                    productIds),
             ]);
+            const likesRes = { rows: likesRows };
+            const reviewsRes = { rows: reviewsRows };
+            const purchasesRes = { rows: purchasesRows };
 
             for (const row of likesRes.rows) {
                 const pid = String(row.product_id);

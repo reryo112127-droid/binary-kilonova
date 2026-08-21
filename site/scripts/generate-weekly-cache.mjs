@@ -558,6 +558,14 @@ async function main() {
     write('genres_cache.json', genresList);
     write('series_cache.json', seriesList);
     write('actress_display_cache.json', actressMap);
+    // 女優APIが読むのは分割版（一枚岩24MBはisolateメモリを圧迫し、25MBのアセット上限にも近い）。
+    // 一枚岩はNodeスクリプト用に残しつつ、必ずシャードを作り直して同期させる。
+    {
+        const { buildActressDisplayShards } = await import('./build_actress_display_shards.mjs');
+        const { shards, aliasIndex } = buildActressDisplayShards(actressMap);
+        for (const [key, obj] of Object.entries(shards)) write(path.join('actress_display', `${key}.json`), obj);
+        write('actress_display_alias_index.json', aliasIndex);
+    }
     write('actress_top_products.json', topActressProducts);
     write('actress_extended_products.json', extActressProducts);
 

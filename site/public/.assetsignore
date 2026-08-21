@@ -1,0 +1,6 @@
+# Cloudflare Workers のアセットとしてアップロードしないファイル。
+# actress_display_cache.json は24MB（アセット上限25MBの寸前）で、ランタイムは
+# data/actress_display/<nn>.json のシャード版しか読まない。ローカルのNodeスクリプト
+# (build_actress_whitelist.js / build_actress_ranking_d1.js / generate-static-cache*.mjs)
+# がファイルとして参照するのでリポジトリには残すが、デプロイはしない。
+data/actress_display_cache.json
