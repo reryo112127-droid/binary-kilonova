@@ -40,6 +40,42 @@ jobs:
           D1_FANZA_1_ID:        ${{ secrets.D1_FANZA_1_ID }}
           D1_MGS_ID:             ${{ secrets.D1_MGS_ID }}
 
+      # この週次ジョブは checkout したリポジトリの site/public/data/*.json を
+      # そのまま Workers アセットとしてデプロイする。ホーム用の日次キャッシュ
+      # (新作/セール/ランキング/予約) は毎日ローカルPCのバッチが生成してデプロイ
+      # するだけで **コミットはされない** ため、リポジトリ側は数週間〜数ヶ月古い。
+      # 対策を入れないと日曜のこのジョブが本番の新鮮なキャッシュを古いものへ
+      # 巻き戻す(実際に 2026-08-16 の実行で 07-01 のデータに戻り、ホームの
+      # 新作・セールが更新されない状態が続いた)。
+      # → ビルド前に「今 本番で配信されている」コピーを取得して上書きし、
+      #   このジョブが日次データを退行させないようにする。
+      #   makers_cache.json はこのジョブ自身が再生成するので対象外。
+      - name: Preserve daily caches (fetch live copies so the weekly deploy cannot regress them)
+        run: |
+          set -u
+          mkdir -p .livecache
+          FILES="products_new_cache products_popular_cache ranking_2026_cache ranking_default_cache actress_ranking_2026_cache actress_ranking_default_cache home_preorder_cache home_preorder_curated_cache sale_cache cross_platform"
+          OK=0
+          for f in $FILES; do
+            tmp=".livecache/$f.json"
+            if curl -fsSL --max-time 60 "https://avrankings.com/data/$f.json" -o "$tmp" && node -e "const fs=require('fs');const a=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const n=Array.isArray(a)?a.length:Object.keys(a).length;if(!n)process.exit(1)" "$tmp"; then
+              cp "$tmp" "site/public/data/$f.json"
+              if [ -f "site/data/$f.json" ]; then cp "$tmp" "site/data/$f.json"; fi
+              echo "live  $f.json ($(wc -c < "$tmp") bytes)"
+              OK=$((OK + 1))
+            else
+              echo "KEEP  $f.json (live fetch failed or empty - keeping the committed copy)"
+            fi
+          done
+          rm -rf .livecache
+          echo "preserved $OK live cache file(s)"
+          # 1件も取れないときはリポジトリの古いキャッシュをそのまま配信してしまうため、
+          # 退行デプロイを避けてジョブを失敗させる(サイトは現状のまま維持される)。
+          if [ "$OK" -eq 0 ]; then
+            echo "::error::all live cache fetches failed - refusing to deploy stale committed caches"
+            exit 1
+          fi
+
       - name: Build for Cloudflare Workers
         run: cd site && npm run build:cf
 

@@ -1,6 +1,6 @@
 import { TwitterApi } from 'twitter-api-v2';
 import jpeg from 'jpeg-js';
-import { getSiteClient, getMgsClient } from './turso';
+import { getSiteClient, getMgsClient, getFanzaClient } from './turso';
 import { initSiteSchema } from './siteDb';
 
 // ── シャドウバン対策: パッケージ画像を加工して投稿する ──
@@ -138,27 +138,57 @@ export async function postNextForGenre(genre: string): Promise<PostResult> {
 
     await initSiteSchema();
 
-    // 未投稿の承認済み作品を取得（事前生成テキストがあるものを優先）
-    const decRes = await siteDb.execute({
-        sql: `SELECT id, product_id, post_type, tweet_text FROM x_post_decisions
+    // 未投稿の承認済み作品を取得。
+    // 単純な decided_at ASC の FIFO だと、FANZAの巨大な滞留に阻まれて MGS が
+    // 一生選ばれない(lady は FANZA 3,131件が MGS 149件より前に積まれている)。
+    // → プラットフォーム別に先頭1件ずつ取り、直近投稿と逆のPFを選んで交互に投稿する。
+    // MGS品番は必ず '-' を含み、FANZAのcontent_idは含まない(承認キュー全件で検証済み)。
+    const headSql = (pfCond: string) => `SELECT id, product_id, post_type, tweet_text FROM x_post_decisions
               WHERE decision = 'approve' AND (new_genre = ? OR (new_genre IS NULL AND ? = 'new'))
-                AND posted_at IS NULL
-              ORDER BY (tweet_text IS NOT NULL AND tweet_text != '') DESC, decided_at ASC LIMIT 1`,
+                AND posted_at IS NULL AND ${pfCond}
+              ORDER BY (tweet_text IS NOT NULL AND tweet_text != '') DESC, decided_at ASC LIMIT 1`;
+    const [mgsHead, fzHead] = await Promise.all([
+        siteDb.execute({ sql: headSql(`product_id GLOB '*-*'`),     args: [genre, genre] }),
+        siteDb.execute({ sql: headSql(`product_id NOT GLOB '*-*'`), args: [genre, genre] }),
+    ]);
+    // このジャンルで直近に「実際に投稿された」作品のPFを見て、次は逆のPFを選ぶ(交互)。
+    // 実績数の均衡を追うと MGS が尽きるまで一方に偏り続けるため、単純な交互にする。
+    const lastRes = await siteDb.execute({
+        sql: `SELECT product_id FROM x_post_decisions
+              WHERE (new_genre = ? OR (new_genre IS NULL AND ? = 'new'))
+                AND posted_at IS NOT NULL AND tweet_id IS NOT NULL AND tweet_id != 'skipped'
+              ORDER BY posted_at DESC LIMIT 1`,
         args: [genre, genre],
     });
-    if (decRes.rows.length === 0) return { success: false, error: 'キュー空' };
+    const lastWasMgs = String(lastRes.rows[0]?.product_id || '').includes('-');
+    let decRow = null;
+    if (mgsHead.rows.length && fzHead.rows.length) decRow = lastWasMgs ? fzHead.rows[0] : mgsHead.rows[0];
+    else decRow = mgsHead.rows[0] || fzHead.rows[0] || null;
+    if (!decRow) return { success: false, error: 'キュー空' };
 
-    const dec = decRes.rows[0];
+    const dec = decRow;
     const decId    = Number(dec.id);
     const productId = String(dec.product_id);
 
-    // MGS DBから作品情報を取得
-    const prodRes = await mgsDb.execute({
+    // 作品情報を取得。MGS D1 に無ければ FANZA D1 を見る。
+    // 以前は MGS D1 しか見ておらず、FANZA作品は必ず「作品情報なし」となって
+    // 未投稿のまま posted_at だけ立てて捨てられていた(2026-08だけで689件)。
+    let prodRes = await mgsDb.execute({
         sql: `SELECT title, actresses, genres, main_image_url FROM products WHERE product_id = ?`,
         args: [productId],
     });
     if (prodRes.rows.length === 0) {
-        // 作品がDBにない場合はスキップ
+        const fanzaDb = await getFanzaClient();
+        if (fanzaDb) {
+            const fzRes = await fanzaDb.execute({
+                sql: `SELECT title, actresses, genres, main_image_url FROM products WHERE product_id = ?`,
+                args: [productId],
+            }).catch(() => null);
+            if (fzRes) prodRes = fzRes;
+        }
+    }
+    if (prodRes.rows.length === 0) {
+        // 両PFのDBに無い作品だけをスキップ扱いにする
         await siteDb.execute({ sql: `UPDATE x_post_decisions SET posted_at = datetime('now'), tweet_id = 'skipped' WHERE id = ?`, args: [decId] });
         return { success: false, error: '作品情報なし（スキップ済み）' };
     }
