@@ -15,7 +15,7 @@ for /f "delims=" %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyyM
 set LOG_FILE=%LOG_DIR%\avwiki_products_%TODAY%.log
 
 if exist "%LOCK_FILE%" (
-    echo [%time%] already running (lock file exists). skip. >> "%LOG_FILE%"
+    echo [%time%] already running ^(lock file exists^). skip. >> "%LOG_FILE%"
     exit /b 0
 )
 

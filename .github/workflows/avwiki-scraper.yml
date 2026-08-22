@@ -47,25 +47,35 @@ jobs:
             echo "rescan=false" >> $GITHUB_OUTPUT
           fi
 
-      # 女優プロフィールスクレイプ（30秒間隔、最大3時間 ≒ 360ページ/回）
+      # 女優プロフィールスクレイプ（10秒間隔、最大3時間 ≒ 1,080ページ/回 → 9,447人を約9日で完走）
       - name: Scrape actress profiles (通常)
         if: steps.mode.outputs.rescan == 'false'
-        run: timeout 3h node scripts/scrape_avwiki_full.js --interval 30 || true
+        run: timeout 3h node scripts/scrape_avwiki_full.js --interval 10 || true
         env:
           CI: ''
 
       # 週次再スキャン: 全女優を再スキャンしてSNS・改名情報を更新
       - name: Scrape actress profiles (再スキャン)
         if: steps.mode.outputs.rescan == 'true'
-        run: timeout 3h node scripts/scrape_avwiki_full.js --interval 30 --rescan || true
+        run: timeout 3h node scripts/scrape_avwiki_full.js --interval 10 --rescan || true
         env:
           CI: ''
 
-      # 品番→女優マッピングスクレイプ（15秒間隔、最大3時間 ≒ 720ページ/回）
-      - name: Scrape product actress mapping
-        run: timeout 3h node scripts/scrape_avwiki_products.js --interval 15 || true
+      # 品番→出演者の回収。
+      # 旧: scrape_avwiki_products.js --interval 15 で 15,000件の固定URLリストを巡回していたが、
+      #     リストは 2026-03-23 で凍結し --fetch-urls もどこからも呼ばれないため、
+      #     av-wiki.net の全187,014ページに対し 8% しか触れていなかった(残りは永久に未取得)。
+      #     しかも全件完了済みなので、この3時間ステップは毎日「残り0件」で空回りしていた。
+      # 新: サイトマップ(188本)から全スラグ集合を作り、**自DBで出演者が空の作品**の品番を
+      #     avwikiスラグへ変換して突合し、**存在するページだけ**を取りに行く。
+      #     187,014リクエスト → 実測3,166件へ縮小し、取りこぼしなく回収できる。
+      - name: Refresh avwiki sitemap slugs (週次)
+        if: steps.mode.outputs.rescan == 'true'
+        run: node scripts/avwiki_backfill_actresses.js --refresh-sitemap --dry-run || true
+
+      - name: Backfill actresses from avwiki (対象を絞って取得)
+        run: timeout 90m node scripts/avwiki_backfill_actresses.js --limit 1500 --interval 1500 || true
         env:
-          CI: ''
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
           D1_MGS_ID:             ${{ secrets.D1_MGS_ID }}
@@ -106,6 +116,7 @@ jobs:
             data/avwiki_products_progress.json \
             data/avwiki_url_list.json \
             data/avwiki_product_urls.json \
+            data/avwiki_backfill_checked.json \
             || true
           if ! git diff --staged --quiet; then
             if [ "${{ steps.mode.outputs.rescan }}" = "true" ]; then

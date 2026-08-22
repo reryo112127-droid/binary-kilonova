@@ -69,3 +69,6 @@ site/public/data/actress_display_alias_index.json
 
 # 出演者不明の旧作を削除した際のバックアップ(復旧用・大容量なので追跡しない)
 data/purged/
+
+# avwiki サイトマップのスラグ集合(約2.1MB)。無ければスクリプトが自動再取得するので追跡しない
+data/avwiki_sitemap_slugs.json

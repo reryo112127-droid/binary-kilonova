@@ -1,0 +1,89 @@
+name: Seesaawiki Scraper
+
+# seesaawiki.jp/av_neme（このAV女優の名前教えてwiki）から女優→FANZA品番のマッピングを収集する。
+#
+# これまで自動実行の口が一つも無く、2026-05-09 を最後に停止していた:
+#   - scripts/seesaawiki_by_actress.js は Turso 廃止後も @libsql/client を require したままで
+#     `Cannot find module '@libsql/client'` により **起動すらできなかった**（→ D1 へ移行済み）
+#   - 呼び出し元は daily_run.bat / daily_avwiki.bat のみで、どちらも無効化済みタスク。
+#     しかも --apply-only（反映のみ）で収集は走らない構成だった
+#   - 進捗ファイルの completed（URL→trueの再開マップ）を完走時に boolean で潰しており、
+#     再開情報が毎回消えていた（→ finished フラグに分離済み）
+#
+# avwiki-scraper.yml（19:00 UTC）とは 2時間ずらして commit の衝突を避ける。
+
+on:
+  schedule:
+    - cron: '0 21 * * *'      # 毎日 6:00 JST (= 21:00 UTC) — 続きから収集
+    - cron: '30 21 * * 0'     # 毎週日曜 6:30 JST — 収集後に D1 へ反映
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'D1へ反映する（通常は日曜のみ）'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+
+concurrency:
+  group: seesaawiki-scraper
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    name: Seesaawiki スクレイプ (女優→品番)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set apply flag
+        id: mode
+        run: |
+          if [ "${{ github.event.schedule }}" = "30 21 * * 0" ] || [ "${{ github.event.inputs.apply }}" = "true" ]; then
+            echo "apply=true" >> $GITHUB_OUTPUT
+          else
+            echo "apply=false" >> $GITHUB_OUTPUT
+          fi
+
+      # サイトマップを毎回取り直し、progress.completed に無いURLだけを続きから取得する。
+      # 現在 9,834ページ。2.5秒間隔なので1回(3時間)あたり約4,300ページ進む。
+      - name: Scrape seesaawiki (続きから)
+        run: timeout 3h node scripts/seesaawiki_by_actress.js || true
+
+      # 収集済みマッピングを D1(FANZA) へ反映。
+      # 既定は「出演者が空の作品だけ補完」で、正規APIで取れている出演者は書き換えない。
+      - name: Apply to D1 (週次)
+        if: steps.mode.outputs.apply == 'true'
+        run: node scripts/seesaawiki_by_actress.js --apply-only || echo "apply failed (non-fatal)"
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_FANZA_0_ID:        ${{ secrets.D1_FANZA_0_ID }}
+          D1_FANZA_1_ID:        ${{ secrets.D1_FANZA_1_ID }}
+
+      - name: Commit progress
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add \
+            data/seesaawiki_actress_map.jsonl \
+            data/seesaawiki_progress.json \
+            || true
+          if ! git diff --staged --quiet; then
+            git commit -m "seesaawiki: scraper progress [skip ci] [vercel skip]"
+            git pull --rebase origin main || git rebase --abort || true
+            git push || echo "Push failed (non-fatal, will retry next run)"
+          fi

@@ -21,7 +21,7 @@ const fs      = require('fs');
 const path    = require('path');
 const cheerio = require('cheerio');
 const iconv   = require('iconv-lite');
-const { createClient } = require('@libsql/client');
+const { fanzaShards } = require('./lib/d1');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -38,6 +38,7 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const args       = process.argv.slice(2);
 const RESTART    = args.includes('--restart');
 const APPLY_ONLY = args.includes('--apply-only');
+const APPEND     = args.includes('--append'); // 既存の出演者に追記する(既定は空欄のみ補完)
 const maxIdx     = args.indexOf('--max');
 const MAX_PAGES  = maxIdx !== -1 ? parseInt(args[maxIdx + 1], 10) : Infinity;
 
@@ -157,27 +158,30 @@ async function applyToDb() {
         return;
     }
 
-    const tursoUrl   = process.env.TURSO_FANZA_URL;
-    const tursoToken = process.env.TURSO_FANZA_TOKEN;
-    if (!tursoUrl || !tursoToken) {
-        console.error('TURSO_FANZA_URL/TOKEN 未設定');
-        return;
+    // Turso廃止(2026-06)後もこのスクリプトだけ @libsql/client を require したままで
+    // `Cannot find module '@libsql/client'` で起動すらできない状態だった。D1へ移行する。
+    const fanza = fanzaShards();
+
+    console.log('\n[DB反映] seesaawiki_actress_map.jsonl → Cloudflare D1 (FANZA)...');
+    console.log(APPEND ? '  モード: 追記(既存の出演者に足す)' : '  モード: 空欄のみ補完(既存の出演者は書き換えない)');
+    // 再取得すると同じ女優の行が追記されるため、女優名ごとに **最後の行だけ** を採用する。
+    const rawLines = fs.readFileSync(MAP_FILE, 'utf-8').split('\n').filter(Boolean);
+    const byName = new Map();
+    for (const l of rawLines) {
+        try { const e = JSON.parse(l); if (e && e.actressName) byName.set(e.actressName, e); } catch { /* 壊れた行は無視 */ }
     }
-    const fanza = createClient({ url: tursoUrl, authToken: tursoToken });
+    const lines = [...byName.values()];
+    console.log(`  ${rawLines.length.toLocaleString()}行 → 女優 ${lines.length.toLocaleString()}人(重複排除後)`);
+    let totalUpdated = 0, totalProcessed = 0, skippedFilled = 0;
 
-    console.log('\n[DB反映] seesaawiki_actress_map.jsonl → Turso FANZA DB...');
-    const lines = fs.readFileSync(MAP_FILE, 'utf-8').split('\n').filter(Boolean);
-    let totalUpdated = 0, totalProcessed = 0;
-
-    for (const line of lines) {
-        let entry;
-        try { entry = JSON.parse(line); } catch { continue; }
+    for (const entry of lines) {
         const { actressName, pids } = entry;
         if (!actressName || !pids || pids.length === 0) continue;
         // 日付パターン（「2024年1月」等のseesaawiki月別ページ）はスキップ
         if (/\d{4}年\d+月/.test(actressName)) continue;
 
-        const CHUNK = 100;
+        // D1 のバインド変数は 1クエリ100個まで。IN句をちょうど100で組むと上限に張り付くので余裕を取る。
+        const CHUNK = 50;
         for (let i = 0; i < pids.length; i += CHUNK) {
             const chunk = pids.slice(i, i + CHUNK);
             const ph = chunk.map(() => '?').join(',');
@@ -187,17 +191,27 @@ async function applyToDb() {
                     args: chunk,
                 });
                 const updates = [];
-                for (const row of existing.rows) {
-                    const current = (row.actresses || '').trim();
-                    const names = current ? current.split(',').map(n => n.trim()) : [];
-                    if (!names.includes(actressName)) {
-                        updates.push({ pid: row.product_id, newVal: current ? `${current}, ${actressName}` : actressName });
+                for (const row of (existing.rows || existing)) {
+                    const current = String(row.actresses || '').trim();
+                    const isEmpty = !current || current === '----';
+                    if (isEmpty) {
+                        updates.push({ pid: row.product_id, newVal: actressName });
+                    } else if (APPEND) {
+                        const names = current.split(',').map(n => n.trim());
+                        if (!names.includes(actressName)) updates.push({ pid: row.product_id, newVal: `${current}, ${actressName}` });
+                    } else {
+                        // 既に出演者が入っている作品は触らない。seesaawikiはコミュニティ編集で
+                        // 別名・誤記も混ざるため、正規APIで取れている情報を上書き/汚染しない。
+                        skippedFilled++;
                     }
                 }
                 if (updates.length > 0) {
                     await fanza.batch(
                         updates.map(({ pid, newVal }) => ({
-                            sql: `UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ?`,
+                            // 空欄補完モードでは WHERE にも空条件を付ける。SELECT後に別ジョブ
+                            // (avwiki backfill等)が先に埋めた場合でも、それを上書きしない。
+                            sql: `UPDATE products SET actresses = ?, updated_at = ? WHERE product_id = ?`
+                                 + (APPEND ? '' : " AND (actresses IS NULL OR TRIM(actresses)='' OR TRIM(actresses)='----')"),
                             args: [newVal, new Date().toISOString(), pid],
                         })),
                         'write'
@@ -212,7 +226,7 @@ async function applyToDb() {
         process.stdout.write(`\r  ${totalProcessed.toLocaleString()}件確認 / ${totalUpdated.toLocaleString()}件更新`);
     }
 
-    console.log(`\n  完了: ${totalUpdated.toLocaleString()}件更新`);
+    console.log(`\n  完了: ${totalUpdated.toLocaleString()}件更新 / 既に出演者ありで見送り: ${skippedFilled.toLocaleString()}件`);
     fanza.close();
 }
 
@@ -234,7 +248,10 @@ async function main() {
     if (!RESTART && fs.existsSync(PROGRESS_FILE)) {
         progress = JSON.parse(fs.readFileSync(PROGRESS_FILE, 'utf-8'));
     }
-    const completedSet = new Set(Object.keys(progress.completed));
+    // 旧バージョンが completed を boolean で保存している場合があるので型を確認する
+    const completedMap = (progress.completed && typeof progress.completed === 'object') ? progress.completed : {};
+    if (typeof progress.completed !== 'object') progress.completed = {};
+    const completedSet = new Set(Object.keys(completedMap));
 
     // サイトマップから全URL取得
     const allUrls = await fetchSitemapUrls();
@@ -293,7 +310,10 @@ async function main() {
     }
 
     mapStream.end();
-    fs.writeFileSync(PROGRESS_FILE, JSON.stringify({ ...progress, completed: true }, null, 2));
+    // 【重要】以前はここで completed(=URL→trueの再開マップ)を boolean の true で
+    // 上書きしており、**完走するたびに再開情報が消えて次回は全9,834ページを再取得**
+    // していた。完了フラグは finished に分離し、completed はマップのまま保存する。
+    fs.writeFileSync(PROGRESS_FILE, JSON.stringify({ ...progress, finished: true }, null, 2));
 
     const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
     console.log('\n========================================');

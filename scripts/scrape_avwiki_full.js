@@ -529,11 +529,22 @@ async function main() {
     // 進捗ロード
     const progress = loadProgressFromFile();
     if (RESCAN) {
-        console.log('[モード] 再スキャン: 完了済みURLをリセットして全女優を再スキャンします');
-        progress.completed = new Set();
-        // 再スキャン時はJSONLをリセット（古いデータを消してTursoへの反映も新鮮にする）
-        fs.writeFileSync(OUTPUT_JSONL, '');
-        console.log(`  avwiki_full.jsonl をリセットしました`);
+        // 【重要】以前はここで無条件に completed をリセットし JSONL も空にしていた。
+        // 1回のジョブで進めるのは約320件/日に対し対象は9,447件＝完走に約30日必要なのに、
+        // 週次(日曜)の再スキャンが6日ごとに全部消すため **永久に22%前後で頭打ち**だった
+        // (実測: 08-15=2,108 → 08-16=324 → 08-21=1,931 と毎週リセット)。
+        // → 未完走のうちは reset しない。まず全員を1周してから鮮度更新に入る。
+        if (progress.completed.size < urls.length) {
+            const pct = (100 * progress.completed.size / urls.length).toFixed(1);
+            console.log(`[モード] 再スキャン要求 → 初回走査が未完(${progress.completed.size.toLocaleString()}/${urls.length.toLocaleString()} = ${pct}%)のため **リセットせず継続** します`);
+        } else {
+            console.log('[モード] 再スキャン: 全件走査済みなので完了済みURLをリセットして鮮度を更新します');
+            progress.completed = new Set();
+            // JSONL は消さない。反映側(build_avwiki_profiles.js)が name を一意キーに
+            // ON CONFLICT DO UPDATE する冪等upsertなので、追記のままで上書き更新される。
+            // ここで空にすると、次の再スキャンが完走しなかった場合に既存プロフィールを丸ごと失う。
+            console.log('  avwiki_full.jsonl は保持します(冪等upsertのため追記で更新される)');
+        }
     }
     console.log(`[進捗] 完了: ${progress.completed.size.toLocaleString()} / ${urls.length.toLocaleString()}`);
 
