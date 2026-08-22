@@ -321,14 +321,19 @@
   var actress=ps.get('actress')||'', maker=ps.get('maker')||'', label=ps.get('label')||'', genre=ps.get('genre')||'', q=ps.get('q')||'', series=ps.get('series')||'';
   // 詳細検索の追加条件（身体的特徴・割引。組み合わせてAPIへ渡す）
   var fCup=ps.get('cup')||'', fCups=ps.get('cups')||'', fHeight=ps.get('height')||'', fAgeMin=ps.get('ageMin')||'', fAgeMax=ps.get('ageMax')||'', fMinDiscount=ps.get('minDiscount')||'';
-  var term = actress||maker||label||genre||q||series;
+  // 女優は「,」区切りで複数指定できる（AND=共演作品）。見出しは「A × B」と出す。
+  var actressNamesForTitle = actress.split(',').map(function(x){return x.trim();}).filter(Boolean);
+  var actressTitle = actressNamesForTitle.join(' × ');
+  var term = actressTitle||maker||label||genre||q||series;
   // サーバーサイド注入データ（初回API呼び出し不要）
   var __ssrData = window.__SD__ || null;
 
   var titleEl = document.getElementById('search-title');
   if (titleEl && term) {
-    titleEl.textContent = series ? ('シリーズ：' + series) : term;
-    document.title = (series ? ('シリーズ：' + series) : term) + ' - 検索結果';
+    var heading = series ? ('シリーズ：' + series)
+      : (actressNamesForTitle.length > 1 ? (actressTitle + ' の共演作品') : term);
+    titleEl.textContent = heading;
+    document.title = heading + ' - 検索結果';
   }
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

@@ -88,11 +88,13 @@
         </div>
       </div>
       <div>
-        <label class="text-[11px] text-gray-500 mb-1 block">女優名</label>
+        <label class="text-[11px] text-gray-500 mb-1 block">女優名（複数指定で共演作品を検索）</label>
         <div class="relative">
           <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">person</span>
-          <input id="as-actress" type="text" placeholder="例：葵つかさ" class="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#ec5b13]"/>
+          <input id="as-actress" type="text" placeholder="例：葵つかさ（選ぶと追加／複数可）" class="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#ec5b13]"/>
         </div>
+        <div id="as-actress-chips" class="flex flex-wrap gap-1.5 mt-2"></div>
+        <p id="as-actress-hint" class="text-[10px] text-gray-400 mt-1 hidden">全員が出演している作品（共演作）だけを表示します</p>
       </div>
       <div>
         <label class="text-[11px] text-gray-500 mb-1 block">メーカー・ブランド名</label>
@@ -217,7 +219,7 @@
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
   // ── 入力補完ピッカー（メーカー・女優を一覧から選択） ──
-  function setupPicker(input, fetchList){
+  function setupPicker(input, fetchList, onPick){
     if(!input) return;
     var wrap = input.parentNode;
     var panel = document.createElement('div');
@@ -241,7 +243,8 @@
     panel.addEventListener('mousedown', function(e){
       var b = e.target.closest('[data-i]'); if(!b) return;
       e.preventDefault();
-      input.value = cur[parseInt(b.getAttribute('data-i'))].name;
+      var picked = cur[parseInt(b.getAttribute('data-i'))].name;
+      if(onPick){ onPick(picked); } else { input.value = picked; }
       panel.classList.add('hidden');
     });
     document.addEventListener('click', function(e){ if(!wrap.contains(e.target)) panel.classList.add('hidden'); });
@@ -258,6 +261,41 @@
     if(q){ var lq=q.toLowerCase(); list = src.filter(function(m){ return m.name.toLowerCase().indexOf(lq)>=0; }); }
     cb(list.slice(0, 60));
   });
+  // ── 女優は複数選択できる（AND=共演作品）。選ぶとチップとして積み上げる ──
+  var ACTRESS_SEL = [];
+  function renderActressChips(){
+    var box = document.getElementById('as-actress-chips');
+    var hint = document.getElementById('as-actress-hint');
+    if(!box) return;
+    box.innerHTML = ACTRESS_SEL.map(function(n,i){
+      return '<span class="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 bg-orange-50 border border-[#ec5b13]/30 text-[#ec5b13] text-xs rounded-full">'
+        +'<span>'+esc(n)+'</span>'
+        +'<button type="button" data-rm="'+i+'" aria-label="'+esc(n)+'を外す" class="w-4 h-4 leading-none rounded-full active:bg-[#ec5b13]/20">&times;</button></span>';
+    }).join('');
+    if(hint) hint.classList.toggle('hidden', ACTRESS_SEL.length < 2);
+  }
+  function addActress(name){
+    name = String(name||'').trim();
+    if(!name) return;
+    name = name.replace(/,/g, ' ').trim();   // 「,」はAPIの区切り文字
+    if(ACTRESS_SEL.indexOf(name) >= 0) return;
+    if(ACTRESS_SEL.length >= 5) return;       // API側の上限に合わせる
+    ACTRESS_SEL.push(name);
+    renderActressChips();
+  }
+  (function(){
+    var box = document.getElementById('as-actress-chips');
+    if(box) box.addEventListener('click', function(e){
+      var b = e.target.closest('[data-rm]'); if(!b) return;
+      ACTRESS_SEL.splice(parseInt(b.getAttribute('data-rm'),10), 1);
+      renderActressChips();
+    });
+    var inp = document.getElementById('as-actress');
+    if(inp) inp.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ e.preventDefault(); addActress(inp.value); inp.value = ''; }
+    });
+  })();
+
   setupPicker(document.getElementById('as-actress'), function(q, cb){
     if(CTX.actresses){
       var src = CTX.actresses, list = src;
@@ -268,7 +306,7 @@
     fetch('/api/suggest?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(d){
       cb((d.actresses||[]).slice(0, 40).map(function(n){ return { name:n }; }));
     }).catch(function(){ cb([]); });
-  });
+  }, function(name){ addActress(name); document.getElementById('as-actress').value = ''; });
 
   // ── ジャンル: 定番＋API全件をフィルタ付きで一覧 ──
   var genreGrid = document.getElementById('as-genre-grid');
@@ -303,7 +341,7 @@
     var ctx = sp.get('ctx') || '';
     var preMaker = sp.get('maker') || '', preActress = sp.get('actress') || '', preSource = sp.get('source') || '';
     if(preMaker)  document.getElementById('as-maker').value = preMaker;
-    if(preActress)document.getElementById('as-actress').value = preActress;
+    if(preActress) preActress.split(',').forEach(function(n){ addActress(n); });
     if(preSource){ var r = document.querySelector('input[name=source][value="'+preSource+'"]'); if(r) r.checked = true; }
     if(!ctx && !preMaker && !preActress) return;
 
@@ -421,6 +459,7 @@
     document.querySelectorAll('input[name=source]')[0].checked = true;
     document.getElementById('as-q').value = '';
     document.getElementById('as-actress').value = '';
+    ACTRESS_SEL = []; renderActressChips();
     document.getElementById('as-maker').value = '';
     document.querySelectorAll('.genre-chk').forEach(function(c){c.checked=false;});
     document.querySelectorAll('.cup-chk').forEach(function(c){c.checked=false;});
@@ -439,8 +478,9 @@
     if (source && source.value) p.set('source', source.value);
     var q = document.getElementById('as-q').value.trim();
     if (q) p.set('q', q);
-    var actress = document.getElementById('as-actress').value.trim();
-    if (actress) p.set('actress', actress);
+    // 未確定の入力もそのまま条件に含める（チップ化し忘れの取りこぼし防止）
+    addActress(document.getElementById('as-actress').value);
+    if (ACTRESS_SEL.length) p.set('actress', ACTRESS_SEL.join(','));
     var maker = document.getElementById('as-maker').value.trim();
     if (maker) p.set('maker', maker);
     var genres = Array.from(document.querySelectorAll('.genre-chk:checked')).map(function(el){return el.value;});

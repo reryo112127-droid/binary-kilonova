@@ -66,7 +66,10 @@ export async function GET(request: NextRequest) {
 
     // 女優別商品リストを静的JSONから返す（Tursoクエリ不要）
     // top_products(top200) → extended_products(~2000人) の順で検索
-    const actressParam = searchParams.get('actress') || '';
+    // 女優キャッシュは1人ぶんのキーしか持たないため、複数女優(共演検索)では使わずD1へ落とす。
+    const actressParam = (searchParams.get('actress') || '').includes(',')
+        ? '' // 複数指定 → 静的キャッシュを使わない
+        : (searchParams.get('actress') || '').trim();
     // excludeBest条件を外す: キャッシュはBEST除外済みデータを格納しているため
     if (
         actressParam && offset === 0 &&
@@ -189,14 +192,22 @@ export async function GET(request: NextRequest) {
     const vrOnly = searchParams.get('vr') === '1'; // VR作品のみ
     const minDiscount = parseInt(searchParams.get('minDiscount') || '0', 10); // 最低割引率
 
-    // 女優名寄せ辞書
-    let actressList = [actress];
-    if (actress) {
+    // 女優は「,」区切りで複数指定できる（例 actress=葵つかさ,三上悠亜）。
+    // 複数指定は **AND=共演作品** を意味する（1人だけの作品は出さない）。
+    // 名寄せ辞書はグループ内OR（別名は同一人物）なので、
+    //   (A の別名いずれか) AND (B の別名いずれか) … という構造になる。
+    // D1のバインド上限(100個/クエリ)とFTSサブクエリの本数を抑えるため人数は上限5人。
+    const MAX_ACTRESSES = 5;
+    const actressNames = actress.split(',').map(s => s.trim()).filter(Boolean).slice(0, MAX_ACTRESSES);
+    let actressGroups: string[][] = actressNames.map(n => [n]);
+    if (actressNames.length > 0) {
         try {
             const aliasesData = await readStaticCache<string[][]>('actress_aliases.json');
             if (aliasesData) {
-                const entry = aliasesData.find((a: string[]) => a.includes(actress));
-                if (entry) actressList = entry;
+                actressGroups = actressNames.map(n => {
+                    const entry = aliasesData.find((a: string[]) => a.includes(n));
+                    return entry ? entry : [n];
+                });
             }
         } catch (e) {
             console.error('Alias load error:', e);
@@ -322,9 +333,11 @@ export async function GET(request: NextRequest) {
             conditions.push('label NOT LIKE ?');
             args.push(`%${excludeLabel}%`);
         }
-        if (actress) {
-            const longActresses = actressList.filter(a => a.length >= 3);
-            const shortActresses = actressList.filter(a => a.length < 3);
+        // 女優グループごとに1条件を push する。conditions は AND で結合されるので、
+        // 複数女優を指定すると「全員が出ている作品」= 共演作品だけが残る。
+        for (const group of actressGroups) {
+            const longActresses = group.filter(a => a.length >= 3);
+            const shortActresses = group.filter(a => a.length < 3);
             const actSubConds: string[] = [];
             if (longActresses.length > 0) {
                 const escaped = longActresses.map(a => `"${esc5(a)}"`).join(' OR ');
@@ -522,12 +535,13 @@ export async function GET(request: NextRequest) {
 
     // 女優検索: FTS(trigram)/短名LIKEは部分一致（「ちな」→「ちなみ」「ちなつ」等）で
     // 別人を巻き込む。actressesのcomma区切りエントリと完全一致するものだけに絞る。
-    if (actress && actressList.length > 0) {
-        const wanted = new Set(actressList);
+    // 複数女優(共演検索)のときは **全グループが一致する作品だけ** を残す。
+    if (actressGroups.length > 0) {
+        const wantedSets = actressGroups.map(g => new Set(g));
         combined = combined.filter(p => {
             const acts = String((p as Record<string, unknown>).actresses ?? '')
                 .split(/[,、]/).map(s => s.trim());
-            return acts.some(a => wanted.has(a));
+            return wantedSets.every(w => acts.some(a => w.has(a)));
         });
     }
 
