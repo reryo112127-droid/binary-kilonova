@@ -80,6 +80,15 @@ REM FANZA人気順(rank)スコアを収集(ランキング両PF公平化のB成�
 echo [3c/6] FANZA popularity (slow): %time% >> "%LOG_FILE%"
 "%NODE%" "%PROJECT_DIR%\scripts\build_fanza_popularity.js" >> "%LOG_FILE%" 2>&1
 echo [3c/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
+REM === [3d] Pull actresses filled in D1 back into the local SQLite ===
+REM AVWIKI/seesaawiki backfills update D1 ONLY, so the local DB drifts behind
+REM (first sync found 68,239 rows where D1 had a cast but the local DB was empty).
+REM The static caches are built FROM the local DB, so this must run BEFORE
+REM generate-static-cache-local.mjs or the site cards keep showing no actress name.
+echo [3d/6] actresses sync D1 -> local: %time% >> "%LOG_FILE%"
+"%NODE%" "%PROJECT_DIR%\scripts\sync_actresses_d1_to_local.js" >> "%LOG_FILE%" 2>&1
+echo [3d/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
+
 echo [4/5] cache+deploy (local DB): %time% >> "%LOG_FILE%"
 cd /d "%PROJECT_DIR%\site"
 "%NODE%" scripts\generate-static-cache-local.mjs >> "%LOG_FILE%" 2>&1
