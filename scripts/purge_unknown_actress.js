@@ -68,6 +68,30 @@ function notHomeMaker(isMgs) {
     return { cond: `NOT (${parts.join(' OR ')})`, args };
 }
 
+// ---- avwiki に出演者ページがある作品は消さない ----
+// purge が avwiki バックフィルより先に走ったため、「出演者は判明しうるのに未取得だっただけ」
+// の作品を大量に削除していた（実測: 08-21分の15.6% / 08-22分の20.6% が avwiki にページ有り）。
+// 出演者不明を消すという方針は、あくまで「どこにも情報が無い作品」を対象にすべきなので、
+// avwiki にページがあるものは対象から外して backfill に回す。
+const SLUG_FILE = path.join(ROOT, 'data', 'avwiki_sitemap_slugs.json');
+let avwikiSlugs = null;
+try {
+    avwikiSlugs = new Set(JSON.parse(fs.readFileSync(SLUG_FILE, 'utf-8')));
+} catch {
+    console.error('❌ data/avwiki_sitemap_slugs.json が見つかりません。');
+    console.error('   これが無いと「avwikiで出演者が判明する作品」まで削除してしまうため中止します。');
+    console.error('   先に: node scripts/avwiki_backfill_actresses.js --refresh-sitemap --dry-run');
+    process.exit(1);
+}
+function hasAvwikiPage(pid) {
+    const lower = String(pid).toLowerCase();
+    if (avwikiSlugs.has(lower)) return true;
+    const core = lower.replace(/^h_\d+/, '').replace(/^\d+/, '');
+    const m = core.match(/^([a-z]+)-?0*(\d+)$/);
+    if (!m) return false;
+    return avwikiSlugs.has(`${m[1]}-${parseInt(m[2], 10)}`) || avwikiSlugs.has(`${m[1]}-${m[2]}`);
+}
+
 const DATE_COL = isMgs => (isMgs ? `REPLACE(sale_start_date,'/','-')` : `SUBSTR(sale_start_date,1,10)`);
 
 function whereClause(isMgs) {
@@ -134,11 +158,17 @@ function appendBackup(rows, label) {
         const total = Number(cnt.rows[0].c);
         // 2つのDBで半分ずつ進める。片方が少なければ残りをもう片方が使う（budgetで調整）。
         const take = Math.min(budget, Math.max(1, Math.ceil(LIMIT / targets.length)));
+        // フィルタで減る分を見越して多めに取り、avwikiにページがあるものを除いてから take 件に切る
         const res = await local.execute({
             sql: `SELECT * FROM products WHERE ${w.sql} ORDER BY ${DATE_COL(t.isMgs)} ASC LIMIT ?`,
-            args: [...w.args, take],
+            args: [...w.args, take * 3],
         });
-        const rows = res.rows;
+        const allRows = res.rows;
+        const keptForAvwiki = allRows.filter(r => hasAvwikiPage(r.product_id));
+        const rows = allRows.filter(r => !hasAvwikiPage(r.product_id)).slice(0, take);
+        if (keptForAvwiki.length) {
+            console.log(`  [除外] avwikiに出演者ページがあるため温存: ${keptForAvwiki.length}件 (backfillが埋めます)`);
+        }
         const ids = rows.map(r => String(r.product_id));
         budget -= ids.length;
         console.log(`\n[${t.name}] 削除対象 残り${total}件 → 今回 ${ids.length}件（残り予算 ${budget}件）`);
