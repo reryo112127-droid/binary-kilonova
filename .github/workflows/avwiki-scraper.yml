@@ -74,7 +74,7 @@ jobs:
         run: node scripts/avwiki_backfill_actresses.js --refresh-sitemap --dry-run || true
 
       - name: Backfill actresses from avwiki (対象を絞って取得)
-        run: timeout 90m node scripts/avwiki_backfill_actresses.js --limit 1500 --interval 1500 || true
+        run: timeout 120m node scripts/avwiki_backfill_actresses.js --limit 3000 --interval 1400 || true
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
