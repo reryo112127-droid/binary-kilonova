@@ -87,7 +87,9 @@ function parseActresses(html) {
         const names = [];
         $(el).next('dd').find('a').each((j, a) => {
             const t = $(a).text().trim();
-            if (t && t !== '不明' && t !== '–') names.push(t);
+            // 「＊＊＊」は avwiki の『出演者不明』プレースホルダ。名前として保存すると
+            // 出演者ありに見えて以後の補完対象から外れてしまうので必ず捨てる。
+            if (t && t !== '不明' && t !== '–' && !/^[＊*\s]+$/.test(t)) names.push(t);
         });
         if (names.length) found = names;
     });
