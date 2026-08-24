@@ -320,9 +320,18 @@ var _sampleImgs = [];
       }
 
       // 作品情報（リンク付き）
+      // 女優は専用ページ(/actress/…)へ飛ばす。
+      // /search?actress= は既定で excludeBest=1 が付き「200分超」の作品まで落とすため、
+      // 同じ女優でも 出演欄から と プロフィールカードから で件数が食い違っていた
+      // (実測: 三上悠亜 329件 → 126件 / 明日花キララ 168件 → 85件)。導線を女優ページに統一する。
+      function itemHref(param, v) {
+        return param === 'actress'
+          ? '/actress/' + encodeURIComponent(v)
+          : '/search?' + param + '=' + encodeURIComponent(v);
+      }
       function linkedItems(items, param) {
         return items.length
-          ? items.map(function(v){ return '<a href="/search?'+param+'='+encodeURIComponent(v)+'" class="hover:underline">'+esc(v)+'</a>'; }).join('、')
+          ? items.map(function(v){ return '<a href="'+itemHref(param,v)+'" class="hover:underline">'+esc(v)+'</a>'; }).join('、')
           : '-';
       }
       var actEl = document.getElementById('pd-actresses');
