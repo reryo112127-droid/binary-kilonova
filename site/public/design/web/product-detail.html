@@ -396,9 +396,9 @@ var _sampleImgs = [];
 
       // 作品情報（リンク付き）
       // 女優は専用ページ(/actress/…)へ飛ばす（出演作一覧としてはこちらが本命ページ）。
-      // かつては /search?actress= が excludeBest=1 で「200分超」まで落としており、出演欄からと
-      // 検索からで件数が食い違っていた(三上悠亜 329→126件)。現在は lib/bestFilter.ts で
-      // 判定を共通化し、女優絞り込み時はBEST除外を行わないのでどの入口でも同じ件数になる。
+      // かつては /search?actress= が excludeBest=1 で「200分超」の通常作品まで落としており、
+      // 出演欄からと検索からで件数が食い違っていた(三上悠亜 329→126件)。現在は判定を
+      // lib/bestFilter.ts に集約し、女優ページも同じ excludeBest=1 を送るので件数は一致する。
       function itemHref(param, v) {
         return param === 'actress'
           ? '/actress/' + encodeURIComponent(v)

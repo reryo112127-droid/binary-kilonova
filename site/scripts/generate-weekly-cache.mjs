@@ -323,7 +323,12 @@ function keepRicherActressCache(fresh) {
 
 // 女優別商品リスト共通処理: 重複除去・BEST除外・新着順ソート・最小フィールド化
 // 検索カード(search.html/search-other.html)が使うフィールドのみ残してサイズ削減
-const BEST_RE = /BEST|ベスト|総集編|コレクション|best/i;
+//
+// この静的キャッシュは /api/products の女優クエリ(offset=0・sort=new)で D1 の代わりに返るため、
+// 除外条件を site/lib/bestFilter.ts と一致させないと「キャッシュに当たる女優」と
+// 「D1へ落ちる女優」で件数が変わる。パターンと尺の閾値(480分)を必ず揃えること。
+const BEST_RE = /BEST|ベスト|総集編|コレクション|福袋|詰め合わせ|コンプリート|枚組/i;
+const COMPILATION_MAX_MIN = 480;
 function mergeBestExcludeSort(mgsRows, fanzaRows, limit) {
     const seen = new Set();
     return [...mgsRows, ...fanzaRows].filter(r => {
@@ -331,6 +336,8 @@ function mergeBestExcludeSort(mgsRows, fanzaRows, limit) {
         if (seen.has(pid)) return false;
         seen.add(pid);
         if (BEST_RE.test(String(r.title ?? ''))) return false; // BEST/総集編除外
+        const d = Number(r.duration_min);
+        if (Number.isFinite(d) && d > COMPILATION_MAX_MIN) return false;
         return true;
     }).sort((a, b) => {
         const da = String(a.sale_start_date ?? '').replace(/\//g, '-').slice(0, 10);
@@ -381,7 +388,8 @@ async function genTopActressProducts() {
     console.log(`  上位200女優を特定 (サンプル: ${top200.slice(0,5).join(', ')})`);
 
     // 各女優の商品を取得（検索カードに必要な最小フィールドのみ）
-    const SQL = `SELECT product_id, title, actresses, main_image_url, genres, maker, sale_start_date`;
+    // duration_min は mergeBestExcludeSort の総集編判定に使う（出力カードには含めない）
+    const SQL = `SELECT product_id, title, actresses, main_image_url, genres, maker, sale_start_date, duration_min`;
 
     const result = {};
     const BATCH = 20; // 同時リクエスト数を制限
@@ -499,7 +507,8 @@ async function genExtendedActressProducts(existingNames) {
     console.log(`  対象 ${candidates.length}人 (サンプル: ${candidates.slice(0,5).join(', ')})`);
 
     // 各女優の商品を取得（検索カードに必要な最小フィールドのみ）
-    const SQL = `SELECT product_id, title, actresses, main_image_url, genres, maker, sale_start_date`;
+    // duration_min は mergeBestExcludeSort の総集編判定に使う（出力カードには含めない）
+    const SQL = `SELECT product_id, title, actresses, main_image_url, genres, maker, sale_start_date, duration_min`;
 
     const result = {};
     const BATCH = 15;

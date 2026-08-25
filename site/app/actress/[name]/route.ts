@@ -47,7 +47,9 @@ export async function GET(
 
     try {
         // 出演作品をD1から同一プロセスで取得(本番でSSRカード化＝索引可能に)。
-        const apiQuery = `actress=${encodeURIComponent(actressName)}&sort=wish_count`;
+        // excludeBest=1 は検索バー・詳細検索(/search)と同じ既定。付けないと同じ女優でも
+        // 入口によって件数が食い違う（実測: 三上悠亜 検索284件 / 女優ページ330件）。
+        const apiQuery = `actress=${encodeURIComponent(actressName)}&sort=wish_count&excludeBest=1`;
         // プロフィールは静的シャード(0.4MB以下)から。作品取得と並行して引く。
         const [products, profile] = await Promise.all([
             fetchProducts(request, apiQuery, SSR_COUNT, offset),

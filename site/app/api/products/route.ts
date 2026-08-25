@@ -187,7 +187,10 @@ export async function GET(request: NextRequest) {
     const toDate = searchParams.get('toDate') || '';
     const source = searchParams.get('source') || ''; // 'mgs' | 'fanza' | ''
     const makers = searchParams.get('makers') || ''; // カンマ区切りメーカーホワイトリスト
-    const excludeBestParam = searchParams.get('excludeBest') === '1'; // BEST/総集編を除外
+    // BEST/総集編を除外（判定条件は lib/bestFilter.ts に集約）。
+    // 女優絞り込みでも同じく効かせる: 検索バー・詳細検索・女優ページ・商品詳細の出演者欄が
+    // すべて excludeBest=1 を送るため、どの入口からでも同じ件数になる。
+    const excludeBestParam = searchParams.get('excludeBest') === '1';
     const hasVideo = searchParams.get('hasVideo') === '1'; // サンプル動画ありのみ
     const series = searchParams.get('series') || ''; // シリーズ名
     const vrOnly = searchParams.get('vr') === '1'; // VR作品のみ
@@ -201,11 +204,7 @@ export async function GET(request: NextRequest) {
     const MAX_ACTRESSES = 5;
     const actressNames = actress.split(',').map(s => s.trim()).filter(Boolean).slice(0, MAX_ACTRESSES);
 
-    // 女優で絞り込んでいるときは BEST/総集編 を除外しない。
-    // 「その女優の出演作一覧」は完全であるべきで、かつ女優ページ(/actress/[name])には除外トグルが無い。
-    // 検索バー・詳細検索は excludeBest=1 を既定で送るため、除外を効かせると同じ女優なのに
-    // 入口ごとに件数が食い違う（実測: 三上悠亜 330件 → 126件、成瀬葵 64件 → 39件）。
-    const excludeBest = excludeBestParam && actressNames.length === 0;
+    const excludeBest = excludeBestParam;
     let actressGroups: string[][] = actressNames.map(n => [n]);
     if (actressNames.length > 0) {
         try {
