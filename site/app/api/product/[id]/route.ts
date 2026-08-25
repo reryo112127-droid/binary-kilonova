@@ -173,6 +173,16 @@ export async function GET(
     // MGS と FANZA を並列検索（直列だと片方の往復ぶん丸ごと遅くなる）
     const [mgsClient, fanzaClient] = await Promise.all([getMgsClient(), getFanzaClient()]);
     const PRODUCT_SQL = 'SELECT * FROM products WHERE product_id = ? LIMIT 1';
+    // 予約作品のサンプルは発売日前後に公開されるため、スリムD1(0005で sample_images_json を除外)とは別に
+    // product_samples テーブルへ backfill_preorder_samples.js が後追いで入れている。作品本体と並列に引く。
+    const samplesPromise = fanzaClient
+        ? fanzaClient.execute({
+            sql: 'SELECT sample_images_json, sample_video_url FROM product_samples WHERE product_id = ? LIMIT 1',
+            args: [id],
+        })
+            .then(r => (r.rows.length > 0 ? r.rows[0] as { sample_images_json?: string | null; sample_video_url?: string | null } : null))
+            .catch(() => null) // テーブル未作成のシャードでも商品表示は止めない
+        : Promise.resolve(null);
     const [mgsProduct, fanzaProduct] = await Promise.all([
         mgsClient
             ? mgsClient.execute({ sql: PRODUCT_SQL, args: [id] })
@@ -257,6 +267,23 @@ export async function GET(
             }
         })(),
     };
+
+    // 予約時に「準備中」だったサンプルを product_samples から補完する。
+    // FANZAのスリムD1は sample_images_json を持たないので、FANZA作品のギャラリーはここが唯一の供給源。
+    const samplesRow = await samplesPromise;
+    if (samplesRow) {
+        const rd = responseData as Record<string, unknown>;
+        const current = rd.sample_images;
+        if (!Array.isArray(current) || current.length === 0) {
+            try {
+                const imgs = samplesRow.sample_images_json ? JSON.parse(String(samplesRow.sample_images_json)) : [];
+                if (Array.isArray(imgs) && imgs.length > 0) rd.sample_images = imgs;
+            } catch { /* 壊れたJSONは無視してギャラリー無しのまま */ }
+        }
+        if (!rd.sample_video_url && samplesRow.sample_video_url) {
+            rd.sample_video_url = samplesRow.sample_video_url;
+        }
+    }
     await enrichCrossPlatform(responseData, id);
     setCached(cacheKey, responseData);
     // R2に永続保存（次回以降はD1不要）。

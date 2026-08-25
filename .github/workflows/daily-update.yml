@@ -46,6 +46,19 @@ jobs:
           CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
           D1_FANZA_0_ID:        ${{ secrets.D1_FANZA_0_ID }}
           D1_FANZA_1_ID:        ${{ secrets.D1_FANZA_1_ID }}
+      # 予約作品のサンプル画像/動画は発売日前後に公開される。fanza_daily_update は「明日以降に発売」
+      # の作品しか再取得しないため、発売日を跨いだ作品のサンプルが取り込まれずに残る。
+      # 予約中〜発売後90日をローリングで再確認し、公開されたぶんを product_samples へ入れる。
+      - name: Backfill pre-order sample images/videos
+        run: node scripts/backfill_preorder_samples.js --limit 1500
+        env:
+          DMM_API_ID:            ${{ secrets.DMM_API_ID }}
+          DMM_AFFILIATE_ID:      ${{ secrets.DMM_AFFILIATE_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_FANZA_0_ID:        ${{ secrets.D1_FANZA_0_ID }}
+          D1_FANZA_1_ID:        ${{ secrets.D1_FANZA_1_ID }}
+
       - name: Build suggest cache (D1)
         run: node scripts/build_suggest_cache.js
         env:
