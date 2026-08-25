@@ -5,6 +5,7 @@ import { computeProductScore, PRODUCT_SCORE } from '../../../lib/scoring';
 import { filterActresses } from '../../../lib/actressFilter';
 import { getCached, setCached } from '../../../lib/apiCache';
 import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../lib/staticCache';
+import { bestExclusionSql } from '../../../lib/bestFilter';
 
 const CANDIDATE_LIMIT = 200; // スコア計算用候補数
 const RANKING_TTL = 30 * 60 * 1000; // 30分
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     // ─── Step 1: 候補作品を取得 ─────────────────────────────
     // MGSはYYYY/MM/DD形式、FANZAはYYYY-MM-DD形式 → MGSはREPLACEで正規化
-    const BEST_PATTERNS = ['%BEST%', '%ベスト%', '%総集編%', '%コレクション%', '%Best%', '%best%'];
+    // BEST/総集編の判定条件は lib/bestFilter.ts に集約（検索・LP・ランキングで同じ結果にする）
 
     function buildMgsDateConds(): { conds: string[]; args: string[] } {
         const conds: string[] = ['(duration_min IS NULL OR duration_min < 600)'];
@@ -80,8 +81,9 @@ export async function GET(request: NextRequest) {
         if (fromDate) { conds.push("REPLACE(sale_start_date, '/', '-') >= ?"); args.push(fromDate); }
         if (toDate)   { conds.push("REPLACE(sale_start_date, '/', '-') <= ?"); args.push(toDate); }
         if (excludeBest) {
-            BEST_PATTERNS.forEach(p => { conds.push('title NOT LIKE ?'); args.push(p); });
-            conds.push('(duration_min IS NULL OR duration_min <= 200)');
+            const b = bestExclusionSql();
+            conds.push(...b.conds);
+            args.push(...b.args);
         }
         return { conds, args };
     }
@@ -91,8 +93,9 @@ export async function GET(request: NextRequest) {
         if (fromDate) { conds.push('sale_start_date >= ?'); args.push(fromDate); }
         if (toDate)   { conds.push('sale_start_date <= ?'); args.push(toDate); }
         if (excludeBest) {
-            BEST_PATTERNS.forEach(p => { conds.push('title NOT LIKE ?'); args.push(p); });
-            conds.push('(duration_min IS NULL OR duration_min <= 200)');
+            const b = bestExclusionSql();
+            conds.push(...b.conds);
+            args.push(...b.args);
         }
         return { conds, args };
     }

@@ -8,10 +8,10 @@ import { getMgsClient, getFanzaClient, executeInChunks } from './turso';
 import { filterActresses } from './actressFilter';
 import { readStaticCacheAsync as readStaticCache } from './staticCache';
 import { getCached, setCached } from './apiCache';
+import { bestExclusionSql, COMPILATION_MAX_MIN } from './bestFilter';
 
 const SSR_PAGE_TTL = 5 * 60 * 1000; // 5分
 
-const BEST_EXCL = ['%BEST%','%ベスト%','%総集編%','%コレクション%','%Best%'];
 
 // ホーム画面予約作品の厳選メーカーリスト（generate-static-cache.mjs の HOME_MAKERS と同期）
 const HOME_MAKERS = [
@@ -55,9 +55,11 @@ function mapRow(row: Row, source: string): Row {
     return r;
 }
 
+// BEST/総集編の判定は lib/bestFilter.ts に集約（旧: ここだけ 200分超を一律除外していた）
 function addBestExcl(conds: string[], args: (string | number)[]) {
-    BEST_EXCL.forEach(p => { conds.push('title NOT LIKE ?'); args.push(p); });
-    conds.push('(duration_min IS NULL OR duration_min <= 200)');
+    const b = bestExclusionSql();
+    conds.push(...b.conds);
+    args.push(...b.args);
 }
 
 /** ホーム用: 予約作品（厳選メーカー・配信日降順） */
@@ -154,7 +156,7 @@ export async function ssrFetchRanking(limit: number): Promise<Row[]> {
                   FROM products
                   WHERE (duration_min IS NULL OR duration_min < 600)
                     AND title NOT LIKE '%BEST%' AND title NOT LIKE '%ベスト%'
-                    AND title NOT LIKE '%総集編%' AND (duration_min IS NULL OR duration_min <= 200)
+                    AND title NOT LIKE '%総集編%' AND (duration_min IS NULL OR duration_min <= ${COMPILATION_MAX_MIN})
                     AND REPLACE(sale_start_date,'/','-') >= ?
                   ORDER BY wish_count DESC LIMIT ${limit * 2}`,
             args: [yearStart],
@@ -168,7 +170,7 @@ export async function ssrFetchRanking(limit: number): Promise<Row[]> {
                   FROM products
                   WHERE sale_start_date >= ?
                     AND title NOT LIKE '%BEST%' AND title NOT LIKE '%ベスト%'
-                    AND title NOT LIKE '%総集編%' AND (duration_min IS NULL OR duration_min <= 200)
+                    AND title NOT LIKE '%総集編%' AND (duration_min IS NULL OR duration_min <= ${COMPILATION_MAX_MIN})
                   ORDER BY review_score DESC, sale_start_date DESC
                   LIMIT ${limit}`,
             args: [yearStart],

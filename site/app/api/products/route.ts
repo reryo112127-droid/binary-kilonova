@@ -3,6 +3,7 @@ import { filterActresses } from '../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { getCached, setCached } from '../../../lib/apiCache';
 import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../lib/staticCache';
+import { bestExclusionSql } from '../../../lib/bestFilter';
 
 export const dynamic = 'force-dynamic';
 
@@ -186,7 +187,7 @@ export async function GET(request: NextRequest) {
     const toDate = searchParams.get('toDate') || '';
     const source = searchParams.get('source') || ''; // 'mgs' | 'fanza' | ''
     const makers = searchParams.get('makers') || ''; // カンマ区切りメーカーホワイトリスト
-    const excludeBest = searchParams.get('excludeBest') === '1'; // BEST/総集編を除外
+    const excludeBestParam = searchParams.get('excludeBest') === '1'; // BEST/総集編を除外
     const hasVideo = searchParams.get('hasVideo') === '1'; // サンプル動画ありのみ
     const series = searchParams.get('series') || ''; // シリーズ名
     const vrOnly = searchParams.get('vr') === '1'; // VR作品のみ
@@ -199,6 +200,12 @@ export async function GET(request: NextRequest) {
     // D1のバインド上限(100個/クエリ)とFTSサブクエリの本数を抑えるため人数は上限5人。
     const MAX_ACTRESSES = 5;
     const actressNames = actress.split(',').map(s => s.trim()).filter(Boolean).slice(0, MAX_ACTRESSES);
+
+    // 女優で絞り込んでいるときは BEST/総集編 を除外しない。
+    // 「その女優の出演作一覧」は完全であるべきで、かつ女優ページ(/actress/[name])には除外トグルが無い。
+    // 検索バー・詳細検索は excludeBest=1 を既定で送るため、除外を効かせると同じ女優なのに
+    // 入口ごとに件数が食い違う（実測: 三上悠亜 330件 → 126件、成瀬葵 64件 → 39件）。
+    const excludeBest = excludeBestParam && actressNames.length === 0;
     let actressGroups: string[][] = actressNames.map(n => [n]);
     if (actressNames.length > 0) {
         try {
@@ -404,14 +411,10 @@ export async function GET(request: NextRequest) {
             }
         }
         if (excludeBest) {
-            ['%BEST%', '%ベスト%', '%総集編%', '%コレクション%', '%Best%'].forEach(p => {
-                conditions.push('title NOT LIKE ?');
-                args.push(p);
-            });
             // 予約作品はduration_minが未確定なのでdurationフィルターを除外
-            if (sort !== 'pre-order') {
-                conditions.push('(duration_min IS NULL OR duration_min <= 200)');
-            }
+            const { conds, args: bestArgs } = bestExclusionSql({ skipDuration: sort === 'pre-order' });
+            conditions.push(...conds);
+            args.push(...bestArgs);
         }
         if (hasVideo) {
             conditions.push('sample_video_url IS NOT NULL');
