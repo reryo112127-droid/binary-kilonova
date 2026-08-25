@@ -13,8 +13,46 @@ Disallow: /actress/rename-report
 # クロール量(=Cloudflare Workers起動数)を無料枠内に抑えるため、クエリ付きURL(ページネーション/og等)はクロールさせない。
 # 正規ページ(クエリ無し)のみクロール対象。?page= はページャ自動生成でURLが増殖しWorker起動を浪費するため特に重要。
 Disallow: /*?
+# Google は無視するが Bing/Yandex は尊重する。バースト的なクロールで無料枠を食い潰さないため。
+Crawl-delay: 1
+
+# ── SEO調査系クローラ(被リンク調査ツール等)は全面拒否 ──────────────────
+# 検索流入をもたらさないのに Worker 起動数(無料枠10万/日)を消費し、超過するとサイトが
+# 429 を返して Googlebot にもエラーを見せることになるため、クロール予算を検索エンジンに寄せる。
+User-agent: AhrefsBot
+User-agent: SemrushBot
+User-agent: MJ12bot
+User-agent: DotBot
+User-agent: BLEXBot
+User-agent: DataForSeoBot
+User-agent: serpstatbot
+User-agent: Barkrowler
+User-agent: ZoominfoBot
+User-agent: SeekportBot
+User-agent: magpie-crawler
+User-agent: PetalBot
+User-agent: Bytespider
+Disallow: /
+
+# ── 生成AIの学習クローラ ────────────────────────────────────────
+# 検索順位には影響しない(Google-Extended は Google 検索のランキングと無関係)。
+# カタログ全体を丸ごと取りに来るため Worker 起動数への影響が大きく、拒否する。
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+User-agent: CCBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Amazonbot
+User-agent: Meta-ExternalAgent
+User-agent: FacebookBot
+User-agent: Diffbot
+User-agent: ImagesiftBot
+User-agent: Omgilibot
+User-agent: YouBot
+User-agent: Timpibot
+Disallow: /
 
 Sitemap: https://avrankings.com/sitemap.xml
-
-# Crawl-delay for search engines
-Crawl-delay: 1

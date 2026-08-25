@@ -3,6 +3,7 @@ import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 import { fetchProducts, productCardsHtml, replaceGridInner, esc, type Product } from '../../../lib/landingPage';
 import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
+import { fetchActressProfile, profileHtml, profileSummary } from '../../../lib/actressProfile';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,11 @@ export async function GET(
     try {
         // 出演作品をD1から同一プロセスで取得(本番でSSRカード化＝索引可能に)。
         const apiQuery = `actress=${encodeURIComponent(actressName)}&sort=wish_count`;
-        const products = await fetchProducts(request, apiQuery, SSR_COUNT, offset);
+        // プロフィールは静的シャード(0.4MB以下)から。作品取得と並行して引く。
+        const [products, profile] = await Promise.all([
+            fetchProducts(request, apiQuery, SSR_COUNT, offset),
+            fetchActressProfile(actressName),
+        ]);
         // 作品0件(=中身が空)は 200の薄いHTMLだとGoogleが「ソフト404」と判定するため404を返す。
         if (products.length === 0) return new NextResponse('Not found', { status: 404 });
         const hasNext = products.length === SSR_COUNT;
@@ -65,9 +70,22 @@ export async function GET(
         const base = `/actress/${encodeURIComponent(actressName)}`;
         const canonical = `${SITE_URL}${pagePath(base, page)}`;
         const seoTitle = `${esc(actressName)} | AV女優 出演作品・プロフィール | AVランキング`;
-        const desc = `${esc(actressName)}の出演AV作品を人気順に掲載。FANZA・MGSの新作・人気作・サンプル動画・最安値をまとめてチェック。`;
+        // 身長/カップ/出身を description に入れて「女優名＋身長」等の長尾クエリに当てる
+        const desc = `${esc(actressName)}の出演AV作品を人気順に掲載。${esc(profileSummary(profile))}`
+            + `FANZA・MGSの新作・人気作・サンプル動画・最安値をまとめてチェック。`;
+        const person: Record<string, unknown> = {
+            '@context': 'https://schema.org', '@type': 'Person', name: actressName, url: `${SITE_URL}${base}`,
+        };
+        {
+            const h = parseInt(String(profile?.height ?? ''), 10);
+            if (Number.isFinite(h) && h > 0) person.height = { '@type': 'QuantitativeValue', value: h, unitCode: 'CMT' };
+            if (profile?.birthday && /^\d{4}-\d{2}-\d{2}/.test(profile.birthday)) person.birthDate = profile.birthday.slice(0, 10);
+            if (profile?.image_url) person.image = profile.image_url;
+            const alt = (profile?.aliases ?? []).filter(a => a && a !== actressName).slice(0, 6);
+            if (alt.length) person.alternateName = alt;
+        }
         const ld = [
-            { '@context': 'https://schema.org', '@type': 'Person', name: actressName, url: `${SITE_URL}${base}` },
+            person,
             {
                 '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
                     { '@type': 'ListItem', position: 1, name: 'ホーム', item: `${SITE_URL}/` },
@@ -92,14 +110,20 @@ export async function GET(
             `<meta property="og:description" content="${desc}"/>`,
             `<meta property="og:url" content="${canonical}"/>`,
             `<meta property="og:type" content="profile"/>`,
+            profile?.image_url ? `<meta property="og:image" content="${esc(profile.image_url)}"/>` : '',
             `<meta name="twitter:card" content="summary"/>`,
             ...ld.map(j => `<script type="application/ld+json">${JSON.stringify(j)}</script>`),
         ].filter(Boolean).join('\n');
         html = html.replace(/<title>[^<]*<\/title>/, metaBlock);
 
-        // 固有intro文をグリッド直前に挿入(索引テキスト)
-        const intro = `<section class="px-4 pt-2 pb-1"><p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">`
-            + `${esc(actressName)}の出演AV作品を人気順に表示しています。サンプル動画・両プラットフォームの最安値・共演女優を確認できます。`
+        // プロフィール表＋固有intro文をグリッド直前に挿入(索引テキスト)
+        const profileBlock = profileHtml(actressName, profile, esc);
+        // プロフィール表を出せたときは同じ内容をintroに繰り返さない
+        const introFacts = profileBlock ? '' : profileSummary(profile);
+        const intro = profileBlock
+            + `<section class="px-4 pt-2 pb-1"><p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">`
+            + `${esc(actressName)}の出演AV作品を人気順に表示しています。${esc(introFacts)}`
+            + `サンプル動画・両プラットフォームの最安値・共演女優を確認できます。`
             + `</p></section>`;
         html = html.replace(/<div[^>]*id="products-grid"[^>]*>/, m => intro + m);
 

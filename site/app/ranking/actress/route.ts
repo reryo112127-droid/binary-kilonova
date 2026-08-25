@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
+import { injectHubSeo, replaceH1 } from '../../../lib/pageMeta';
+import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,9 +28,21 @@ export async function GET(request: NextRequest) {
         ? '/design/ranking.html'
         : '/design/web/actress-ranking-2026.html';
 
+    const edge = await edgeLookup(request.url, isMobile ? 'm' : 'w');
+    if (edge.hit) return edge.hit;
+
     try {
         let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html, 'ranking', true) : injectWebLayout(html);
+        // canonical はフィルタ無しの /ranking/actress に集約(?付きURLはrobotsで拒否済み)
+        html = injectHubSeo(html, {
+            title: 'AV女優 人気ランキング',
+            description: 'FANZA・MGSの出演作品数と人気度から算出したAV女優ランキング。話題の新人から殿堂入りまで、女優ごとの出演作品もそのままチェックできます。',
+            path: '/ranking/actress',
+            breadcrumb: 'AV女優ランキング',
+        });
+        // 作品ランキングとテンプレを共有しており H1 が「人気ランキング」のままだった
+        html = replaceH1(html, 'AV女優 人気ランキング');
         if (isMobile) {
             // 身体的特徴フィルタのAPIクエリ文字列を組み立て（描画は ranking.html 本体が担当）
             const apiParams = new URLSearchParams({ limit: '30', fromDate: '2026-01-01', toDate: '2026-12-31' });
@@ -67,12 +81,15 @@ export async function GET(request: NextRequest) {
 })();
 </script>\n</body>`);
         }
-        return new NextResponse(html, {
+        const resp = new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'private, max-age=60',
+                'Cache-Control': 'public, s-maxage=1800, max-age=60',
+                'CDN-Cache-Control': 'public, s-maxage=1800',
             },
         });
+        await edgeStore(edge, resp);
+        return resp;
     } catch {
         return new NextResponse('Not found', { status: 404 });
     }

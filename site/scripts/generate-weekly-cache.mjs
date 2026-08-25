@@ -74,20 +74,29 @@ async function genSitemapCache() {
 
     const seen = new Set();
     const products = [];
+    const lastmods = [];   // products と同じ並び。子サイトマップの <lastmod> に使う
     const names = new Set();
     // 女優名のクリーニング(actressTags/actressFilter と同方針): 1文字超・30文字以下・年齢/括弧/プレースホルダを除外
     const cleanName = (s) => !!s && s.length > 1 && s.length <= 30 && !/\d+歳|[（()【】\[\]]/.test(s) && s !== '----';
+    // 発売日を <lastmod> に使う(内容が変わらないURLの再クロールをGoogleが間引く=Worker起動の節約)。
+    // 未来日(予約作品)は「まだ更新されていない」ことにならないよう今日でクランプする。
+    const today = new Date().toISOString().slice(0, 10);
+    const toLastmod = (v) => {
+        const d = String(v ?? '').replace(/\//g, '-').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
+        return d > today ? today : d;
+    };
     const ingest = (rows) => {
         for (const r of rows) {
             const p = String(r.product_id);
-            if (p && !seen.has(p)) { seen.add(p); products.push(p); }
+            if (p && !seen.has(p)) { seen.add(p); products.push(p); lastmods.push(toLastmod(r.sale_start_date)); }
             if (r.actresses) for (const n of String(r.actresses).split(/[,、/／]+/)) { const t = n.trim(); if (cleanName(t)) names.add(t); }
         }
     };
     // MGS: 18メーカー OR wish_count>=500
-    ingest(await fetchAllPaged(mgs, `SELECT product_id, actresses FROM products WHERE ${NP} AND ((${makerLit}) OR wish_count >= 500) ORDER BY wish_count DESC`));
+    ingest(await fetchAllPaged(mgs, `SELECT product_id, actresses, sale_start_date FROM products WHERE ${NP} AND ((${makerLit}) OR wish_count >= 500) ORDER BY wish_count DESC`));
     // FANZA: (18メーカー かつ 直近3年) OR review_count>=10（各シャード個別）
-    const fanzaSql = `SELECT product_id, actresses FROM products WHERE ${NP} AND (((${makerLit}) AND SUBSTR(sale_start_date,1,10) >= '${date3}') OR COALESCE(review_count,0) >= 10) ORDER BY SUBSTR(sale_start_date,1,10) DESC`;
+    const fanzaSql = `SELECT product_id, actresses, sale_start_date FROM products WHERE ${NP} AND (((${makerLit}) AND SUBSTR(sale_start_date,1,10) >= '${date3}') OR COALESCE(review_count,0) >= 10) ORDER BY SUBSTR(sale_start_date,1,10) DESC`;
     for (const shard of fanza.shards) ingest(await fetchAllPaged(shard, fanzaSql));
 
     // 実在女優ホワイトリスト(lib/actressFilter.ts と同じ data/actress_whitelist.json)で絞り、
@@ -104,7 +113,7 @@ async function genSitemapCache() {
         : [...names]).sort();
 
     console.log(`  作品 ${products.length}件 / 女優 ${actresses.length}件(導出${names.size}→WL照合)`);
-    return { actresses, products };
+    return { actresses, products, lastmods };
 }
 
 // ── メーカー一覧（floor付き） ──────────────────────────────────────
@@ -289,6 +298,27 @@ async function genActressDisplayCache() {
         };
     }
     return map;
+}
+
+// D1 の actress_profiles は移行時にほぼ空のまま(2026-08 時点で190行)。上の genActressDisplayCache を
+// そのまま採用すると、60,103人ぶんの表示キャッシュ＋64シャードを190人で上書きして本番へデプロイし、
+// 女優ページのプロフィール・別名解決が毎週日曜に壊れる(翌日のPC日次デプロイで復旧)。
+// リポジトリにコミット済みのコピーの方が厚ければ、そちらを採用する。
+function keepRicherActressCache(fresh) {
+    const freshCount = Object.keys(fresh || {}).length;
+    for (const p of [path.join(ROOT, 'public', 'data', 'actress_display_cache.json'),
+                     path.join(ROOT, 'data', 'actress_display_cache.json')]) {
+        try {
+            if (!fs.existsSync(p)) continue;
+            const existing = JSON.parse(fs.readFileSync(p, 'utf-8'));
+            const existingCount = Object.keys(existing || {}).length;
+            if (existingCount > freshCount) {
+                console.warn(`⚠ 女優表示キャッシュ: D1から${freshCount}人しか取れないため既存の${existingCount}人を維持 (${path.basename(path.dirname(p))}/)`);
+                return existing;
+            }
+        } catch { /* 壊れたコピーは無視して次を見る */ }
+    }
+    return fresh;
 }
 
 // 女優別商品リスト共通処理: 重複除去・BEST除外・新着順ソート・最小フィールド化
@@ -534,15 +564,24 @@ async function main() {
         console.log('\n[--lp-caches] 完了！'); process.exit(0);
     }
 
-    const sitemapData = await genSitemapCache();
+    const { actresses, products, lastmods } = await genSitemapCache();
     const sitemapPath    = path.join(dataDir, 'sitemap_cache.json');
     const sitemapPubPath = path.join(ROOT, 'public', 'data', 'sitemap_cache.json');
-    const sitemapJson = JSON.stringify(sitemapData, null, 0);
+    // sitemap_cache.json は product/[id] の noindex 判定(isIndexableProduct)が毎リクエスト読むホットパス。
+    // 発売日は子サイトマップ(1日1回・エッジキャッシュ有り)しか使わないので別ファイルに分けて
+    // ホットパスの JSON.parse を太らせない。
+    const sitemapJson = JSON.stringify({ actresses, products }, null, 0);
     fs.mkdirSync(dataDir, { recursive: true });
     fs.writeFileSync(sitemapPath, sitemapJson);
     fs.mkdirSync(path.dirname(sitemapPubPath), { recursive: true });
     fs.writeFileSync(sitemapPubPath, sitemapJson);
-    console.log(`✓ sitemap_cache.json (女優:${sitemapData.actresses.length}件, 作品:${sitemapData.products.length}件)`);
+    console.log(`✓ sitemap_cache.json (女優:${actresses.length}件, 作品:${products.length}件)`);
+
+    const lastmodJson = JSON.stringify({ products: lastmods }, null, 0);
+    for (const p of [path.join(dataDir, 'sitemap_lastmod.json'), path.join(ROOT, 'public', 'data', 'sitemap_lastmod.json')]) {
+        fs.writeFileSync(p, lastmodJson);
+    }
+    console.log(`✓ sitemap_lastmod.json (${lastmods.filter(Boolean).length}/${lastmods.length}件に発売日)`);
 
     if (sitemapOnly) { console.log('\n[--sitemap-only] 完了！'); process.exit(0); }
     await wait(200);
@@ -550,7 +589,7 @@ async function main() {
     const makersList         = await genMakersList();          await wait(200);
     const genresList         = await genGenresCache();         await wait(200);
     const seriesList         = await genSeriesCache();         await wait(200);
-    const actressMap         = await genActressDisplayCache(); await wait(200);
+    const actressMap         = keepRicherActressCache(await genActressDisplayCache()); await wait(200);
     const topActressProducts = await genTopActressProducts();  await wait(200);
     const extActressProducts = await genExtendedActressProducts(Object.keys(topActressProducts));
 

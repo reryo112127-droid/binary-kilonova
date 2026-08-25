@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { renderProductsPage, PREORDER_PRODUCTS_SEO } from '../../lib/productsPage';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_request: NextRequest) {
-    return NextResponse.redirect(new URL('/products?type=pre-order', _request.url), 302);
+// /products?type=pre-order への302をやめて直接描画する（転送先は robots.txt でクロール拒否のため）。
+export async function GET(request: NextRequest) {
+    return renderProductsPage(request, 'pre-order', PREORDER_PRODUCTS_SEO);
 }

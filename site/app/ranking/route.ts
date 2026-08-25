@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readHtml } from '../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
 import { ssrFetchRanking, ssrFetchActressRanking, injectSsrScript } from '../../lib/ssrFetch';
+import { injectHubSeo, replaceH1 } from '../../lib/pageMeta';
+import { edgeLookup, edgeStore } from '../../lib/edgeCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,9 +23,21 @@ export async function GET(request: NextRequest) {
         ? '/design/ranking.html'
         : '/design/web/ranking.html';
 
+    // 再クロール・リピート訪問を Worker 非起動で返す(UAでHTMLが変わるので m/w を鍵に含める)
+    const edge = await edgeLookup(request.url, isMobile ? 'm' : 'w');
+    if (edge.hit) return edge.hit;
+
     try {
         let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html, 'ranking', true) : injectWebLayout(html);
+        // デザインHTMLの <title> は空だった(サイトマップ申告済みなのに無題扱い)
+        html = injectHubSeo(html, {
+            title: 'AV作品 人気ランキング',
+            description: 'FANZA・MGSのAV作品を人気順にランキング。新作から定番まで、レビュー数・お気に入り数をもとにした総合ランキングを毎日更新しています。',
+            path: '/ranking',
+            breadcrumb: 'ランキング',
+        });
+        html = replaceH1(html, 'AV作品 人気ランキング');
         if (isMobile) {
             html = html.replace('</header>', `</header>\n${rankingTabBar('products')}`);
             html = html.replace('</body>', `<script>(function(){document.querySelectorAll('.material-symbols-outlined').forEach(function(el){if(el.textContent.trim()==='tune'){el.style.cursor='pointer';el.addEventListener('click',function(){location.href='/ranking/custom';});}});})();</script>\n</body>`);
@@ -46,12 +60,15 @@ export async function GET(request: NextRequest) {
             console.error('SSR ranking data fetch failed:', e);
         }
 
-        return new NextResponse(html, {
+        const resp = new NextResponse(html, {
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'private, max-age=60',
+                'Cache-Control': 'public, s-maxage=1800, max-age=60',
+                'CDN-Cache-Control': 'public, s-maxage=1800',
             },
         });
+        await edgeStore(edge, resp);
+        return resp;
     } catch {
         return new NextResponse('Not found', { status: 404 });
     }

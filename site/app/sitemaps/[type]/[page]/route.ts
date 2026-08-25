@@ -29,12 +29,14 @@ const STATIC_PATHS: { path: string; changefreq: string; priority: string }[] = [
     { path: '/cup', changefreq: 'weekly', priority: '0.6' },
 ];
 
-type Url = { loc: string; changefreq: string; priority: string };
+type Url = { loc: string; changefreq: string; priority: string; lastmod?: string };
 
 function buildUrlset(urls: Url[]): string {
     return `<?xml version="1.0" encoding="UTF-8"?>\n`
         + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`
-        + urls.map(u => `  <url><loc>${u.loc}</loc><changefreq>${u.changefreq}</changefreq><priority>${u.priority}</priority></url>`).join('\n')
+        + urls.map(u => `  <url><loc>${u.loc}</loc>`
+            + (u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : '')
+            + `<changefreq>${u.changefreq}</changefreq><priority>${u.priority}</priority></url>`).join('\n')
         + `\n</urlset>`;
 }
 
@@ -64,8 +66,19 @@ export async function GET(
     } else if (type === 'products' || type === 'actresses') {
         const cache = await readStaticCache<{ actresses: string[]; products: string[] }>('sitemap_cache.json');
         if (type === 'products') {
-            const slice = (cache?.products ?? []).slice(page * CHUNK, (page + 1) * CHUNK);
-            urls = slice.map(pid => ({ loc: `${BASE}/product/${encodeURIComponent(pid)}`, changefreq: 'monthly', priority: '0.6' }));
+            const all = cache?.products ?? [];
+            const slice = all.slice(page * CHUNK, (page + 1) * CHUNK);
+            // 発売日は別ファイル(sitemap_cache.products と同じ並び)。件数がずれていたら lastmod なしで出す。
+            const lm = await readStaticCache<{ products: string[] }>('sitemap_lastmod.json');
+            const dates = lm?.products?.length === all.length
+                ? lm.products.slice(page * CHUNK, (page + 1) * CHUNK)
+                : [];
+            urls = slice.map((pid, i) => ({
+                loc: `${BASE}/product/${encodeURIComponent(pid)}`,
+                lastmod: dates[i] || undefined,
+                changefreq: 'monthly',
+                priority: '0.6',
+            }));
         } else {
             const slice = (cache?.actresses ?? []).slice(page * CHUNK, (page + 1) * CHUNK);
             urls = slice.map(name => ({ loc: `${BASE}/actress/${encodeURIComponent(name)}`, changefreq: 'weekly', priority: '0.7' }));

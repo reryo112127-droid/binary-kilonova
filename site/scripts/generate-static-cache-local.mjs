@@ -702,6 +702,25 @@ async function main() {
     write('sale_cache.json',                      dedupeWorks(await genSaleProducts()));
     write('makers_cache.json',                    await genMakersList());
 
+    // 女優表示キャッシュ(+64シャード)へ日次のFANZAプロフィールを追記マージ。
+    // 本来の生成元(D1 actress_profiles)がほぼ空で再生成できず 2026-06-04 で止まっていたため。
+    try {
+        const { refreshActressDisplayCache } = await import('./refresh_actress_display_cache.mjs');
+        refreshActressDisplayCache();
+    } catch (e) {
+        console.warn(`⚠ actress_display_cache.json の更新をスキップ: ${e.message}`);
+    }
+
+    // cup/height/age フィルタ(/cup LP・詳細検索)が読む actress_profiles.json を作り直す。
+    // 以前はどこからも再生成されず 2026-03-22 のまま痩せていた（cup 1,235人・画像0件）。
+    // 生成に失敗しても他のキャッシュのデプロイは止めない（既存ファイルがそのまま残る）。
+    try {
+        const { buildActressProfilesCache } = await import('./build_actress_profiles_cache.mjs');
+        buildActressProfilesCache();
+    } catch (e) {
+        console.warn(`⚠ actress_profiles.json の再生成をスキップ: ${e.message}`);
+    }
+
     console.log('\n完了！次のコマンドでデプロイしてください:');
     console.log('  npm run deploy:cf');
     process.exit(0);

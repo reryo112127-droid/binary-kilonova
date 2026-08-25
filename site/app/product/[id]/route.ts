@@ -3,9 +3,9 @@ import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { filterActresses } from '../../../lib/actressFilter';
-import { readStaticCacheAsync as readStaticCache } from '../../../lib/staticCache';
 import { r2GetProduct } from '../../../lib/productR2';
 import { loadGenres, loadMakers, isIndexableProduct } from '../../../lib/lpData';
+import { fetchActressProfile } from '../../../lib/actressProfile';
 import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
 
 export const dynamic = 'force-dynamic';
@@ -67,13 +67,12 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
 }
 
 // OGP用: 女優プロフィール画像をASSETS静的JSONから取得（Tursoクエリ廃止）
+// 供給源は actress_display/<nn>.json シャード(16,652人ぶんの画像)。集約版の actress_profiles.json は
+// フィルタ用に cup/height/birthday だけへ痩せさせたので image_url を持たない。
 async function fetchActressImageUrl(actressName: string): Promise<string | null> {
     if (!actressName) return null;
-    try {
-        const profiles = await readStaticCache<Record<string, { image_url?: string }>>('actress_profiles.json');
-        return profiles?.[actressName]?.image_url ?? null;
-    } catch { /* ignore */ }
-    return null;
+    const profile = await fetchActressProfile(actressName);
+    return profile?.image_url ?? null;
 }
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
