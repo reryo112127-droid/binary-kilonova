@@ -92,11 +92,13 @@ jobs:
           git add \
             site/data/sitemap_cache.json \
             site/data/sitemap_lastmod.json \
+            site/data/sitemap_actresses.json \
             site/data/makers_cache.json \
             site/data/genres_cache.json \
             site/data/series_cache.json \
             site/public/data/sitemap_cache.json \
             site/public/data/sitemap_lastmod.json \
+            site/public/data/sitemap_actresses.json \
             site/public/data/makers_cache.json \
             site/public/data/genres_cache.json \
             site/public/data/series_cache.json \

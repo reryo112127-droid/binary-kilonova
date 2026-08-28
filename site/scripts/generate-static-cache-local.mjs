@@ -678,6 +678,37 @@ function dedupeWorks(arr) {
     });
 }
 
+// メーカー一覧は「週次(D1・全カタログ)」と「日次(ローカルSQLite)」の両方が同じファイルを書く。
+// ローカルDBはFANZA日次更新がD1のみ書くため数週間遅れ、件数も少ない（実測 3,149 → 1,491 に半減して
+// いた）。makers_cache.json に無いメーカーの /maker/[name] は404になるので、日次実行のたびに
+// 1,600件超のLPが週の大半で404になっていた。既存(週次)の一覧を土台に、日次で件数だけ更新し
+// 新規メーカーを追加する＝件数が減らないマージにする。
+function mergeMakers(fresh, pubDir) {
+    let existing = [];
+    try {
+        existing = JSON.parse(fs.readFileSync(path.join(pubDir, 'makers_cache.json'), 'utf-8'));
+    } catch { /* 初回は既存なし */ }
+    if (!Array.isArray(existing) || existing.length === 0) return fresh;
+
+    const byName = new Map(existing.map(m => [m.name, { ...m }]));
+    for (const m of fresh) {
+        const cur = byName.get(m.name);
+        if (!cur) { byName.set(m.name, m); continue; }
+        // 件数・サンプル画像は新しい方を採用（floor/sources は既存を温存）
+        cur.count = m.count ?? cur.count;
+        if (m.sample_image) cur.sample_image = m.sample_image;
+        if (m.floor) cur.floor = m.floor;
+        if (Array.isArray(m.sources) && m.sources.length) {
+            cur.sources = [...new Set([...(cur.sources || []), ...m.sources])];
+        }
+    }
+    const merged = [...byName.values()].sort((a, b) => (b.count || 0) - (a.count || 0));
+    if (merged.length > fresh.length) {
+        console.log(`  ↳ メーカー一覧: ローカルDB ${fresh.length}件 → 既存とマージして ${merged.length}件を維持`);
+    }
+    return merged;
+}
+
 async function main() {
     const dataDir = path.join(ROOT, 'data');
     const pubDir  = path.join(ROOT, 'public', 'data');
@@ -700,7 +731,7 @@ async function main() {
     write('home_preorder_cache.json',             dedupeWorks(await genPreorderProducts()));
     write('home_preorder_curated_cache.json',     dedupeWorks(await genHomePreorderCurated()));
     write('sale_cache.json',                      dedupeWorks(await genSaleProducts()));
-    write('makers_cache.json',                    await genMakersList());
+    write('makers_cache.json',                    mergeMakers(await genMakersList(), pubDir));
 
     // 女優表示キャッシュ(+64シャード)へ日次のFANZAプロフィールを追記マージ。
     // 本来の生成元(D1 actress_profiles)がほぼ空で再生成できず 2026-06-04 で止まっていたため。

@@ -8,12 +8,20 @@ import { readStaticCacheAsync as readStaticCache } from '../../lib/staticCache';
 export const dynamic = 'force-dynamic';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
-const CHUNK = 45000; // 1子サイトマップあたりのURL数(<50,000)
+// 1子サイトマップあたりのURL数。上限は50,000だが、1リクエストで巨大XMLを組み立てると
+// Worker の実行時間が跳ねる(45,000件=6.2MBで P999 が40秒に達していた)。10,000件に割って
+// 1回あたりの生成コストを下げ、エッジキャッシュのヒット率を上げる。
+// ※ app/sitemaps/[type]/[page]/route.ts の CHUNK と必ず同じ値にすること。
+const CHUNK = 10000;
 
 export async function GET(_req: NextRequest) {
-    const cache = await readStaticCache<{ actresses: string[]; products: string[] }>('sitemap_cache.json');
+    // 女優名は sitemap_actresses.json に分離済み（旧デプロイ互換で sitemap_cache 側も見る）
+    const [cache, actressCache] = await Promise.all([
+        readStaticCache<{ actresses?: string[]; products: string[] }>('sitemap_cache.json'),
+        readStaticCache<{ actresses: string[] }>('sitemap_actresses.json'),
+    ]);
     const nProducts = cache?.products?.length ?? 0;
-    const nActresses = cache?.actresses?.length ?? 0;
+    const nActresses = actressCache?.actresses?.length ?? cache?.actresses?.length ?? 0;
     const lastmod = new Date().toISOString();
 
     const children: string[] = [`${BASE}/sitemaps/static/0.xml`, `${BASE}/sitemaps/landing/0.xml`];
