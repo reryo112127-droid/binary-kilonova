@@ -2,8 +2,12 @@ name: AVWiki Scraper
 
 on:
   schedule:
-    - cron: '0 19 * * *'      # 毎日 4:00 JST (= 19:00 UTC) — 通常スクレイプ（続き）
-    - cron: '0 18 * * 0'      # 毎週日曜 3:00 JST (= 18:00 UTC) — 全件再スキャン（SNS・改名更新）
+    # D1の日次枠は UTC 0時リセットで、サイトのアクセスにより1〜2時間で枯渇する。
+    # 19:00 UTC は枯渇後なのでバックフィルの D1 読み取りが全滅し、
+    # 「対象0件のまま82秒で success」を毎日繰り返していた（2026-09-05 確認）。
+    - cron: '40 0 * * *'      # 毎日 9:40 JST (= 0:40 UTC / D1枠リセット直後)
+    # 週次の全件再スキャンは約5時間・枠を大量に食うので、日次の書き込み系が終わった後に置く
+    - cron: '0 2 * * 0'       # 毎週日曜 11:00 JST (= 2:00 UTC) — 全件再スキャン（SNS・改名更新）
   workflow_dispatch:            # 手動実行
     inputs:
       rescan:
@@ -41,7 +45,8 @@ jobs:
       - name: Set rescan flag
         id: mode
         run: |
-          if [ "${{ github.event.schedule }}" = "0 18 * * 0" ] || [ "${{ github.event.inputs.rescan }}" = "true" ]; then
+          # ↑の週次cronと**必ず同じ文字列**にすること（ずれると再スキャンが永久に走らない）
+          if [ "${{ github.event.schedule }}" = "0 2 * * 0" ] || [ "${{ github.event.inputs.rescan }}" = "true" ]; then
             echo "rescan=true" >> $GITHUB_OUTPUT
           else
             echo "rescan=false" >> $GITHUB_OUTPUT

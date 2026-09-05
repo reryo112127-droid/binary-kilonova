@@ -14,8 +14,10 @@ name: Seesaawiki Scraper
 
 on:
   schedule:
-    - cron: '0 21 * * *'      # 毎日 6:00 JST (= 21:00 UTC) — 続きから収集
-    - cron: '30 21 * * 0'     # 毎週日曜 6:30 JST — 収集後に D1 へ反映
+    # 21:00 UTC は D1の日次枠が枯渇済みの時間帯（枠は UTC 0時リセット）。
+    # 週次の「Apply to D1」がそこで全滅していたのでリセット直後へ移動（2026-09-05）。
+    - cron: '0 1 * * *'       # 毎日 10:00 JST (= 1:00 UTC / D1枠リセット直後)
+    - cron: '30 2 * * 0'      # 毎週日曜 11:30 JST (= 2:30 UTC) — 収集後に D1 へ反映
   workflow_dispatch:
     inputs:
       apply:
@@ -52,7 +54,8 @@ jobs:
       - name: Set apply flag
         id: mode
         run: |
-          if [ "${{ github.event.schedule }}" = "30 21 * * 0" ] || [ "${{ github.event.inputs.apply }}" = "true" ]; then
+          # ↑の週次cronと**必ず同じ文字列**にすること（ずれるとD1反映が永久に走らない）
+          if [ "${{ github.event.schedule }}" = "30 2 * * 0" ] || [ "${{ github.event.inputs.apply }}" = "true" ]; then
             echo "apply=true" >> $GITHUB_OUTPUT
           else
             echo "apply=false" >> $GITHUB_OUTPUT

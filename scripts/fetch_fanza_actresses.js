@@ -76,7 +76,12 @@ async function main() {
     const rawStream = fs.createWriteStream(RAW_FILE, { flags: RECENT_N ? 'a' : 'w' });
 
     // 1ページ目で総数確認
-    const sort  = RECENT_N ? '-designation' : undefined; // 最新登録順
+    // 最新登録順。ActressSearch が受け付ける sort は name/-name, bust, waist, hip,
+    // height, birthday, id といった実在の列だけで、**-designation は 400 を返す**。
+    // そのため --recent（日次モード）は毎日「致命的エラー: HTTP 400」で落ちており、
+    // 女優プロフィールは日曜の全件取得でしか更新されていなかった（2026-09-05 発見）。
+    // id は登録順に採番されるので -id が「最新登録順」になる（実測 -id の先頭 id=1114638 / 既定 1011185）。
+    const sort  = RECENT_N ? '-id' : undefined;
     const first = await fetchPage(1, sort);
     const total = DRY_RUN ? 200 : (RECENT_N ? Math.min(RECENT_N, first.total) : first.total);
     const totalPages = Math.ceil(total / HITS);
