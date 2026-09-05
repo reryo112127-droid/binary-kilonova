@@ -13,6 +13,8 @@ Disallow: /actress/rename-report
 # クロール量(=Cloudflare Workers起動数)を無料枠内に抑えるため、クエリ付きURL(ページネーション/og等)はクロールさせない。
 # 正規ページ(クエリ無し)のみクロール対象。?page= はページャ自動生成でURLが増殖しWorker起動を浪費するため特に重要。
 Disallow: /*?
+# 検索結果ページ自体は meta robots=noindex を付けてある（robotsでDisallowすると
+# noindex を読んでもらえず、リンク経由でURLだけ索引される可能性があるため許可のまま残す）。
 # Google は無視するが Bing/Yandex は尊重する。バースト的なクロールで無料枠を食い潰さないため。
 Crawl-delay: 1
 

@@ -647,6 +647,19 @@ async function main() {
     const write = (filename, data) => {
         const p = path.join(dataDir, filename);
         const pubP = path.join(ROOT, 'public', 'data', filename);
+        // D1 枠切れ等で 0 件になったとき、既存の有効なキャッシュを空で潰さない
+        // （静的キャッシュは D1 が死んだときの最後の砦。generate-static-cache-local.mjs と同じ方針）
+        if ((Array.isArray(data) ? data.length : Object.keys(data).length) === 0) {
+            let prev = 0;
+            try {
+                const old = JSON.parse(fs.readFileSync(p, 'utf-8'));
+                prev = Array.isArray(old) ? old.length : Object.keys(old).length;
+            } catch { /* 既存が無い/壊れている → 書いてよい */ }
+            if (prev > 0) {
+                console.warn(`! ${filename} が0件になったため上書きをスキップ（既存 ${prev}件 を維持）`);
+                return;
+            }
+        }
         fs.writeFileSync(p, JSON.stringify(data, null, 0));
         // public/data/ は Cloudflare ASSETS に含めるため常に書き込む
         fs.mkdirSync(path.dirname(pubP), { recursive: true });

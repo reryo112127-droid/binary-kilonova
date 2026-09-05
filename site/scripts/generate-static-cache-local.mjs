@@ -714,10 +714,28 @@ async function main() {
     const pubDir  = path.join(ROOT, 'public', 'data');
     fs.mkdirSync(pubDir, { recursive: true });
 
+    // D1 の日次枠切れ等で生成が 0 件になったとき、**既存の有効なキャッシュを空で潰さない**。
+    // 実際 2026-09-02 の実行では FANZA(D1)が枠切れで落ち、home_preorder_*.json が [] で
+    // 上書きされて残った。静的キャッシュは D1 が死んだときの最後の砦なので、
+    // 「D1が死んだ日に安全網まで消える」のが最悪の壊れ方になる。
+    // 件数が減るだけ（セール終了など）は正常なので、空になったときだけ守る。
     const write = (filename, data) => {
+        const count = Array.isArray(data) ? data.length : Object.keys(data).length;
+        if (count === 0) {
+            const cur = path.join(dataDir, filename);
+            let prev = 0;
+            try {
+                const old = JSON.parse(fs.readFileSync(cur, 'utf-8'));
+                prev = Array.isArray(old) ? old.length : Object.keys(old).length;
+            } catch { /* 既存が無い/壊れている → 書いてよい */ }
+            if (prev > 0) {
+                console.warn(`! ${filename} が0件になったため上書きをスキップ（既存 ${prev}件 を維持）`);
+                return;
+            }
+        }
         fs.writeFileSync(path.join(dataDir, filename), JSON.stringify(data, null, 0));
         fs.writeFileSync(path.join(pubDir, filename),  JSON.stringify(data, null, 0));
-        console.log(`✓ ${filename} (${Array.isArray(data) ? data.length : Object.keys(data).length}件)`);
+        console.log(`✓ ${filename} (${count}件)`);
     };
 
     // 順次実行（@libsql/client file:// はシリアルが安全）

@@ -1,0 +1,23 @@
+-- ============================================================
+--  /api/ranking の FANZA 候補取得を全件ソートから外すためのインデックス（FANZAシャード用）
+--
+--  2026-09-05 の実測（Cloudflare GraphQL d1QueriesAdaptiveGroups、直近8h）:
+--
+--    ... WHERE <BEST除外> ORDER BY review_count DESC, sale_start_date DESC LIMIT 400
+--        → 1回あたり約 267,000行 × 4回 = 1.07M行（その時間帯の8.3%）
+--
+--  0008 で入れた idx_review_count は **第1キーしか無い**ため、プランは
+--      SCAN products USING INDEX idx_review_count
+--      USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+--  ＝ 全インデックスを舐めて第2キー(sale_start_date)を一時B-treeで並べ直す計画になり、
+--  LIMIT 400 なのにシャード全行を読んでいた。
+--  → (review_count DESC, sale_start_date DESC) の複合にすると並びをインデックスだけで
+--    満たせるので、LIMIT を満たした時点で走査が止まる。
+--
+--  MGS には review_count 列が無いので **FANZAシャード(avrankings-fanza-0 / -1)専用**。
+--  適用: node scripts/apply_perf_indexes.mjs（D1の日次枠が残っている時間帯に）
+--  ※ CREATE INDEX はテーブルを読むので、枠切れ中は実行できない（UTC 0時＝JST 9:00 にリセット）。
+-- ============================================================
+
+-- ランキング候補: レビュー数降順 → 同数なら新しい順（/api/ranking）
+CREATE INDEX IF NOT EXISTS idx_review_date ON products(review_count DESC, sale_start_date DESC);

@@ -640,7 +640,10 @@ var _sampleImgs = [];
       if (recEl && gnsArr.length) {
         var topGenres = gnsArr.slice(0, 3);
         Promise.all(topGenres.map(function(g){
-          return fetch('/api/products?genre='+encodeURIComponent(g)+'&limit=20')
+          // sort=wish_count&excludeBest=1 は LP静的キャッシュ(data/lp/genre)が使える唯一の形。
+          // これを付けないと D1 の FTS ジャンル全マッチに落ちて 1回6万行読む
+          // （商品詳細1ページで3ジャンル分＝日次枠の3割を食っていた・2026-09-05）。
+          return fetch('/api/products?genre='+encodeURIComponent(g)+'&limit=20&sort=wish_count&excludeBest=1')
             .then(function(r){ return r.json(); }).catch(function(){ return []; });
         })).then(function(results){
           var seen = {};

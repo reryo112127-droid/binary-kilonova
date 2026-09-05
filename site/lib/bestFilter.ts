@@ -35,6 +35,20 @@ export const BEST_TITLE_PATTERNS = [
 ];
 
 /**
+ * BEST/総集編かどうかの JS 判定（静的キャッシュ上のフィルタ用）。
+ * SQL 版 bestExclusionSql と同じパターン・同じ閾値を使う。
+ */
+export function isBestOrCompilation(title: unknown, durationMin?: unknown): boolean {
+    const t = String(title ?? '').toUpperCase();
+    for (const p of BEST_TITLE_PATTERNS) {
+        const word = p.replace(/%/g, '').toUpperCase();
+        if (word && t.includes(word)) return true;
+    }
+    const d = Number(durationMin);
+    return Number.isFinite(d) && d > COMPILATION_MAX_MIN;
+}
+
+/**
  * BEST/総集編除外の WHERE 条件を組み立てる。
  * @param opts.skipDuration 予約作品など尺が未確定のときは true（尺条件を付けない）
  */

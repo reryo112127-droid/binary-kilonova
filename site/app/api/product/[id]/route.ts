@@ -4,6 +4,8 @@ import { getMgsClient, getFanzaClient } from '../../../../lib/turso';
 import { getCached, setCached } from '../../../../lib/apiCache';
 import { cacheHeaders, readStaticCacheAsync } from '../../../../lib/staticCache';
 import { r2GetProduct, r2PutProduct } from '../../../../lib/productR2';
+import { readShardProduct } from '../../../../lib/productShard';
+import { isD1Blocked } from '../../../../lib/d1Breaker';
 
 const PRODUCT_TTL = 60 * 60 * 1000; // 1時間
 
@@ -183,18 +185,34 @@ export async function GET(
             .then(r => (r.rows.length > 0 ? r.rows[0] as { sample_images_json?: string | null; sample_video_url?: string | null } : null))
             .catch(() => null) // テーブル未作成のシャードでも商品表示は止めない
         : Promise.resolve(null);
-    const [mgsProduct, fanzaProduct] = await Promise.all([
+    let d1Failed = false;
+    let [mgsProduct, fanzaProduct] = await Promise.all([
         mgsClient
             ? mgsClient.execute({ sql: PRODUCT_SQL, args: [id] })
                 .then(r => (r.rows.length > 0 ? { ...r.rows[0] } as Record<string, unknown> : null))
-                .catch(e => { console.error('MGS D1 error:', e); return null; })
+                .catch(e => { console.error('MGS D1 error:', e); d1Failed = true; return null; })
             : Promise.resolve(null),
         fanzaClient
             ? fanzaClient.execute({ sql: PRODUCT_SQL, args: [id] })
                 .then(r => (r.rows.length > 0 ? { ...r.rows[0] } as Record<string, unknown> : null))
-                .catch(e => { console.error('FANZA D1 error:', e); return null; })
+                .catch(e => { console.error('FANZA D1 error:', e); d1Failed = true; return null; })
             : Promise.resolve(null),
     ]);
+
+    // ── D1 が使えないときは静的シャードで代替 ─────────────────────────────
+    // D1 枠切れ中は商品詳細が丸ごと 404 になり、ページが骨組みだけになる。
+    // 一覧に出る作品＋人気作品は data/product/<nn>.json に products 行と同じ形で入れてあるので、
+    // D1 の行の代わりに差し込んで以降の応答組み立てをそのまま通す。
+    // 「D1 は生きていて本当に存在しない id」のときは従来どおり 404（縮退と区別する）。
+    let degraded = false;
+    if (!mgsProduct && !fanzaProduct && (!mgsClient || !fanzaClient || d1Failed || isD1Blocked())) {
+        const shardRow = await readShardProduct(id);
+        if (shardRow) {
+            degraded = true;
+            if (shardRow.source === 'mgs') mgsProduct = { ...shardRow };
+            else fanzaProduct = { ...shardRow };
+        }
+    }
 
     if (!mgsProduct && !fanzaProduct) {
         return NextResponse.json({ error: 'Product not found' }, { status: 404 });
@@ -285,6 +303,15 @@ export async function GET(
         }
     }
     await enrichCrossPlatform(responseData, id);
+
+    // 縮退応答（静的シャード由来）は不完全なので長く抱え込まない。
+    // 短いTTLだけ付けて返し、枠が戻り次第 D1 の完全な内容に復帰させる。
+    if (degraded) {
+        return NextResponse.json(responseData, {
+            headers: { ...cacheHeaders(300, 300), 'X-Degraded': 'static' },
+        });
+    }
+
     setCached(cacheKey, responseData);
     // R2に永続保存（次回以降はD1不要）。
     // ただし FANZA はスリムD1に sample_images を持たないため、空ギャラリーで上書きしないよう

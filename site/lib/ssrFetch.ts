@@ -12,6 +12,15 @@ import { bestExclusionSql, COMPILATION_MAX_MIN } from './bestFilter';
 
 const SSR_PAGE_TTL = 5 * 60 * 1000; // 5分
 
+// D1 が枠切れ/障害のときに一覧が空にならないよう、静的キャッシュから最低限の中身を返す。
+// 静的JSONは ASSETS 配信＝D1 無料枠を消費しないので、これが最後の砦になる。
+async function staticFallback(file: string, limit: number, filter?: (p: Row) => boolean): Promise<Row[]> {
+    const cached = await readStaticCache<Row[]>(file);
+    if (!Array.isArray(cached) || cached.length === 0) return [];
+    const rows = filter ? cached.filter(filter) : cached;
+    return rows.slice(0, limit);
+}
+
 
 // ホーム画面予約作品の厳選メーカーリスト（generate-static-cache.mjs の HOME_MAKERS と同期）
 const HOME_MAKERS = [
@@ -185,6 +194,8 @@ export async function ssrFetchRanking(limit: number): Promise<Row[]> {
         for (let k = 0; k < 2 && mi < mgs.length && result.length < limit; k++) result.push(mgs[mi++]);
         if (fi < fanza.length && result.length < limit) result.push(fanza[fi++]);
     }
+    // D1 が使えず今年ぶんが1件も取れなかったときは通年ランキングの静的キャッシュへ
+    if (result.length === 0) return staticFallback('ranking_default_cache.json', limit);
     return result.slice(0, limit);
 }
 
@@ -253,6 +264,9 @@ export async function ssrFetchActressRanking(limit: number): Promise<Row[]> {
         } catch { /* ignore */ }
     }
 
+    // D1 が使えず集計元が空だったときは通年の女優ランキング静的キャッシュへ
+    if (topEntries.length === 0) return staticFallback('actress_ranking_default_cache.json', limit);
+
     return topEntries.slice(0, limit).map(([name, e]) => ({
         name,
         score: e.wishScore,
@@ -301,6 +315,9 @@ export async function ssrFetchNewProductsPage(limit: number): Promise<Row[]> {
         if (fanzaRows[i]) combined.push(mapRow(fanzaRows[i] as Row, 'fanza'));
     }
     const result = combined.slice(0, limit);
+    // D1 が使えなかった場合は日次バッチ製の新作キャッシュで代替（空ページを出さない）。
+    // 縮退結果はメモリキャッシュに載せない＝枠が戻り次第すぐ通常の結果に復帰する。
+    if (result.length === 0) return staticFallback('products_new_cache.json', limit);
     setCached(cacheKey, result);
     return result;
 }
@@ -340,6 +357,17 @@ export async function ssrFetchPreOrdersPage(limit: number): Promise<Row[]> {
         if (fanzaRows[i]) combined.push(mapRow(fanzaRows[i] as Row, 'fanza'));
     }
     const result = combined.slice(0, limit);
+    if (result.length === 0) {
+        // 予約は「未発売のみ」なので、静的キャッシュ側でも配信日で絞ってから配信日ASCで返す
+        const isFuture = (p: Row) => normDate(p.sale_start_date) >= tomorrow;
+        const byDateAsc = (rows: Row[]) => rows.sort((a, b) =>
+            normDate(a.sale_start_date).localeCompare(normDate(b.sale_start_date)));
+        for (const file of ['home_preorder_curated_cache.json', 'home_preorder_cache.json']) {
+            const rows = await staticFallback(file, Number.MAX_SAFE_INTEGER, isFuture);
+            if (rows.length > 0) return byDateAsc(rows).slice(0, limit);
+        }
+        return [];
+    }
     setCached(cacheKey, result);
     return result;
 }

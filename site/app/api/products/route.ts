@@ -4,6 +4,9 @@ import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { getCached, setCached } from '../../../lib/apiCache';
 import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../lib/staticCache';
 import { bestExclusionSql } from '../../../lib/bestFilter';
+import { degradedProducts } from '../../../lib/degradedProducts';
+import { readLpCards, LP_MAX_PER } from '../../../lib/lpCache';
+import { isD1Blocked } from '../../../lib/d1Breaker';
 
 export const dynamic = 'force-dynamic';
 
@@ -156,6 +159,81 @@ export async function GET(request: NextRequest) {
         }
     }
 
+    // ── 長尾LP(ジャンル/メーカー/シリーズ)は静的キャッシュから返す ────────────────
+    // 実測(2026-09-04)で D1 の日次読取枠を食い潰していた張本人がここだった:
+    //   maker LIKE ? OR label LIKE ?   … 1回あたり約2万行 × 523回/日 = 10.6M行
+    //   series_name = ? + ORDER BY 日付 … 1回あたり約3.4万行 × 136回/日 = 4.6M行
+    //   genres LIKE ?                  … 1回あたり約6,700行
+    // LIKE '%…%' はインデックスが効かず全件スキャンになり、FANZAは2シャードへfan-outするので
+    // 1回のメーカー絞り込みで約49万行を読む。LPのSSRも無限スクロールの続きもここを通る。
+    // → LPと同じ並び・同じ条件で焼いた静的カード(scripts/build_lp_cache.mjs)で置き換える。
+    // 条件が少しでも違う(sortが違う/他の絞り込みが乗る/キャッシュ範囲外)ときは D1 に落とす。
+    {
+        const lpGenre = searchParams.get('genre') || '';
+        const lpMaker = searchParams.get('maker') || '';
+        const lpSeries = searchParams.get('series') || '';
+        const specified = [lpGenre, lpMaker, lpSeries].filter(Boolean);
+        // 他の絞り込みが一切乗っていないこと（乗っていたら静的カードでは絞れない）
+        const noOtherFilter = !searchParams.get('q') && !searchParams.get('actress')
+            && !searchParams.get('makers') && !searchParams.get('label') && !searchParams.get('exactMaker')
+            && !searchParams.get('source') && !searchParams.get('cup') && !searchParams.get('cups')
+            && !searchParams.get('height') && !searchParams.get('ageMin') && !searchParams.get('ageMax')
+            && !searchParams.get('vr') && !searchParams.get('hasVideo') && !searchParams.get('minDiscount')
+            && !searchParams.get('fromDate') && !searchParams.get('toDate')
+            && !searchParams.get('excludeGenres') && !searchParams.get('excludeLabel');
+        // LPが投げる形と同じときだけ使う（並びが違うキャッシュを流用しない）
+        const excludeBestOn = searchParams.get('excludeBest') === '1';
+        const lpType = specified.length !== 1 || !noOtherFilter ? ''
+            : lpGenre && sort === 'wish_count' && excludeBestOn ? 'genre'
+            : lpMaker && sort === 'wish_count' && excludeBestOn ? 'maker'
+            : lpSeries && sort === 'new' ? 'series'
+            : '';
+        if (lpType) {
+            const slug = lpGenre || lpMaker || lpSeries;
+            const cards = await readLpCards(lpType, slug);
+            // ページを丸ごと満たせるとき、または「収録上限未満＝そのLPの全件が入っている」ときに返す。
+            // 後者は短いページを返してよい（クライアントは件数不足で hasMore=false と判断する＝正しい）。
+            const complete = !!cards && cards.length < LP_MAX_PER;
+            if (cards && offset < cards.length && (complete || offset + limit <= cards.length)) {
+                const page = cards.slice(offset, offset + limit);
+                const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(21600, 86400) } });
+                if (cfCache && cfCacheKey) {
+                    await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
+                        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=21600' },
+                    }));
+                }
+                return res;
+            }
+        }
+    }
+
+    // 予約: sort=pre-order, offset=0 → 静的キャッシュ
+    // 予約は build_preorder_cache.mjs が DMM API から日次生成する（D1もローカルDBも使わない）。
+    // D1 側の予約は枠切れの日に落ちるうえローカルDBは未来日付を持たないので、
+    // ここは静的キャッシュを正にする。配信済みになったものは読み出し時に落とす＝自己修復。
+    // source=fanza も静的キャッシュで返せる（このキャッシュは DMM API 由来＝全件 FANZA・BEST除外済み）。
+    // ホーム(HomePageWeb/Mobile)は `sort=pre-order&source=fanza&excludeBest=1` を送るため、
+    // source を弾いていた頃はホーム表示のたびに D1 の予約クエリ（実測 約9万行/回）へ落ちていた。
+    if (sort === 'pre-order' && offset === 0 && searchParams.get('source') !== 'mgs' && !searchParams.get('maker') && !searchParams.get('q')) {
+        const preCached = await readStaticCache<Array<Record<string, unknown>>>('home_preorder_cache.json');
+        if (preCached && preCached.length > 0) {
+            const today = new Date().toISOString().slice(0, 10);
+            const dateOf = (p: Record<string, unknown>) => String(p.sale_start_date ?? '').replace(/\//g, '-').slice(0, 10);
+            const page = preCached.filter(p => dateOf(p) > today)
+                .sort((a, b) => dateOf(b).localeCompare(dateOf(a)))   // 配信が遠い順（D1経路と同じ並び）
+                .slice(0, limit);
+            if (page.length > 0) {
+                const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } });
+                if (cfCache && cfCacheKey) {
+                    await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
+                        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+                    }));
+                }
+                return res;
+            }
+        }
+    }
+
     // offset=0 のシンプルなクエリはインメモリキャッシュ
     const offset0 = offset === 0;
     if (offset0) {
@@ -265,6 +343,11 @@ export async function GET(request: NextRequest) {
     // series指定時はFANZA限定にする。
     const mgsClient = (source === 'fanza' || series) ? null : await getMgsClient();
     const fanzaClient = (source === 'mgs') ? null : await getFanzaClient();
+    // D1 が使えたか（枠切れ・障害の検知用）。使えなかったのに結果0件なら静的キャッシュで縮退応答する。
+    // 「D1は生きていて本当に0件」のケースと区別するためのフラグ。
+    let d1Unavailable = isD1Blocked()
+        || (source !== 'fanza' && !series && !mgsClient)
+        || (source !== 'mgs' && !fanzaClient);
 
     if (!mgsClient && !fanzaClient) {
         return NextResponse.json([], { status: 503 });
@@ -281,13 +364,32 @@ export async function GET(request: NextRequest) {
         const args: (string | number)[] = [];
 
         if (q) {
+            // product_id は英数字と記号だけ。日本語を含む q は product_id に絶対一致しないので
+            // `OR product_id LIKE '%q%'` を **付けてはいけない**。
+            // この OR があると SQLite は FTS 駆動をあきらめ、
+            //   SEARCH products USING INDEX idx_sale_start (sale_start_date>?)
+            // という「日付順にテーブルを舐めながら1行ずつ OR を評価する」計画を選ぶ。
+            // 一致が少ない語ほど深く舐めるので、実測で **1検索あたり約63,000行**を読んでいた
+            // （2026-09-05 の日次枠オーバーの約3割）。OR を外すと
+            //   SEARCH products USING INDEX sqlite_autoindex_products_1 (product_id=?)
+            // ＝ FTS の一致件数ぶんの点引きになり、実測分布(中央値 約1,000件/シャード)では
+            // 2,000行程度で済む。英数字クエリ(品番検索)のときだけ従来どおり OR を残す。
+            const qIsAscii = /^[\x20-\x7E]+$/.test(q);
             if (q.length >= 3) {
                 const qMatch = `{title actresses} : "${esc5(q)}"`;
-                conditions.push(`(${FTS_IN} OR product_id LIKE ?)`);
-                args.push(qMatch, `%${q}%`);
-            } else {
+                if (qIsAscii) {
+                    conditions.push(`(${FTS_IN} OR product_id LIKE ?)`);
+                    args.push(qMatch, `%${q}%`);
+                } else {
+                    conditions.push(`(${FTS_IN})`);
+                    args.push(qMatch);
+                }
+            } else if (qIsAscii) {
                 conditions.push(`(title LIKE ? OR actresses LIKE ? OR product_id LIKE ?)`);
                 args.push(`%${q}%`, `%${q}%`, `%${q}%`);
+            } else {
+                conditions.push(`(title LIKE ? OR actresses LIKE ?)`);
+                args.push(`%${q}%`, `%${q}%`);
             }
         }
         if (genre) {
@@ -372,26 +474,34 @@ export async function GET(request: NextRequest) {
             if (profSubConds.length > 0) conditions.push(`(${profSubConds.join(' OR ')})`);
         }
         const today = new Date().toISOString().slice(0, 10);
+        // FANZA は sale_start_date が 'YYYY-MM-DD HH:MM:SS'。日付比較に SUBSTR(...,1,10) を使うと
+        // **idx_sale_start が一切効かなくなる**（実測 2026-09-05: 予約クエリが1回13.5万行＝シャード全走査）。
+        // 生の列のまま「翌日未満 / 翌日以上」で比較すれば意味は同じでインデックスが効く:
+        //   SUBSTR(d,1,10) >  X  ⟺  d >= 翌日(X)     （'2026-09-06 00:00' >= '2026-09-06' は真）
+        //   SUBSTR(d,1,10) <= X  ⟺  d <  翌日(X)     （'2026-09-05 23:59' <  '2026-09-06' は真）
+        //   SUBSTR(d,1,10) >= X  ⟺  d >= X
+        // NULL はどちらの形でも比較結果が NULL＝除外されるので挙動は変わらない。
+        // MGS は 'YYYY/MM/DD' で、REPLACE 式そのものに関数インデックス idx_sale_date_norm が
+        // 張ってあるため REPLACE のままでよい（変えると逆にインデックスが外れる）。
+        const nextDay = (d: string) => new Date(Date.parse(d + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10);
         if (sort === 'pre-order') {
-            // 未配信作品のみ（今日より後）
-            // MGS: YYYY/MM/DD（スラッシュ） → REPLACE で正規化
-            // FANZA: YYYY-MM-DD HH:MM:SS（タイムスタンプ） → SUBSTR で日付部分のみ取得
-            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') > ?" : "SUBSTR(sale_start_date, 1, 10) > ?");
-            args.push(today);
+            // 未配信作品のみ（今日より後＝明日以降）
+            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') > ?" : 'sale_start_date >= ?');
+            args.push(isMgs ? today : nextDay(today));
         }
         if (sort === 'new') {
             // 配信済み作品のみ（予約作品を除く）
             conditions.push("sale_start_date IS NOT NULL");
-            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') <= ?" : "SUBSTR(sale_start_date, 1, 10) <= ?");
-            args.push(today);
+            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') <= ?" : 'sale_start_date < ?');
+            args.push(isMgs ? today : nextDay(today));
         }
         if (fromDate) {
-            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') >= ?" : "SUBSTR(sale_start_date, 1, 10) >= ?");
+            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') >= ?" : 'sale_start_date >= ?');
             args.push(fromDate);
         }
         if (toDate) {
-            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') <= ?" : "SUBSTR(sale_start_date, 1, 10) <= ?");
-            args.push(toDate);
+            conditions.push(isMgs ? "REPLACE(sale_start_date, '/', '-') <= ?" : 'sale_start_date < ?');
+            args.push(isMgs ? toDate : nextDay(toDate));
         }
         if (makers) {
             const makerList = makers.split(',').map(s => s.trim()).filter(Boolean);
@@ -465,7 +575,9 @@ export async function GET(request: NextRequest) {
 
     function buildOrderBy(isMgs: boolean) {
         if (sort === 'new' || sort === 'date_all') return dateOrderBy(isMgs);
-        if (sort === 'pre-order') return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY SUBSTR(sale_start_date,1,10) DESC';
+        // FANZA は SUBSTR で並べると idx_sale_start が使えず一時B-treeで全件ソートになる。
+        // 生の列で並べれば同じ日付順（同日内は時刻順というより良いタイブレークになるだけ）。
+        if (sort === 'pre-order') return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY sale_start_date DESC';
         if (sort === 'discount') return 'ORDER BY discount_pct DESC';         // 割引率が高い順
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';
     }
@@ -499,6 +611,7 @@ export async function GET(request: NextRequest) {
             });
         } catch (err) {
             console.error(`Query error (${isMgs ? 'mgs' : 'fanza'}):`, err);
+            d1Unavailable = true;
             return [];
         }
     }
@@ -565,6 +678,30 @@ export async function GET(request: NextRequest) {
     }
 
     const result = combined.slice(0, limit);
+
+    // ── D1 縮退応答 ───────────────────────────────────────────────
+    // D1 が枠切れ/障害で 0 件になったときだけ、静的キャッシュから一覧を組み立てて返す。
+    // （D1 が生きていて本当に該当0件のときは、従来どおり空配列を返す）
+    // 縮退応答は静的キャッシュ上のJSフィルタなので、**絞り込めない条件が付いていたら使わない**。
+    // （series/カップ/身長/年齢/VR/サンプル動画/日付範囲/除外系はキャッシュ側に情報が無い。
+    //   無視して返すと「シリーズ指定なのに無関係な作品が並ぶ」ことになる）
+    const degradableQuery = !series && !cup && !cups && !heightRange && !ageMin && !ageMax
+        && !vrOnly && !hasVideo && !fromDate && !toDate && !excludeGenres && !excludeLabel;
+    if (result.length === 0 && d1Unavailable && degradableQuery) {
+        const fb = await degradedProducts({
+            sort, q, genre, maker, exactMaker, label, source, limit, offset,
+            actressGroups: actressNames.length > 0 ? actressGroups : undefined,
+            minDiscount: sort === 'discount' ? Math.max(minDiscount, 1) : minDiscount,
+            excludeBest,
+        });
+        if (fb.length > 0) {
+            // 枠が戻ったら通常結果に復帰できるよう、縮退応答は短いTTLでしかキャッシュしない
+            return NextResponse.json(fb, {
+                headers: { 'Content-Type': 'application/json', ...cacheHeaders(300, 300), 'X-Degraded': 'static' },
+            });
+        }
+    }
+
     const cacheKey = (request as NextRequest & { _cacheKey?: string })._cacheKey;
     if (cacheKey) setCached(cacheKey, result);
 

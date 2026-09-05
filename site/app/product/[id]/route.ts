@@ -7,6 +7,7 @@ import { r2GetProduct } from '../../../lib/productR2';
 import { loadGenres, loadMakers, isIndexableProduct } from '../../../lib/lpData';
 import { fetchActressProfile } from '../../../lib/actressProfile';
 import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
+import { readShardProduct } from '../../../lib/productShard';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,8 +63,14 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
         }
     }
 
-    if (result) _ssrProductCache.set(id, { data: result, at: Date.now() });
-    return result;
+    if (result) {
+        _ssrProductCache.set(id, { data: result, at: Date.now() });
+        return result;
+    }
+
+    // D1 が枠切れ/障害のときは静的シャードでタイトル・出演者だけでも出す（OGP と H1 が空にならない）。
+    // 不完全なので isolate キャッシュには載せず、D1 が戻り次第そちらを使う。
+    return await readShardProduct(id);
 }
 
 // OGP用: 女優プロフィール画像をASSETS静的JSONから取得（Tursoクエリ廃止）
@@ -229,8 +236,10 @@ export async function GET(
             // max-age=60 で bfcache(戻る復元)維持。価格は最大1時間古くなり得るが R2 read-through(1h)もあり許容。
             headers: {
                 'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'public, s-maxage=3600, max-age=60',
-                'CDN-Cache-Control': 'public, s-maxage=3600',
+                // 商品ページの中身が変わるのは日次バッチの価格/セール更新時なので24h保持。
+                // 再クロール(索引済み5.5万URL)で Worker も D1 も使わないようにする。
+                'Cache-Control': 'public, s-maxage=86400, max-age=300, stale-while-revalidate=86400',
+                'CDN-Cache-Control': 'public, s-maxage=86400',
             },
         });
         await edgeStore(edge, resp);

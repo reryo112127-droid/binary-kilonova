@@ -367,6 +367,8 @@ export async function GET(request: NextRequest) {
 
     try {
         let html = await readHtml(request.url, htmlFile);
+        // 詳細検索も索引対象外（検索結果ページ。LPへ辿らせるため follow は残す）
+        html = html.replace('</head>', '<meta name="robots" content="noindex,follow"/></head>');
         html = isMobile
             ? injectMobileLayout(html, 'search', { skipClean: true, skipHeader: true, skipBottomNav: true })
             : injectWebLayout(html);

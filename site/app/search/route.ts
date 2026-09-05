@@ -72,6 +72,8 @@ export async function GET(request: NextRequest) {
         html = html.replace('</head>', `<script>window.__SD__=${payload};</script></head>`);
     }
 
+    // 検索結果ページは索引対象外（薄いページ量産と無駄なクロールを防ぐ）。follow はさせてLPへ辿らせる。
+    html = html.replace('</head>', '<meta name="robots" content="noindex,follow"/></head>');
     html = isMobile ? injectMobileLayout(html, 'search') : injectWebLayout(html);
     return new NextResponse(html, {
         // no-store は bfcache（戻る/進む復元）を無効化しスクロール位置が失われるため避ける。

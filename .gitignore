@@ -62,6 +62,14 @@ data/x_cookie_alert.json
 
 # 女優表示キャッシュのシャード（actress_display_cache.json から build:shards で生成される派生物）
 # 48MB あり、元データが commit されているので追跡しない。deploy:cf が毎回生成する。
+# 長尾LPカードの静的キャッシュ（build:shards で生成される派生物）
+site/data/lp/
+site/public/data/lp/
+
+# 商品詳細の静的シャード（D1枠切れ時のフォールバック・build:shards で生成される派生物）
+site/data/product/
+site/public/data/product/
+
 site/data/actress_display/
 site/public/data/actress_display/
 site/data/actress_display_alias_index.json

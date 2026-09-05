@@ -14,6 +14,7 @@
  */
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { mergeShardRows } from './shardMerge';
+import { isD1Blocked, noteD1Error, noteD1Success } from './d1Breaker';
 
 // ─── D1 最小型定義（@cloudflare/workers-types に依存しない）─────────────
 interface D1Meta {
@@ -53,7 +54,15 @@ function wrap(db: D1Database): CompatClient {
             const args = typeof stmt === 'string' ? [] : (stmt.args ?? []);
             const prepared = db.prepare(sql);
             const bound = args.length > 0 ? prepared.bind(...args) : prepared;
-            const res = await bound.all();
+            let res: D1Result;
+            try {
+                res = await bound.all();
+            } catch (err) {
+                // 無料枠切れならブレーカにストライクを積む（規定回数で D1 を一時停止）
+                noteD1Error(err);
+                throw err;
+            }
+            noteD1Success();
             return {
                 rows: res.results ?? [],
                 rowsAffected: res.meta?.changes ?? 0,
@@ -73,8 +82,14 @@ async function getBinding(name: string): Promise<D1Database | null> {
     }
 }
 
+// ─── カタログ読み取りはブレーカの対象 ─────────────────────────────────
+// 行読み取りの99%はカタログ(MGS/FANZA)。枠切れ中は null を返し、呼び出し側の
+// 静的キャッシュ経路へ落とす。DB_SITE(いいね/レビュー/投稿)は行数が小さく、
+// サイトの対話機能を無用に殺さないためブレーカの対象外にしている。
+
 // バインディングは Workers ランタイムが提供するためキャッシュ不要（取得は安価）。
 export async function getMgsClient(): Promise<CompatClient | null> {
+    if (isD1Blocked()) return null;
     const db = await getBinding('DB_MGS');
     return db ? wrap(db) : null;
 }
@@ -84,6 +99,7 @@ export async function getMgsClient(): Promise<CompatClient | null> {
 // 注意: 行を返すSELECT用。COUNT等の集約クエリはシャードごとの部分結果になる（主に静的キャッシュ
 //       フォールバックでのみ発生し、ロングテール検索の行取得には影響しない）。
 export async function getFanzaClient(): Promise<CompatClient | null> {
+    if (isD1Blocked()) return null;
     const names = ['DB_FANZA_0', 'DB_FANZA_1'];
     const dbs = (await Promise.all(names.map(getBinding))).filter((d): d is D1Database => !!d);
     if (dbs.length === 0) {

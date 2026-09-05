@@ -5,14 +5,19 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cf": "node scripts/build_actress_display_shards.mjs && opennextjs-cloudflare build",
-    "deploy:cf": "node scripts/build_actress_display_shards.mjs && opennextjs-cloudflare build && wrangler deploy && node scripts/indexnow_ping.mjs",
+    "build:cf": "node scripts/build_preorder_cache.mjs && node scripts/build_actress_display_shards.mjs && node scripts/build_lp_cache.mjs && node scripts/build_product_shards.mjs && opennextjs-cloudflare build",
+    "deploy:cf": "node scripts/build_preorder_cache.mjs && node scripts/build_actress_display_shards.mjs && node scripts/build_lp_cache.mjs && node scripts/build_product_shards.mjs && opennextjs-cloudflare build && wrangler deploy && node scripts/indexnow_ping.mjs",
     "deploy:cf:only": "opennextjs-cloudflare deploy",
     "indexnow": "node scripts/indexnow_ping.mjs",
     "start": "next start",
     "preview": "wrangler pages dev",
     "lint": "eslint",
-    "build:shards": "node scripts/build_actress_display_shards.mjs"
+    "build:shards": "node scripts/build_preorder_cache.mjs && node scripts/build_actress_display_shards.mjs && node scripts/build_lp_cache.mjs && node scripts/build_product_shards.mjs",
+    "test:fallback": "tsc lib/d1Breaker.ts lib/degradedProducts.ts lib/bestFilter.ts lib/staticCache.ts lib/productShard.ts lib/lpCache.ts --outDir .tmp_test --module commonjs --target es2020 --moduleResolution node --esModuleInterop --skipLibCheck && node scripts/test_d1_fallback.cjs",
+    "build:preorder": "node scripts/build_preorder_cache.mjs",
+    "build:lp": "node scripts/build_lp_cache.mjs",
+    "usage": "node scripts/check_free_tier_usage.mjs",
+    "migrate:perf": "node scripts/apply_perf_indexes.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",

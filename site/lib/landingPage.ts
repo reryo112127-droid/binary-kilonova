@@ -12,6 +12,7 @@ import { readHtml } from './readHtml';
 import { injectMobileLayout } from './injectLayout';
 import { GET as productsGET } from '../app/api/products/route';
 import { edgeLookup, edgeStore } from './edgeCache';
+import { readLpCards } from './lpCache';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 const SSR_COUNT = 30;
@@ -101,6 +102,24 @@ export async function fetchProducts(req: NextRequest, apiQuery: string, count = 
         const arr = Array.isArray(data) ? data : (data.products || []);
         return Array.isArray(arr) ? arr as Product[] : [];
     } catch { return []; }
+}
+
+/**
+ * LPのSSRカードを取得する。**静的LPキャッシュを最優先**にして、LPのクロールで D1 を読まないようにする。
+ * （ASSETS へのリクエストは D1 無料枠を消費しない。lib/lpCache.ts 参照）
+ * キャッシュは先頭60件＝2ページぶんなので、それ以降のページは空を返して打ち止めにする
+ * （わざわざ D1 に落ちてまで深いページを索引させない。空ページは既存ロジックで noindex になる）。
+ */
+async function fetchLpProducts(
+    req: NextRequest, opts: LandingOptions, offset: number,
+): Promise<{ products: Product[]; hasNext: boolean }> {
+    const cards = await readLpCards(opts.type, opts.slug);
+    if (cards) {
+        const products = cards.slice(offset, offset + SSR_COUNT) as Product[];
+        return { products, hasNext: offset + SSR_COUNT < cards.length };
+    }
+    const products = await fetchProducts(req, opts.apiQuery, SSR_COUNT, offset);
+    return { products, hasNext: products.length === SSR_COUNT };
 }
 
 // クライアント無限スクロール(SSR済みの続き startOffset から続ける)
@@ -221,8 +240,7 @@ export async function renderLandingPage(req: NextRequest, opts: LandingOptions):
     // モバイルファースト索引に合わせ、埋め込みローダの無いクリーンな products.html を全UAで使う。
     const page = Math.max(0, parseInt(new URL(req.url).searchParams.get('page') || '0', 10) || 0);
     const offset = page * SSR_COUNT;
-    const products = await fetchProducts(req, opts.apiQuery, SSR_COUNT, offset);
-    const hasNext = products.length === SSR_COUNT;
+    const { products, hasNext } = await fetchLpProducts(req, opts, offset);
     const faq = faqFor(opts);
     const nav: PageNav = {
         canonical: BASE + pagePath(opts.canonicalPath, page),
@@ -247,8 +265,10 @@ export async function renderLandingPage(req: NextRequest, opts: LandingOptions):
     const resp = new NextResponse(html, {
         headers: {
             'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'public, s-maxage=3600, max-age=120',
-            'CDN-Cache-Control': 'public, s-maxage=3600',
+            // LPの本文は静的LPキャッシュ(日次再生成)由来なので、エッジは長め(6h)に持つ。
+            // 同じLPの再クロールで Worker 起動も D1 読取もゼロにするのが狙い。
+            'Cache-Control': 'public, s-maxage=21600, max-age=300, stale-while-revalidate=86400',
+            'CDN-Cache-Control': 'public, s-maxage=21600',
         },
     });
     await edgeStore(edge, resp);

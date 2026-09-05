@@ -579,7 +579,9 @@ var _sampleImgs = [];
           // フォールバック: 同じジャンルの人気作品
           var g0 = (p.genres||'').split(',')[0].trim();
           if (!g0) return;
-          fetch('/api/products?genre='+encodeURIComponent(g0)+'&limit=9&sort=wish_count')
+          // excludeBest=1 まで付けて初めて LP静的キャッシュ(data/lp/genre)に当たる。
+          // 無いと D1 の FTS ジャンル全マッチ（1回数万行）に落ちる。
+          fetch('/api/products?genre='+encodeURIComponent(g0)+'&limit=9&sort=wish_count&excludeBest=1')
             .then(function(r){ return r.json(); })
             .then(function(data){
               var items2 = (data||[]).filter(function(q){ return q.product_id!==id; }).slice(0,8);
