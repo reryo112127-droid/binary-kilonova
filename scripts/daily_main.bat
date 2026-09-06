@@ -91,6 +91,14 @@ echo [3d/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
 
 echo [4/5] cache+deploy (local DB): %time% >> "%LOG_FILE%"
 cd /d "%PROJECT_DIR%\site"
+REM [3e] Apply the D1 perf indexes (migrations/*_perf_indexes*.sql).
+REM CREATE INDEX reads the whole table, so it FAILS while the daily row-read quota
+REM is exhausted -- which is exactly when it is needed. This batch runs at ~10:30 JST,
+REM i.e. right after the quota resets at 00:00 UTC / 09:00 JST, so it is the safe slot.
+REM It is idempotent (CREATE INDEX IF NOT EXISTS reads ~0 rows once applied).
+REM Without this, idx_review_date (0009) silently stayed missing for a whole day.
+call "%NPM%" run migrate:perf >> "%LOG_FILE%" 2>&1
+echo [3e/6] migrate:perf done: %errorlevel% at %time% >> "%LOG_FILE%"
 "%NODE%" scripts\generate-static-cache-local.mjs >> "%LOG_FILE%" 2>&1
 REM actress ranking from D1 (fresh names) overwrites the local-DB ranking to avoid stale-name artifacts
 "%NODE%" "%PROJECT_DIR%\scripts\build_actress_ranking_d1.js" >> "%LOG_FILE%" 2>&1

@@ -353,10 +353,70 @@ export async function GET(request: NextRequest) {
         return NextResponse.json([], { status: 503 });
     }
 
+    // 3文字未満の絞り込みは FTS5 の trigram トークナイザで索引できないので、従来は
+    // `actresses LIKE '%X%'` / `label LIKE '%X%'` の全表走査に落ちていた
+    // （2026-09-06 実測、直近10h: 女優 約93万行＝枠の19% / レーベル 約81万行＝10%）。
+    // scripts/build_short_name_index.mjs が焼いた静的インデックスで肩代わりする。
+    type ShortNameIndex = {
+        actress?: { fanza?: Record<string, string[]>; mgs?: Record<string, string[]> };
+        labels?: { fanza?: string[]; mgs?: string[] };
+    };
+    let shortNameIndex: ShortNameIndex | null = null;
+    const needsShortIndex = [...actressGroups.flat(), ...profileActresses].some(n => [...n].length < 3)
+        || (!!label && [...label].length < 3);
+    if (needsShortIndex) {
+        try { shortNameIndex = await readStaticCache<ShortNameIndex>('short_name_index.json'); }
+        catch { shortNameIndex = null; }
+    }
+
     // FTS5 special char エスケープ
     function esc5(s: string): string { return s.replace(/"/g, '""'); }
     // FTS5 サブクエリ（?にMATCH文字列をバインド）
     const FTS_IN = `product_id IN (SELECT product_id FROM products_fts WHERE products_fts MATCH ?)`;
+
+    // 文字列の「次」（末尾コードポイントを+1）。前方一致 LIKE 'x%' と同じ集合を
+    // `col >= 'x' AND col < next('x')` の範囲比較で表すために使う。
+    // LIKE は既定で大小無視なのでインデックスが効かないが、範囲比較は効く。
+    function nextStr(s: string): string | null {
+        const cp = s.codePointAt(s.length - 1);
+        if (cp === undefined || cp >= 0x10ffff) return null;
+        const head = s.slice(0, s.length - String.fromCodePoint(cp).length);
+        return head + String.fromCodePoint(cp + 1);
+    }
+
+    // q から product_id の前方一致範囲を作る。
+    // FANZA の品番は小文字英数字（例 ssis00123）、MGS は大文字＋数字（例 259LUXU-1875 / SIRO-5716）。
+    // 記号（'-' など）の手前までを接頭辞にする。2文字未満は絞り込みにならないので使わない。
+    function idPrefixRange(raw: string, isMgs: boolean): [string, string] | null {
+        const m = raw.match(/^[A-Za-z0-9]+/);
+        if (!m) return null;
+        const pfx = isMgs ? m[0].toUpperCase() : m[0].toLowerCase();
+        if (pfx.length < 2) return null;
+        const hi = nextStr(pfx);
+        return hi ? [pfx, hi] : null;
+    }
+
+    // 「ssis-123」「SSIS 123」のような入力を FANZA の正準品番 ssis00123 に正規化する。
+    // FANZA は数字部を5桁ゼロ詰めで格納しているため、従来の LIKE '%ssis-123%' では
+    // **1件も当たらなかった**（この正規化で品番検索がむしろ改善する）。
+    function canonicalFanzaId(raw: string): string | null {
+        const m = raw.match(/^([A-Za-z]+)[-_ ]?(\d{1,5})$/);
+        if (!m) return null;
+        return m[1].toLowerCase() + m[2].padStart(5, '0');
+    }
+
+    // 短名（3文字未満）女優の条件を作る。静的インデックスに載っていれば主キーの IN 引きに、
+    // 載っていなければ従来どおり LIKE の全走査に落とす（新人など索引生成後に増えた名前の保険）。
+    function shortActressCond(name: string, isMgs: boolean): { sql: string; args: string[] } {
+        const ids = shortNameIndex?.actress?.[isMgs ? 'mgs' : 'fanza']?.[name];
+        if (ids && ids.length > 0) {
+            // ids は自前の静的ファイル由来。D1 のバインド変数は1文あたり100個までで
+            // 数百件の IN には使えないため、英数字・ハイフン・アンダースコアだけに限って直接埋め込む。
+            const safe = ids.filter(id => /^[A-Za-z0-9_-]+$/.test(id)).map(id => `'${id}'`);
+            if (safe.length > 0) return { sql: `product_id IN (${safe.join(',')})`, args: [] };
+        }
+        return { sql: 'actresses LIKE ?', args: [`%${name}%`] };
+    }
 
     // 共通SQL条件ビルダー
     function buildConditions(isMgs: boolean) {
@@ -373,13 +433,39 @@ export async function GET(request: NextRequest) {
             // （2026-09-05 の日次枠オーバーの約3割）。OR を外すと
             //   SEARCH products USING INDEX sqlite_autoindex_products_1 (product_id=?)
             // ＝ FTS の一致件数ぶんの点引きになり、実測分布(中央値 約1,000件/シャード)では
-            // 2,000行程度で済む。英数字クエリ(品番検索)のときだけ従来どおり OR を残す。
+            // 2,000行程度で済む。
+            //
+            // 英数字クエリ(品番検索)でも `OR product_id LIKE '%q%'` は同じ罠を踏む
+            // （2026-09-06 実測: FANZA 2シャードで 1検索 約82,000行 × 20回 = 1.65M行 = その日の20%）。
+            // LIKE を **前方一致の範囲比較** に置き換えると、EXPLAIN QUERY PLAN が
+            //   MULTI-INDEX OR
+            //     INDEX 1: SEARCH products USING INDEX sqlite_autoindex_products_1 (product_id=?)
+            //     INDEX 2: SEARCH products USING INDEX sqlite_autoindex_products_1 (product_id>? AND product_id<?)
+            // になり、主キーの点引き＋狭い範囲引きだけで済む（実測で確認済み）。
+            // MGS は品番の先頭に数字プレフィクス（259LUXU-1875 の "259"）が付く形があり、
+            // 前方一致では「LUXU-1875」を拾えなくなるので LIKE を残す。ただし
+            // 品番らしい入力（英字と数字が混じる）に限定して、一般語の検索では走査しない。
             const qIsAscii = /^[\x20-\x7E]+$/.test(q);
+            const qLooksLikeId = /^[A-Za-z0-9][A-Za-z0-9_-]{2,}$/.test(q) && /[A-Za-z]/.test(q) && /\d/.test(q);
             if (q.length >= 3) {
                 const qMatch = `{title actresses} : "${esc5(q)}"`;
-                if (qIsAscii) {
-                    conditions.push(`(${FTS_IN} OR product_id LIKE ?)`);
-                    args.push(qMatch, `%${q}%`);
+                if (qIsAscii && isMgs) {
+                    if (qLooksLikeId) {
+                        conditions.push(`(${FTS_IN} OR product_id LIKE ?)`);
+                        args.push(qMatch, `%${q}%`);
+                    } else {
+                        conditions.push(`(${FTS_IN})`);
+                        args.push(qMatch);
+                    }
+                } else if (qIsAscii) {
+                    const range = idPrefixRange(q, false);
+                    const canon = canonicalFanzaId(q);
+                    const idConds: string[] = [];
+                    const idArgs: string[] = [];
+                    if (range) { idConds.push('(product_id >= ? AND product_id < ?)'); idArgs.push(range[0], range[1]); }
+                    if (canon) { idConds.push('product_id = ?'); idArgs.push(canon); }
+                    conditions.push(`(${[FTS_IN, ...idConds].join(' OR ')})`);
+                    args.push(qMatch, ...idArgs);
                 } else {
                     conditions.push(`(${FTS_IN})`);
                     args.push(qMatch);
@@ -427,8 +513,19 @@ export async function GET(request: NextRequest) {
                 conditions.push(FTS_IN);
                 args.push(`label : "${esc5(label)}"`);
             } else {
-                conditions.push('label LIKE ?');
-                args.push(`%${label}%`);
+                // 2文字以下は FTS で引けないので LIKE の全表走査になる（1回 約7万行）。
+                // 高いのは「どのレーベルにも一致しない」疎なクエリなので、静的なレーベル一覧に
+                // 1件も含むものが無ければ走査せず 0 件で返す。1件でも含めば従来どおり LIKE
+                // （一致が密なので ORDER BY + LIMIT で早く止まる）。
+                // 一覧はローカルSQLite由来でD1より件数が少ないため、ごく新しいレーベルは
+                // 取りこぼしうる（その2文字検索が翌日の再生成まで0件になる）。
+                const known = shortNameIndex?.labels?.[isMgs ? 'mgs' : 'fanza'];
+                if (known && known.length > 0 && !known.some(l => l.includes(label))) {
+                    conditions.push('0=1');
+                } else {
+                    conditions.push('label LIKE ?');
+                    args.push(`%${label}%`);
+                }
             }
         }
         if (excludeGenres) {
@@ -453,8 +550,9 @@ export async function GET(request: NextRequest) {
                 args.push(`actresses : (${escaped})`);
             }
             shortActresses.forEach(a => {
-                actSubConds.push('actresses LIKE ?');
-                args.push(`%${a}%`);
+                const c = shortActressCond(a, isMgs);
+                actSubConds.push(c.sql);
+                args.push(...c.args);
             });
             if (actSubConds.length > 0) conditions.push(`(${actSubConds.join(' OR ')})`);
         }
@@ -468,8 +566,9 @@ export async function GET(request: NextRequest) {
                 args.push(`actresses : (${escaped})`);
             }
             shortProfiles.forEach(a => {
-                profSubConds.push('actresses LIKE ?');
-                args.push(`%${a}%`);
+                const c = shortActressCond(a, isMgs);
+                profSubConds.push(c.sql);
+                args.push(...c.args);
             });
             if (profSubConds.length > 0) conditions.push(`(${profSubConds.join(' OR ')})`);
         }

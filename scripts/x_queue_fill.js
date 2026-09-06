@@ -13,8 +13,41 @@ require('dotenv').config({ path: './site/.env.local' });
 const fs = require('fs');
 const path = require('path');
 const { d1, fanzaShards } = require('./lib/d1');
+const { openLocal } = require('./lib/localsqlite.cjs');
+
+// ============================================================
+//  候補選定は **ローカル SQLite** から行う（2026-09-06）
+//
+//  以前は候補SELECTを直接D1へ投げていたが、各ソースが
+//    genres LIKE '%...%' / floor='videoc' / actresses LIKE '%,%' + ORDER BY RANDOM()
+//  というカタログ全走査で、1クエリあたり約6万行（FANZAは2シャードなので×2）。
+//  本スクリプトは投稿実行のたび(sns_x_browser.bat)＋日次(sns_daily.bat)で
+//  1日6〜7回走るため、実測で **D1日次読取枠500万行の約8割** をこれ1本で食っていた
+//  （2026-09-06 の10h窓で 3.9M行 = 全体の47%）。
+//
+//  候補選定に必要なのはカタログの静的な属性（メーカー/ジャンル/女優/収録時間）だけで、
+//  ローカルのマスターSQLiteに全部ある。→ D1読取は 0 行にできる。
+//  D1は x_post_decisions(site) の読み書きと、FANZA候補の存在確認だけに使う。
+//
+//  ローカルDBが無い環境（CI等）では従来どおりD1へフォールバックする。
+// ============================================================
+const LOCAL_DB = {
+    fanza: path.join(__dirname, '..', 'data', 'fanza.db'),
+    mgs: path.join(__dirname, '..', 'data', 'mgs.db'),
+};
+const _localCache = {};
+function localClient(which) {
+    if (which in _localCache) return _localCache[which];
+    let c = null;
+    try { if (fs.existsSync(LOCAL_DB[which])) c = openLocal(LOCAL_DB[which]); }
+    catch (e) { console.warn(`  ローカル${which}DBを開けません(${e.message})`); }
+    if (!c) console.warn(`  ローカル${which}DBが無い → D1へフォールバック(読取枠を消費します)`);
+    _localCache[which] = c;
+    return c;
+}
 
 const PER = parseInt((process.argv.find(a => a.startsWith('--per')) || '').split(/[=\s]/)[1] || '2', 10) || 2;
+const DRY = process.argv.includes('--dry-run'); // 選定だけ行い x_post_decisions には書かない
 const today = new Date().toISOString().slice(0, 10);
 const ago = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 
@@ -73,7 +106,8 @@ const GENRES = [
           order: `ORDER BY REPLACE(sale_start_date,'/','-') DESC, RANDOM()`, whereArgs: () => [], limit: PER * 8 },
         // 不足分はFANZA特定メーカーの新作でカバー
         { platform: 'fanza', where: `actresses IS NOT NULL AND TRIM(actresses)<>'' AND sale_start_date >= ?`,
-          order: `ORDER BY sale_start_date DESC, RANDOM()`, whereArgs: () => [ago(90)], limit: PER * 8 },
+          order: `ORDER BY sale_start_date DESC, RANDOM()`, whereArgs: () => [ago(90)], limit: PER * 8,
+          fresh: freshFanzaNew },
     ] },
     { genre: 'sale', sources: [
         { platform: 'fanza', where: `COALESCE(discount_pct,0) >= 30 AND actresses IS NOT NULL AND TRIM(actresses)<>''`,
@@ -109,27 +143,71 @@ const GENRES = [
     ] },
 ];
 
+// D1 に実在する product_id か（主キー1点引き = 1行読取）。
+// 存在確認の結果はrun中キャッシュする。D1が落ちている場合は「確認できない＝通す」にはせず、
+// エラー時のみ true を返して従来どおり投入する（投稿側が改めて商品を引くので実害は投稿1件のスキップ）。
+const _existsCache = new Map();
+async function existsInD1(pid, isMgs) {
+    if (_existsCache.has(pid)) return _existsCache.get(pid);
+    let ok = true;
+    try {
+        const client = isMgs ? d1('mgs') : fanzaShards();
+        const r = await client.execute({ sql: `SELECT product_id FROM products WHERE product_id = ? LIMIT 1`, args: [pid] });
+        ok = r.rows.length > 0;
+    } catch (e) { ok = true; /* D1不調時は従来動作 */ }
+    _existsCache.set(pid, ok);
+    return ok;
+}
+
+// ローカル fanza.db は日次FANZA取り込みが遅れると数週間古くなる（2026-09-06 実測で最新配信日 2026-08-02）。
+// 'new' ジャンルだけは鮮度が意味を持つので、毎日再生成される静的キャッシュから
+// 「特定メーカーのFANZA新作」を先頭に足す。D1は読まない。
+function freshFanzaNew() {
+    let items = [];
+    try { items = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'site', 'data', 'products_new_cache.json'), 'utf-8')); }
+    catch { return []; }
+    if (!Array.isArray(items)) return [];
+    const since = ago(90);
+    const badTitle = /総集編|アンソロジー|オムニバス|ベスト|BEST|コレクション|VR/i;
+    return items.filter(it => {
+        if ((it.source || '') !== 'fanza') return false;
+        if (!it.product_id || !it.actresses || !String(it.actresses).trim()) return false;
+        const d = String(it.sale_start_date || '').split('/').join('-').slice(0, 10);
+        if (!d || d < since) return false;
+        const t = String(it.title || '');
+        if (badTitle.test(t)) return false;
+        if (/vr/i.test(String(it.product_id))) return false;
+        if (badTitle.test(String(it.genres || ''))) return false;
+        // 出演5人以上（アンソロジー相当）は除外
+        if (String(it.actresses).split(',').length >= 5) return false;
+        // ホーム掲載の特定メーカーだけ（静的キャッシュに label は無いので maker のみで判定）
+        const mk = String(it.maker || '');
+        return HOME_MAKERS.some(([type, v]) => type === 'exact' ? mk === v : mk.includes(v));
+    }).map(it => ({ product_id: it.product_id }));
+}
+
 (async () => {
     const site = d1('site');
-    // 既にキューにある product_id（再登録回避）
-    const existing = new Set();
-    for (let off = 0; ; off += 5000) {
-        const r = await site.execute({ sql: `SELECT product_id FROM x_post_decisions LIMIT 5000 OFFSET ?`, args: [off] });
-        r.rows.forEach(x => existing.add(String(x.product_id)));
-        if (r.rows.length < 5000) break;
-    }
-    console.log('既存キュー:', existing.size, '件 / 特定メーカー', HOME_MAKERS.length, 'ブランド・MGSは独占のみ');
+    // 既にキューに居る作品は INSERT OR IGNORE が弾く（product_id が UNIQUE）ので、
+    // 以前やっていた x_post_decisions の全ダンプ（LIMIT 5000 OFFSET を回す）は不要。
+    // 全ダンプはキュー件数ぶんの行読取を毎回発生させていた（実測 1日あたり約7万行）。
+    // 実際に入ったかは rowsAffected===0 で判定し、同一run内の重複選定は seen で防ぐ。
+    const seen = new Set();
+    console.log('キュー充填開始: 特定メーカー', HOME_MAKERS.length, 'ブランド・MGSは独占のみ');
 
     let added = 0;
+    let quotaOut = false;
     for (const g of GENRES) {
+        if (quotaOut) break;
         let n = 0;
         // ソースは順番に消化して n>=PER で打ち切るため、先頭プラットフォームが枠を全部食うと
         // 2番目(多くはMGS)が毎回0件になる。まず各ソースに均等枠を配り、余ったら2周目で埋める。
         const share = Math.ceil(PER / g.sources.length);
         const perSource = new Map();
         for (const pass of [1, 2]) {
+        if (quotaOut) break;
         for (const src of g.sources) {
-            if (n >= PER) break;
+            if (n >= PER || quotaOut) break;
             // 1周目は均等枠まで、2周目は残り全部(片方が枯渇していても総数PERは満たす)
             const cap = pass === 1 ? Math.min(PER, (perSource.get(src) ?? 0) + share) : PER;
             if ((perSource.get(src) ?? 0) >= cap) continue;
@@ -139,7 +217,8 @@ const GENRES = [
             const skipMaker = g.genre === 'anon' || g.genre === 'vr';
             const makerCond = skipMaker ? '1=1' : (isMgs ? MGS_MAKER_COND : FZ_MAKER_COND);
             const makerArgs = skipMaker ? [] : (isMgs ? MGS_MAKER_ARGS : FZ_MAKER_ARGS);
-            const client = isMgs ? d1('mgs') : fanzaShards();
+            // 候補選定はローカルSQLite優先（D1読取0行）。無い環境だけD1へ落ちる。
+            const client = localClient(src.platform) || (isMgs ? d1('mgs') : fanzaShards());
             // 配信5年以内に限定(MGSは '/' を '-' に正規化して比較)
             const dateCol = isMgs ? `REPLACE(sale_start_date,'/','-')` : `sale_start_date`;
             const dateCond = `${dateCol} >= ?`;
@@ -151,16 +230,38 @@ const GENRES = [
             let rows = [];
             try { rows = (await client.execute({ sql, args })).rows; }
             catch (e) { console.warn(`  ${g.genre}(${src.platform}) 選定エラー:`, e.message); continue; }
+            // 鮮度が要るソースは静的キャッシュ由来の新作を先に消化する
+            if (src.fresh) rows = [...src.fresh(), ...rows];
             for (const row of rows) {
                 if (n >= PER || (perSource.get(src) ?? 0) >= cap) break;
                 const pid = String(row.product_id);
-                if (existing.has(pid)) continue;
+                if (seen.has(pid)) continue;
+                seen.add(pid);
                 if (isMgs && crossMap[pid]) continue; // FANZAに対作品あり=独占ではない→MGSは除外
-                await site.execute({
-                    sql: `INSERT OR IGNORE INTO x_post_decisions (product_id, decision, new_genre, post_type, decided_at) VALUES (?, 'approve', ?, 'package', datetime('now'))`,
-                    args: [pid, g.genre],
-                });
-                existing.add(pid); added++; n++;
+                // ローカルDB由来の候補は D1 に無いことがある
+                // （FANZA videoc の MGS重複3,176件は D1 からだけ削除済み／取り込み差分）。
+                // 投稿先の商品ページは D1 が供給元なので、入れる前に主キー1点引きで確認する（1行読取）。
+                if (!(await existsInD1(pid, isMgs))) continue;
+                if (DRY) { added++; n++; perSource.set(src, (perSource.get(src) ?? 0) + 1); console.log(`  ? [${g.genre}/${src.platform}] ${pid}`); continue; }
+                // 枠切れ中は INSERT も UNIQUE 索引を読むので落ちる。1件ずつ握って
+                // 「今日はもう入らない」と分かった時点で静かに終わる（以前は例外で異常終了していた）。
+                let ins;
+                try {
+                    ins = await site.execute({
+                        sql: `INSERT OR IGNORE INTO x_post_decisions (product_id, decision, new_genre, post_type, decided_at) VALUES (?, 'approve', ?, 'package', datetime('now'))`,
+                        args: [pid, g.genre],
+                    });
+                } catch (e) {
+                    if (/daily row read limit|exceeded/i.test(e.message)) {
+                        console.warn('  D1の日次枠が切れているためキュー投入を中断（枠はUTC0時＝JST9:00にリセット）');
+                        quotaOut = true;
+                        break;
+                    }
+                    console.warn(`  ${pid} 投入エラー:`, e.message);
+                    continue;
+                }
+                if (!ins.rowsAffected) continue; // 既にキュー済み＝新規追加ではない
+                added++; n++;
                 perSource.set(src, (perSource.get(src) ?? 0) + 1);
                 console.log(`  + [${g.genre}/${src.platform}] ${pid}`);
             }

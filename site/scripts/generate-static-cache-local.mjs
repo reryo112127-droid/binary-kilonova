@@ -142,6 +142,18 @@ const bestArgs  = BEST;
 const today = new Date().toISOString().slice(0, 10);
 const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
+// FANZA の sale_start_date は 'YYYY-MM-DD HH:MM:SS'。日付比較に SUBSTR(...,1,10) を使うと
+// **idx_sale_start が一切効かなくなる**（route.ts で 2026-09-05 に同じ罠を潰したが、
+//  この生成スクリプトには残っていて、2026-09-06 実測で予約2クエリ × 2シャード = 約54万行/日を読んでいた）。
+// 生の列のまま「翌日未満 / 翌日以上」で比較すれば意味は同じでインデックスが効く:
+//   SUBSTR(d,1,10) >  X  ⟺  d >= 翌日(X)
+//   SUBSTR(d,1,10) <= X  ⟺  d <  翌日(X)
+//   SUBSTR(d,1,10) >= X  ⟺  d >= X
+// NULL はどちらの形でも比較結果が NULL＝除外されるので挙動は変わらない。
+// MGS は 'YYYY/MM/DD' で REPLACE 式そのものに関数インデックスがあるため REPLACE のままでよい。
+const nextDay = (d) => new Date(Date.parse(d + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10);
+const tomorrow = nextDay(today);
+
 // ── ホーム画面掲載メーカーリスト ────────────────────────────────────
 // ['exact'|'like', value]  ※ generate-static-cache.mjs / route.ts と同一定義を維持
 const HOME_MAKERS = [
@@ -204,11 +216,11 @@ async function genNewProducts() {
                          ${FANZA_EXT}
                   FROM products
                   WHERE sale_start_date IS NOT NULL
-                    AND SUBSTR(sale_start_date,1,10) >= ?
-                    AND SUBSTR(sale_start_date,1,10) <= ?
+                    AND sale_start_date >= ?
+                    AND sale_start_date < ?
                     AND ${bestConds}
                   ORDER BY sale_start_date DESC LIMIT 300`,
-            args: [twoWeeksAgo, today, ...bestArgs],
+            args: [twoWeeksAgo, tomorrow, ...bestArgs],
         }).then(r => sortAndCap(r.rows, dateKey, 300)).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
     console.log(`[新着作品] MGS ${mgsRows.length}件 / FANZA ${fanzaRows.length}件（FANZA最新: ${fanzaRows[0] ? dateKey(fanzaRows[0]) : 'なし'}）`);
@@ -499,10 +511,10 @@ async function genPreorderProducts() {
             sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
                          ${FANZA_EXT_VR}
                   FROM products
-                  WHERE SUBSTR(sale_start_date,1,10) > ?
+                  WHERE sale_start_date >= ?
                     AND ${bestConds}
-                  ORDER BY SUBSTR(sale_start_date,1,10) DESC LIMIT 300`,
-            args: [today, ...bestArgs],
+                  ORDER BY sale_start_date DESC LIMIT 300`,
+            args: [tomorrow, ...bestArgs],
         }).then(r => sortAndCap(r.rows, dateKey, 300)).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 
@@ -536,11 +548,11 @@ async function genHomePreorderCurated() {
             sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count, genres, maker, sale_start_date,
                          ${FANZA_EXT_VR}
                   FROM products
-                  WHERE SUBSTR(sale_start_date,1,10) > ?
+                  WHERE sale_start_date >= ?
                     AND (${fanzaMakerCond})
                     AND ${bestConds}
-                  ORDER BY SUBSTR(sale_start_date,1,10) DESC LIMIT 60`,
-            args: [today, ...fanzaMakerArgs, ...bestArgs],
+                  ORDER BY sale_start_date DESC LIMIT 60`,
+            args: [tomorrow, ...fanzaMakerArgs, ...bestArgs],
         }).then(r => sortAndCap(r.rows, dateKey, 60)).catch(e => { console.error('FANZA error:', e.message); return []; }),
     ]);
 

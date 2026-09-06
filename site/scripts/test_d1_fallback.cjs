@@ -190,6 +190,39 @@ B.resetD1Breaker();
     ok(one.length > 0 && one.every(c => c.product_id && c.title !== undefined), `LPカードに product_id と title がある (${genres[0].name}: ${one.length}件)`);
     ok((await L.readLpCards('genre', '存在しないジャンルZZZ')) === null, '未収録スラッグは null（D1へ落とす）');
   }
+
+  // ---- 短名女優インデックス（scripts/build_short_actress_index.mjs） ----
+  // /api/products は3文字未満の女優名をこのインデックスの product_id IN 引きに置き換える。
+  // 落ちると actresses LIKE '%X%' の全表走査に戻る（1回 約13万行）。
+  {
+    const p = pathx.join(__dirname, '..', 'public', 'data', 'short_name_index.json');
+    if (fsx.existsSync(p)) {
+      const idx = JSON.parse(fsx.readFileSync(p, 'utf8'));
+      ok(idx && idx.actress && idx.labels, '短名インデックスに actress と labels がある');
+      const names = [...Object.keys((idx.actress||{}).fanza || {}), ...Object.keys((idx.actress||{}).mgs || {})];
+      ok(names.length > 0, `短名女優インデックスが空でない (${names.length}名)`);
+      ok(names.every(n => [...n].length < 3), '収録名はすべて3文字未満（3文字以上はFTSで引くので入れない）');
+      // **ids は SQL に直接埋め込まれる**ので、英数字・ハイフン・アンダースコア以外が
+      // 混ざっていないことをここで担保する（混ざったらランタイムが黙って除外し、
+      // その女優の作品が検索から消える）。
+      const ids = [...Object.values((idx.actress||{}).fanza || {}), ...Object.values((idx.actress||{}).mgs || {})].flat();
+      const badIds = ids.filter(id => !/^[A-Za-z0-9_-]+$/.test(id));
+      ok(badIds.length === 0,
+        `品番はSQL埋め込み可能な文字だけ (${ids.length}件)` +
+        (badIds.length ? `（不正: ${badIds.slice(0, 3).join(', ')}…計${badIds.length}）` : ''));
+
+      // レーベル一覧は「2文字レーベル検索を走査せず0件で返す」判定に使う。
+      // 空だと全部0件になってしまうので、件数と実在レーベルの収録を確認する。
+      const labs = [...(idx.labels.fanza || []), ...(idx.labels.mgs || [])];
+      ok(labs.length > 100, `レーベル一覧が十分ある (${labs.length}件)`);
+      const db = new (require('better-sqlite3'))(pathx.join(__dirname, '..', '..', 'data', 'fanza.db'), { readonly: true });
+      const sample = db.prepare("SELECT label, COUNT(*) c FROM products WHERE label IS NOT NULL AND TRIM(label)<>'' GROUP BY label ORDER BY c DESC LIMIT 20").all();
+      db.close();
+      const uncovered = sample.map(r => String(r.label).trim()).filter(l => !idx.labels.fanza.includes(l));
+      ok(uncovered.length === 0,
+        `主要レーベル20件が一覧に載っている` + (uncovered.length ? `（未収録: ${uncovered.slice(0, 3).join(', ')}）` : ''));
+    }
+  }
   console.log(fail === 0 ? '\nALL PASS' : `\n${fail} FAILED`);
   process.exit(fail ? 1 : 0);
 })();
