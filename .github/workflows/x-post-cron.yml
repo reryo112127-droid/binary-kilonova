@@ -1,9 +1,16 @@
 name: X Auto Post
 
+# 2026-09-06: 自動実行を停止し、手動(workflow_dispatch)専用にした。
+#
+# X への投稿経路は2つあり、両方が2時間おきに回っていた:
+#   - PC   : タスク「SNS X Browser Post」→ x_browser_post.js (Playwright + Cookie)
+#   - ここ : X API 経由の /api/admin/x-post/execute
+# 実際に投稿できているのは PC 側で、X API はクレジット枯渇で投稿できないことが多い。
+# 二重に回すと重複投稿と「どちらの経路で出たか分からない」状態を生むので PC に一本化した。
+# PC が長期に落ちるときは workflow_dispatch でこちらを手動起動すれば代替できる。
+#   旧設定: - cron: '0 */2 * * *'   # 2時間おき（12回/日 = 360件/月、無料枠500件の72%）
 on:
-  schedule:
-    - cron: '0 */2 * * *'  # 2時間おき（12回/日 = 360件/月、無料枠500件の72%）
-  workflow_dispatch:         # 手動実行も可能
+  workflow_dispatch:         # 手動実行のみ
 
 jobs:
   post:

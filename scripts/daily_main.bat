@@ -80,6 +80,28 @@ REM FANZA人気順(rank)スコアを収集(ランキング両PF公平化のB成�
 echo [3c/6] FANZA popularity (slow): %time% >> "%LOG_FILE%"
 "%NODE%" "%PROJECT_DIR%\scripts\build_fanza_popularity.js" >> "%LOG_FILE%" 2>&1
 echo [3c/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
+REM === [3c2] FANZA new works -> LOCAL data/fanza.db (D1 is GitHub Actions' job) ===
+REM The local FANZA catalog is the source for the LP cache, the product shards and the
+REM X post queue selection. It had drifted a month behind (newest release 2026-08-02 on
+REM 2026-09-06) because the only task that refreshed it ("MGS Daily Update", which really
+REM ran daily_fanza.bat) failed with 0xFF and was left disabled since 2026-06-05.
+REM --no-d1 keeps this strictly local: D1 is updated by .github/workflows/daily-update.yml
+REM at 9:10 JST, and doing it twice would burn the D1 write quota (and the read quota via
+REM the price scan). --no-price for the same reason; prices on the site come from D1.
+REM --from covers the last 10 days so a few missed days heal themselves instead of
+REM leaving a permanent hole (the default window is "tomorrow onward" = preorders only).
+echo [3c2/6] FANZA new works -^> local DB: %time% >> "%LOG_FILE%"
+REM NOTE: do NOT put single quotes inside the `for /f 'command'` block -- cmd mangles them
+REM and PowerShell then fails to parse (verified: .ToString('yyyy-MM-dd') yields an empty
+REM variable). Use `Get-Date -Format <fmt> -Date <expr>`, which needs no quotes at all.
+for /f %%F in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd -Date (Get-Date).AddDays(-10)"') do set FANZA_FROM=%%F
+for /f %%T in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd -Date (Get-Date).AddMonths(2)"') do set FANZA_TO=%%T
+if "%FANZA_FROM%"=="" echo [3c2/6] SKIP: date resolution failed >> "%LOG_FILE%"
+if "%FANZA_FROM%"=="" goto :skip_fanza_local
+"%NODE%" "%PROJECT_DIR%\scripts\fanza_daily_update.js" --from %FANZA_FROM% --to %FANZA_TO% --no-price --no-d1 >> "%LOG_FILE%" 2>&1
+echo [3c2/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
+:skip_fanza_local
+
 REM === [3d] Pull actresses filled in D1 back into the local SQLite ===
 REM AVWIKI/seesaawiki backfills update D1 ONLY, so the local DB drifts behind
 REM (first sync found 68,239 rows where D1 had a cast but the local DB was empty).

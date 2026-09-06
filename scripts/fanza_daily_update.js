@@ -12,6 +12,15 @@
  *   node scripts/fanza_daily_update.js --no-price   # 価格更新スキップ
  *   node scripts/fanza_daily_update.js --years 3    # 価格更新を直近3年に拡大
  *   node scripts/fanza_daily_update.js --dry-run    # 件数確認のみ（DB書き込みなし）
+ *   node scripts/fanza_daily_update.js --no-d1      # ローカル data/fanza.db だけ更新（D1に触らない）
+ *   node scripts/fanza_daily_update.js --from 2026-08-01 --to 2026-09-06
+ *                                                   # 取得期間を明示（取り込みが止まった期間の穴埋め）
+ *
+ * 役割分担（2026-09-06 時点）:
+ *   - D1(本番カタログ) の更新 … GitHub Actions `daily-update.yml` が 9:10 JST に実行。
+ *   - ローカル data/fanza.db の更新 … PC の daily_main.bat が `--no-d1 --no-price` で実行。
+ *     ローカルDBは LPキャッシュ/商品シャード/X投稿の候補選定の供給元なので、
+ *     古いままだとサイトの静的部分が過去のカタログで焼かれる。
  */
 
 const path = require('path');
@@ -23,7 +32,15 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 // Turso 廃止: FANZAカタログ書き込みは Cloudflare D1 の2シャードへ（ハッシュ振り分け）。
 // 必要 env: CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_D1_TOKEN / D1_FANZA_0_ID / D1_FANZA_1_ID
-const hasD1 = !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_TOKEN
+//
+// `--no-d1`: D1 を一切触らない「ローカルDB専用」モード（2026-09-06 追加）。
+//   D1 の更新は GitHub Actions の daily-update.yml が 9:10 JST に担当している。
+//   PC側で同じことをすると **D1 の書込枠(10万行/日)を二重に使い、価格スキャンで読取枠も食う**。
+//   PC側で必要なのは `data/fanza.db` を新作に追いつかせることだけなので、そこだけやる。
+//   （ローカルDBは LPキャッシュ・商品シャード・X投稿の候補選定の供給元。
+//     これが古いとサイトの静的部分が1ヶ月前のカタログで焼かれる）
+const NO_D1 = process.argv.includes('--no-d1');
+const hasD1 = !NO_D1 && !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_D1_TOKEN
     && process.env.D1_FANZA_0_ID && process.env.D1_FANZA_1_ID);
 const fanzaDb = () => fanzaShards();  // スマートシャードクライアント（execute/batch互換）
 
@@ -63,6 +80,21 @@ const PRICE_SCAN_YEARS = yearsArg !== -1 ? parseInt(args[yearsArg + 1], 10) : PR
 const DRY_RUN      = args.includes('--dry-run');
 const NO_PRICE     = args.includes('--no-price');
 const NO_PREORDER  = args.includes('--no-preorder');
+
+// 取得期間の明示指定（2026-09-06 追加）。既定は「明日 〜 MONTHS_AHEAD ヶ月先」＝予約作品だけなので、
+// 取り込みが止まっていた期間の**既発売作品は永久に埋まらない**（ローカルDBが 2026-08-02 で
+// 止まっていたのがこれ）。`--from` を過去日にすると、その期間をまとめて取り直せる。
+//   node scripts/fanza_daily_update.js --from 2026-08-01 --no-price --no-d1
+const fromArg = args.indexOf('--from');
+const toArg   = args.indexOf('--to');
+const FROM_DATE = fromArg !== -1 ? args[fromArg + 1] : null;
+const TO_DATE   = toArg   !== -1 ? args[toArg + 1]   : null;
+for (const [flag, v] of [['--from', FROM_DATE], ['--to', TO_DATE]]) {
+    if (v !== null && !/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+        console.error(`❌ ${flag} は YYYY-MM-DD 形式で指定してください: ${v}`);
+        process.exit(1);
+    }
+}
 
 // ---- ユーティリティ ----
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -406,13 +438,15 @@ async function main() {
     tomorrow.setDate(today.getDate() + 1);
     const futureEnd = new Date(today);
     futureEnd.setMonth(today.getMonth() + MONTHS_AHEAD);
-    const gteDateStr = formatDate(tomorrow);
-    const lteDateStr = formatDate(futureEnd);
+    const gteDateStr = FROM_DATE || formatDate(tomorrow);
+    const lteDateStr = TO_DATE   || formatDate(futureEnd);
 
     console.log('========================================');
     console.log('  FANZA 日次アップデート');
     console.log('========================================');
-    console.log(`  予約商品期間: ${gteDateStr} 〜 ${lteDateStr} (${MONTHS_AHEAD}ヶ月先まで)`);
+    console.log(`  取得期間: ${gteDateStr} 〜 ${lteDateStr}`
+        + (FROM_DATE || TO_DATE ? ' [明示指定]' : ` (${MONTHS_AHEAD}ヶ月先までの予約作品)`));
+    if (NO_D1) console.log('  D1: 触らない [--no-d1] — 更新は GitHub Actions 側の担当');
     console.log(`  価格更新: 直近${PRICE_SCAN_YEARS}年 (cid[]差分方式)${NO_PRICE ? ' [スキップ]' : ''}`);
     if (NO_PREORDER) console.log('  予約商品取得: [スキップ]');
     if (DRY_RUN) console.log('  [DRY RUN] DB書き込みなし');
@@ -488,10 +522,18 @@ async function main() {
         const countBefore = localDb.prepare('SELECT COUNT(*) as cnt FROM products').get().cnt;
 
         // 新作 upsert
+        // **INSERT OR REPLACE を使ってはいけない**: 行を消して入れ直すため、allColumns に無い列
+        // （`sample_images_json` など、このスクリプトが取らない列）が既存行から消える。
+        // 通常の日次では対象が未来の新作＝新規行なので表面化しないが、
+        // `--from` で過去期間を取り直すと既存行のサンプル画像が全部飛ぶ（商品シャードの供給元）。
+        // → ON CONFLICT DO UPDATE にして、こちらが持っている列だけを上書きする。
         if (newItems.length > 0) {
             const cols = allColumns.join(', ');
             const vals = allColumns.map(c => `@${c}`).join(', ');
-            const insertStmt = localDb.prepare(`INSERT OR REPLACE INTO products (${cols}) VALUES (${vals})`);
+            const upd = allColumns.filter(c => c !== 'product_id').map(c => `${c} = excluded.${c}`).join(', ');
+            const insertStmt = localDb.prepare(
+                `INSERT INTO products (${cols}) VALUES (${vals})
+                 ON CONFLICT(product_id) DO UPDATE SET ${upd}`);
             const insertMany = localDb.transaction(rows => { for (const r of rows) insertStmt.run(r); });
             insertMany(newItems);
         }
@@ -749,7 +791,11 @@ async function main() {
     }
 
     // ---- サジェストキャッシュ再生成 ----
-    if (newCount > 0) {
+    // build_suggest_cache.js は D1 へ書き込むので、ローカル専用モードでは回さない
+    // （GitHub Actions 側の日次が担当する。--no-d1 で回すと D1 書込枠を二重に使う）。
+    if (newCount > 0 && NO_D1) {
+        console.log('\n[STEP 6] サジェストキャッシュ更新: スキップ [--no-d1]');
+    } else if (newCount > 0) {
         console.log('\n[STEP 6] サジェストキャッシュ更新...');
         try {
             execSync(`node ${path.join(__dirname, 'build_suggest_cache.js')}`, { stdio: 'inherit' });
