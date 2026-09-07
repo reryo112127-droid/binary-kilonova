@@ -362,11 +362,23 @@ export async function GET(request: NextRequest) {
         labels?: { fanza?: string[]; mgs?: string[] };
     };
     let shortNameIndex: ShortNameIndex | null = null;
+    // maker 絞り込みでも「実在するレーベル名か」の判定に labels を使う（下の maker 条件を参照）
+    const needsExactMakerCheck = !!maker && !exactMaker;
     const needsShortIndex = [...actressGroups.flat(), ...profileActresses].some(n => [...n].length < 3)
-        || (!!label && [...label].length < 3);
+        || (!!label && [...label].length < 3)
+        || needsExactMakerCheck;
     if (needsShortIndex) {
         try { shortNameIndex = await readStaticCache<ShortNameIndex>('short_name_index.json'); }
         catch { shortNameIndex = null; }
+    }
+
+    // カタログに実在するメーカー名の集合（makers_cache.json は週次CIが再生成する静的キャッシュ）
+    let knownMakerNames: Set<string> | null = null;
+    if (needsExactMakerCheck) {
+        try {
+            const makers = await readStaticCache<{ name: string }[]>('makers_cache.json');
+            if (Array.isArray(makers)) knownMakerNames = new Set(makers.map(m => m.name));
+        } catch { knownMakerNames = null; }
     }
 
     // FTS5 special char エスケープ
@@ -418,8 +430,74 @@ export async function GET(request: NextRequest) {
         return { sql: 'actresses LIKE ?', args: [`%${name}%`] };
     }
 
+    // ── q 検索の実行計画を「FTSの一致件数」で切り替える（2026-09-07）──────────────
+    //
+    // `product_id IN (FTSサブクエリ)` は **一致件数ぶんの点引き**になる。一致が少ない語では
+    // 最速だが、ありふれた語では一致が数万件になり、そのすべてを引いてから
+    // ORDER BY sale_start_date で並べて 20件返すことになる。
+    // 2026-09-07 実測: 1検索あたり FANZA 2シャードで 35,000〜50,000行 × 87回/6h = 3.94M行
+    // （その時間帯の55%）。検索は1日350回程度しかないのに読取枠の大半を食っていた。
+    //
+    // 逆に `(title LIKE ? OR actresses LIKE ?)` は idx_sale_start を新しい順に舐めて
+    // 20件そろった時点で止まる計画になるので、**一致が密な語ほど安い**（浅い走査で済む）。
+    // 疎な語では深く舐めるので高い ―― つまり2つの計画はちょうど逆の特性を持つ。
+    //
+    // そこで先に「一致が Q_PROBE_CAP 件を超えるか」だけを測り、
+    //   疎(≦2000件) → 一致IDを直接 IN に埋める（点引き。FTSサブクエリより更に安い）
+    //   密(>2000件) → LIKE に切り替えて日付順スキャンで早期打ち切りさせる
+    // と振り分ける。どちらもコストは概ね 2×Q_PROBE_CAP 行で頭打ちになる。
+    const Q_PROBE_CAP = 2000;
+    type QPlan = { kind: 'ids'; ids: string[] } | { kind: 'like' };
+    const qPlanCache = new Map<boolean, QPlan | null>();
+
+    // ── 2文字以下の q は配信日の下限を付けて走査距離を頭打ちにする（2026-09-07）────
+    //
+    // FTS5 の trigram トークナイザは **3文字未満を索引できない**ので、1〜2文字の q は
+    // `title LIKE '%q%' OR actresses LIKE '%q%'` になり、idx_sale_start を新しい順に舐めて
+    // 20件そろうまで進む計画になる。コストは語の「密度」に反比例する:
+    //   実測(ローカル27万件, LIMIT 21 換算): 痴女=831行 / 人妻=441 / 中出=172 … 安い
+    //                                       制服=1,897 / 紺野=3,877 / 看護=5,677 / 眼鏡=19,959 … 高い
+    // 2026-09-07 の本番では 1回 31,000〜57,000行 × 35回/6h = 1.45M行（その時間帯の20%）。
+    //
+    // 下限を付けても **よくある語の結果は変わらない**（新着順の先頭20件は下限より新しい）。
+    // 変わるのは「1年より古い作品しか無い珍しい2文字」だけで、そこが高コストの正体。
+    // 3文字以上は FTS が効くので対象外。
+    const SHORT_Q_FLOOR = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+    const shortQFloorCond = (isMgs: boolean) =>
+        isMgs ? "REPLACE(sale_start_date, '/', '-') >= ?" : 'sale_start_date >= ?';
+
+    async function planQ(
+        client: Awaited<ReturnType<typeof getMgsClient>>, isMgs: boolean,
+    ): Promise<QPlan | null> {
+        if (!q || q.length < 3 || !client) return null;
+        if (qPlanCache.has(isMgs)) return qPlanCache.get(isMgs) ?? null;
+        let plan: QPlan | null = null;
+        try {
+            const r = await client.execute({
+                sql: `SELECT product_id FROM products_fts WHERE products_fts MATCH ? LIMIT ${Q_PROBE_CAP + 1}`,
+                args: [`{title actresses} : "${esc5(q)}"`],
+            });
+            if (r.rows.length > Q_PROBE_CAP) {
+                // LIKE 側は「新しい順に舐めて LIMIT で止まる」ことで安くなる計画なので、
+                // **並びが配信日降順のときだけ**使う。人気順(wish_count)や割引率順では
+                // 早期打ち切りが効かず全件走査＋ソートになり、かえって高くつく。
+                plan = (sort === 'new' || sort === 'date_all') ? { kind: 'like' } : null;
+            } else {
+                // SQLへ直接埋め込むので、埋め込み可能な文字だけに限る（D1のバインドは1文100個まで）。
+                const ids = r.rows
+                    .map(row => String((row as Record<string, unknown>).product_id))
+                    .filter(id => /^[A-Za-z0-9_-]+$/.test(id));
+                plan = { kind: 'ids', ids };
+            }
+        } catch {
+            plan = null; // プローブが失敗したら従来どおり FTS サブクエリで引く
+        }
+        qPlanCache.set(isMgs, plan);
+        return plan;
+    }
+
     // 共通SQL条件ビルダー
-    function buildConditions(isMgs: boolean) {
+    function buildConditions(isMgs: boolean, qPlan: QPlan | null = null) {
         const conditions: string[] = [];
         const args: (string | number)[] = [];
 
@@ -449,33 +527,46 @@ export async function GET(request: NextRequest) {
             const qLooksLikeId = /^[A-Za-z0-9][A-Za-z0-9_-]{2,}$/.test(q) && /[A-Za-z]/.test(q) && /\d/.test(q);
             if (q.length >= 3) {
                 const qMatch = `{title actresses} : "${esc5(q)}"`;
+                // 本文一致の条件は planQ() の結果で作り分ける（上のコメント参照）。
+                // qPlan が無い（プローブ失敗・MGSクライアント不在など）ときは従来の FTS サブクエリ。
+                const textConds: string[] = [];
+                const textArgs: (string | number)[] = [];
+                if (qPlan?.kind === 'ids') {
+                    // 一致0件でも product_id の前方一致(品番検索)は残したいので、ここでは何も足さない
+                    if (qPlan.ids.length > 0) textConds.push(`product_id IN (${qPlan.ids.map(id => `'${id}'`).join(',')})`);
+                } else if (qPlan?.kind === 'like') {
+                    textConds.push('(title LIKE ? OR actresses LIKE ?)');
+                    textArgs.push(`%${q}%`, `%${q}%`);
+                } else {
+                    textConds.push(FTS_IN);
+                    textArgs.push(qMatch);
+                }
+
+                const idConds: string[] = [];
+                const idArgs: string[] = [];
                 if (qIsAscii && isMgs) {
-                    if (qLooksLikeId) {
-                        conditions.push(`(${FTS_IN} OR product_id LIKE ?)`);
-                        args.push(qMatch, `%${q}%`);
-                    } else {
-                        conditions.push(`(${FTS_IN})`);
-                        args.push(qMatch);
-                    }
+                    if (qLooksLikeId) { idConds.push('product_id LIKE ?'); idArgs.push(`%${q}%`); }
                 } else if (qIsAscii) {
                     const range = idPrefixRange(q, false);
                     const canon = canonicalFanzaId(q);
-                    const idConds: string[] = [];
-                    const idArgs: string[] = [];
                     if (range) { idConds.push('(product_id >= ? AND product_id < ?)'); idArgs.push(range[0], range[1]); }
                     if (canon) { idConds.push('product_id = ?'); idArgs.push(canon); }
-                    conditions.push(`(${[FTS_IN, ...idConds].join(' OR ')})`);
-                    args.push(qMatch, ...idArgs);
-                } else {
-                    conditions.push(`(${FTS_IN})`);
-                    args.push(qMatch);
                 }
+
+                const all = [...textConds, ...idConds];
+                // 全部空＝FTSが0件で品番でもない → 走査せず0件（従来はFTSサブクエリで同じ結果を高く買っていた）
+                conditions.push(all.length > 0 ? `(${all.join(' OR ')})` : '0=1');
+                args.push(...textArgs, ...idArgs);
             } else if (qIsAscii) {
                 conditions.push(`(title LIKE ? OR actresses LIKE ? OR product_id LIKE ?)`);
                 args.push(`%${q}%`, `%${q}%`, `%${q}%`);
+                conditions.push(shortQFloorCond(isMgs));
+                args.push(SHORT_Q_FLOOR);
             } else {
                 conditions.push(`(title LIKE ? OR actresses LIKE ?)`);
                 args.push(`%${q}%`, `%${q}%`);
+                conditions.push(shortQFloorCond(isMgs));
+                args.push(SHORT_Q_FLOOR);
             }
         }
         if (genre) {
@@ -499,7 +590,16 @@ export async function GET(request: NextRequest) {
         }
         if (maker) {
             // MGS/FANZA共にlabelも検索対象に含める（メーカー一覧のレーベル項目に対応）
-            if (exactMaker) {
+            // `LIKE '%X%'` は maker/label にインデックスが効かず、idx_sale_start を日付順に
+            // 舐める計画になる。詳細検索の文脈絞り込みは LIMIT 500 で投げてくるので走査が深く、
+            // 2026-09-07 実測で 1回 37,000〜42,000行 × 15回/6h = 658,000行（その時間帯の9%）だった。
+            // 指定名が**カタログに実在するメーカー/レーベル名そのもの**なら等値比較にする。
+            // 等値なら migrations/0011 の (maker, sale_start_date DESC) が効いて範囲引きで済むうえ、
+            // 「プレミアム」で「桃太郎プレミアムベスト」を拾うような取り違えも消える。
+            const knownExact = exactMaker
+                || knownMakerNames?.has(maker)
+                || !!shortNameIndex?.labels?.[isMgs ? 'mgs' : 'fanza']?.includes(maker);
+            if (knownExact) {
                 // 完全一致（メーカー詳細ページ用: Hunterでlady huntersを除外）
                 conditions.push('(maker = ? OR label = ?)');
                 args.push(maker, maker);
@@ -684,7 +784,8 @@ export async function GET(request: NextRequest) {
     async function queryTurso(client: Awaited<ReturnType<typeof getMgsClient>>, isMgs: boolean, perLimit: number) {
         if (!client) return [];
         try {
-            const { conditions, args } = buildConditions(isMgs);
+            const qPlan = await planQ(client, isMgs);
+            const { conditions, args } = buildConditions(isMgs, qPlan);
             const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
             const cols = `product_id, title, actresses, main_image_url,
                          ${isMgs ? 'wish_count,' : '0 AS wish_count,'}
