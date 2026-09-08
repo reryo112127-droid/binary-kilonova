@@ -419,14 +419,21 @@ export async function GET(request: NextRequest) {
 
     // 短名（3文字未満）女優の条件を作る。静的インデックスに載っていれば主キーの IN 引きに、
     // 載っていなければ従来どおり LIKE の全走査に落とす（新人など索引生成後に増えた名前の保険）。
-    function shortActressCond(name: string, isMgs: boolean): { sql: string; args: string[] } {
-        const ids = shortNameIndex?.actress?.[isMgs ? 'mgs' : 'fanza']?.[name];
-        if (ids && ids.length > 0) {
+    // 返り値の sql が null = 「索引にはあるが一致0件」＝条件ごと落としてよい。
+    // ここで LIKE に落とすと、別名グループの `FTS OR actresses LIKE ?` で
+    // **OR のせいで FTS 駆動が捨てられ全表走査**になる（2026-09-08 実測: MGS 1回 65,226行
+    // ＝テーブル全件 × 6回/h でその時間帯の90%）。索引が「無い」のか「0件」なのかを
+    // 区別できるよう、別名の短名は 0件でもキーだけ作ってある。
+    function shortActressCond(name: string, isMgs: boolean): { sql: string | null; args: string[] } {
+        const table = shortNameIndex?.actress?.[isMgs ? 'mgs' : 'fanza'];
+        const ids = table?.[name];
+        if (ids) {
             // ids は自前の静的ファイル由来。D1 のバインド変数は1文あたり100個までで
             // 数百件の IN には使えないため、英数字・ハイフン・アンダースコアだけに限って直接埋め込む。
             const safe = ids.filter(id => /^[A-Za-z0-9_-]+$/.test(id)).map(id => `'${id}'`);
-            if (safe.length > 0) return { sql: `product_id IN (${safe.join(',')})`, args: [] };
+            return safe.length > 0 ? { sql: `product_id IN (${safe.join(',')})`, args: [] } : { sql: null, args: [] };
         }
+        // 索引に無い名前だけ従来どおり LIKE（索引生成後に増えた新人などの保険）
         return { sql: 'actresses LIKE ?', args: [`%${name}%`] };
     }
 
@@ -651,10 +658,13 @@ export async function GET(request: NextRequest) {
             }
             shortActresses.forEach(a => {
                 const c = shortActressCond(a, isMgs);
+                if (c.sql === null) return; // 一致0件と分かっている名前は条件から外す
                 actSubConds.push(c.sql);
                 args.push(...c.args);
             });
-            if (actSubConds.length > 0) conditions.push(`(${actSubConds.join(' OR ')})`);
+            // 条件が1つも残らない＝指定された名前がどれも一致しない、なので 0件で返す。
+            // ここで条件を push しないと **女優の絞り込みが丸ごと消えて全件返る**（絞り込み解除）。
+            conditions.push(actSubConds.length > 0 ? `(${actSubConds.join(' OR ')})` : '0=1');
         }
         if (hasProfileFilter) {
             const longProfiles = profileActresses.filter(a => a.length >= 3);
@@ -667,10 +677,11 @@ export async function GET(request: NextRequest) {
             }
             shortProfiles.forEach(a => {
                 const c = shortActressCond(a, isMgs);
+                if (c.sql === null) return; // 一致0件と分かっている名前は条件から外す
                 profSubConds.push(c.sql);
                 args.push(...c.args);
             });
-            if (profSubConds.length > 0) conditions.push(`(${profSubConds.join(' OR ')})`);
+            conditions.push(profSubConds.length > 0 ? `(${profSubConds.join(' OR ')})` : '0=1');
         }
         const today = new Date().toISOString().slice(0, 10);
         // FANZA は sale_start_date が 'YYYY-MM-DD HH:MM:SS'。日付比較に SUBSTR(...,1,10) を使うと

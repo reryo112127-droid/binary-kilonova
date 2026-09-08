@@ -44,6 +44,30 @@ const cpLen = (s) => [...s].length;
 // LIKE のまま（＝従来動作）に落とす。実測の最大は 342 件なので通常は効かない。
 const MAX_IDS_PER_NAME = 2000;
 
+// actress_aliases.json に出てくる3文字未満の別名。
+// 別名グループは「長い名前(FTSで引ける) OR 短い別名」という条件になるため、短い別名側が
+// `actresses LIKE '%X%'` のままだと **OR のせいで FTS 駆動が捨てられ全表走査**になる
+// （2026-09-08 実測: MGS 1回 65,226行＝テーブル全件 × 6回/h。その時間帯の90%）。
+// しかも別名の照合は本来 **部分一致** で、DBの実体は「汐世（有栖花あか）」のように
+// 別名を含むより長い文字列。だから完全一致で作った索引には載らず、必ずLIKEに落ちていた。
+// → 別名の短名だけは **部分一致で** 索引する（該当は実測4名なので件数は小さい）。
+function loadShortAliasNames() {
+    for (const p of [
+        path.join(ROOT, 'public', 'data', 'actress_aliases.json'),
+        path.join(ROOT, 'data', 'actress_aliases.json'),
+    ]) {
+        try {
+            const groups = JSON.parse(fs.readFileSync(p, 'utf-8'));
+            if (!Array.isArray(groups)) continue;
+            const out = new Set();
+            for (const g of groups) for (const a of g) if (cpLen(String(a)) < 3) out.add(String(a));
+            return out;
+        } catch { /* 次の候補へ */ }
+    }
+    return new Set();
+}
+const SHORT_ALIASES = loadShortAliasNames();
+
 async function collect(dbPath, label) {
     if (!fs.existsSync(dbPath)) {
         console.warn(`  ${label}: ${dbPath} が無いのでスキップ`);
@@ -52,6 +76,9 @@ async function collect(dbPath, label) {
     const { openLocal } = require(path.join(REPO, 'scripts', 'lib', 'localsqlite.cjs'));
     const db = openLocal(dbPath);
     const map = new Map();
+    // 別名の短名は「0件だった」ことも記録する必要がある（キーが無い＝未知＝LIKEへ落とす、
+    // キーがあって空＝一致なし＝条件ごと落とす、とランタイムで区別するため）
+    const aliasMap = new Map([...SHORT_ALIASES].map((n) => [n, []]));
     const labels = new Set();
     try {
         const r = await db.execute(
@@ -62,11 +89,14 @@ async function collect(dbPath, label) {
         for (const row of r.rows) {
             const pid = String(row.product_id);
             if (row.actresses) {
-                for (const name of String(row.actresses).split(',').map((s) => s.trim()).filter(Boolean)) {
+                const raw = String(row.actresses);
+                for (const name of raw.split(',').map((s) => s.trim()).filter(Boolean)) {
                     if (cpLen(name) >= 3) continue;
                     if (!map.has(name)) map.set(name, []);
                     map.get(name).push(pid);
                 }
+                // 別名の短名は部分一致（ランタイムの LIKE '%X%' と同じ意味にする）
+                for (const alias of SHORT_ALIASES) if (raw.includes(alias)) aliasMap.get(alias).push(pid);
             }
             if (row.label) {
                 const l = String(row.label).trim();
@@ -76,6 +106,8 @@ async function collect(dbPath, label) {
     } finally {
         db.close();
     }
+    // 別名は部分一致の結果で上書きする（部分一致 ⊇ 完全一致なので情報は減らない）
+    for (const [name, ids] of aliasMap) map.set(name, ids);
     const actress = {};
     let dropped = 0;
     for (const [name, ids] of map) {

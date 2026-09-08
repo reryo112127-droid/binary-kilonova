@@ -221,6 +221,23 @@ B.resetD1Breaker();
       const uncovered = sample.map(r => String(r.label).trim()).filter(l => !idx.labels.fanza.includes(l));
       ok(uncovered.length === 0,
         `主要レーベル20件が一覧に載っている` + (uncovered.length ? `（未収録: ${uncovered.slice(0, 3).join(', ')}）` : ''));
+
+      // 別名グループの短名(<3文字)は **必ずキーとして存在する**こと（0件なら空配列で）。
+      // キーが無いとランタイムが `actresses LIKE '%X%'` に落ち、別名グループの
+      // `FTS OR LIKE` で OR のせいで FTS 駆動が捨てられ **全表走査**になる
+      // （2026-09-08 実測: MGS 1回 65,226行＝全件 × 6回/h）。
+      const aliasPath = pathx.join(__dirname, '..', 'public', 'data', 'actress_aliases.json');
+      if (fsx.existsSync(aliasPath)) {
+        const groups = JSON.parse(fsx.readFileSync(aliasPath, 'utf8'));
+        const shortAliases = [...new Set(groups.flat().filter(a => [...String(a)].length < 3).map(String))];
+        const notKeyed = [];
+        for (const n of shortAliases) {
+          for (const pf of ['fanza', 'mgs']) if (!((idx.actress[pf] || {})[n])) notKeyed.push(`${n}(${pf})`);
+        }
+        ok(notKeyed.length === 0,
+          `別名の短名 ${shortAliases.length}件がすべて索引にキーとして載っている`
+          + (notKeyed.length ? `（未収録: ${notKeyed.slice(0, 4).join(', ')}）` : ''));
+      }
     }
   }
   console.log(fail === 0 ? '\nALL PASS' : `\n${fail} FAILED`);
