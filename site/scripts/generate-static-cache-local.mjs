@@ -206,7 +206,7 @@ async function genNewProducts() {
                   WHERE sale_start_date IS NOT NULL
                     AND REPLACE(sale_start_date,'/','-') >= ?
                     AND REPLACE(sale_start_date,'/','-') <= ?
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                     AND ${bestConds}
                   ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 300`,
             args: [twoWeeksAgo, today, ...bestArgs],
@@ -242,7 +242,7 @@ async function genPopularProducts() {
             sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date,
                          COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, NULL AS sale_end_date
                   FROM products
-                  WHERE (duration_min IS NULL OR duration_min < 600)
+                  WHERE COALESCE(duration_min, 0) < 600
                     AND ${bestConds}
                   ORDER BY wish_count DESC LIMIT 200`,
             args: bestArgs,
@@ -303,7 +303,7 @@ async function genRanking2026() {
             sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date,
                          COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, NULL AS sale_end_date
                   FROM products
-                  WHERE (duration_min IS NULL OR duration_min < 600)
+                  WHERE COALESCE(duration_min, 0) < 600
                     AND REPLACE(sale_start_date,'/','-') >= ? AND REPLACE(sale_start_date,'/','-') <= ?
                     AND ${bestConds}
                   ORDER BY wish_count DESC LIMIT 200`,
@@ -336,7 +336,7 @@ async function genRankingDefault() {
             sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date,
                          COALESCE(discount_pct,0) AS discount_pct, list_price, current_price, NULL AS sale_end_date
                   FROM products
-                  WHERE (duration_min IS NULL OR duration_min < 600)
+                  WHERE COALESCE(duration_min, 0) < 600
                     AND REPLACE(sale_start_date,'/','-') >= ?
                     AND ${bestConds}
                   ORDER BY wish_count DESC LIMIT 200`,
@@ -370,7 +370,7 @@ async function genActressRanking2026() {
         mgs.execute({
             sql: `SELECT actresses, main_image_url, wish_count, genres, maker, product_id
                   FROM products
-                  WHERE (duration_min IS NULL OR duration_min < 600)
+                  WHERE COALESCE(duration_min, 0) < 600
                     AND REPLACE(sale_start_date,'/','-') >= ? AND REPLACE(sale_start_date,'/','-') <= ?
                   ORDER BY wish_count DESC LIMIT 500`,
             args: [FROM, TO],
@@ -398,7 +398,7 @@ async function genActressRankingDefault() {
         mgs.execute({
             sql: `SELECT actresses, main_image_url, wish_count, genres, maker, product_id
                   FROM products
-                  WHERE (duration_min IS NULL OR duration_min < 600)
+                  WHERE COALESCE(duration_min, 0) < 600
                     AND REPLACE(sale_start_date,'/','-') >= ?
                   ORDER BY wish_count DESC LIMIT 500`,
             args: [oneYearAgo],
@@ -501,7 +501,7 @@ async function genPreorderProducts() {
                          NULL AS series_name, NULL AS series_id, 0 AS vr_flag, NULL AS sale_end_date
                   FROM products
                   WHERE REPLACE(sale_start_date,'/','-') > ?
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                     AND ${bestConds}
                   ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 300`,
             args: [today, ...bestArgs],
@@ -537,7 +537,7 @@ async function genHomePreorderCurated() {
                          NULL AS series_name, NULL AS series_id, 0 AS vr_flag, NULL AS sale_end_date
                   FROM products
                   WHERE REPLACE(sale_start_date,'/','-') > ?
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                     AND (${mgsMakerCond})
                     AND ${bestConds}
                   ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 60`,
@@ -587,7 +587,7 @@ async function genSaleProducts() {
                   FROM products
                   WHERE discount_pct >= 1
                     AND (sale_end_date IS NULL OR SUBSTR(REPLACE(sale_end_date,'/','-'),1,10) >= ?)
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                     AND ${bestConds}
                   ORDER BY discount_pct DESC, REPLACE(sale_start_date,'/','-') DESC LIMIT 60`,
             args: [today, ...bestArgs],
@@ -611,7 +611,7 @@ async function genMakersList() {
             sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image
                   FROM products
                   WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                   GROUP BY maker HAVING cnt >= 3
                   ORDER BY cnt DESC LIMIT 2000`,
             args: [],

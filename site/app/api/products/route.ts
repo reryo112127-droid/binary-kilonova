@@ -453,9 +453,30 @@ export async function GET(request: NextRequest) {
     //   疎(≦2000件) → 一致IDを直接 IN に埋める（点引き。FTSサブクエリより更に安い）
     //   密(>2000件) → LIKE に切り替えて日付順スキャンで早期打ち切りさせる
     // と振り分ける。どちらもコストは概ね 2×Q_PROBE_CAP 行で頭打ちになる。
+    //
+    // **この振り分けは q だけでなく genre / label / 女優 の FTS 条件すべてに要る**（2026-09-09）。
+    // q だけ直したあと、残りの FTS_IN が同じ形で枠を食い続けていた。実測(fanza-0, LIMIT 21):
+    //   genres:"中出し"  FTS_IN 255,855行 / genres LIKE '%中出し%' 35行  （7,300倍）
+    //   genres:"美少女"  FTS_IN  96,409行 / LIKE 116行
+    // ジャンルLPや女優ページは「ありふれた語＝密」ばかりなので、ここが最大の消費源になる。
     const Q_PROBE_CAP = 2000;
     type QPlan = { kind: 'ids'; ids: string[] } | { kind: 'like' };
-    const qPlanCache = new Map<boolean, QPlan | null>();
+    /** MATCH式 → 実行計画。プラットフォームごとに1つ持つ（同じ式は1回だけプローブする）。 */
+    type PlanMap = Map<string, QPlan | null>;
+    // IN に埋め込む id の総量。SQL文は10万バイトまでなので、複数条件が同時に ids になったときは
+    // 途中から FTS サブクエリへ戻す（1条件でも点引きになれば十分安い）。
+    const MAX_EMBED_CHARS = 60000;
+
+    // LIKE 側は「索引を並び順に舐めて LIMIT で止まる」ことで安くなる計画なので、
+    // **ORDER BY が索引で満たせるときだけ**使う（満たせないと全件走査＋一時ソートになり逆効果）。
+    // 2026-09-09 に EXPLAIN で確認した対応:
+    //   配信日順 → idx_sale_start(FANZA) / idx_sale_date_norm(MGS)
+    //   割引率順 → idx_discount（両方にある）
+    //   人気順   → idx_wish（MGS。FANZAは `0 AS wish_count` なので配信日順になる）
+    // いずれも USE TEMP B-TREE FOR ORDER BY が出ない。知らない sort 値のときは
+    // 安全側に倒して従来の FTS サブクエリのままにする。
+    const EARLY_STOP_SORTS = ['', 'new', 'date_all', 'pre-order', 'discount', 'wish_count', 'random'];
+    const canEarlyStop = () => EARLY_STOP_SORTS.includes(sort);
 
     // ── 2文字以下の q は配信日の下限を付けて走査距離を頭打ちにする（2026-09-07）────
     //
@@ -473,40 +494,87 @@ export async function GET(request: NextRequest) {
     const shortQFloorCond = (isMgs: boolean) =>
         isMgs ? "REPLACE(sale_start_date, '/', '-') >= ?" : 'sale_start_date >= ?';
 
-    async function planQ(
+    // ── MATCH式の組み立て（プローブ側とSQL組み立て側で必ず同じ文字列を使う）─────────
+    const qMatch = q && q.length >= 3 ? `{title actresses} : "${esc5(q)}"` : null;
+    const genreList = genre ? genre.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const longGenres = genreList.filter(g => g.length >= 3);
+    const genreMatch = longGenres.length > 0
+        ? `genres : (${longGenres.map(g => `"${esc5(g)}"`).join(' OR ')})` : null;
+    const labelMatch = label && label.length >= 3 ? `label : "${esc5(label)}"` : null;
+    const actressMatch = (names: string[]) => {
+        const longs = names.filter(a => a.length >= 3);
+        return longs.length > 0 ? `actresses : (${longs.map(a => `"${esc5(a)}"`).join(' OR ')})` : null;
+    };
+
+    /** この検索で使う MATCH 式を1回ずつプローブして計画を決める。 */
+    async function preparePlans(
         client: Awaited<ReturnType<typeof getMgsClient>>, isMgs: boolean,
-    ): Promise<QPlan | null> {
-        if (!q || q.length < 3 || !client) return null;
-        if (qPlanCache.has(isMgs)) return qPlanCache.get(isMgs) ?? null;
-        let plan: QPlan | null = null;
-        try {
-            const r = await client.execute({
-                sql: `SELECT product_id FROM products_fts WHERE products_fts MATCH ? LIMIT ${Q_PROBE_CAP + 1}`,
-                args: [`{title actresses} : "${esc5(q)}"`],
-            });
-            if (r.rows.length > Q_PROBE_CAP) {
-                // LIKE 側は「新しい順に舐めて LIMIT で止まる」ことで安くなる計画なので、
-                // **並びが配信日降順のときだけ**使う。人気順(wish_count)や割引率順では
-                // 早期打ち切りが効かず全件走査＋ソートになり、かえって高くつく。
-                plan = (sort === 'new' || sort === 'date_all') ? { kind: 'like' } : null;
-            } else {
-                // SQLへ直接埋め込むので、埋め込み可能な文字だけに限る（D1のバインドは1文100個まで）。
-                const ids = r.rows
-                    .map(row => String((row as Record<string, unknown>).product_id))
-                    .filter(id => /^[A-Za-z0-9_-]+$/.test(id));
-                plan = { kind: 'ids', ids };
-            }
-        } catch {
-            plan = null; // プローブが失敗したら従来どおり FTS サブクエリで引く
+    ): Promise<PlanMap> {
+        const plans: PlanMap = new Map();
+        if (!client) return plans;
+        const exprs = new Set<string>();
+        for (const e of [qMatch, genreMatch, labelMatch, ...actressGroups.map(actressMatch),
+                         hasProfileFilter ? actressMatch(profileActresses) : null]) {
+            if (e) exprs.add(e);
         }
-        qPlanCache.set(isMgs, plan);
-        return plan;
+        await Promise.all([...exprs].map(async expr => {
+            let plan: QPlan | null = null;
+            try {
+                const r = await client.execute({
+                    sql: `SELECT product_id FROM products_fts WHERE products_fts MATCH ? LIMIT ${Q_PROBE_CAP + 1}`,
+                    args: [expr],
+                });
+                if (r.rows.length > Q_PROBE_CAP) {
+                    plan = canEarlyStop() ? { kind: 'like' } : null;
+                } else {
+                    // SQLへ直接埋め込むので、埋め込み可能な文字だけに限る（D1のバインドは1文100個まで）。
+                    const ids = r.rows
+                        .map(row => String((row as Record<string, unknown>).product_id))
+                        .filter(id => /^[A-Za-z0-9_-]+$/.test(id));
+                    plan = { kind: 'ids', ids };
+                }
+            } catch {
+                plan = null; // プローブが失敗したら従来どおり FTS サブクエリで引く
+            }
+            plans.set(expr, plan);
+        }));
+        return plans;
     }
 
     // 共通SQL条件ビルダー
-    function buildConditions(isMgs: boolean, qPlan: QPlan | null = null) {
+    function buildConditions(isMgs: boolean, plans: PlanMap = new Map()) {
         const conditions: string[] = [];
         const args: (string | number)[] = [];
+        const qPlan = qMatch ? (plans.get(qMatch) ?? null) : null;
+
+        // 埋め込み済み id の総文字数。上限を超えたら FTS サブクエリへ戻す。
+        let embedded = 0;
+        /**
+         * FTS 条件を計画に応じて組み立てる。
+         *  ids  … 一致IDを直接 IN に埋める（主キーの点引き。最速）
+         *  like … 日付索引を新しい順に舐めて LIMIT で止める（密な語で最速）
+         *  null … 従来どおり FTS サブクエリ
+         * 戻り値 null は「一致0件と分かっている」＝呼び出し側で 0=1 にする。
+         */
+        const ftsCond = (
+            matchExpr: string | null,
+            likeCond: () => { sql: string; args: string[] } | null,
+        ): { sql: string; args: (string | number)[] } | null => {
+            if (!matchExpr) return null;
+            const plan = plans.get(matchExpr) ?? null;
+            if (plan?.kind === 'ids') {
+                if (plan.ids.length === 0) return null;
+                const embed = plan.ids.map(id => `'${id}'`).join(',');
+                if (embedded + embed.length <= MAX_EMBED_CHARS) {
+                    embedded += embed.length;
+                    return { sql: `product_id IN (${embed})`, args: [] };
+                }
+            } else if (plan?.kind === 'like') {
+                const lk = likeCond();
+                if (lk) return { sql: lk.sql, args: lk.args };
+            }
+            return { sql: FTS_IN, args: [matchExpr] };
+        };
 
         if (q) {
             // product_id は英数字と記号だけ。日本語を含む q は product_id に絶対一致しないので
@@ -533,20 +601,23 @@ export async function GET(request: NextRequest) {
             const qIsAscii = /^[\x20-\x7E]+$/.test(q);
             const qLooksLikeId = /^[A-Za-z0-9][A-Za-z0-9_-]{2,}$/.test(q) && /[A-Za-z]/.test(q) && /\d/.test(q);
             if (q.length >= 3) {
-                const qMatch = `{title actresses} : "${esc5(q)}"`;
-                // 本文一致の条件は planQ() の結果で作り分ける（上のコメント参照）。
+                // 本文一致の条件は preparePlans() の結果で作り分ける（上のコメント参照）。
                 // qPlan が無い（プローブ失敗・MGSクライアント不在など）ときは従来の FTS サブクエリ。
                 const textConds: string[] = [];
                 const textArgs: (string | number)[] = [];
                 if (qPlan?.kind === 'ids') {
                     // 一致0件でも product_id の前方一致(品番検索)は残したいので、ここでは何も足さない
-                    if (qPlan.ids.length > 0) textConds.push(`product_id IN (${qPlan.ids.map(id => `'${id}'`).join(',')})`);
+                    if (qPlan.ids.length > 0) {
+                        const embed = qPlan.ids.map(id => `'${id}'`).join(',');
+                        embedded += embed.length;
+                        textConds.push(`product_id IN (${embed})`);
+                    }
                 } else if (qPlan?.kind === 'like') {
                     textConds.push('(title LIKE ? OR actresses LIKE ?)');
                     textArgs.push(`%${q}%`, `%${q}%`);
                 } else {
                     textConds.push(FTS_IN);
-                    textArgs.push(qMatch);
+                    textArgs.push(qMatch as string);
                 }
 
                 const idConds: string[] = [];
@@ -576,24 +647,23 @@ export async function GET(request: NextRequest) {
                 args.push(SHORT_Q_FLOOR);
             }
         }
-        if (genre) {
+        if (genre && genreList.length > 0) {
             // カンマ区切りで複数ジャンルOR対応
-            const genreList = genre.split(',').map(s => s.trim()).filter(Boolean);
-            if (genreList.length > 0) {
-                const longGenres = genreList.filter(g => g.length >= 3);
-                const shortGenres = genreList.filter(g => g.length < 3);
-                const subConds: string[] = [];
-                if (longGenres.length > 0) {
-                    const escaped = longGenres.map(g => `"${esc5(g)}"`).join(' OR ');
-                    subConds.push(FTS_IN);
-                    args.push(`genres : (${escaped})`);
-                }
-                shortGenres.forEach(g => {
-                    subConds.push('genres LIKE ?');
-                    args.push(`%${g}%`);
-                });
-                conditions.push(`(${subConds.join(' OR ')})`);
-            }
+            const shortGenres = genreList.filter(g => g.length < 3);
+            const subConds: string[] = [];
+            // ありふれたジャンル（>2000件）は FTS_IN だと一致件数ぶんの点引きになり
+            // 1回で25万行読むことがある。密なら LIKE に落として日付順の早期打ち切りに任せる。
+            const gc = ftsCond(genreMatch, () => ({
+                sql: `(${longGenres.map(() => 'genres LIKE ?').join(' OR ')})`,
+                args: longGenres.map(g => `%${g}%`),
+            }));
+            if (gc) { subConds.push(gc.sql); args.push(...gc.args); }
+            shortGenres.forEach(g => {
+                subConds.push('genres LIKE ?');
+                args.push(`%${g}%`);
+            });
+            // 長いジャンルが「一致0件」で短いジャンルも無いなら 0件（走査しない）
+            conditions.push(subConds.length > 0 ? `(${subConds.join(' OR ')})` : '0=1');
         }
         if (maker) {
             // MGS/FANZA共にlabelも検索対象に含める（メーカー一覧のレーベル項目に対応）
@@ -617,8 +687,9 @@ export async function GET(request: NextRequest) {
         }
         if (label) {
             if (label.length >= 3) {
-                conditions.push(FTS_IN);
-                args.push(`label : "${esc5(label)}"`);
+                const lc = ftsCond(labelMatch, () => ({ sql: 'label LIKE ?', args: [`%${label}%`] }));
+                if (lc) { conditions.push(lc.sql); args.push(...lc.args); }
+                else conditions.push('0=1');
             } else {
                 // 2文字以下は FTS で引けないので LIKE の全表走査になる（1回 約7万行）。
                 // 高いのは「どのレーベルにも一致しない」疎なクエリなので、静的なレーベル一覧に
@@ -651,11 +722,12 @@ export async function GET(request: NextRequest) {
             const longActresses = group.filter(a => a.length >= 3);
             const shortActresses = group.filter(a => a.length < 3);
             const actSubConds: string[] = [];
-            if (longActresses.length > 0) {
-                const escaped = longActresses.map(a => `"${esc5(a)}"`).join(' OR ');
-                actSubConds.push(FTS_IN);
-                args.push(`actresses : (${escaped})`);
-            }
+            // ジャンルと同じ理由で、一致が密な女優名（ありふれた部分文字列）は LIKE に落とす。
+            const ac = ftsCond(actressMatch(group), () => ({
+                sql: `(${longActresses.map(() => 'actresses LIKE ?').join(' OR ')})`,
+                args: longActresses.map(a => `%${a}%`),
+            }));
+            if (ac) { actSubConds.push(ac.sql); args.push(...ac.args); }
             shortActresses.forEach(a => {
                 const c = shortActressCond(a, isMgs);
                 if (c.sql === null) return; // 一致0件と分かっている名前は条件から外す
@@ -670,11 +742,11 @@ export async function GET(request: NextRequest) {
             const longProfiles = profileActresses.filter(a => a.length >= 3);
             const shortProfiles = profileActresses.filter(a => a.length < 3);
             const profSubConds: string[] = [];
-            if (longProfiles.length > 0) {
-                const escaped = longProfiles.map(a => `"${esc5(a)}"`).join(' OR ');
-                profSubConds.push(FTS_IN);
-                args.push(`actresses : (${escaped})`);
-            }
+            const pc = ftsCond(actressMatch(profileActresses), () => ({
+                sql: `(${longProfiles.map(() => 'actresses LIKE ?').join(' OR ')})`,
+                args: longProfiles.map(a => `%${a}%`),
+            }));
+            if (pc) { profSubConds.push(pc.sql); args.push(...pc.args); }
             shortProfiles.forEach(a => {
                 const c = shortActressCond(a, isMgs);
                 if (c.sql === null) return; // 一致0件と分かっている名前は条件から外す
@@ -767,7 +839,7 @@ export async function GET(request: NextRequest) {
             args.push(minDiscount);
         }
         if (isMgs) {
-            conditions.push('(duration_min IS NULL OR duration_min < 600)');
+            conditions.push('COALESCE(duration_min, 0) < 600');
         }
 
         return { conditions, args };
@@ -788,15 +860,18 @@ export async function GET(request: NextRequest) {
         // FANZA は SUBSTR で並べると idx_sale_start が使えず一時B-treeで全件ソートになる。
         // 生の列で並べれば同じ日付順（同日内は時刻順というより良いタイブレークになるだけ）。
         if (sort === 'pre-order') return isMgs ? "ORDER BY REPLACE(sale_start_date,'/','-') DESC" : 'ORDER BY sale_start_date DESC';
-        if (sort === 'discount') return 'ORDER BY discount_pct DESC';         // 割引率が高い順
+        // 割引率が高い順。**products. で修飾**しないと SELECT の
+        // `COALESCE(discount_pct,0) AS discount_pct` に横取りされ、idx_discount が
+        // 範囲引きに使えても並び替えが USE TEMP B-TREE FOR ORDER BY（＝該当全行を実体化）になる。
+        if (sort === 'discount') return 'ORDER BY products.discount_pct DESC';
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';
     }
 
     async function queryTurso(client: Awaited<ReturnType<typeof getMgsClient>>, isMgs: boolean, perLimit: number) {
         if (!client) return [];
         try {
-            const qPlan = await planQ(client, isMgs);
-            const { conditions, args } = buildConditions(isMgs, qPlan);
+            const plans = await preparePlans(client, isMgs);
+            const { conditions, args } = buildConditions(isMgs, plans);
             const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
             const cols = `product_id, title, actresses, main_image_url,
                          ${isMgs ? 'wish_count,' : '0 AS wish_count,'}

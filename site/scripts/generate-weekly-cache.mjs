@@ -78,7 +78,7 @@ async function genSitemapCache() {
     const FANZA_MIN_REVIEWS = 5;
     const d3 = new Date(); d3.setFullYear(d3.getFullYear() - MAKER_WINDOW_YEARS);
     const date3 = d3.toISOString().slice(0, 10);
-    const NP = '(duration_min IS NULL OR duration_min != 1)';
+    const NP = 'COALESCE(duration_min, 0) != 1';
 
     const seen = new Set();
     const products = [];
@@ -162,7 +162,7 @@ async function genMakersList() {
         mgs.execute({
             sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image
                   FROM products WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                   GROUP BY maker HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 600`,
             args: [],
         }).then(r => r.rows).catch(() => []),
@@ -209,7 +209,7 @@ async function genMakersList() {
         mgs.execute({
             sql: `SELECT label, COUNT(*) as cnt FROM products
                   WHERE label IS NOT NULL AND LENGTH(TRIM(label)) > 1 AND label != '----'
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                   GROUP BY label HAVING cnt >= 3 ORDER BY cnt DESC LIMIT 1500`,
             args: [],
         }).then(r => r.rows).catch(() => []),
@@ -264,7 +264,7 @@ async function genGenresCache() {
             for (const g of String(r.genres || '').split(/[,、]+/)) { const t = g.trim(); if (!bad(t)) counts.set(t, (counts.get(t) || 0) + cnt); }
         }
     };
-    const SQL = `SELECT genres, COUNT(*) cnt FROM products WHERE genres IS NOT NULL AND genres != '' AND (duration_min IS NULL OR duration_min != 1) GROUP BY genres ORDER BY genres`;
+    const SQL = `SELECT genres, COUNT(*) cnt FROM products WHERE genres IS NOT NULL AND genres != '' AND COALESCE(duration_min, 0) != 1 GROUP BY genres ORDER BY genres`;
     accumulate(await fetchAllPaged(mgs, SQL));
     for (const shard of fanza.shards) accumulate(await fetchAllPaged(shard, SQL));
     const list = [...counts.entries()].filter(([, c]) => c >= 100).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
@@ -403,7 +403,7 @@ async function genTopActressProducts() {
         sql: `SELECT actresses, SUM(wish_count) as total_wish
               FROM products
               WHERE actresses IS NOT NULL AND actresses != '' AND actresses != '----'
-                AND (duration_min IS NULL OR duration_min < 600)
+                AND COALESCE(duration_min, 0) < 600
               GROUP BY actresses
               ORDER BY total_wish DESC
               LIMIT 1000`,
@@ -443,7 +443,7 @@ async function genTopActressProducts() {
                     sql: `${SQL}
                           FROM products
                           WHERE product_id IN (SELECT product_id FROM products_fts WHERE products_fts MATCH ?)
-                            AND (duration_min IS NULL OR duration_min < 600)
+                            AND COALESCE(duration_min, 0) < 600
                           ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 30`,
                     args: [ftsMatch],
                 }).then(r => r.rows.map(row => ({ ...row, source: 'mgs' }))).catch(() => []),
@@ -505,7 +505,7 @@ async function genExtendedActressProducts(existingNames) {
         mgs.execute({
             sql: `SELECT actresses, COUNT(*) as cnt FROM products
                   WHERE actresses IS NOT NULL AND actresses != '' AND actresses != '----'
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                   GROUP BY actresses HAVING cnt >= 20 ORDER BY cnt DESC`,
             args: [],
         }).then(r => r.rows).catch(() => []),
@@ -561,7 +561,7 @@ async function genExtendedActressProducts(existingNames) {
                 mgs.execute({
                     sql: `${SQL} FROM products
                           WHERE product_id IN (SELECT product_id FROM products_fts WHERE products_fts MATCH ?)
-                            AND (duration_min IS NULL OR duration_min < 600)
+                            AND COALESCE(duration_min, 0) < 600
                           ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT 20`,
                     args: [ftsMatch],
                 }).then(r => r.rows.map(row => ({ ...row, source: 'mgs' }))).catch(() => []),

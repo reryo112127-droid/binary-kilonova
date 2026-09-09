@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ─── Step 1: 候補作品を取得 ─────────────────────────────
-    const mgsDateConds: string[] = ['(duration_min IS NULL OR duration_min < 600)'];
+    const mgsDateConds: string[] = ['COALESCE(duration_min, 0) < 600'];
     const mgsDateArgs: string[] = [];
     if (fromDate) { mgsDateConds.push("REPLACE(sale_start_date, '/', '-') >= ?"); mgsDateArgs.push(fromDate); }
     if (toDate)   { mgsDateConds.push("REPLACE(sale_start_date, '/', '-') <= ?"); mgsDateArgs.push(toDate); }

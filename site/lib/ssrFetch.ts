@@ -163,9 +163,9 @@ export async function ssrFetchRanking(limit: number): Promise<Row[]> {
         mgsClient ? mgsClient.execute({
             sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date
                   FROM products
-                  WHERE (duration_min IS NULL OR duration_min < 600)
+                  WHERE COALESCE(duration_min, 0) < 600
                     AND title NOT LIKE '%BEST%' AND title NOT LIKE '%ベスト%'
-                    AND title NOT LIKE '%総集編%' AND (duration_min IS NULL OR duration_min <= ${COMPILATION_MAX_MIN})
+                    AND title NOT LIKE '%総集編%' AND COALESCE(duration_min, 0) <= ${COMPILATION_MAX_MIN}
                     AND REPLACE(sale_start_date,'/','-') >= ?
                   ORDER BY wish_count DESC LIMIT ${limit * 2}`,
             args: [yearStart],
@@ -179,7 +179,7 @@ export async function ssrFetchRanking(limit: number): Promise<Row[]> {
                   FROM products
                   WHERE sale_start_date >= ?
                     AND title NOT LIKE '%BEST%' AND title NOT LIKE '%ベスト%'
-                    AND title NOT LIKE '%総集編%' AND (duration_min IS NULL OR duration_min <= ${COMPILATION_MAX_MIN})
+                    AND title NOT LIKE '%総集編%' AND COALESCE(duration_min, 0) <= ${COMPILATION_MAX_MIN}
                   ORDER BY review_score DESC, sale_start_date DESC
                   LIMIT ${limit}`,
             args: [yearStart],
@@ -211,7 +211,7 @@ export async function ssrFetchActressRanking(limit: number): Promise<Row[]> {
     const [mgsRows, fanzaRows] = await Promise.all([
         mgsClient ? mgsClient.execute({
             sql: `SELECT actresses, main_image_url, wish_count, genres, maker
-                  FROM products WHERE (duration_min IS NULL OR duration_min < 600)
+                  FROM products WHERE COALESCE(duration_min, 0) < 600
                   AND REPLACE(sale_start_date,'/','-') >= ?
                   ORDER BY wish_count DESC LIMIT ${CANDIDATE}`,
             args: [yearStart],
@@ -294,7 +294,7 @@ export async function ssrFetchNewProductsPage(limit: number): Promise<Row[]> {
                   FROM products WHERE sale_start_date IS NOT NULL
                     AND REPLACE(sale_start_date,'/','-') <= ?
                     AND REPLACE(sale_start_date,'/','-') >= ?
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                   ORDER BY REPLACE(sale_start_date,'/','-') DESC LIMIT ${limit}`,
             args: [today, d30],
         }).then(r => r.rows).catch(() => []) : [],
@@ -337,7 +337,7 @@ export async function ssrFetchPreOrdersPage(limit: number): Promise<Row[]> {
             sql: `SELECT product_id, title, actresses, main_image_url, wish_count, genres, maker, sale_start_date,
                          0 AS discount_pct, NULL AS list_price, NULL AS current_price
                   FROM products WHERE REPLACE(sale_start_date,'/','-') >= ?
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                   ORDER BY REPLACE(sale_start_date,'/','-') ASC LIMIT ${limit}`,
             args: [tomorrow],
         }).then(r => r.rows).catch(() => []) : [],

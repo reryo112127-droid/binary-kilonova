@@ -29,7 +29,7 @@ export async function GET(_request: NextRequest) {
             sql: `SELECT maker, COUNT(*) as cnt, MAX(main_image_url) as sample_image
                   FROM products
                   WHERE maker IS NOT NULL AND LENGTH(TRIM(maker)) > 1
-                    AND (duration_min IS NULL OR duration_min < 600)
+                    AND COALESCE(duration_min, 0) < 600
                   GROUP BY maker HAVING cnt >= 3
                   ORDER BY cnt DESC LIMIT 300`,
             args: [],

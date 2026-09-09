@@ -19,8 +19,11 @@
  *   node scripts/avwiki_backfill_actresses.js --dry-run          # 回収可能件数を数えるだけ
  *   node scripts/avwiki_backfill_actresses.js --limit 2000       # 実際に回収(既定2000件/回)
  *   node scripts/avwiki_backfill_actresses.js --only mgs         # 片側だけ
+ *   node scripts/avwiki_backfill_actresses.js --rescan-targets   # 候補一覧をD1から作り直す
  *
  * 無料枠: D1書き込みは「更新できた件数 × 約2行(FTSトリガ込み)」だけ。--limit で上限を持つ。
+ *   読み取りは候補一覧の再生成時だけ約47万行かかるので **7日に1回**に制限してある
+ *   (data/avwiki_backfill_targets.json)。それ以外の日はD1を1行も読まない。
  * 進捗: data/avwiki_backfill_checked.json (調べ済み品番。次回はスキップ)
  */
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -32,6 +35,9 @@ const { d1, fanzaShards } = require('./lib/d1');
 const DATA = path.join(__dirname, '..', 'data');
 const SLUG_FILE = path.join(DATA, 'avwiki_sitemap_slugs.json');
 const CHECKED_FILE = path.join(DATA, 'avwiki_backfill_checked.json');
+// 出演者不明×avwikiにページあり の候補一覧（D1全表走査の結果をキャッシュしたもの）
+const TARGETS_FILE = path.join(DATA, 'avwiki_backfill_targets.json');
+const TARGETS_TTL_DAYS = 7;
 
 const args = process.argv.slice(2);
 const has = f => args.includes(f);
@@ -130,17 +136,44 @@ async function main() {
     const checked = new Set(fs.existsSync(CHECKED_FILE) ? JSON.parse(fs.readFileSync(CHECKED_FILE, 'utf-8')) : []);
     const NO = "(actresses IS NULL OR TRIM(actresses)='' OR TRIM(actresses)='----')";
 
-    const targets = [];
-    for (const pf of ['mgs', 'fanza']) {
-        if (ONLY && ONLY !== pf) continue;
-        const db = pf === 'mgs' ? d1('mgs') : fanzaShards();
-        const r = await db.execute({ sql: `SELECT product_id FROM products WHERE ${NO}`, args: [] });
-        for (const row of (r.rows || r)) {
-            const pid = String(row.product_id);
-            if (checked.has(pid)) continue;
-            const hit = slugCandidates(pid).find(s => slugs.has(s));
-            if (hit) targets.push({ pf, pid, slug: hit });
+    // ── 候補一覧は毎日作り直さない（2026-09-09）─────────────────────────
+    // `SELECT product_id FROM products WHERE 出演者が空` は **どのDBでも全表走査**で、
+    // MGS 65,000行 + FANZA 2シャード 400,000行 ≒ 1回 47万行を読む。毎日回すと
+    // それだけで日次読取枠(500万行)の1割を、実際には数百件しか処理しないのに使う。
+    // 出演者不明の作品は日単位でほとんど増えないので、**候補一覧をファイルに焼いて
+    // TARGETS_TTL_DAYS 日は使い回す**。`--rescan-targets` で強制的に作り直せる。
+    // 鮮度は **ファイル内の generatedAt** で見る。CIは毎回cloneするので mtime は常に「今」になり、
+    // mtime で判定すると二度と再生成されない。
+    let targets = null;
+    let cacheAge = Infinity;
+    if (!has('--rescan-targets') && fs.existsSync(TARGETS_FILE)) {
+        try {
+            const cached = JSON.parse(fs.readFileSync(TARGETS_FILE, 'utf-8'));
+            cacheAge = (Date.now() - Date.parse(cached.generatedAt || 0)) / 86400000;
+            if (Array.isArray(cached.targets) && cacheAge <= TARGETS_TTL_DAYS) {
+                targets = cached.targets.filter(t => (!ONLY || ONLY === t.pf) && !checked.has(t.pid));
+                console.log(`候補一覧: ${TARGETS_FILE} を再利用 (${cacheAge.toFixed(1)}日前・D1読取0行)`);
+            }
+        } catch { targets = null; }
+    }
+    if (targets === null) {
+        targets = [];
+        for (const pf of ['mgs', 'fanza']) {
+            if (ONLY && ONLY !== pf) continue;
+            const db = pf === 'mgs' ? d1('mgs') : fanzaShards();
+            const r = await db.execute({ sql: `SELECT product_id FROM products WHERE ${NO}`, args: [] });
+            for (const row of (r.rows || r)) {
+                const pid = String(row.product_id);
+                const hit = slugCandidates(pid).find(s => slugs.has(s));
+                if (hit) targets.push({ pf, pid, slug: hit });
+            }
         }
+        // 片側だけ走査したときは全体の一覧にならないので焼かない（次回に嘘の「完了」を渡さない）
+        if (!ONLY) {
+            fs.writeFileSync(TARGETS_FILE, JSON.stringify({ generatedAt: new Date().toISOString(), targets }));
+            console.log(`候補一覧を再生成: ${targets.length.toLocaleString()}件 → ${path.basename(TARGETS_FILE)}`);
+        }
+        targets = targets.filter(t => !checked.has(t.pid));
     }
     console.log(`\n出演者不明のうち avwiki にページが存在する作品: ${targets.length.toLocaleString()}件 (調査済みを除く)`);
     if (DRY) {

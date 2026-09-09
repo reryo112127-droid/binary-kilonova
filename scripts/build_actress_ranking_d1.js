@@ -127,8 +127,8 @@ function finalize(top) {
 
 async function gen(from, to) {
     const mgsSql = to
-        ? `SELECT actresses, main_image_url, wish_count, product_id FROM products WHERE (duration_min IS NULL OR duration_min<600) AND REPLACE(sale_start_date,'/','-')>=? AND REPLACE(sale_start_date,'/','-')<=? ORDER BY wish_count DESC LIMIT 500`
-        : `SELECT actresses, main_image_url, wish_count, product_id FROM products WHERE (duration_min IS NULL OR duration_min<600) AND REPLACE(sale_start_date,'/','-')>=? ORDER BY wish_count DESC LIMIT 500`;
+        ? `SELECT actresses, main_image_url, wish_count, product_id FROM products WHERE COALESCE(duration_min, 0) < 600 AND REPLACE(sale_start_date,'/','-')>=? AND REPLACE(sale_start_date,'/','-')<=? ORDER BY wish_count DESC LIMIT 500`
+        : `SELECT actresses, main_image_url, wish_count, product_id FROM products WHERE COALESCE(duration_min, 0) < 600 AND REPLACE(sale_start_date,'/','-')>=? ORDER BY wish_count DESC LIMIT 500`;
     // FANZAは人気(レビュー)寄りで候補取得。人気順(rank)スコアはfanza_popularity.jsonで併用
     const fzCols = `actresses, main_image_url, product_id, COALESCE(review_count,0) AS review_count, COALESCE(review_average,0) AS review_average`;
     const fzSql = to

@@ -65,7 +65,12 @@ function withPositional(rows) {
 //   - DROP TRIGGER ... products_au      （D1 の正しいトリガを消してしまう）
 //   - CREATE TRIGGER ... products_au    （外部コンテンツ用の誤ったトリガを作る）
 //   - INSERT INTO products_fts(products_fts) VALUES('rebuild')  （standalone FTSでは不可）
+// **例外**: `-- @fts-admin` を含む文は「意図してトリガを張り替えている」ので素通しする。
+// site/scripts/apply_fts_triggers.mjs が使う。これが無いと、正当な
+// DROP/CREATE TRIGGER products_au が **成功したように見えて何も起きない**
+// （2026-09-09 に実際にこれで1回空振りした）。
 function isLegacyFtsNoop(sql) {
+    if (/@fts-admin/i.test(sql)) return false;
     const s = sql.replace(/\s+/g, ' ').trim();
     return /drop\s+trigger\s+if\s+exists\s+products_au/i.test(s)
         || /create\s+trigger\s+[^]*\bproducts_au\b/i.test(s)

@@ -44,6 +44,11 @@ export function resolveOrderExpr(expr: string, sample: Row): { get: ValueGetter;
 
     if (/^random\(\)$/i.test(e)) return { get: () => Math.random(), desc };
 
+    // テーブル修飾（products.review_count）を落として列名で引く。
+    // 修飾を付けるのは「SELECT の別名(COALESCE(review_count,0) AS review_count)に
+    // ORDER BY を横取りさせない」ため（横取りされるとインデックスが使えず全表走査になる）。
+    e = e.replace(/\b\w+\.(?=\w)/g, '');
+
     // 素の列名 / SELECT のエイリアス
     if (Object.prototype.hasOwnProperty.call(sample, e)) return { get: r => r[e], desc };
 

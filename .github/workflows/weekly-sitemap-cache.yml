@@ -31,6 +31,17 @@ jobs:
       - name: Install site dependencies
         run: cd site && npm ci
 
+      # サジェストのメーカー/レーベル一覧を D1 から取り直す（DISTINCT は全表走査なので週1回だけ。
+      # 日次の build_suggest_cache.js はコミット済み suggest_cache.json を再利用しD1を読まない）
+      - name: Refresh suggest makers/labels (weekly full scan)
+        run: node scripts/build_suggest_cache.js --refresh-makers || echo "suggest refresh failed (non-fatal)"
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_FANZA_0_ID:        ${{ secrets.D1_FANZA_0_ID }}
+          D1_FANZA_1_ID:        ${{ secrets.D1_FANZA_1_ID }}
+          D1_MGS_ID:             ${{ secrets.D1_MGS_ID }}
+
       - name: Generate sitemap & makers cache
         run: cd site && node scripts/generate-weekly-cache.mjs
         env:
@@ -90,6 +101,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add \
+            data/suggest_cache.json \
             site/data/sitemap_cache.json \
             site/data/sitemap_lastmod.json \
             site/data/sitemap_actresses.json \

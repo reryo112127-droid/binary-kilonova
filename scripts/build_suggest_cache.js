@@ -86,6 +86,25 @@ async function extractFromTurso(mgsDb, fanzaDb) {
         actresses = actRows.map(r => r.name).filter(Boolean).sort();
     }
 
+    // ── メーカー・レーベルは既存キャッシュを使い回す（2026-09-09）────────────────
+    // `SELECT DISTINCT maker/label FROM products` は索引が使えず **4本とも全表走査**で、
+    // 実測 MGS だけで maker 65,221行 + label 52,456行。FANZA 2シャードを足すと1回で
+    // 40万行を超え、毎日の日次更新でこれだけ払っていた。
+    // メーカー/レーベルは日単位でほぼ増えないので、コミット済みの suggest_cache.json を
+    // そのまま使い、`--refresh-makers`（週次ジョブ）を付けたときだけ D1 から取り直す。
+    if (!process.argv.includes('--refresh-makers') && fs.existsSync(OUTPUT)) {
+        try {
+            const prev = JSON.parse(fs.readFileSync(OUTPUT, 'utf-8'));
+            if (Array.isArray(prev.makers) && prev.makers.length > 0
+                && Array.isArray(prev.labels) && prev.labels.length > 0
+                && Array.isArray(prev.genres) && prev.genres.length > 0) {
+                console.log(`  メーカー/レーベル/ジャンルは既存 suggest_cache.json を再利用 (D1読取0行, `
+                    + `メーカー${prev.makers.length} / レーベル${prev.labels.length} / ジャンル${prev.genres.length})`);
+                return { actresses, makers: prev.makers, labels: prev.labels, genres: prev.genres };
+            }
+        } catch { /* 壊れていたら D1 から取り直す */ }
+    }
+
     // メーカー・レーベル
     const [mgsMk, fanzaMk, mgsLb, fanzaLb] = await Promise.all([
         mgsDb.execute("SELECT DISTINCT maker FROM products WHERE maker IS NOT NULL AND maker != ''").then(r => r.rows),

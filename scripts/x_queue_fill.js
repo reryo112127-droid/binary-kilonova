@@ -84,7 +84,7 @@ const FZ_MAKER_ARGS = HOME_MAKERS.flatMap(([t, v]) => t === 'exact' ? [v, v] : [
 
 // 共演(真の共演)とアンソロジー/総集編(多数女優の寄せ集め)の判別。
 // アンソロジーは「女優5人以上 or 4時間以上 or 総集編系タイトル」。それらを除外する条件。
-const NOT_ANTHOLOGY = `actresses NOT LIKE '%,%,%,%,%' AND (duration_min IS NULL OR duration_min < 240)`
+const NOT_ANTHOLOGY = `actresses NOT LIKE '%,%,%,%,%' AND COALESCE(duration_min, 0) < 240`
     + ` AND title NOT LIKE '%総集編%' AND title NOT LIKE '%アンソロジー%' AND title NOT LIKE '%オムニバス%'`
     + ` AND title NOT LIKE '%ベスト%' AND title NOT LIKE '%BEST%' AND title NOT LIKE '%コレクション%'`
     + ` AND genres NOT LIKE '%総集編%' AND genres NOT LIKE '%アンソロジー%'`;
@@ -102,7 +102,7 @@ try { crossMap = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'site', '
 const GENRES = [
     { genre: 'new', sources: [
         // MGS独占の特定メーカー(少数)を優先。日付窓は設けず新しい順
-        { platform: 'mgs', where: `actresses IS NOT NULL AND TRIM(actresses)<>'' AND (duration_min IS NULL OR duration_min<600)`,
+        { platform: 'mgs', where: `actresses IS NOT NULL AND TRIM(actresses)<>'' AND COALESCE(duration_min, 0) < 600`,
           order: `ORDER BY REPLACE(sale_start_date,'/','-') DESC, RANDOM()`, whereArgs: () => [], limit: PER * 8 },
         // 不足分はFANZA特定メーカーの新作でカバー
         { platform: 'fanza', where: `actresses IS NOT NULL AND TRIM(actresses)<>'' AND sale_start_date >= ?`,

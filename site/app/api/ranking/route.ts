@@ -5,7 +5,7 @@ import { computeProductScore, PRODUCT_SCORE } from '../../../lib/scoring';
 import { filterActresses } from '../../../lib/actressFilter';
 import { getCached, setCached } from '../../../lib/apiCache';
 import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../lib/staticCache';
-import { bestExclusionSql } from '../../../lib/bestFilter';
+import { bestExclusionSql, isBestOrCompilation } from '../../../lib/bestFilter';
 
 const CANDIDATE_LIMIT = 200; // スコア計算用候補数
 const RANKING_TTL = 30 * 60 * 1000; // 30分
@@ -30,12 +30,20 @@ export async function GET(request: NextRequest) {
     }
 
     const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 200);
+    const excludeBestParam = !!searchParams.get('excludeBest');
 
-    // 日付範囲なし（デフォルト）→ 静的キャッシュから返す
-    if (!fromDate && !toDate && !searchParams.get('excludeBest')) {
-        const cached = await readStaticCache<unknown[]>('ranking_default_cache.json');
+    // 日付範囲なし（デフォルト）→ 静的キャッシュから返す。
+    // **excludeBest=1 でも静的キャッシュを使う**（2026-09-09）。以前はこのパラメータが付くと
+    // 必ずD1へ落ちていて、候補取得が 1回 267,000行（シャード2周ぶん）×2シャード＝
+    // その時間帯の読取の38%を占めていた。静的キャッシュ自体が BEST/総集編を除いて
+    // 焼かれているので、JS側で同じ条件を重ねれば結果は変わらない。
+    if (!fromDate && !toDate) {
+        const cached = await readStaticCache<Record<string, unknown>[]>('ranking_default_cache.json');
         if (cached && cached.length > 0) {
-            const page = cached.slice(0, limit);
+            const filtered = excludeBestParam
+                ? cached.filter(p => !isBestOrCompilation(p.title, p.duration_min))
+                : cached;
+            const page = filtered.slice(0, limit);
             if (cfCache && cfCacheKey) await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
                 headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
             }));
@@ -43,11 +51,14 @@ export async function GET(request: NextRequest) {
         }
     }
 
-    // 2026年デフォルトクエリは静的JSONから返す
+    // 2026年デフォルトクエリは静的JSONから返す（excludeBest でも同じ。上のコメント参照）
     if (fromDate === '2026-01-01' && toDate === '2026-12-31') {
-        const cached = await readStaticCache<unknown[]>('ranking_2026_cache.json');
+        const cached = await readStaticCache<Record<string, unknown>[]>('ranking_2026_cache.json');
         if (cached && cached.length > 0) {
-            const page = cached.slice(0, limit);
+            const filtered = excludeBestParam
+                ? cached.filter(p => !isBestOrCompilation(p.title, p.duration_min))
+                : cached;
+            const page = filtered.slice(0, limit);
             if (cfCache && cfCacheKey) await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
                 headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
             }));
@@ -76,7 +87,7 @@ export async function GET(request: NextRequest) {
     // BEST/総集編の判定条件は lib/bestFilter.ts に集約（検索・LP・ランキングで同じ結果にする）
 
     function buildMgsDateConds(): { conds: string[]; args: string[] } {
-        const conds: string[] = ['(duration_min IS NULL OR duration_min < 600)'];
+        const conds: string[] = ['COALESCE(duration_min, 0) < 600'];
         const args: string[] = [];
         if (fromDate) { conds.push("REPLACE(sale_start_date, '/', '-') >= ?"); args.push(fromDate); }
         if (toDate)   { conds.push("REPLACE(sale_start_date, '/', '-') <= ?"); args.push(toDate); }
@@ -117,6 +128,9 @@ export async function GET(request: NextRequest) {
             : [],
         fanzaClient
             ? fanzaClient.execute({
+                  // ORDER BY を **products. で修飾**すること。修飾しないと
+                  // `COALESCE(review_count,0) AS review_count` の別名の方が優先され、
+                  // idx_review_date が使えず SCAN products + TEMP B-TREE（1回135,000行）になる。
                   sql: `SELECT product_id, title, actresses, main_image_url, 0 AS wish_count,
                                genres, maker, sale_start_date,
                                COALESCE(discount_pct, 0) AS discount_pct,
@@ -124,7 +138,7 @@ export async function GET(request: NextRequest) {
                                COALESCE(review_average, 0) AS review_average
                         FROM products
                         ${fanzaConds.conds.length ? 'WHERE ' + fanzaConds.conds.join(' AND ') : ''}
-                        ORDER BY review_count DESC, sale_start_date DESC
+                        ORDER BY products.review_count DESC, products.sale_start_date DESC
                         LIMIT ${CANDIDATE_LIMIT}`,
                   args: fanzaConds.args,
               }).then(r => r.rows).catch(() => [])

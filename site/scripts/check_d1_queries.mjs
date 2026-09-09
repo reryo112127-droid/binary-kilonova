@@ -5,7 +5,12 @@
  * こちらを使う。d1QueriesAdaptiveGroups は直近24h程度しか保持していない点に注意。
  * （`queryCount` というフィールドは無い。件数は group の `count`）
  *
- * 使い方: node scripts/check_d1_queries.mjs [--hours=24] [--top=25]
+ * 使い方: node scripts/check_d1_queries.mjs [--hours=24] [--top=25] [--writes] [--full]
+ *
+ * --writes は行"書込"(10万行/日)の内訳。読取と書込は犯人が別なので両方見ること
+ * （2026-09-08 は書込が枠の679%だったが、正体は CREATE INDEX の一回きりだった）。
+ * なお d1QueriesAdaptiveGroups の rowsWritten はクエリに紐づくぶんだけで、
+ * 索引/トリガの書き込みまでは載らない。日次合計は check_free_tier_usage.mjs を見ること。
  */
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -35,14 +40,17 @@ async function main() {
     const arg = (k, d) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); return a ? parseInt(a.split('=')[1], 10) : d; };
     const hours = arg('hours', 24);
     const top = arg('top', 25);
+    const writes = process.argv.includes('--writes');
+    const metric = writes ? 'rowsWritten' : 'rowsRead';
+    const label = writes ? '行書込' : '行読取';
     const since = new Date(Date.now() - hours * 3600000).toISOString();
     const until = new Date().toISOString();
 
     const gql = `query Q($account: String!, $since: Time!, $until: Time!) {
       viewer { accounts(filter: {accountTag: $account}) {
-        d1QueriesAdaptiveGroups(limit: 1000, filter: {datetime_geq: $since, datetime_leq: $until}, orderBy: [sum_rowsRead_DESC]) {
+        d1QueriesAdaptiveGroups(limit: 1000, filter: {datetime_geq: $since, datetime_leq: $until}, orderBy: [sum_${metric}_DESC]) {
           count
-          sum { rowsRead rowsReturned }
+          sum { rowsRead rowsWritten rowsReturned }
           dimensions { query databaseId }
         }
       } }
@@ -56,12 +64,13 @@ async function main() {
     if (json.errors?.length) { console.error('取得失敗:', json.errors.map(e => e.message).join('; ')); process.exitCode = 2; return; }
 
     const groups = json?.data?.viewer?.accounts?.[0]?.d1QueriesAdaptiveGroups ?? [];
-    const total = groups.reduce((s, g) => s + (g.sum.rowsRead ?? 0), 0);
-    console.log(`\n直近 ${hours}h の D1 行読取: ${total.toLocaleString()} 行 / ${groups.length} クエリ種\n`);
-    console.log('  行読取      回数    1回あたり  DB        クエリ');
+    const total = groups.reduce((s, g) => s + (g.sum[metric] ?? 0), 0);
+    console.log(`\n直近 ${hours}h の D1 ${label}: ${total.toLocaleString()} 行 / ${groups.length} クエリ種\n`);
+    console.log(`  ${label}      回数    1回あたり  DB        クエリ`);
     console.log('  ' + '-'.repeat(110));
     for (const g of groups.slice(0, top)) {
-        const rows = g.sum.rowsRead ?? 0;
+        const rows = g.sum[metric] ?? 0;
+        if (writes && !rows) break;
         const n = g.count ?? 0;
         const per = n ? Math.round(rows / n) : 0;
         const db = DB_NAMES[g.dimensions.databaseId] || g.dimensions.databaseId.slice(0, 8);

@@ -86,7 +86,7 @@ const checked = RECHECK
 const mgsRows = await mgs.execute({
     sql: `SELECT product_id, main_image_url FROM products
           WHERE main_image_url IS NOT NULL AND main_image_url != ''
-            AND (duration_min IS NULL OR duration_min < 600)
+            AND COALESCE(duration_min, 0) < 600
             AND (sale_start_date >= ? OR wish_count >= ?)
           ORDER BY wish_count DESC, sale_start_date DESC`,
     args: [cutoffDate, WISH_THRESHOLD],

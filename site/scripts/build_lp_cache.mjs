@@ -49,7 +49,7 @@ export function lpShardKey(slug) {
 const BEST_PATTERNS = ['%BEST%', '%ベスト%', '%総集編%', '%コレクション%', '%福袋%', '%詰め合わせ%', '%コンプリート%', '%枚組%'];
 const COMPILATION_MAX_MIN = 480;
 const BEST_SQL = BEST_PATTERNS.map(() => 'title NOT LIKE ?').join(' AND ')
-    + ` AND (duration_min IS NULL OR duration_min <= ${COMPILATION_MAX_MIN})`;
+    + ` AND COALESCE(duration_min, 0) <= ${COMPILATION_MAX_MIN}`;
 
 // MGS裏表紙→表紙（lib/landingPage.ts の poster と同じ）
 function poster(url) {
@@ -187,7 +187,7 @@ function main() {
                 sale_start_date, duration_min, sample_video_url, wish_count,
                 COALESCE(discount_pct,0) AS discount_pct, list_price, current_price
          FROM products
-         WHERE (duration_min IS NULL OR duration_min < 600) AND ${BEST_SQL}
+         WHERE COALESCE(duration_min, 0) < 600 AND ${BEST_SQL}
          ORDER BY wish_count DESC`);
     for (const row of mgsStmt.iterate(...BEST_PATTERNS)) { assign(row, 'mgs'); n++; }
     console.log(`[LP] MGS ${n.toLocaleString()}行を走査`);

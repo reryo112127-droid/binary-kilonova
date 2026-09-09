@@ -60,7 +60,15 @@ export function bestExclusionSql(opts: { skipDuration?: boolean } = {}): { conds
         args.push(p);
     }
     if (!opts.skipDuration) {
-        conds.push(`(duration_min IS NULL OR duration_min <= ${COMPILATION_MAX_MIN})`);
+        // **`(duration_min IS NULL OR duration_min <= 480)` と書いてはいけない**（2026-09-09）。
+        // この OR があると SQLite は idx_duration の MULTI-INDEX OR を選び、
+        //   SEARCH products USING INDEX idx_duration (duration_min=?) / (duration_min<?)
+        //   USE TEMP B-TREE FOR ORDER BY
+        // ＝ ほぼ全行が一致するのに ORDER BY を一時B-treeでやり直す計画になる。
+        // 実測: /api/ranking の候補取得が 1回 **267,000行**（シャード2周ぶん）× 3回/6h。
+        // COALESCE にすると索引候補から外れ、プランナは ORDER BY 側の索引
+        // (idx_review_date / idx_sale_start) を選んで LIMIT で打ち切れる（意味は同じ）。
+        conds.push(`COALESCE(duration_min, 0) <= ${COMPILATION_MAX_MIN}`);
     }
     return { conds, args };
 }

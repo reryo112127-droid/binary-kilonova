@@ -74,9 +74,18 @@ jobs:
       # 新: サイトマップ(188本)から全スラグ集合を作り、**自DBで出演者が空の作品**の品番を
       #     avwikiスラグへ変換して突合し、**存在するページだけ**を取りに行く。
       #     187,014リクエスト → 実測3,166件へ縮小し、取りこぼしなく回収できる。
+      # 週次: スラグ集合と「出演者不明の候補一覧」を作り直す。
+      # 候補一覧の再生成は D1 の全表走査(約47万行)なので **ここでしか行わない**。
+      # 平日の Backfill ステップは data/avwiki_backfill_targets.json を再利用しD1を読まない。
       - name: Refresh avwiki sitemap slugs (週次)
         if: steps.mode.outputs.rescan == 'true'
-        run: node scripts/avwiki_backfill_actresses.js --refresh-sitemap --dry-run || true
+        run: node scripts/avwiki_backfill_actresses.js --refresh-sitemap --rescan-targets --dry-run || true
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_MGS_ID:             ${{ secrets.D1_MGS_ID }}
+          D1_FANZA_0_ID:        ${{ secrets.D1_FANZA_0_ID }}
+          D1_FANZA_1_ID:        ${{ secrets.D1_FANZA_1_ID }}
 
       - name: Backfill actresses from avwiki (対象を絞って取得)
         run: timeout 120m node scripts/avwiki_backfill_actresses.js --limit 5000 --interval 1400 || true
@@ -122,6 +131,7 @@ jobs:
             data/avwiki_url_list.json \
             data/avwiki_product_urls.json \
             data/avwiki_backfill_checked.json \
+            data/avwiki_backfill_targets.json \
             || true
           if ! git diff --staged --quiet; then
             if [ "${{ steps.mode.outputs.rescan }}" = "true" ]; then
