@@ -19,7 +19,10 @@ const REPO = path.resolve(ROOT, '..');
 
 /** コメントを落としつつ、BEGIN…END; を1文としてまとめて分割する。 */
 export function splitStatements(sql) {
-    const lines = sql.split('\n').filter(l => !l.trim().startsWith('--'));
+    // **CRLF を落とすこと**。D1 は CR を含む CREATE TRIGGER … BEGIN … END を
+    // `incomplete input: SQLITE_ERROR` で拒否する（git の autocrlf でチェックアウトすると
+    // 同じファイルが突然通らなくなる。2026-09-09 に踏んだ）。
+    const lines = sql.replace(/\r\n?/g, '\n').split('\n').filter(l => !l.trim().startsWith('--'));
     const stmts = [];
     let cur = '';
     let inBody = false;
@@ -76,12 +79,19 @@ async function main() {
     if (!dry) {
         for (const name of ['fanza-0', 'fanza-1', 'mgs']) {
             try {
+                const want = ['products_ad', 'products_au', 'products_bi'];
                 const r = await d1(name).execute(
-                    "SELECT name, sql FROM sqlite_master WHERE type='trigger' AND name IN ('products_au','products_ad')");
+                    "SELECT name, sql FROM sqlite_master WHERE type='trigger' AND name IN ('products_au','products_ad','products_bi')");
+                const seen = new Set();
                 for (const row of (r.rows || r)) {
+                    seen.add(String(row.name));
                     const ok = /products_fts MATCH/i.test(String(row.sql));
                     console.log(`  ${ok ? '✓' : '✗'} ${name}.${row.name}: ${ok ? 'MATCH版' : '**旧・全走査版のまま**'}`);
                     if (!ok) failed++;
+                }
+                for (const w of want.filter(x => !seen.has(x))) {
+                    console.error(`  ✗ ${name}.${w}: **トリガが無い**（DROPだけ通ってCREATEが落ちた可能性）`);
+                    failed++;
                 }
             } catch (e) { console.error(`  ✗ ${name}: 確認できず (${e.message})`); failed++; }
         }
