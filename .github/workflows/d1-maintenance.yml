@@ -1,0 +1,130 @@
+name: D1 Maintenance
+
+# D1 の日次枠まわりの後始末を「枠リセット直後」に自動でやるジョブ（2026-09-09 新設）。
+#
+# 枠は **UTC 0時 = JST 9:00** にリセットされ、サイトのアクセスで消えていくので、
+# 読み書きを伴う保守はリセット直後に寄せる（[[avrankings-batch-schedule]] と同じ方針）。
+# PCのタスク(daily_main.bat 10:30 JST)ではなくCIに置いてあるのは、PCが落ちていても
+# 動くようにするため。
+#
+# やること:
+#   1. FTSトリガの点検・張り替え（DDLなので0行。消えていたらFTS同期が止まるので毎日確認する）
+#   2. products_fts の重複行の掃除（数日かけて終わらせ、終わったら自動でスキップになる）
+#   3. 無料枠の消費レポート（90%超で失敗させて気づけるようにする）
+
+on:
+  schedule:
+    - cron: '20 0 * * *'      # 毎日 09:20 JST (= 0:20 UTC / D1枠リセット直後)
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: '1回で消すFTS行の上限（書込枠10万行/日のうち何行使うか）'
+        required: false
+        default: '45000'
+      force:
+        description: '掃除済みのDBも再点検する'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+
+concurrency:
+  group: d1-maintenance
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  maintain:
+    name: D1 保守 (FTSトリガ点検 + 重複掃除 + 枠レポート)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      # site/scripts/*.mjs から import する dotenv などはリポジトリ直下の node_modules で解決される
+      # （site/node_modules が無くても親へフォールバックする）。site の重い依存は入れない。
+      - name: Install dependencies
+        run: npm ci
+
+      # FTSトリガが「DROPだけ通ってCREATEが落ちた」状態だと products_fts が同期されなくなる。
+      # DDLなので行を読まない＝枠切れ中でも通る。適用スクリプト自身が sqlite_master で検証する。
+      - name: Verify / repair FTS triggers
+        run: node site/scripts/apply_fts_triggers.mjs
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_MGS_ID:             ${{ secrets.D1_MGS_ID }}
+          D1_FANZA_0_ID:         ${{ secrets.D1_FANZA_0_ID }}
+          D1_FANZA_1_ID:         ${{ secrets.D1_FANZA_1_ID }}
+
+      # INSERT OR REPLACE がためた重複FTS行の掃除。全DB完了後は state を見て
+      # スキャンごとスキップするので、以後このステップは D1 を1行も読まない。
+      - name: Cleanup duplicate FTS rows
+        run: |
+          node site/scripts/cleanup_fts_duplicates.mjs --all \
+            --budget "${{ github.event.inputs.budget || '45000' }}" \
+            ${{ github.event.inputs.force == 'true' && '--force' || '' }} \
+            || echo "cleanup failed (non-fatal, 翌日リトライ)"
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_MGS_ID:             ${{ secrets.D1_MGS_ID }}
+          D1_FANZA_0_ID:         ${{ secrets.D1_FANZA_0_ID }}
+          D1_FANZA_1_ID:         ${{ secrets.D1_FANZA_1_ID }}
+
+      - name: Commit cleanup progress
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/fts_cleanup_state.json || true
+          if ! git diff --staged --quiet; then
+            git commit -m "d1: fts cleanup progress [skip ci] [vercel skip]"
+            git pull --rebase origin main || git rebase --abort || true
+            git push || echo "Push failed (non-fatal, will retry next run)"
+          fi
+
+      # 前日の消費と当日の出だしを出す。90%超で exit 1 になるので、そのときだけジョブを
+      # 失敗させて気づけるようにする（枠超過の再発検知）。
+      # exit 2 は「Analyticsトークンが無い/権限不足」なので警告だけにする
+      # （CLOUDFLARE_ANALYTICS_TOKEN を Secrets に入れると警報が有効になる。
+      #  D1トークンには Account Analytics 権限が無いので別トークンが要る）。
+      - name: Free tier usage report
+        run: |
+          set +e
+          node site/scripts/check_free_tier_usage.mjs --days=3
+          code=$?
+          set -e
+          if [ "$code" -eq 2 ]; then
+            echo "::warning::Analyticsトークンが無いため枠レポートを取得できません（CLOUDFLARE_ANALYTICS_TOKEN を Secrets に登録してください）"
+            exit 0
+          fi
+          exit $code
+        env:
+          CLOUDFLARE_ACCOUNT_ID:      ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_TOKEN }}
+          CLOUDFLARE_D1_TOKEN:        ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_SITE_ID:                 ${{ secrets.D1_SITE_ID }}
+          D1_MGS_ID:                  ${{ secrets.D1_MGS_ID }}
+          D1_FANZA_0_ID:              ${{ secrets.D1_FANZA_0_ID }}
+          D1_FANZA_1_ID:              ${{ secrets.D1_FANZA_1_ID }}
+
+      # 枠を食っているクエリの内訳。失敗しても後続に影響させない（ログとして残す）。
+      - name: Top queries by rows read
+        if: always()
+        run: node site/scripts/check_d1_queries.mjs --hours=24 --top=25 || true
+        env:
+          CLOUDFLARE_ACCOUNT_ID:      ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ANALYTICS_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_TOKEN }}
+          CLOUDFLARE_D1_TOKEN:        ${{ secrets.CLOUDFLARE_D1_TOKEN }}
+          D1_SITE_ID:                 ${{ secrets.D1_SITE_ID }}
+          D1_MGS_ID:                  ${{ secrets.D1_MGS_ID }}
+          D1_FANZA_0_ID:              ${{ secrets.D1_FANZA_0_ID }}
+          D1_FANZA_1_ID:              ${{ secrets.D1_FANZA_1_ID }}

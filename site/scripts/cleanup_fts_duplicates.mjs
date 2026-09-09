@@ -1,5 +1,5 @@
 /**
- * products_fts にたまった **重複行・孤児行** を掃除する（1回きりの後始末）。
+ * products_fts にたまった **重複行・孤児行** を掃除する（数日かけて終わらせる後始末）。
  *
  * 原因は `INSERT OR REPLACE INTO products`。SQLite は置き換え削除で AFTER DELETE
  * トリガを発火しない（recursive_triggers=off の仕様）が AFTER INSERT は発火するため、
@@ -10,37 +10,45 @@
  * 増加そのものは migrations/0012・0013 の BEFORE INSERT トリガ(products_bi)で止めてある。
  * このスクリプトは **既にたまっている分** を消すためのもの。
  *
- * コスト（1DBあたり）:
+ * コスト（1DBあたり1回）:
  *   読取 = products_fts 全行 + products 全行（fanza-0 で約33万行）
- *   書込 = 消す行数ぶん（fanza-0 で約5.8万行）… **日次の書込枠は10万行**なので
- *          `--max-deletes` で1日ぶんに区切り、翌日以降に続きを流すこと。
+ *   書込 = 消した行数ぶん（FTS行1本 ≒ 1書込）
+ * **日次の書込枠は10万行**なので `--budget`（全DB合計の削除上限）で1日ぶんに区切り、
+ * 翌日以降のジョブが続きを流す。掃除し終わったDBは state に done を書いて
+ * **以後スキャンごとスキップ**する（＝毎日の無駄な33万行読取が発生しない）。
+ *
+ * 進捗: data/fts_cleanup_state.json（CIがコミットする）
  *
  * 使い方:
- *   node scripts/cleanup_fts_duplicates.mjs --db fanza-0 --dry-run
- *   node scripts/cleanup_fts_duplicates.mjs --db fanza-0 --max-deletes 40000
+ *   node scripts/cleanup_fts_duplicates.mjs --all --dry-run
+ *   node scripts/cleanup_fts_duplicates.mjs --all --budget 45000
+ *   node scripts/cleanup_fts_duplicates.mjs --db fanza-0 --force   # done でも再点検
  *   （枠がリセットされる UTC 0時＝日本時間 9:00 直後に流すこと）
  */
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = path.resolve(ROOT, '..');
+const STATE_FILE = path.join(REPO, 'data', 'fts_cleanup_state.json');
+const TARGETS = ['fanza-0', 'fanza-1', 'mgs'];
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
+const has = f => process.argv.includes(f);
 
-async function main() {
-    const dotenv = (await import('dotenv')).default;
-    dotenv.config({ path: path.join(REPO, '.env'), quiet: true });
+/** 枠切れのエラーか（切れていたら黙って中断して翌日に回す） */
+const isQuota = msg => /exceeded .*(daily|limit)|free tier/i.test(String(msg));
 
-    const target = arg('db', '');
-    const dry = process.argv.includes('--dry-run');
-    const maxDeletes = parseInt(arg('max-deletes', '40000'), 10);
-    if (!['fanza-0', 'fanza-1', 'mgs'].includes(target)) {
-        console.error('--db に fanza-0 / fanza-1 / mgs のいずれかを指定してください');
-        process.exitCode = 2; return;
-    }
+function loadState() {
+    try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8')); } catch { return {}; }
+}
+function saveState(state) {
+    fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2) + '\n');
+}
 
-    const { d1 } = (await import('../../scripts/lib/d1.js')).default;
+async function cleanOne(d1, target, { dry, budget, state }) {
     const db = d1(target);
 
     // 20万行を1レスポンスで受けるとD1 RESTの応答が数MBになるので rowid で刻んで読む。
@@ -87,21 +95,88 @@ async function main() {
 
     console.log(`  残す: ${keep.size.toLocaleString()}行 / 消す: ${doomed.length.toLocaleString()}行`
         + `（うち孤児 ${orphans.toLocaleString()}行 = products に無い product_id）`);
-    if (dry) { console.log('  --dry-run のため削除しません'); return; }
 
-    const batch = doomed.slice(0, maxDeletes);
+    const entry = state[target] = state[target] || {};
+    entry.checkedAt = new Date().toISOString();
+    entry.ftsRows = ftsRows.length;
+    entry.products = alive.size;
+    entry.remaining = doomed.length;
+
+    if (doomed.length === 0) {
+        entry.done = true;
+        console.log('  重複なし。このDBは完了（以後スキップ）。');
+        return { deleted: 0, quota: false };
+    }
+    if (dry) { console.log('  --dry-run のため削除しません'); return { deleted: 0, quota: false }; }
+
+    const batch = doomed.slice(0, budget);
     if (batch.length < doomed.length) {
-        console.log(`  今回は ${batch.length.toLocaleString()}行だけ消します（--max-deletes）。残りは翌日以降に。`);
+        console.log(`  今回は ${batch.length.toLocaleString()}行だけ消します（--budget の残り）。続きは翌日。`);
     }
     let done = 0;
     for (let i = 0; i < batch.length; i += 100) {
         const chunk = batch.slice(i, i + 100);
-        // rowid の点引きなので読取はほぼ発生しない
-        await db.execute(`DELETE FROM products_fts WHERE rowid IN (${chunk.join(',')})`);
+        try {
+            // rowid の点引きなので読取はほぼ発生しない
+            await db.execute(`DELETE FROM products_fts WHERE rowid IN (${chunk.join(',')})`);
+        } catch (e) {
+            console.error(`\n  削除に失敗: ${e.message}`);
+            entry.remaining = doomed.length - done;
+            entry.deletedTotal = (entry.deletedTotal || 0) + done;
+            return { deleted: done, quota: isQuota(e.message) };
+        }
         done += chunk.length;
         if (done % 5000 === 0 || done === batch.length) process.stdout.write(`\r  削除 ${done.toLocaleString()}/${batch.length.toLocaleString()}`);
     }
-    console.log(`\n完了。残り ${(doomed.length - batch.length).toLocaleString()}行`);
+    entry.remaining = doomed.length - done;
+    entry.deletedTotal = (entry.deletedTotal || 0) + done;
+    entry.done = entry.remaining === 0;
+    console.log(`\n  削除 ${done.toLocaleString()}行 / 残り ${entry.remaining.toLocaleString()}行`
+        + (entry.done ? '（完了）' : ''));
+    return { deleted: done, quota: false };
+}
+
+async function main() {
+    try {
+        const dotenv = (await import('dotenv')).default;
+        dotenv.config({ path: path.join(REPO, '.env'), quiet: true });
+    } catch { /* CI では環境変数が直接入っているので dotenv は無くてよい */ }
+
+    const dry = has('--dry-run');
+    const force = has('--force');
+    let budget = parseInt(arg('budget', arg('max-deletes', '45000')), 10);
+    const targets = has('--all') ? TARGETS : [arg('db', '')];
+    if (!targets.every(t => TARGETS.includes(t))) {
+        console.error('--all か、--db に fanza-0 / fanza-1 / mgs のいずれかを指定してください');
+        process.exitCode = 2; return;
+    }
+
+    const state = loadState();
+    const { d1 } = (await import('../../scripts/lib/d1.js')).default;
+
+    let quotaHit = false;
+    for (const target of targets) {
+        if (state[target]?.done && !force) {
+            console.log(`[${target}] 掃除済み（${state[target].checkedAt}）。スキップ（--force で再点検）`);
+            continue;
+        }
+        if (!dry && budget <= 0) { console.log(`[${target}] 今日の削除予算を使い切りました。翌日に持ち越し。`); continue; }
+        try {
+            const r = await cleanOne(d1, target, { dry, budget, state });
+            budget -= r.deleted;
+            if (r.quota) { quotaHit = true; break; }
+        } catch (e) {
+            console.error(`[${target}] 失敗: ${e.message}`);
+            if (isQuota(e.message)) { quotaHit = true; break; }
+        }
+    }
+
+    if (!dry) saveState(state);
+    if (quotaHit) console.error('\nD1 の日次枠が切れています。翌日のジョブが続きから流します。');
+    const left = TARGETS.filter(t => !state[t]?.done);
+    console.log(left.length === 0
+        ? '\n全DBの掃除が完了しました（以後このジョブは読取0行で終わります）。'
+        : `\n未完了: ${left.join(', ')}`);
 }
 
 main().catch(e => { console.error('失敗:', e.message); process.exitCode = 1; });

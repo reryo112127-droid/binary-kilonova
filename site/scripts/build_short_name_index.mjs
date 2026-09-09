@@ -120,13 +120,45 @@ async function collect(dbPath, label) {
     return { actress, labels: [...labels] };
 }
 
+/**
+ * MGS の品番は「数字プレフィクス + 英字 + '-' + 数字」（259LUXU-1875 / SIRO-5716）。
+ * 利用者が入力するのは普通プレフィクス無しの `LUXU-1875` なので、ランタイムは
+ * `product_id LIKE '%LUXU-1875%'` に落ちていた ―― これは **1回 65,217行の全表走査**
+ * （2026-09-09 実測。前方一致にできないので索引が効かない）。
+ * 英字コア→実在する数字プレフィクス一覧（1,532コア・22KB）を配れば、
+ * `product_id IN ('259LUXU-1875', 'LUXU-1875', …)` の主キー点引きに変えられる。
+ */
+async function collectMgsIdPrefixes(dbPath) {
+    if (!fs.existsSync(dbPath)) return {};
+    const { openLocal } = require(path.join(REPO, 'scripts', 'lib', 'localsqlite.cjs'));
+    const db = openLocal(dbPath);
+    const map = new Map();
+    try {
+        const r = await db.execute('SELECT product_id FROM products');
+        for (const row of r.rows) {
+            const m = String(row.product_id).toUpperCase().match(/^(\d*)([A-Z]+)-(\d+)$/);
+            if (!m) continue;                       // 形が違うもの（実測864件）はLIKEのまま
+            if (!map.has(m[2])) map.set(m[2], new Set());
+            map.get(m[2]).add(m[1]);                // '' = プレフィクス無し（SIRO-5716 など）
+        }
+    } finally {
+        db.close();
+    }
+    const out = {};
+    for (const [core, prefixes] of map) out[core] = [...prefixes].sort();
+    console.log(`  mgs: 品番の英字コア ${Object.keys(out).length}件`);
+    return out;
+}
+
 async function main() {
     console.log('短名インデックスを生成中（ローカルSQLite）…');
     const fanza = await collect(path.join(REPO, 'data', 'fanza.db'), 'fanza');
     const mgs = await collect(path.join(REPO, 'data', 'mgs.db'), 'mgs');
+    const mgsIdPrefixes = await collectMgsIdPrefixes(path.join(REPO, 'data', 'mgs.db'));
     const index = {
         actress: { fanza: fanza.actress, mgs: mgs.actress },
         labels: { fanza: fanza.labels, mgs: mgs.labels },
+        mgsIdPrefixes,
     };
 
     const isEmpty = Object.keys(index.actress.fanza).length === 0

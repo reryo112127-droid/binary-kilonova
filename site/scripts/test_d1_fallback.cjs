@@ -238,6 +238,30 @@ B.resetD1Breaker();
           `別名の短名 ${shortAliases.length}件がすべて索引にキーとして載っている`
           + (notKeyed.length ? `（未収録: ${notKeyed.slice(0, 4).join(', ')}）` : ''));
       }
+
+      // MGS品番の「英字コア→数字プレフィクス」。落ちると品番検索が
+      // `product_id LIKE '%LUXU-1875%'` の全表走査（1回 65,217行）に戻る。
+      const pfx = idx.mgsIdPrefixes || {};
+      const cores = Object.keys(pfx);
+      ok(cores.length > 500, `MGS品番の英字コアが十分ある (${cores.length}件)`);
+      const badCore = cores.filter(c => !/^[A-Z]+$/.test(c));
+      ok(badCore.length === 0,
+        'コアは英大文字だけ' + (badCore.length ? `（不正: ${badCore.slice(0, 3).join(', ')}）` : ''));
+      const badPfx = cores.filter(c => !Array.isArray(pfx[c]) || pfx[c].some(p => !/^\d*$/.test(p)));
+      ok(badPfx.length === 0,
+        'プレフィクスは数字（または空文字）だけ' + (badPfx.length ? `（不正: ${badPfx.slice(0, 3).join(', ')}）` : ''));
+      // 実在の品番が候補に復元できること（ランタイムの組み立てと同じ式で確認する）
+      const mdb = new (require('better-sqlite3'))(pathx.join(__dirname, '..', '..', 'data', 'mgs.db'), { readonly: true });
+      const sampleIds = mdb.prepare("SELECT product_id FROM products LIMIT 500").all().map(r => String(r.product_id).toUpperCase());
+      mdb.close();
+      const missed = sampleIds.filter(id => {
+        const m = id.match(/^(\d*)([A-Z]+)-(\d+)$/);
+        if (!m) return false;                    // 形が違うものは元からLIKE
+        const list = pfx[m[2]];
+        return !list || !list.includes(m[1]);
+      });
+      ok(missed.length === 0,
+        `実在品番500件が候補から復元できる` + (missed.length ? `（漏れ: ${missed.slice(0, 3).join(', ')}）` : ''));
     }
   }
   console.log(fail === 0 ? '\nALL PASS' : `\n${fail} FAILED`);

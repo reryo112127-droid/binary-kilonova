@@ -360,13 +360,18 @@ export async function GET(request: NextRequest) {
     type ShortNameIndex = {
         actress?: { fanza?: Record<string, string[]>; mgs?: Record<string, string[]> };
         labels?: { fanza?: string[]; mgs?: string[] };
+        /** MGS品番の英字コア → 実在する数字プレフィクス（"259" / "" など）。品番検索用 */
+        mgsIdPrefixes?: Record<string, string[]>;
     };
     let shortNameIndex: ShortNameIndex | null = null;
     // maker 絞り込みでも「実在するレーベル名か」の判定に labels を使う（下の maker 条件を参照）
     const needsExactMakerCheck = !!maker && !exactMaker;
+    // MGSの品番らしい q（英字と数字が混じる）も静的インデックスを使う（下の idConds を参照）
+    const qLooksLikeIdTop = !!q && /^[A-Za-z0-9][A-Za-z0-9_ -]{2,}$/.test(q) && /[A-Za-z]/.test(q) && /\d/.test(q);
     const needsShortIndex = [...actressGroups.flat(), ...profileActresses].some(n => [...n].length < 3)
         || (!!label && [...label].length < 3)
-        || needsExactMakerCheck;
+        || needsExactMakerCheck
+        || qLooksLikeIdTop;
     if (needsShortIndex) {
         try { shortNameIndex = await readStaticCache<ShortNameIndex>('short_name_index.json'); }
         catch { shortNameIndex = null; }
@@ -406,6 +411,24 @@ export async function GET(request: NextRequest) {
         if (pfx.length < 2) return null;
         const hi = nextStr(pfx);
         return hi ? [pfx, hi] : null;
+    }
+
+    // MGS の品番候補を作る。品番は「数字プレフィクス + 英字 + '-' + 数字」（259LUXU-1875）で、
+    // 利用者が入れるのは普通プレフィクス無しの `LUXU-1875`。前方一致にできないので従来は
+    // `product_id LIKE '%LUXU-1875%'` ＝ **1回 65,217行の全表走査**だった（2026-09-09 実測）。
+    // build_short_name_index.mjs が焼いた「英字コア→実在プレフィクス」で候補を組み立て、
+    // 主キーの点引き（product_id IN (...)）に変える。コアが索引に無ければ従来の LIKE に落とす。
+    const MAX_MGS_ID_CANDIDATES = 50;
+    function mgsIdCandidates(raw: string): string[] | null {
+        const m = raw.toUpperCase().replace(/\s+/g, '').match(/^(\d*)([A-Z]+)[-_]?(\d+)$/);
+        if (!m) return null;
+        const [, typed, core, num] = m;
+        // 利用者が既にプレフィクスまで入れているならそれで一意に決まる
+        if (typed) return [`${typed}${core}-${num}`];
+        const prefixes = shortNameIndex?.mgsIdPrefixes?.[core];
+        if (!prefixes || prefixes.length === 0 || prefixes.length > MAX_MGS_ID_CANDIDATES) return null;
+        // SQLへ直接埋め込むので、他の埋め込み箇所と同じく文字種を検証する
+        return prefixes.map(p => `${p}${core}-${num}`).filter(id => /^[A-Za-z0-9_-]+$/.test(id));
     }
 
     // 「ssis-123」「SSIS 123」のような入力を FANZA の正準品番 ssis00123 に正規化する。
@@ -623,7 +646,12 @@ export async function GET(request: NextRequest) {
                 const idConds: string[] = [];
                 const idArgs: string[] = [];
                 if (qIsAscii && isMgs) {
-                    if (qLooksLikeId) { idConds.push('product_id LIKE ?'); idArgs.push(`%${q}%`); }
+                    if (qLooksLikeId) {
+                        const cands = mgsIdCandidates(q);
+                        // 索引で候補を作れたら主キーの点引き。作れなければ従来どおり全走査のLIKE。
+                        if (cands) idConds.push(`product_id IN (${cands.map(c => `'${c}'`).join(',')})`);
+                        else { idConds.push('product_id LIKE ?'); idArgs.push(`%${q}%`); }
+                    }
                 } else if (qIsAscii) {
                     const range = idPrefixRange(q, false);
                     const canon = canonicalFanzaId(q);
