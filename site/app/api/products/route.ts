@@ -37,6 +37,31 @@ const SALE_MAKERS_FANZA: [string, string][] = [
     ['exact', 'DAHLIA'],
 ];
 
+// ── FTS プローブ結果の isolate 内キャッシュ（2026-09-10）──────────────────────
+// preparePlans() は検索のたびに一致件数のプローブ（FTS / 品番範囲）を投げる。同じ語でも
+// sort・offset・他の絞り込みが違えばエッジキャッシュは別キーになるので、女優ページの
+// ページ送りなどで同じプローブを何度も読み直していた（実測 1日 約2,800回・約36万行）。
+// 一致の集合は日次バッチでしか変わらないので、isolate が生きている間は30分使い回す。
+// id を最大2000件持つので件数は小さく抑える（1件あたり最大 約30KB）。
+type ProbeResult = { ids: string[] } | { dense: true };
+const PROBE_TTL_MS = 30 * 60 * 1000;
+const PROBE_CACHE_MAX = 150;
+const probeCache = new Map<string, { at: number; r: ProbeResult }>();
+function probeCacheGet(key: string): ProbeResult | null {
+    const e = probeCache.get(key);
+    if (!e) return null;
+    if (Date.now() - e.at > PROBE_TTL_MS) { probeCache.delete(key); return null; }
+    return e.r;
+}
+function probeCacheSet(key: string, r: ProbeResult) {
+    probeCache.set(key, { at: Date.now(), r });
+    while (probeCache.size > PROBE_CACHE_MAX) {
+        const oldest = probeCache.keys().next().value;
+        if (oldest === undefined) break;
+        probeCache.delete(oldest);
+    }
+}
+
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const sort = searchParams.get('sort') || 'new';
@@ -369,7 +394,8 @@ export async function GET(request: NextRequest) {
     // MGSの品番らしい q（英字と数字が混じる）も静的インデックスを使う（下の idConds を参照）
     const qLooksLikeIdTop = !!q && /^[A-Za-z0-9][A-Za-z0-9_ -]{2,}$/.test(q) && /[A-Za-z]/.test(q) && /\d/.test(q);
     const needsShortIndex = [...actressGroups.flat(), ...profileActresses].some(n => [...n].length < 3)
-        || (!!label && [...label].length < 3)
+        // レーベルは長さに関係なく「実在する名前そのものか」を見る（下の label 条件を参照）
+        || !!label
         || needsExactMakerCheck
         || qLooksLikeIdTop;
     if (needsShortIndex) {
@@ -418,15 +444,28 @@ export async function GET(request: NextRequest) {
     // `product_id LIKE '%LUXU-1875%'` ＝ **1回 65,217行の全表走査**だった（2026-09-09 実測）。
     // build_short_name_index.mjs が焼いた「英字コア→実在プレフィクス」で候補を組み立て、
     // 主キーの点引き（product_id IN (...)）に変える。コアが索引に無ければ従来の LIKE に落とす。
-    const MAX_MGS_ID_CANDIDATES = 50;
+    //
+    // 索引に**無い**コアも LIKE に落とさない（2026-09-10）。索引の供給元ローカル mgs.db は
+    // D1 の約半分（6.6万 / 11.7万件）しか持たず、FANZA 品番（SSIS-123 など）を探したときも
+    // MGS 側で同じ LIKE が走るので、実測で 1回 32,621行 × 8回/日 が残っていた。
+    // コアが未知なら「実在する全プレフィクス（約350種）× 入力」を点引きする。
+    // 主キーの点引き350回は外れても数百行で、全表走査の 1/100 以下。
+    const MAX_MGS_ID_CANDIDATES = 600;
+    let allMgsPrefixes: string[] | null = null;
     function mgsIdCandidates(raw: string): string[] | null {
         const m = raw.toUpperCase().replace(/\s+/g, '').match(/^(\d*)([A-Z]+)[-_]?(\d+)$/);
         if (!m) return null;
         const [, typed, core, num] = m;
         // 利用者が既にプレフィクスまで入れているならそれで一意に決まる
         if (typed) return [`${typed}${core}-${num}`];
-        const prefixes = shortNameIndex?.mgsIdPrefixes?.[core];
-        if (!prefixes || prefixes.length === 0 || prefixes.length > MAX_MGS_ID_CANDIDATES) return null;
+        const index = shortNameIndex?.mgsIdPrefixes;
+        if (!index) return null; // 索引が読めないときだけ従来の LIKE
+        let prefixes = index[core];
+        if (!prefixes || prefixes.length === 0) {
+            allMgsPrefixes ??= [...new Set(['', ...Object.values(index).flat()])];
+            prefixes = allMgsPrefixes;
+        }
+        if (prefixes.length > MAX_MGS_ID_CANDIDATES) return null;
         // SQLへ直接埋め込むので、他の埋め込み箇所と同じく文字種を検証する
         return prefixes.map(p => `${p}${core}-${num}`).filter(id => /^[A-Za-z0-9_-]+$/.test(id));
     }
@@ -524,6 +563,17 @@ export async function GET(request: NextRequest) {
     const genreMatch = longGenres.length > 0
         ? `genres : (${longGenres.map(g => `"${esc5(g)}"`).join(' OR ')})` : null;
     const labelMatch = label && label.length >= 3 ? `label : "${esc5(label)}"` : null;
+    // 指定レーベルがカタログに実在する名前そのものか（→ `label = ?` で idx_label_date を使う）
+    const isExactLabel = (isMgs: boolean) =>
+        !!label && !!shortNameIndex?.labels?.[isMgs ? 'mgs' : 'fanza']?.includes(label);
+
+    // FANZA 品番の前方一致範囲は **先に主キーで id に解決する**（2026-09-10）。
+    // `(FTS条件 OR (product_id >= ? AND product_id < ?))` は本番 D1 では MULTI-INDEX OR に
+    // ならず、`SEARCH products USING INDEX idx_sale_start` を舐める計画になっていた
+    // （EXPLAIN で確認。09-06 にローカルで確かめた計画と違った）。実測 1回 54,000〜135,000行。
+    // 範囲の id を FTS の一致 id と1本の `product_id IN (...)` にまとめれば OR が消える。
+    const ID_RANGE_KEY = ' idrange';
+    const fanzaIdRange = q && q.length >= 3 && /^[\x20-\x7E]+$/.test(q) ? idPrefixRange(q, false) : null;
     const actressMatch = (names: string[]) => {
         const longs = names.filter(a => a.length >= 3);
         return longs.length > 0 ? `actresses : (${longs.map(a => `"${esc5(a)}"`).join(' OR ')})` : null;
@@ -535,32 +585,54 @@ export async function GET(request: NextRequest) {
     ): Promise<PlanMap> {
         const plans: PlanMap = new Map();
         if (!client) return plans;
+        const c = client;
+        const pf = isMgs ? 'm' : 'f';
         const exprs = new Set<string>();
-        for (const e of [qMatch, genreMatch, labelMatch, ...actressGroups.map(actressMatch),
+        for (const e of [qMatch, genreMatch, isExactLabel(isMgs) ? null : labelMatch,
+                         ...actressGroups.map(actressMatch),
                          hasProfileFilter ? actressMatch(profileActresses) : null]) {
             if (e) exprs.add(e);
         }
-        await Promise.all([...exprs].map(async expr => {
-            let plan: QPlan | null = null;
+        /** 一致 id を最大 Q_PROBE_CAP 件まで取る。失敗したら null（呼び出し側は従来の計画に戻す）。 */
+        const probe = async (key: string, sql: string, args: string[]): Promise<ProbeResult | null> => {
+            const hit = probeCacheGet(key);
+            if (hit) return hit;
             try {
-                const r = await client.execute({
-                    sql: `SELECT product_id FROM products_fts WHERE products_fts MATCH ? LIMIT ${Q_PROBE_CAP + 1}`,
-                    args: [expr],
-                });
-                if (r.rows.length > Q_PROBE_CAP) {
-                    plan = canEarlyStop() ? { kind: 'like' } : null;
-                } else {
+                const res = await c.execute({ sql, args });
+                // **重複を除いてから数える**（2026-09-10）。products_fts には INSERT OR REPLACE が
+                // 溜めた重複行が残っていて（cleanup_fts_duplicates.mjs が掃除中）、1作品が最大32行ある。
+                // 行数のまま数えると疎な語を「密」と誤判定して LIKE の日付順走査に落ち、
+                // 実測 1回 104,798行（女優指定・fanza-0）を読んでいた。IN にも同じ id が32回並んでいた。
+                const ids = [...new Set(res.rows.map(row => String((row as Record<string, unknown>).product_id)))];
+                const r: ProbeResult = ids.length > Q_PROBE_CAP
+                    ? { dense: true }
                     // SQLへ直接埋め込むので、埋め込み可能な文字だけに限る（D1のバインドは1文100個まで）。
-                    const ids = r.rows
-                        .map(row => String((row as Record<string, unknown>).product_id))
-                        .filter(id => /^[A-Za-z0-9_-]+$/.test(id));
-                    plan = { kind: 'ids', ids };
-                }
+                    : { ids: ids.filter(id => /^[A-Za-z0-9_-]+$/.test(id)) };
+                probeCacheSet(key, r);
+                return r;
             } catch {
-                plan = null; // プローブが失敗したら従来どおり FTS サブクエリで引く
+                return null;
             }
-            plans.set(expr, plan);
-        }));
+        };
+        await Promise.all([
+            ...[...exprs].map(async expr => {
+                const r = await probe(`${pf}|${expr}`,
+                    `SELECT DISTINCT product_id FROM products_fts WHERE products_fts MATCH ? LIMIT ${Q_PROBE_CAP + 1}`,
+                    [expr]);
+                // プローブが失敗したら従来どおり FTS サブクエリで引く（null）
+                plans.set(expr, !r ? null
+                    : 'dense' in r ? (canEarlyStop() ? { kind: 'like' } : null)
+                    : { kind: 'ids', ids: r.ids });
+            }),
+            (async () => {
+                if (isMgs || !fanzaIdRange) return;
+                const r = await probe(`${pf}|idrange|${fanzaIdRange[0]}`,
+                    `SELECT product_id FROM products WHERE product_id >= ? AND product_id < ? LIMIT ${Q_PROBE_CAP + 1}`,
+                    fanzaIdRange);
+                // 範囲が密（2000件超）なら従来の範囲条件のまま（その場合は日付順走査でもすぐ埋まる）
+                plans.set(ID_RANGE_KEY, r && !('dense' in r) ? { kind: 'ids', ids: r.ids } : null);
+            })(),
+        ]);
         return plans;
     }
 
@@ -628,13 +700,12 @@ export async function GET(request: NextRequest) {
                 // qPlan が無い（プローブ失敗・MGSクライアント不在など）ときは従来の FTS サブクエリ。
                 const textConds: string[] = [];
                 const textArgs: (string | number)[] = [];
+                // 主キーの点引きにまとめる id（FTSの一致・品番範囲・正準品番・MGS品番候補）。
+                // 別々の IN / 範囲を OR でつなぐと索引が外れるので、必ず1本の IN にする。
+                const idList: string[] = [];
                 if (qPlan?.kind === 'ids') {
                     // 一致0件でも product_id の前方一致(品番検索)は残したいので、ここでは何も足さない
-                    if (qPlan.ids.length > 0) {
-                        const embed = qPlan.ids.map(id => `'${id}'`).join(',');
-                        embedded += embed.length;
-                        textConds.push(`product_id IN (${embed})`);
-                    }
+                    idList.push(...qPlan.ids);
                 } else if (qPlan?.kind === 'like') {
                     textConds.push('(title LIKE ? OR actresses LIKE ?)');
                     textArgs.push(`%${q}%`, `%${q}%`);
@@ -648,15 +719,25 @@ export async function GET(request: NextRequest) {
                 if (qIsAscii && isMgs) {
                     if (qLooksLikeId) {
                         const cands = mgsIdCandidates(q);
-                        // 索引で候補を作れたら主キーの点引き。作れなければ従来どおり全走査のLIKE。
-                        if (cands) idConds.push(`product_id IN (${cands.map(c => `'${c}'`).join(',')})`);
+                        // 索引で候補を作れたら主キーの点引き。索引が読めないときだけ全走査のLIKE。
+                        if (cands) idList.push(...cands);
                         else { idConds.push('product_id LIKE ?'); idArgs.push(`%${q}%`); }
                     }
                 } else if (qIsAscii) {
                     const range = idPrefixRange(q, false);
                     const canon = canonicalFanzaId(q);
-                    if (range) { idConds.push('(product_id >= ? AND product_id < ?)'); idArgs.push(range[0], range[1]); }
-                    if (canon) { idConds.push('product_id = ?'); idArgs.push(canon); }
+                    const rangePlan = plans.get(ID_RANGE_KEY) ?? null;
+                    if (range && rangePlan?.kind === 'ids') idList.push(...rangePlan.ids);
+                    else if (range) { idConds.push('(product_id >= ? AND product_id < ?)'); idArgs.push(range[0], range[1]); }
+                    // canonicalFanzaId は英小文字＋数字しか返さないので埋め込んでよい
+                    if (canon) idList.push(canon);
+                }
+                const uniqIds = [...new Set(idList)];
+                if (uniqIds.length > 0) {
+                    const embed = uniqIds.map(id => `'${id}'`).join(',');
+                    embedded += embed.length;
+                    // 引数を持たない条件なので先頭に置いても args の順序はずれない
+                    idConds.unshift(`product_id IN (${embed})`);
                 }
 
                 const all = [...textConds, ...idConds];
@@ -714,7 +795,15 @@ export async function GET(request: NextRequest) {
             }
         }
         if (label) {
-            if (label.length >= 3) {
+            if (isExactLabel(isMgs)) {
+                // カタログに実在するレーベル名そのもの → 等値比較（2026-09-10）。
+                // `label LIKE '%X%'` は索引が効かず idx_sale_start を日付順に舐める計画で、
+                // 実測 1回 7,600〜12,200行 × 88回/日 ≒ 90万行（その日の15%）だった。
+                // 等値なら migrations/0011 の idx_label_date で範囲引きになる（EXPLAIN 確認済み）。
+                // maker と同じく、別レーベルの部分一致（取り違え）も拾わなくなる。
+                conditions.push('label = ?');
+                args.push(label);
+            } else if (label.length >= 3) {
                 const lc = ftsCond(labelMatch, () => ({ sql: 'label LIKE ?', args: [`%${label}%`] }));
                 if (lc) { conditions.push(lc.sql); args.push(...lc.args); }
                 else conditions.push('0=1');

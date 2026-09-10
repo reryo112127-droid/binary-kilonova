@@ -428,9 +428,16 @@ async function main() {
             }
             // 価格 update（既存作品はUPDATE）
             if (priceMap.size > 0) {
+                // 値が変わった行だけ書く（無条件だと同じ値でも1行ずつ書込枠を消費する。
+                // FANZA側 fanza_daily_update.js と同じ対策・2026-09-10）
                 const updateSql = `UPDATE products SET
                     list_price=?, current_price=?, discount_pct=?, sale_end_date=?, price_updated_at=?, updated_at=?
-                    WHERE product_id=?`;
+                    WHERE product_id=?
+                      AND (list_price IS NOT ? OR current_price IS NOT ? OR discount_pct IS NOT ? OR sale_end_date IS NOT ?)`;
+                const updateArgs = (pid, v) => {
+                    const lp = v.list_price ?? null, cp = v.current_price ?? null, dp = v.discount_pct ?? 0, sed = v.sale_end_date ?? null;
+                    return [lp, cp, dp, sed, v.price_updated_at, v.price_updated_at, pid, lp, cp, dp, sed];
+                };
                 const entries = Array.from(priceMap.entries());
                 const BATCH = 50;
                 let tUpdated = 0;
@@ -439,10 +446,7 @@ async function main() {
                     const batch = entries.slice(i, i + BATCH);
                     try {
                         await turso.batch(
-                            batch.map(([pid, v]) => ({
-                                sql: updateSql,
-                                args: [v.list_price ?? null, v.current_price ?? null, v.discount_pct ?? 0, v.sale_end_date ?? null, v.price_updated_at, v.price_updated_at, pid],
-                            })),
+                            batch.map(([pid, v]) => ({ sql: updateSql, args: updateArgs(pid, v) })),
                             'write'
                         );
                         tUpdated += batch.length;
@@ -453,7 +457,7 @@ async function main() {
                         }
                         for (const [pid, v] of batch) {
                             try {
-                                await turso.execute({ sql: updateSql, args: [v.list_price ?? null, v.current_price ?? null, v.discount_pct ?? 0, v.sale_end_date ?? null, v.price_updated_at, v.price_updated_at, pid] });
+                                await turso.execute({ sql: updateSql, args: updateArgs(pid, v) });
                                 tUpdated++;
                             } catch (execErr) {
                                 if (tUpdated === 0 && i === 0) console.warn(`  [価格exec失敗] ${pid}: ${execErr.message}`);

@@ -106,7 +106,12 @@ async function pickTargets(db, shardIdx) {
     const t = today();
     const from = daysAgo(WINDOW_DAYS);
 
-    const pDate = DATE_EXPR.replace(/sale_start_date/g, 'p.sale_start_date');
+    // 日付は **生の列のまま** 比較する（2026-09-10）。DATE_EXPR（SUBSTR+REPLACE）で比較すると
+    // idx_sale_start が一切効かず products を全行舐める（実測 1回 139,134行＝シャード全件）。
+    // FANZA の sale_start_date は 'YYYY-MM-DD hh:mm:ss' なので
+    //   SUBSTR(d,1,10) >= X ⟺ d >= X / SUBSTR(d,1,10) > X ⟺ d >= 翌日(X)
+    // で同じ意味になる（'YYYY/MM/DD' 形式が混じっていても '/' > '-' なので取りこぼしは起きない）。
+    const tomorrow = daysAgo(-1);
     // 未充足の作品を、発売日が新しい順に拾う。予約中(未来日)を最優先にしたいので ORDER BY で先頭に寄せる。
     //   - 画像0枚                                  … 窓にいる間ずっと追いかける
     //   - 画像はあるが動画が無い(予約中 or 発売後VIDEO_CHASE_DAYS以内)
@@ -118,18 +123,18 @@ async function pickTargets(db, shardIdx) {
                s.check_count AS check_count, s.checked_at AS checked_at
         FROM products p
         LEFT JOIN product_samples s ON s.product_id = p.product_id
-        WHERE ${pDate} >= '${from}'
+        WHERE p.sale_start_date >= '${from}'
           AND (
                 s.product_id IS NULL
                 OR s.image_count = 0
                 OR (s.sample_video_url IS NULL
-                    AND (${pDate} > '${t}' OR ${pDate} >= '${daysAgo(VIDEO_CHASE_DAYS)}'))
+                    AND (p.sale_start_date >= '${tomorrow}' OR p.sale_start_date >= '${daysAgo(VIDEO_CHASE_DAYS)}'))
               )
           AND COALESCE(s.check_count, 0) < ${MAX_CHECKS}
           AND (s.checked_at IS NULL OR SUBSTR(s.checked_at,1,10) < '${t}')
-        ORDER BY (CASE WHEN ${pDate} > '${t}' THEN 0 ELSE 1 END),
+        ORDER BY (CASE WHEN p.sale_start_date >= '${tomorrow}' THEN 0 ELSE 1 END),
                  COALESCE(s.check_count, 0) ASC,
-                 ${pDate} DESC
+                 p.sale_start_date DESC
         LIMIT ${LIMIT}`;
     const rows = (await db.execute(pendingSql)).rows;
 
@@ -141,7 +146,7 @@ async function pickTargets(db, shardIdx) {
             SELECT p.product_id, p.sale_start_date, p.floor, s.check_count AS check_count, s.checked_at AS checked_at
             FROM products p
             JOIN product_samples s ON s.product_id = p.product_id
-            WHERE ${DATE_EXPR.replace(/sale_start_date/g, 'p.sale_start_date')} >= '${from}'
+            WHERE p.sale_start_date >= '${from}'
               AND s.image_count > 0
               AND (s.checked_at IS NULL OR SUBSTR(s.checked_at,1,10) < '${cutoff}')
             ORDER BY s.checked_at ASC

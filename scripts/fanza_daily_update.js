@@ -605,11 +605,26 @@ async function main() {
 
         // 価格 update (バッチ UPDATE)
         if (priceMap.size > 0) {
+            // **値が変わった行だけ書く**（2026-09-10）。
+            // 無条件の UPDATE は同じ値でも1行ずつ書込に数えられ、2年ぶん(約10万件)を毎日
+            // 書き直していた。実測 1回 204,260行書込 ＝ **書込枠(10万行/日)の2倍を価格更新だけで**
+            // 使い切り、後から走る新作取り込みやサイトのいいね等の書込まで枠切れで落としていた。
+            // 価格・レビューが前日と同じ作品が大半なので、差分がある行だけにすると数千行で済む。
+            // （price_updated_at は「最後に価格が変わった時刻」になる。これを読む処理は無い）
             const updateSql = `UPDATE products SET
                 list_price=?, current_price=?, discount_pct=?, sale_end_date=?,
                 review_count=COALESCE(?,review_count), review_average=COALESCE(?,review_average),
                 price_updated_at=?, updated_at=?
-                WHERE product_id=?`;
+                WHERE product_id=?
+                  AND (list_price IS NOT ? OR current_price IS NOT ? OR discount_pct IS NOT ?
+                       OR sale_end_date IS NOT ?
+                       OR (? IS NOT NULL AND review_count IS NOT ?)
+                       OR (? IS NOT NULL AND review_average IS NOT ?))`;
+            const updateArgs = (pid, v) => {
+                const sed = v.saleEndDate ?? null, rc = v.reviewCount ?? null, ra = v.reviewAverage ?? null;
+                return [v.listPrice, v.currentPrice, v.discountPct, sed, rc, ra, v.price_updated_at, v.price_updated_at, pid,
+                        v.listPrice, v.currentPrice, v.discountPct, sed, rc, rc, ra, ra];
+            };
             const entries = Array.from(priceMap.entries());
             const BATCH = 50;
             let tUpdated = 0;
@@ -617,17 +632,14 @@ async function main() {
                 const batch = entries.slice(i, i + BATCH);
                 try {
                     await turso.batch(
-                        batch.map(([pid, v]) => ({
-                            sql: updateSql,
-                            args: [v.listPrice, v.currentPrice, v.discountPct, v.saleEndDate ?? null, v.reviewCount ?? null, v.reviewAverage ?? null, v.price_updated_at, v.price_updated_at, pid],
-                        })),
+                        batch.map(([pid, v]) => ({ sql: updateSql, args: updateArgs(pid, v) })),
                         'write'
                     );
                     tUpdated += batch.length;
                 } catch {
                     for (const [pid, v] of batch) {
                         try {
-                            await turso.execute({ sql: updateSql, args: [v.listPrice, v.currentPrice, v.discountPct, v.saleEndDate ?? null, v.reviewCount ?? null, v.reviewAverage ?? null, v.price_updated_at, v.price_updated_at, pid] });
+                            await turso.execute({ sql: updateSql, args: updateArgs(pid, v) });
                             tUpdated++;
                         } catch (e2) { /* skip */ }
                     }
@@ -649,8 +661,11 @@ async function main() {
                 const scannedIds = Array.from(priceMap.keys());
                 if (scannedIds.length > 0) {
                     // 窓内でdiscount_pct>0 かつ 今回スキャンに引っかからなかった作品
+                    // `+sale_start_date` は日付側のインデックスを使わせないための単項プラス。
+                    // 素のままだと idx_sale_start の範囲(2年ぶん・数万行)を舐める計画になる。
+                    // idx_discount(discount_pct>0) で引けばセール中の行だけ読めば済む。
                     const inWindowOnSale = (await turso.execute({
-                        sql: 'SELECT product_id FROM products WHERE discount_pct > 0 AND sale_start_date >= ?',
+                        sql: 'SELECT product_id FROM products WHERE discount_pct > 0 AND +sale_start_date >= ?',
                         args: [cutoffStr],
                     })).rows.map(r => String(r.product_id));
 
@@ -670,14 +685,17 @@ async function main() {
                 }
 
                 // [B] スキャン窓外（N年より古い）の残存セールクリア
+                // `+sale_start_date` で idx_discount を使わせる（2026-09-10 実測: 素のままだと
+                // idx_sale_start で「2年より古い全行」を舐め、COUNT 1回で 109,937行読んでいた）。
+                // `+col < ?` は NULL で偽になるので IS NOT NULL と同じ意味を含む。
                 const staleResult = await turso.execute({
-                    sql: 'SELECT COUNT(*) AS cnt FROM products WHERE discount_pct > 0 AND sale_start_date IS NOT NULL AND sale_start_date < ?',
+                    sql: 'SELECT COUNT(*) AS cnt FROM products WHERE discount_pct > 0 AND +sale_start_date < ?',
                     args: [cutoffStr],
                 });
                 const staleCount = Number(staleResult.rows[0]?.[0] ?? staleResult.rows[0]?.cnt ?? 0);
                 if (staleCount > 0) {
                     await turso.execute({
-                        sql: `UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL, updated_at=? WHERE discount_pct > 0 AND sale_start_date IS NOT NULL AND sale_start_date < ?`,
+                        sql: `UPDATE products SET discount_pct=0, list_price=NULL, current_price=NULL, sale_end_date=NULL, updated_at=? WHERE discount_pct > 0 AND +sale_start_date < ?`,
                         args: [nowIso, cutoffStr],
                     });
                     console.log(`  🧹 窓外古いセールクリア: ${staleCount}件 (発売日 < ${cutoffStr})`);

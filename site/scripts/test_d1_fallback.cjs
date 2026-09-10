@@ -262,6 +262,12 @@ B.resetD1Breaker();
       });
       ok(missed.length === 0,
         `実在品番500件が候補から復元できる` + (missed.length ? `（漏れ: ${missed.slice(0, 3).join(', ')}）` : ''));
+
+      // 索引に無いコア（D1にだけある作品・FANZA品番をMGS側で引いた場合）は
+      // 「全プレフィクス × 入力」の点引きにする。route.ts の MAX_MGS_ID_CANDIDATES(600) を
+      // 超えると LIKE の全表走査（1回 32,000〜65,000行）に戻ってしまう。
+      const union = new Set(['', ...Object.values(pfx).flat()]);
+      ok(union.size <= 600, `未知コア用の全プレフィクスが候補上限に収まる (${union.size}/600)`);
     }
   }
   console.log(fail === 0 ? '\nALL PASS' : `\n${fail} FAILED`);

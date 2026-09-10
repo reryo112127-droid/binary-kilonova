@@ -142,10 +142,27 @@ async function gen(from, to) {
     return finalize(excludeAmbiguous(build(mgsRows, fzRows), 50));
 }
 
+// daily_main.bat はこのスクリプトを **1日に2回** 呼ぶ（[4] と [6]。generate-static-cache-local が
+// ランキングをローカルDB版で上書きするので、そのたびにD1版を書き戻す必要がある）。
+// D1 の問い合わせは1回あたり FANZA 約6万行 + MGS 約2万行（範囲内の全行を読んで並べ替える）なので、
+// 同じ日（JST）に作った結果を保存しておき、2回目は **D1を読まずに書き戻すだけ** にする（2026-09-10）。
+const SNAPSHOT = path.join(DATA, 'actress_ranking_d1_snapshot.json');
+const jstDate = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+
 (async () => {
-    const oneYearAgo = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
-    const r2026 = await gen('2026-01-01', '2026-12-31');
-    const rDefault = await gen(oneYearAgo, null);
+    const snap = process.argv.includes('--force') ? null : loadJson(SNAPSHOT, null);
+    let r2026, rDefault;
+    if (snap && snap.date === jstDate() && Array.isArray(snap.r2026) && Array.isArray(snap.rDefault)) {
+        ({ r2026, rDefault } = snap);
+        console.log(`本日(${snap.date})のD1結果を再利用（D1読取0行。--force で再取得）`);
+    } else {
+        const oneYearAgo = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+        r2026 = await gen('2026-01-01', '2026-12-31');
+        rDefault = await gen(oneYearAgo, null);
+        if (r2026.length >= 10 && rDefault.length >= 10) {
+            fs.writeFileSync(SNAPSHOT, JSON.stringify({ date: jstDate(), r2026, rDefault }));
+        }
+    }
     if (r2026.length < 10 || rDefault.length < 10) throw new Error(`生成結果が少なすぎ(2026=${r2026.length}, default=${rDefault.length}) — D1接続を確認。既存キャッシュは上書きしません`);
     for (const dir of OUT_DIRS) {
         fs.writeFileSync(path.join(dir, 'actress_ranking_2026_cache.json'), JSON.stringify(r2026));
