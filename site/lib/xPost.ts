@@ -148,8 +148,9 @@ export async function postNextForGenre(genre: string): Promise<PostResult> {
                 AND posted_at IS NULL AND ${pfCond}
               ORDER BY (tweet_text IS NOT NULL AND tweet_text != '') DESC, decided_at ASC LIMIT 1`;
     const [mgsHead, fzHead] = await Promise.all([
-        siteDb.execute({ sql: headSql(`product_id GLOB '*-*'`),     args: [genre, genre] }),
-        siteDb.execute({ sql: headSql(`product_id NOT GLOB '*-*'`), args: [genre, genre] }),
+        // `= 1/0` の形なら migrations/0014 の式インデックス idx_xpd_queue_pf で PF まで絞れる
+        siteDb.execute({ sql: headSql(`(product_id GLOB '*-*') = 1`), args: [genre, genre] }),
+        siteDb.execute({ sql: headSql(`(product_id GLOB '*-*') = 0`), args: [genre, genre] }),
     ]);
     // このジャンルで直近に「実際に投稿された」作品のPFを見て、次は逆のPFを選ぶ(交互)。
     // 実績数の均衡を追うと MGS が尽きるまで一方に偏り続けるため、単純な交互にする。

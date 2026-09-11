@@ -410,8 +410,12 @@ async function prepareItems(site, account, batch, dir) {
               ORDER BY decided_at ASC LIMIT ?`,
         args: [...genres, perPf],
     }).catch(() => ({ rows: [] }))).rows;
-    const mgsRows = await pick(`product_id GLOB '*-*'`);
-    const fzRows  = await pick(`product_id NOT GLOB '*-*'`);
+    // `(product_id GLOB '*-*') = 1/0` の形で書く（2026-09-11）。migrations/0014 の式インデックス
+    // idx_xpd_queue_pf にこの式が入っているので、PF まで索引で絞って decided_at 順に LIMIT で止まる。
+    // 素の `product_id GLOB '*-*'` だと式インデックスが使われず、ジャンルの未投稿キューを
+    // 反対PFの行ごと舐めていた（実測 1回 600〜800行 × 30分毎 × 6アカウント）。
+    const mgsRows = await pick(`(product_id GLOB '*-*') = 1`);
+    const fzRows  = await pick(`(product_id GLOB '*-*') = 0`);
     // 交互マージ(片方が尽きたらもう片方で埋める=片PFしか無いジャンルは従来どおり)
     const merged = [];
     for (let i = 0; i < Math.max(mgsRows.length, fzRows.length) && merged.length < want; i++) {

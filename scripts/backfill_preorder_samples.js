@@ -298,7 +298,10 @@ async function pruneOldRows(db, shardIdx) {
     if (DRY_RUN) return 0;
     const cutoff = daysAgo(WINDOW_DAYS + 30); // 少し猶予を持たせる
     const r = await db.execute(
-        `DELETE FROM product_samples WHERE ${DATE_EXPR} < '${cutoff}'`
+        // 生の列で比較して idx_product_samples_date を使う（DATE_EXPR だと全行走査。
+        // 実測 1回 3,832行 × 12回/日）。'YYYY/MM/DD' 形式が混じっていても '/' > '-' なので
+        // 消し残るだけで、消しすぎることはない。
+        `DELETE FROM product_samples WHERE sale_start_date < '${cutoff}'`
     );
     const n = r.rowsAffected || 0;
     if (n) console.log(`  [shard${shardIdx}] 窓外の ${n}件を削除 (発売日 < ${cutoff})`);

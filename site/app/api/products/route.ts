@@ -569,9 +569,13 @@ export async function GET(request: NextRequest) {
     const genreMatch = longGenres.length > 0
         ? `genres : (${longGenres.map(g => `"${esc5(g)}"`).join(' OR ')})` : null;
     const labelMatch = label && label.length >= 3 ? `label : "${esc5(label)}"` : null;
-    // 指定レーベルがカタログに実在する名前そのものか（→ `label = ?` で idx_label_date を使う）
+    // 指定レーベルがカタログに実在する名前そのものか（→ `label = ?` で idx_label_date を使う）。
+    // **FANZA だけ**（2026-09-11）。MGS も idx_label_date を持つが、MGS の並び順は
+    // REPLACE(sale_start_date) 式や wish_count で索引の順序と合わず、そのレーベルの全作品を
+    // 読んで一時ソートになる（実測 1回 3,204行）。MGS は従来の FTS 計画のほうが安い
+    // （密なら idx_sale_date_norm / idx_wish を順に舐めて LIMIT で止まる）。
     const isExactLabel = (isMgs: boolean) =>
-        !!label && !!shortNameIndex?.labels?.[isMgs ? 'mgs' : 'fanza']?.includes(label);
+        !isMgs && !!label && !!shortNameIndex?.labels?.fanza?.includes(label);
 
     // FANZA 品番の前方一致範囲は **先に主キーで id に解決する**（2026-09-10）。
     // `(FTS条件 OR (product_id >= ? AND product_id < ?))` は本番 D1 では MULTI-INDEX OR に
