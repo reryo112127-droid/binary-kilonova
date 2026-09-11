@@ -495,8 +495,14 @@ export async function GET(request: NextRequest) {
             const safe = ids.filter(id => /^[A-Za-z0-9_-]+$/.test(id)).map(id => `'${id}'`);
             return safe.length > 0 ? { sql: `product_id IN (${safe.join(',')})`, args: [] } : { sql: null, args: [] };
         }
-        // 索引に無い名前だけ従来どおり LIKE（索引生成後に増えた新人などの保険）
-        return { sql: 'actresses LIKE ?', args: [`%${name}%`] };
+        // 索引に無い名前だけ従来どおり LIKE（索引生成後に増えた新人などの保険）。
+        // ただし素の LIKE は全表走査で、一致が疎だと 1回 FANZA 67,771行 / MGS 32,630行
+        // （2026-09-10 実測）になるので、2文字の q と同じく配信日の下限（直近1年）で走査距離を
+        // 頭打ちにする。索引に無い短名は索引生成後に増えた新人が主なので、結果はほぼ変わらない。
+        const floor = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+        return isMgs
+            ? { sql: "(actresses LIKE ? AND REPLACE(sale_start_date, '/', '-') >= ?)", args: [`%${name}%`, floor] }
+            : { sql: '(actresses LIKE ? AND sale_start_date >= ?)', args: [`%${name}%`, floor] };
     }
 
     // ── q 検索の実行計画を「FTSの一致件数」で切り替える（2026-09-07）──────────────

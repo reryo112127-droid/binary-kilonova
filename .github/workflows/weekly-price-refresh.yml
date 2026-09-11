@@ -2,7 +2,9 @@ name: 週次価格更新（直近6年）
 
 on:
   schedule:
-    - cron: '0 14 * * 4'   # 木曜 23:00 JST (= 14:00 UTC) — FANZA
+    # FANZA は D1 枠リセット直後に動かす（2026-09-10）。旧 14:00 UTC は GitHub の遅延で
+    # 17:24 UTC 頃に走り、その時間帯は日次枠が切れていて毎回 22 秒で失敗していた。
+    - cron: '30 0 * * 5'   # 金曜 09:30 JST (= 0:30 UTC / D1枠リセット直後) — FANZA
     - cron: '0 6 * * 5'    # 金曜 15:00 JST (= 06:00 UTC) — MGS
   workflow_dispatch:
     inputs:
@@ -27,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180   # 最大3時間
     if: >-
-      github.event.schedule == '0 14 * * 4' ||
+      github.event.schedule == '30 0 * * 5' ||
       (github.event_name == 'workflow_dispatch' &&
        (inputs.target == 'fanza' || inputs.target == 'both'))
 
@@ -45,8 +47,10 @@ jobs:
       # 直近72ヶ月（6年）の価格・セール・評価情報を更新
       # 予約商品取得はスキップ（daily-updateで実施済み）
       # Best版・総集編は評価更新をスキップし価格のみ更新
+      # 期間の指定は `--years`。以前は `--months 72` と書いていたが fanza_daily_update.js は
+      # --months を解釈しないため、既定の2年＝日次と同じ範囲しか更新していなかった。
       - name: FANZA 価格更新 (直近6年)
-        run: node scripts/fanza_daily_update.js --months 72 --no-preorder
+        run: node scripts/fanza_daily_update.js --years 6 --no-preorder
         env:
           DMM_API_ID:            ${{ secrets.DMM_API_ID }}
           DMM_AFFILIATE_ID:      ${{ secrets.DMM_AFFILIATE_ID }}
