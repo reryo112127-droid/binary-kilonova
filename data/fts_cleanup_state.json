@@ -1,10 +1,12 @@
 {
   "fanza-0": {
-    "checkedAt": "2026-09-10T04:43:32.518Z",
-    "ftsRows": 193797,
-    "products": 135346,
-    "remaining": 13451,
-    "deletedTotal": 45000,
-    "done": false
-  }
+    "checkedAt": "2026-09-11T04:41:24.732Z",
+    "ftsRows": 146062,
+    "products": 135372,
+    "remaining": 0,
+    "deletedTotal": 55690,
+    "done": true
+  },
+  "fanza-1": {},
+  "mgs": {}
 }
