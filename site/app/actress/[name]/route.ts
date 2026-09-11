@@ -4,6 +4,13 @@ import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 import { fetchProducts, productCardsHtml, replaceGridInner, esc, type Product } from '../../../lib/landingPage';
 import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
 import { fetchActressProfile, profileHtml, profileSummary } from '../../../lib/actressProfile';
+import { readLpCards } from '../../../lib/lpCache';
+
+/**
+ * 静的キャッシュの1女優あたり収録上限（scripts/build_actress_cache.mjs の ACTRESS_CACHE_PER と同じ）。
+ * 収録数がこれ未満なら「その女優の全件が入っている」ので、続きのページは無い。
+ */
+const ACTRESS_CACHE_PER = 60;
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +35,33 @@ function collectCoStars(products: Product[], self: string): string[] {
 
 const pagePath = (base: string, p: number) => (p > 0 ? `${base}?page=${p}` : base);
 
+/**
+ * 出演作品を **静的キャッシュ優先** で取る（2026-09-11）。
+ * 従来は毎回 /api/products 経由で D1 を読んでおり、女優ページのクロールがそのまま
+ * D1 の日次読取枠を消費していた（ASSETS の静的JSONは D1 枠を消費しない）。
+ *  - キャッシュ範囲内のページ … 静的カードで返す（D1 0行）
+ *  - 範囲外で、収録数が上限未満 … その女優の作品はもう無い（空＝404）
+ *  - 範囲外で、上限まで入っている … 続きは D1 に任せる（深いページだけ）
+ *  - キャッシュに無い女優 … 従来どおり D1
+ */
+async function fetchActressProducts(
+    req: NextRequest, name: string, apiQuery: string, offset: number,
+): Promise<{ products: Product[]; hasNext: boolean }> {
+    const cards = await readLpCards('actress', name).catch(() => null);
+    if (cards) {
+        const truncated = cards.length >= ACTRESS_CACHE_PER;
+        if (offset < cards.length) {
+            return {
+                products: cards.slice(offset, offset + SSR_COUNT) as Product[],
+                hasNext: offset + SSR_COUNT < cards.length || truncated,
+            };
+        }
+        if (!truncated) return { products: [], hasNext: false };
+    }
+    const products = await fetchProducts(req, apiQuery, SSR_COUNT, offset);
+    return { products, hasNext: products.length === SSR_COUNT };
+}
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ name: string }> },
@@ -51,13 +85,12 @@ export async function GET(
         // 入口によって件数が食い違う（実測: 三上悠亜 検索284件 / 女優ページ330件）。
         const apiQuery = `actress=${encodeURIComponent(actressName)}&sort=wish_count&excludeBest=1`;
         // プロフィールは静的シャード(0.4MB以下)から。作品取得と並行して引く。
-        const [products, profile] = await Promise.all([
-            fetchProducts(request, apiQuery, SSR_COUNT, offset),
+        const [{ products, hasNext }, profile] = await Promise.all([
+            fetchActressProducts(request, actressName, apiQuery, offset),
             fetchActressProfile(actressName),
         ]);
         // 作品0件(=中身が空)は 200の薄いHTMLだとGoogleが「ソフト404」と判定するため404を返す。
         if (products.length === 0) return new NextResponse('Not found', { status: 404 });
-        const hasNext = products.length === SSR_COUNT;
         const coStars = collectCoStars(products, actressName);
         const noindex = false; // 0件は上で404済み。ここに来るのは作品ありのページ
 

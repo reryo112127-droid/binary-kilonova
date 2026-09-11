@@ -134,22 +134,6 @@ async function extractFromTurso(mgsDb, fanzaDb) {
     return { actresses, makers, labels, genres };
 }
 
-// ---------- Turso に保存 ----------
-async function saveToTurso(db, merged) {
-    await db.batch([
-        { sql: `CREATE TABLE IF NOT EXISTS suggest_cache (
-                    key TEXT PRIMARY KEY,
-                    data TEXT NOT NULL,
-                    updated_at TEXT
-                )`, args: [] },
-        {
-            sql: `INSERT OR REPLACE INTO suggest_cache (key, data, updated_at) VALUES ('main', ?, ?)`,
-            args: [JSON.stringify(merged), new Date().toISOString()],
-        },
-    ], 'write');
-    console.log('  Turso suggest_cache 更新完了');
-}
-
 // ---------- メイン ----------
 async function main() {
     console.log('========================================');
@@ -192,12 +176,12 @@ async function main() {
     fs.writeFileSync(OUTPUT, JSON.stringify(merged));
     const sizeKb = (fs.statSync(OUTPUT).size / 1024).toFixed(0);
 
-    // D1 に保存（設定されている場合）
-    if (hasD1) {
-        const fanzaDb = fanzaShards();
-        await saveToTurso(fanzaDb, merged);
-        fanzaDb.close();
-    }
+    // ※ D1 の suggest_cache テーブルへの保存は廃止（2026-09-11）。
+    // scripts/lib/d1.js の batch() は値を SQL 本文へインライン展開するため、約1.3MB の JSON を
+    // 入れると D1 の SQL 文長上限(10万バイト)を超えて**毎回1秒で失敗**していた。
+    // これで日次CIの後続「Commit suggest cache」が毎日スキップされ、suggest_cache.json が
+    // 2026-09-06 から更新されていなかった。サイト(/api/suggest・lib/searchOptions.ts)は
+    // 静的ファイルの suggest_cache.json しか読まず、D1 のテーブルは誰も参照していない。
 
     const elapsed = ((Date.now() - start) / 1000).toFixed(1);
     console.log('\n  マージ後:');

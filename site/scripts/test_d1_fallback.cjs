@@ -189,6 +189,60 @@ B.resetD1Breaker();
     const one = await L.readLpCards('genre', genres[0].name);
     ok(one.length > 0 && one.every(c => c.product_id && c.title !== undefined), `LPカードに product_id と title がある (${genres[0].name}: ${one.length}件)`);
     ok((await L.readLpCards('genre', '存在しないジャンルZZZ')) === null, '未収録スラッグは null（D1へ落とす）');
+
+    // ── 女優ページの静的キャッシュ（scripts/build_actress_cache.mjs） ──
+    // 女優ページ(/actress/[name])は readLpCards('actress', name) を先に見る。
+    // 生成側のハッシュ・上限・出演者整形がランタイムとずれると、黙って D1 に落ちるか
+    // D1 と違う作品が並ぶ（どちらもエラーにならない）。
+    const acGen = await import('./build_actress_cache.mjs');
+    const acDir = pathx.join(lpDir, 'actress');
+    if (!fsx.existsSync(acDir)) {
+      ok(false, 'data/lp/actress/ が無い（node scripts/build_actress_cache.mjs を先に実行）');
+    } else {
+      const cached = new Set();
+      let acMis = 0;
+      for (const f of fsx.readdirSync(acDir)) {
+        const nn = f.replace(/.json$/, '');
+        for (const name of Object.keys(JSON.parse(fsx.readFileSync(pathx.join(acDir, f), 'utf8')))) {
+          cached.add(name);
+          if (acGen.shardKey(name) !== L.lpShardKey(name) || acGen.shardKey(name) !== nn) acMis++;
+        }
+      }
+      ok(acMis === 0, `女優キャッシュのハッシュがランタイムと一致し正しいシャードにある (${cached.size}人)`);
+
+      const sm = JSON.parse(fsx.readFileSync(pathx.join(__dirname, '..', 'data', 'sitemap_actresses.json'), 'utf8'));
+      const smNames = (sm.actresses || []).filter(Boolean);
+      const cov = smNames.filter(n => cached.has(n)).length / Math.max(1, smNames.length);
+      ok(cov >= 0.95, `サイトマップ掲載女優の95%以上が静的キャッシュにある (${(cov * 100).toFixed(1)}% = ${smNames.filter(n => cached.has(n)).length}/${smNames.length})`);
+
+      const routeSrc = fsx.readFileSync(pathx.join(__dirname, '..', 'app', 'actress', '[name]', 'route.ts'), 'utf8');
+      const m = routeSrc.match(/const ACTRESS_CACHE_PER = (\d+)/);
+      ok(m && Number(m[1]) === acGen.ACTRESS_CACHE_PER,
+        `収録上限がランタイム(route.ts)と生成側で一致 (${m ? m[1] : '?'} / ${acGen.ACTRESS_CACHE_PER})`);
+
+      // 出演者欄の整形は lib/actressFilter.ts と同じ結果になること（/api/products と照合の意味をそろえる）
+      // actressFilter.ts は JSON を import するので、他の lib と同じ tsc に混ぜると出力の
+      // ルートがずれて .tmp_test/lib/ 配下になり、既存の require が全部外れる。別の出力先に出している。
+      const afPath = pathx.join(__dirname, '..', '.tmp_test', 'af', 'lib', 'actressFilter.js');
+      const AF = fsx.existsSync(afPath) ? require(afPath) : null;
+      if (AF) {
+        const samples = [
+          ['三上悠亜', null, 'エスワン'],
+          ['三上悠亜, 河北彩花', 'ドラマ', 'エスワン'],
+          ['Nia（伊東める）, 河北彩花', '素人', null],
+          ['矢野ありさ（2016）', 'ナンパ', null],
+          ['ゆい 22歳 保育士', null, 'ナンパTV'],
+          ['＊＊＊, 三上悠亜', null, 'エスワン'],
+          ['澤村レイコ（高坂保奈美、高坂ますみ）', null, 'マドンナ'],
+        ];
+        const diff = samples.filter(([a, g, mk]) => AF.filterActresses(a, g, mk) !== acGen.filterActresses(a, g, mk));
+        ok(diff.length === 0, `出演者の整形が lib/actressFilter.ts と一致 (${samples.length}例)`
+          + (diff.length ? `（不一致: ${diff.map(d => d[0]).join(' / ')}）` : ''));
+      } else {
+        console.log('SKIP 出演者整形の照合（.tmp_test/actressFilter.js が無い）');
+      }
+      ok((await L.readLpCards('actress', '存在しない女優ZZZ')) === null, '未収録の女優は null（D1へ落とす）');
+    }
   }
 
   // ---- 短名女優インデックス（scripts/build_short_actress_index.mjs） ----
