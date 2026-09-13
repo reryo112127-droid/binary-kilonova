@@ -364,6 +364,29 @@ export async function GET(request: NextRequest) {
         profileActresses = profileActresses.slice(0, 150);
     }
 
+    // ── D1 縮退応答 ───────────────────────────────────────────────
+    // D1 が枠切れ/障害のときだけ、静的キャッシュから一覧を組み立てて返す。
+    // （D1 が生きていて本当に該当0件のときは、従来どおり空配列を返す）
+    // 縮退応答は静的キャッシュ上のJSフィルタなので、**絞り込めない条件が付いていたら使わない**。
+    // （series/カップ/身長/年齢/VR/サンプル動画/日付範囲/除外系はキャッシュ側に情報が無い。
+    //   無視して返すと「シリーズ指定なのに無関係な作品が並ぶ」ことになる）
+    const degradableQuery = !series && !cup && !cups && !heightRange && !ageMin && !ageMax
+        && !vrOnly && !hasVideo && !fromDate && !toDate && !excludeGenres && !excludeLabel;
+    const degradedResponse = async (): Promise<NextResponse | null> => {
+        if (!degradableQuery) return null;
+        const fb = await degradedProducts({
+            sort, q, genre, maker, exactMaker, label, source, limit, offset,
+            actressGroups: actressNames.length > 0 ? actressGroups : undefined,
+            minDiscount: sort === 'discount' ? Math.max(minDiscount, 1) : minDiscount,
+            excludeBest,
+        });
+        if (fb.length === 0) return null;
+        // 枠が戻ったら通常結果に復帰できるよう、縮退応答は短いTTLでしかキャッシュしない
+        return NextResponse.json(fb, {
+            headers: { 'Content-Type': 'application/json', ...cacheHeaders(300, 300), 'X-Degraded': 'static' },
+        });
+    };
+
     // series はFANZAのみが持つメタデータ。MGSはseries列が無く絞り込めず全件流入するため、
     // series指定時はFANZA限定にする。
     const mgsClient = (source === 'fanza' || series) ? null : await getMgsClient();
@@ -375,7 +398,9 @@ export async function GET(request: NextRequest) {
         || (source !== 'mgs' && !fanzaClient);
 
     if (!mgsClient && !fanzaClient) {
-        return NextResponse.json([], { status: 503 });
+        // ブレーカ作動中（D1枠切れ）は両クライアントが null になる。ここで即 503 を返していたため
+        // 下の縮退応答に一度も届かず、**枠切れ中の検索・一覧が全部 503** になっていた（2026-09-13）。
+        return (await degradedResponse()) ?? NextResponse.json([], { status: 503 });
     }
 
     // 3文字未満の絞り込みは FTS5 の trigram トークナイザで索引できないので、従来は
@@ -1092,27 +1117,10 @@ export async function GET(request: NextRequest) {
 
     const result = combined.slice(0, limit);
 
-    // ── D1 縮退応答 ───────────────────────────────────────────────
-    // D1 が枠切れ/障害で 0 件になったときだけ、静的キャッシュから一覧を組み立てて返す。
-    // （D1 が生きていて本当に該当0件のときは、従来どおり空配列を返す）
-    // 縮退応答は静的キャッシュ上のJSフィルタなので、**絞り込めない条件が付いていたら使わない**。
-    // （series/カップ/身長/年齢/VR/サンプル動画/日付範囲/除外系はキャッシュ側に情報が無い。
-    //   無視して返すと「シリーズ指定なのに無関係な作品が並ぶ」ことになる）
-    const degradableQuery = !series && !cup && !cups && !heightRange && !ageMin && !ageMax
-        && !vrOnly && !hasVideo && !fromDate && !toDate && !excludeGenres && !excludeLabel;
-    if (result.length === 0 && d1Unavailable && degradableQuery) {
-        const fb = await degradedProducts({
-            sort, q, genre, maker, exactMaker, label, source, limit, offset,
-            actressGroups: actressNames.length > 0 ? actressGroups : undefined,
-            minDiscount: sort === 'discount' ? Math.max(minDiscount, 1) : minDiscount,
-            excludeBest,
-        });
-        if (fb.length > 0) {
-            // 枠が戻ったら通常結果に復帰できるよう、縮退応答は短いTTLでしかキャッシュしない
-            return NextResponse.json(fb, {
-                headers: { 'Content-Type': 'application/json', ...cacheHeaders(300, 300), 'X-Degraded': 'static' },
-            });
-        }
+    // D1 が途中で枠切れ/障害になって 0 件のときも縮退応答（degradedResponse の定義を参照）
+    if (result.length === 0 && d1Unavailable) {
+        const degraded = await degradedResponse();
+        if (degraded) return degraded;
     }
 
     const cacheKey = (request as NextRequest & { _cacheKey?: string })._cacheKey;

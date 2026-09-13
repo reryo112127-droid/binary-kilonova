@@ -80,6 +80,39 @@ B.resetD1Breaker();
   const best = await D.degradedProducts({ sort: 'new', excludeBest: true, limit: 50 });
   ok(best.every(p => !/BEST|ベスト|総集編/i.test(String(p.title))), 'excludeBest が効く');
 
+  // ── 女優名の検索は女優キャッシュ(lp/actress)から返る（2026-09-13 百瀬とあ 0件の回帰）──
+  // プール(~900件)に1作も無い女優を選び、検索バー(q)と actress= の両方で作品が返ることを見る。
+  {
+    const fsa = require('fs'), pa = require('path');
+    const acDir = pa.join(__dirname, '..', 'data', 'lp', 'actress');
+    if (!fsa.existsSync(acDir)) {
+      ok(false, 'data/lp/actress/ が無い（node scripts/build_actress_cache.mjs を先に実行）');
+    } else {
+      const poolIds = new Set((await D.degradedProducts({ sort: 'new', limit: 100000 })).map(p => p.product_id));
+      let pick = null;
+      for (const f of fsa.readdirSync(acDir)) {
+        const shard = JSON.parse(fsa.readFileSync(pa.join(acDir, f), 'utf8'));
+        const hit = Object.entries(shard).find(([, cards]) => cards.length >= 3 && cards.every(c => !poolIds.has(c.product_id)));
+        if (hit) { pick = hit; break; }
+      }
+      if (!pick) {
+        console.log('SKIP 女優キャッシュ検索（プール外の女優が見つからない）');
+      } else {
+        const [aname, cards] = pick;
+        const byQ = await D.degradedProducts({ sort: 'new', q: aname, limit: 60 });
+        ok(byQ.length === Math.min(60, cards.length) && byQ.every(p => cards.some(c => c.product_id === p.product_id)),
+          `q=女優名 はプール外でも女優キャッシュから返る (${aname}: ${byQ.length}/${cards.length}件)`);
+        const byA = await D.degradedProducts({ sort: 'new', actressGroups: [[aname]], limit: 10, offset: 1 });
+        ok(byA.length > 0 && byA[0].product_id === cards[1].product_id, 'actress= 指定も女優キャッシュから返り offset が効く');
+        const other = cards[0].source === 'mgs' ? 'fanza' : 'mgs';
+        const bySrc = await D.degradedProducts({ sort: 'new', q: aname, source: other, limit: 60 });
+        ok(bySrc.every(p => p.source === other), '女優キャッシュ経路でも source 絞り込みが効く');
+        const withGenre = await D.degradedProducts({ sort: 'new', actressGroups: [[aname]], genre: 'ZZZ該当なしZZZ', limit: 10 });
+        ok(withGenre.length === 0, 'ジャンル併用はカードで絞れないので女優キャッシュを使わない');
+      }
+    }
+  }
+
 
   // ── 商品詳細の静的シャード ──
   const S = require('../.tmp_test/productShard.js');

@@ -13,6 +13,7 @@
 
 import { readStaticCacheAsync as readStaticCache } from './staticCache';
 import { isBestOrCompilation } from './bestFilter';
+import { readLpCards } from './lpCache';
 
 type Row = Record<string, unknown>;
 
@@ -102,9 +103,46 @@ function sortPool(rows: Row[], sort: string): Row[] {
 }
 
 /**
+ * 女優名そのものでの検索（検索バーに女優名 / actress=… 指定）は、女優ページ用の静的キャッシュ
+ * （lp/actress: サイトマップ掲載女優の約99%・1人最大60件、build_actress_cache.mjs）から返す。
+ * 上のプールは新作・人気作の ~900件だけなので、**旧作しか無い女優は枠切れ中の検索が必ず0件**だった
+ * （2026-09-13: 百瀬とあ は D1 に13件あるのに0件）。
+ * カードは人気順で配信日を持たないため、並びは人気順のまま（sort は反映しない）。
+ * 共演者の AND 指定やジャンル等の絞り込みはカードでは判定できないので対象外（null → プールへ）。
+ */
+async function actressCacheRows(qy: DegradedQuery): Promise<Row[] | null> {
+    if (qy.genre || qy.maker || qy.label || (qy.minDiscount ?? 0) > 0) return null;
+    if (qy.sort === 'discount' || qy.sort === 'pre-order') return null;
+    const q = (qy.q || '').trim();
+    const groups = qy.actressGroups ?? [];
+    const names = q && groups.length === 0 ? [q]
+        : !q && groups.length === 1 ? groups[0]
+        : null;
+    if (!names) return null;
+
+    const seen = new Set<string>();
+    const rows: Row[] = [];
+    for (const name of names) {
+        const cards = await readLpCards('actress', name).catch(() => null);
+        for (const c of cards ?? []) {
+            if (seen.has(c.product_id)) continue;
+            seen.add(c.product_id);
+            rows.push({ ...c });
+        }
+    }
+    return rows.filter(p =>
+        (!qy.source || String(p.source ?? '') === qy.source)
+        && (!qy.excludeBest || !isBestOrCompilation(p.title, p.duration_min)));
+}
+
+/**
  * 静的キャッシュだけで一覧を組み立てる。該当が無ければ空配列（呼び出し側は通常の空応答を返す）。
  */
 export async function degradedProducts(qy: DegradedQuery): Promise<Row[]> {
+    const offset = qy.offset ?? 0;
+    const byActress = await actressCacheRows(qy);
+    if (byActress && byActress.length > 0) return byActress.slice(offset, offset + qy.limit);
+
     const pool = await loadPool();
     if (pool.length === 0) return [];
 
@@ -138,6 +176,5 @@ export async function degradedProducts(qy: DegradedQuery): Promise<Row[]> {
     });
 
     rows = sortPool(rows, sort);
-    const offset = qy.offset ?? 0;
     return rows.slice(offset, offset + qy.limit);
 }
