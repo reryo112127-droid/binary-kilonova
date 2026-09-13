@@ -133,7 +133,10 @@ function main() {
         return;
     }
     const sitemap = readJson(path.join(ROOT, 'data', 'sitemap_actresses.json'));
-    const names = (sitemap?.actresses || []).filter(n => typeof n === 'string' && n);
+    // 索引対象(actresses)に加えて、作品が少なく noindex にした女優(thin)も焼く（2026-09-13）。
+    // noindex でもクロールはされるので、キャッシュから外すと毎回 D1 に落ちる。
+    const names = [...new Set([...(sitemap?.actresses || []), ...(sitemap?.thin || [])])]
+        .filter(n => typeof n === 'string' && n);
     if (names.length === 0) {
         console.warn('! sitemap_actresses.json が空なので女優キャッシュ生成をスキップ（既存を維持）');
         return;

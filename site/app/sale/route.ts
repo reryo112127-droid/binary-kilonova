@@ -3,6 +3,8 @@ import { readHtml } from '../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
 import { injectHubSeo, replaceH1 } from '../../lib/pageMeta';
 import { edgeLookup, edgeStore } from '../../lib/edgeCache';
+import { fillById, productCardsHtml } from '../../lib/landingPage';
+import { ssrSaleList } from '../../lib/hubSsr';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +33,10 @@ export async function GET(request: NextRequest) {
         });
         // モバイル版 sale.html の H1 は中身が空だった
         html = replaceH1(html, 'セール中のAV作品');
+        // 一覧の先頭30件をサーバ側で埋める（生HTMLに作品リンクが1本しか無かった）。
+        // クライアントは skeleton → 取得結果を innerHTML で描くので二重にならない。
+        const sale = await ssrSaleList(30);
+        if (sale.length > 0) html = fillById(html, 'sale-grid', productCardsHtml(sale));
 
         const resp = new NextResponse(html, {
             headers: {

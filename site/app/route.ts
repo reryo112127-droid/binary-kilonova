@@ -8,6 +8,8 @@ import {
     injectSsrScript,
 } from '../lib/ssrFetch';
 import { edgeLookup, edgeStore } from '../lib/edgeCache';
+import { fillById, carouselCardHtml, rowCardHtml, type Product } from '../lib/landingPage';
+import { ssrSaleList } from '../lib/hubSsr';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,12 +63,23 @@ export async function GET(request: NextRequest) {
 
         // SSRデータ取得・注入（失敗してもクライアントfetchにフォールバック）
         try {
-            const [preOrders, newProducts, ranking] = await Promise.all([
+            const [preOrders, newProducts, ranking, sale] = await Promise.all([
                 ssrFetchFanzaPreOrders(12),
                 ssrFetchFanzaNewProducts(12),
                 ssrFetchRanking(10),
+                ssrSaleList(10),
             ]);
             html = injectSsrScript(html, '__SSR_HOME_DATA__', { preOrders, newProducts, ranking });
+            // 各一覧の中身もサーバ側で埋める（生HTMLに作品リンクが1本しか無かった）。
+            // クライアントJSは同じ id を innerHTML で描き直すので二重にはならない。
+            const w = isMobile ? 120 : 155;
+            const carousel = (rows: unknown[]) => (rows as Product[]).map(p => carouselCardHtml(p, w)).join('');
+            html = fillById(html, 'home-preorder-list', carousel(preOrders));
+            html = fillById(html, 'home-new-list', carousel(newProducts));
+            html = fillById(html, 'home-sale-list', carousel(sale));
+            html = fillById(html, 'home-ranking-list', isMobile
+                ? carousel(ranking)
+                : (ranking as Product[]).map((p, i) => rowCardHtml(p, i + 1)).join(''));
         } catch (e) {
             console.error('SSR home data fetch failed:', e);
         }

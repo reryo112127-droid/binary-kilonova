@@ -57,6 +57,24 @@ async function fetchAllPaged(client, baseSql, PAGE = 25000) {
     return out;
 }
 
+// rowid のキーセットで全行を読む（2026-09-13）。fetchAllPaged の OFFSET 方式は1ページごとに
+// 先頭から数え直すので読取行数が行数の2乗で増え、しかも失敗を**空配列で握り潰す**。
+// 女優リストのように「欠けると大量の女優が noindex になる」集計ではこちらを使い、失敗は例外にする。
+async function fetchAllByRowid(client, cols, where, PAGE = 20000) {
+    const out = [];
+    let last = 0;
+    for (;;) {
+        const r = await client.execute({
+            sql: `SELECT rowid AS _rid, ${cols} FROM products WHERE rowid > ${last}${where ? ` AND (${where})` : ''} ORDER BY rowid LIMIT ${PAGE}`,
+        });
+        const rows = r.rows || [];
+        out.push(...rows);
+        if (rows.length < PAGE) break;
+        last = Number(rows[rows.length - 1]._rid);
+    }
+    return out;
+}
+
 // ── サイトマップ用URLキャッシュ ────────────────────────────────────
 // 全作品ID＋全(写真あり)女優名を申告対象に。IDのみなので ~8MB で 25MiB/ファイル上限内。
 // app/sitemap.xml/route.ts がこのキャッシュを 45k/チャンクに分割して出力する。
@@ -105,25 +123,49 @@ async function genSitemapCache() {
     const fanzaSql = `SELECT product_id, sale_start_date FROM products WHERE ${NP} AND (((${makerLit}) AND SUBSTR(sale_start_date,1,10) >= '${date3}') OR COALESCE(review_count,0) >= ${FANZA_MIN_REVIEWS}) ORDER BY SUBSTR(sale_start_date,1,10) DESC`;
     for (const shard of fanza.shards) ingest(await fetchAllPaged(shard, fanzaSql));
 
-    // ── 女優ページは「索引対象の作品に出ている人」ではなく、**作品を持つ全女優**から導出する。
-    // 女優ページ(/actress/[name])は作品の索引可否と無関係に出演作を引けるため、索引対象を
-    // 作品群に縛る必要がない。ここが最大の長尾在庫（索引5,060人に対し実在庫は約2.9万人）。
-    // ただし「1作しか無く、プロフィールも無い」人はカード1枚だけの薄いページになるので外す。
-    const ACTRESS_MIN_WORKS = 2;
+    const { actresses, thin } = await genActressList();
+    console.log(`  作品 ${products.length}件`);
+    return { actresses, thin, products, lastmods };
+}
+
+// ── 女優ページの索引対象 ──────────────────────────────────────────
+// 女優ページは「索引対象の作品に出ている人」ではなく、**作品を持つ全女優**から導出する。
+// 女優ページ(/actress/[name])は作品の索引可否と無関係に出演作を引けるため、索引対象を
+// 作品群に縛る必要がない。ここが最大の長尾在庫（実在庫は約2.9万人）。
+//
+// 掲載基準（2026-09-13 改定）: **4作以上、または全作品が直近1年以内（＝デビューしたての新人）**。
+// Search Console でソフト404 4,857件の例が全部女優ページで、作品1〜3件の薄いページが多かった。
+// 旧基準（2作以上 or プロフィール有）の「プロフィール有」例外は、作品が少ないと薄いことに
+// 変わりないので廃止。新人は注目度が高いので作品が少なくても残す。
+// 掲載外（thin）は /actress/[name] が noindex にする。静的カードは thin も焼く（build_actress_cache）。
+const ACTRESS_MIN_WORKS = 4;
+const NEWCOMER_DAYS = 365;
+
+async function genActressList() {
     console.log('  女優名を全作品から集計中...');
-    const workCount = new Map();
+    const cleanName = (s) => !!s && s.length > 1 && s.length <= 30 && !/\d+歳|[（()【】\[\]]/.test(s) && s !== '----';
+    const normDate = (v) => {
+        const m = String(v ?? '').match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+        return m ? `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` : '';
+    };
+    // 名前 → { 作品数, 最古の配信日 }。配信日不明の作品は「古い」扱い（新人判定を甘くしない）。
+    const stats = new Map();
     const countNames = (rows) => {
         for (const r of rows) {
             if (!r.actresses) continue;
+            const d = normDate(r.sale_start_date) || '0000-00-00';
             for (const raw of String(r.actresses).split(/[,、/／]+/)) {
                 const t = raw.trim();
-                if (cleanName(t)) workCount.set(t, (workCount.get(t) || 0) + 1);
+                if (!cleanName(t)) continue;
+                const s = stats.get(t);
+                if (s) { s.c++; if (d < s.first) s.first = d; }
+                else stats.set(t, { c: 1, first: d });
             }
         }
     };
-    const ACT_SQL = `SELECT actresses FROM products WHERE actresses IS NOT NULL AND actresses != ''`;
-    countNames(await fetchAllPaged(mgs, ACT_SQL));
-    for (const shard of fanza.shards) countNames(await fetchAllPaged(shard, ACT_SQL));
+    const WHERE = `actresses IS NOT NULL AND actresses != ''`;
+    countNames(await fetchAllByRowid(mgs, 'actresses, sale_start_date', WHERE));
+    for (const shard of fanza.shards) countNames(await fetchAllByRowid(shard, 'actresses, sale_start_date', WHERE));
 
     // 実在女優ホワイトリスト(lib/actressFilter.ts と同じ data/actress_whitelist.json)で絞り、
     // タイトル断片/役名/通称(「20時間戦う女」「@なつ」等)の混入＝薄いゴミページを排除する。
@@ -135,24 +177,40 @@ async function genSitemapCache() {
         whitelist = new Set(wl.map(norm));
     } catch (e) { console.warn('  ⚠ actress_whitelist.json 読込失敗(全女優を採用):', e.message); }
 
-    // 1作だけでも身長/カップ/生年月日が判っていれば、プロフィール表が出るので薄くない
-    let profiled = new Set();
+    const cutoff = new Date(Date.now() - NEWCOMER_DAYS * 86400000).toISOString().slice(0, 10);
+    const actresses = [], thin = [];
+    let newcomers = 0;
+    for (const [n, s] of stats) {
+        if (whitelist.size && !whitelist.has(norm(n))) continue;
+        const isNewcomer = s.c < ACTRESS_MIN_WORKS && s.first >= cutoff;
+        if (s.c >= ACTRESS_MIN_WORKS || isNewcomer) { actresses.push(n); if (isNewcomer) newcomers++; }
+        else thin.push(n);
+    }
+    actresses.sort(); thin.sort();
+    console.log(`  女優 ${actresses.length}人を掲載（うち新人例外 ${newcomers}人）/ 作品${ACTRESS_MIN_WORKS - 1}件以下で noindex ${thin.length}人`
+        + `（全体${stats.size}人→WL照合）`);
+    return { actresses, thin };
+}
+
+/**
+ * 女優リストの書き出し。集計した女優の総数（掲載＋noindex）が前回の半分未満なら、
+ * 集計の欠け（D1 枠切れ等）とみなして書かない。掲載数どうしで比べると、基準を厳しくした
+ * だけの正常な減少まで止めてしまうので総数で比べる。
+ */
+function writeActressList(writeBoth, { actresses, thin }) {
+    const p = path.join(ROOT, 'data', 'sitemap_actresses.json');
+    let prevListed = 0, prevTotal = 0;
     try {
-        const pf = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'actress_profiles.json'), 'utf-8'));
-        profiled = new Set(Object.keys(pf).map(norm));
-    } catch { /* 無ければ作品数だけで判定 */ }
-
-    const actresses = [...workCount.entries()]
-        .filter(([n, c]) => (!whitelist.size || whitelist.has(norm(n)))
-            && (c >= ACTRESS_MIN_WORKS || profiled.has(norm(n))))
-        .map(([n]) => n)
-        .sort();
-
-    const thin = [...workCount.entries()].filter(([n, c]) =>
-        (!whitelist.size || whitelist.has(norm(n))) && c < ACTRESS_MIN_WORKS && !profiled.has(norm(n))).length;
-    console.log(`  作品 ${products.length}件 / 女優 ${actresses.length}件`
-        + `(全体${workCount.size}→WL照合→${ACTRESS_MIN_WORKS}作以上orプロフィール有。薄い${thin}人を除外)`);
-    return { actresses, products, lastmods };
+        const prev = JSON.parse(fs.readFileSync(p, 'utf-8'));
+        prevListed = (prev.actresses || []).length;
+        prevTotal = prevListed + (prev.thin || []).length;
+    } catch { /* 初回 */ }
+    const total = actresses.length + thin.length;
+    if (prevTotal > 0 && total < prevTotal * 0.5) {
+        throw new Error(`集計した女優が ${prevTotal}→${total}人に激減。集計の欠けとみなして書き出しを中止`);
+    }
+    writeBoth('sitemap_actresses.json', JSON.stringify({ generatedAt: new Date().toISOString(), actresses, thin }, null, 0));
+    console.log(`✓ sitemap_actresses.json (掲載:${actresses.length}人 / noindex:${thin.length}人、前回掲載${prevListed}人)`);
 }
 
 // ── メーカー一覧（floor付き） ──────────────────────────────────────
@@ -590,6 +648,8 @@ async function main() {
     const sitemapOnly = process.argv.includes('--sitemap-only');
     // LP用キャッシュ(genres/series)だけを再生成する
     const lpCachesOnly = process.argv.includes('--lp-caches');
+    // 女優の索引対象リスト(sitemap_actresses.json)だけを再生成する（作品側の重いクエリを回さない）
+    const actressesOnly = process.argv.includes('--actresses-only');
 
     const write = (filename, data) => {
         const p = path.join(dataDir, filename);
@@ -612,13 +672,32 @@ async function main() {
         console.log('\n[--lp-caches] 完了！'); process.exit(0);
     }
 
-    const { actresses, products, lastmods } = await genSitemapCache();
     fs.mkdirSync(dataDir, { recursive: true });
     fs.mkdirSync(path.join(ROOT, 'public', 'data'), { recursive: true });
     const writeBoth = (filename, json) => {
         fs.writeFileSync(path.join(dataDir, filename), json);
         fs.writeFileSync(path.join(ROOT, 'public', 'data', filename), json);
     };
+
+    if (actressesOnly) {
+        // --max-age-days=N: ファイル内の generatedAt が N日以内なら何もしない（daily_main.bat から毎日呼び、
+        // 実際の全件集計＝D1 約49万行の読取は週1回だけにする）。鮮度は mtime ではなく generatedAt で見る。
+        const maxAgeArg = process.argv.find(a => a.startsWith('--max-age-days='));
+        if (maxAgeArg) {
+            const days = Number(maxAgeArg.split('=')[1]);
+            let gen = '';
+            try { gen = JSON.parse(fs.readFileSync(path.join(dataDir, 'sitemap_actresses.json'), 'utf-8')).generatedAt || ''; } catch { /* 無ければ作る */ }
+            const ageDays = gen ? (Date.now() - Date.parse(gen)) / 86400000 : Infinity;
+            if (ageDays < days) {
+                console.log(`[--actresses-only] ${ageDays.toFixed(1)}日前に生成済み（${days}日以内）のためスキップ`);
+                process.exit(0);
+            }
+        }
+        writeActressList(writeBoth, await genActressList());
+        console.log('\n[--actresses-only] 完了！'); process.exit(0);
+    }
+
+    const { actresses, thin, products, lastmods } = await genSitemapCache();
 
     // sitemap_cache.json は product/[id] の noindex 判定(isIndexableProduct)が毎リクエスト読む
     // **ホットパス**。子サイトマップ(1日1回・エッジキャッシュ有り)しか使わないデータは同居させない:
@@ -628,8 +707,7 @@ async function main() {
     writeBoth('sitemap_cache.json', JSON.stringify({ products }, null, 0));
     console.log(`✓ sitemap_cache.json (作品:${products.length}件)`);
 
-    writeBoth('sitemap_actresses.json', JSON.stringify({ actresses }, null, 0));
-    console.log(`✓ sitemap_actresses.json (女優:${actresses.length}件)`);
+    writeActressList(writeBoth, { actresses, thin });
 
     writeBoth('sitemap_lastmod.json', JSON.stringify({ products: lastmods }, null, 0));
     console.log(`✓ sitemap_lastmod.json (${lastmods.filter(Boolean).length}/${lastmods.length}件に発売日)`);

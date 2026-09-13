@@ -4,6 +4,7 @@ import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
 import { ssrFetchRanking, ssrFetchActressRanking, injectSsrScript } from '../../lib/ssrFetch';
 import { injectHubSeo, replaceH1 } from '../../lib/pageMeta';
 import { edgeLookup, edgeStore } from '../../lib/edgeCache';
+import { fillById, productCardsHtml, rowCardHtml, type Product } from '../../lib/landingPage';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,9 +46,13 @@ export async function GET(request: NextRequest) {
 
         // SSRデータ取得・注入
         try {
+            // 一覧の中身もサーバ側で埋める（生HTMLに作品リンクが0本だった。クライアントの行は
+            // div+onclick でリンクにならない）。クライアントは innerHTML で描き直すので二重にならない。
+            // 表彰台(1〜3位)はクライアント専用の枠なので、SSR では1位から順に一覧へ入れる。
             if (isMobile) {
                 const ranking = await ssrFetchRanking(30);
                 html = injectSsrScript(html, '__SSR_RANKING_DATA__', ranking);
+                html = fillById(html, 'ranking-grid', productCardsHtml(ranking as Product[]));
             } else {
                 const [ranking, actressRanking] = await Promise.all([
                     ssrFetchRanking(30),
@@ -55,6 +60,7 @@ export async function GET(request: NextRequest) {
                 ]);
                 html = injectSsrScript(html, '__SSR_RANKING_DATA__', ranking);
                 html = injectSsrScript(html, '__SSR_ACTRESS_RANKING_DATA__', actressRanking);
+                html = fillById(html, 'works-list', (ranking as Product[]).map((p, i) => rowCardHtml(p, i + 1)).join(''));
             }
         } catch (e) {
             console.error('SSR ranking data fetch failed:', e);

@@ -74,9 +74,40 @@ export function productCardsHtml(products: Product[]): string {
     return products.map(cardHtml).join('');
 }
 
+// 横スクロール(カルーセル)用の SSR カード。コンテナが flex 行なので幅を固定する
+// (w-full のままだと各カードが縮んで潰れる)。クライアントJSが innerHTML で描き直すまでの間だけ見える。
+export function carouselCardHtml(p: Product, widthPx = 120): string {
+    const pid = String(p.product_id);
+    const img = poster(String(p.main_image_url || ''));
+    return `<a class="shrink-0 block" style="width:${widthPx}px;min-width:${widthPx}px" href="/product/${encodeURIComponent(pid)}">`
+        + `<div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800">`
+        + (img ? `<img class="w-full h-full object-cover object-right block" src="${esc(img)}" alt="${esc(p.title)}" loading="lazy"/>` : '')
+        + `</div><p class="text-[10px] font-bold leading-tight line-clamp-2 mt-1.5">${esc(p.title)}</p></a>`;
+}
+
+// 縦並びリスト(ランキング行)用の SSR カード
+export function rowCardHtml(p: Product, rank: number): string {
+    const pid = String(p.product_id);
+    const img = poster(String(p.main_image_url || ''));
+    return `<a class="flex items-center gap-3 rounded-lg p-2" href="/product/${encodeURIComponent(pid)}">`
+        + `<span class="w-8 text-center text-sm font-bold text-slate-400 shrink-0">${rank}</span>`
+        + `<div class="w-14 h-[75px] shrink-0 overflow-hidden rounded bg-slate-200">`
+        + (img ? `<img class="w-full h-full object-cover object-right block" src="${esc(img)}" alt="${esc(p.title)}" loading="lazy"/>` : '')
+        + `</div><p class="flex-1 min-w-0 text-xs font-bold line-clamp-2">${esc(p.title)}</p></a>`;
+}
+
 // #products-grid の中身を SSR カードに差し替える(対応する </div> を深さカウントで特定)
 export function replaceGridInner(html: string, inner: string): string {
-    const m = html.match(/<div[^>]*id="products-grid"[^>]*>/);
+    return fillById(html, 'products-grid', inner);
+}
+
+/**
+ * id 指定の <div> の中身を差し替える。ハブページ(ホーム/新作/ランキング/セール)の一覧は
+ * クライアントJSが描くため、生のHTMLに作品への <a> が1本も無かった（2026-09-13 実測）。
+ * 初回描画はどのテンプレも innerHTML で丸ごと上書きするので、先に入れておいても二重にならない。
+ */
+export function fillById(html: string, id: string, inner: string): string {
+    const m = html.match(new RegExp(`<div[^>]*id="${id}"[^>]*>`));
     if (!m || m.index === undefined) return html;
     const start = m.index + m[0].length;
     let depth = 1, i = start;

@@ -5,6 +5,22 @@ import { fetchProducts, productCardsHtml, replaceGridInner, esc, type Product } 
 import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
 import { fetchActressProfile, profileHtml, profileSummary } from '../../../lib/actressProfile';
 import { readLpCards } from '../../../lib/lpCache';
+import { readStaticCacheAsync } from '../../../lib/staticCache';
+
+/**
+ * 索引対象の女優名（= サイトマップ掲載）。掲載外の女優ページは noindex にする（2026-09-13）。
+ * Search Console でソフト404 4,857件の例が全部女優ページで、作品1〜3件の薄いページが多かった。
+ * 掲載基準は scripts/generate-weekly-cache.mjs の genActressList()（4作以上 or 全作品が直近1年＝新人）。
+ * 2万件の配列を毎回走査しないよう isolate 内で Set にして持つ。読めなければ null（＝noindex にしない）。
+ */
+let _indexableActresses: Set<string> | null = null;
+async function indexableActresses(): Promise<Set<string> | null> {
+    if (_indexableActresses) return _indexableActresses;
+    const sm = await readStaticCacheAsync<{ actresses?: string[] }>('sitemap_actresses.json').catch(() => null);
+    if (!sm?.actresses?.length) return null;
+    _indexableActresses = new Set(sm.actresses);
+    return _indexableActresses;
+}
 
 /**
  * 静的キャッシュの1女優あたり収録上限（scripts/build_actress_cache.mjs の ACTRESS_CACHE_PER と同じ）。
@@ -85,14 +101,16 @@ export async function GET(
         // 入口によって件数が食い違う（実測: 三上悠亜 検索284件 / 女優ページ330件）。
         const apiQuery = `actress=${encodeURIComponent(actressName)}&sort=wish_count&excludeBest=1`;
         // プロフィールは静的シャード(0.4MB以下)から。作品取得と並行して引く。
-        const [{ products, hasNext }, profile] = await Promise.all([
+        const [{ products, hasNext }, profile, indexable] = await Promise.all([
             fetchActressProducts(request, actressName, apiQuery, offset),
             fetchActressProfile(actressName),
+            indexableActresses(),
         ]);
         // 作品0件(=中身が空)は 200の薄いHTMLだとGoogleが「ソフト404」と判定するため404を返す。
         if (products.length === 0) return new NextResponse('Not found', { status: 404 });
         const coStars = collectCoStars(products, actressName);
-        const noindex = false; // 0件は上で404済み。ここに来るのは作品ありのページ
+        // サイトマップ掲載外（作品3件以下で新人でもない等）は noindex,follow。リンクはたどらせる。
+        const noindex = !!indexable && !indexable.has(actressName);
 
         let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html, 'search') : injectWebLayout(html);

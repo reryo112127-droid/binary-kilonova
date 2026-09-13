@@ -7,6 +7,8 @@ import { injectMobileLayout, injectWebLayout } from './injectLayout';
 import { readStaticCacheAsync as readStaticCache } from './staticCache';
 import { injectHubSeo, replaceH1, type HubMeta } from './pageMeta';
 import { edgeLookup, edgeStore } from './edgeCache';
+import { fillById, productCardsHtml } from './landingPage';
+import { ssrNewList, ssrPreorderList } from './hubSsr';
 
 const MOBILE_UA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
 
@@ -336,6 +338,10 @@ export async function renderProductsPage(request: NextRequest, forcedType?: stri
         if (seo) {
             html = injectHubSeo(html, seo);
             html = replaceH1(html, type === 'pre-order' ? 'AV予約・近日発売作品' : 'AV新作一覧');
+            // 一覧の先頭30件をサーバ側で埋める（生HTMLに作品リンクが0本だった。クライアントの
+            // 描画は div+onclick でリンクにならない）。初回描画は innerHTML 上書きなので二重にならない。
+            const list = type === 'pre-order' ? await ssrPreorderList(30) : await ssrNewList(30);
+            if (list.length > 0) html = fillById(html, 'products-grid', productCardsHtml(list));
         }
 
         const resp = new NextResponse(html, {

@@ -43,7 +43,7 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
     }
 
     // R2 miss: Turso最小クエリ（R2書き込みはAPI側に任せ、全フィールドで保存させる）
-    const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date FROM products WHERE product_id = ? LIMIT 1';
+    const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, duration_min FROM products WHERE product_id = ? LIMIT 1';
     let result: Record<string, unknown> | null = null;
 
     const fanzaClient = await getFanzaClient();
@@ -84,6 +84,17 @@ async function fetchActressImageUrl(actressName: string): Promise<string | null>
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 
+/**
+ * 配信日を ISO 8601（JST）へ（構造化データの datePublished 用）。
+ * FANZA '2018-11-30 10:00:53' / MGS '2024/01/05' の両形式に対応。
+ */
+function isoJst(v: string): string {
+    const m = v.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (!m) return '';
+    const p = (x: string | undefined) => (x ?? '0').padStart(2, '0');
+    return `${m[1]}-${p(m[2])}-${p(m[3])}T${p(m[4])}:${p(m[5])}:${p(m[6])}+09:00`;
+}
+
 function injectSEOMeta(html: string, product: Record<string, unknown> | null, id: string, actressImageUrl: string | null, preferPackage = false): string {
     const displayId = id.toUpperCase();
 
@@ -104,10 +115,13 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
     // タイトル: 「作品タイトル 出演者(最大2名) 品番 | AVランキング」。
     // 流入はほぼ品番検索なので品番は必須。旧実装は女優名を全員羅列し作品タイトルを使わず(20人羅列/品番のみ)
     // 検索スニペットが弱くCTRを取りこぼしていた。作品名を主役にし女優は先頭2名までに絞る。ブランド名はホームと統一。
+    // 作品名に既に入っている女優名は重ねない（「…AVデビュー！！ 百瀬とあ 百瀬とあ MIFD00060」になっていた）。
+    // 判定は title に載せる先頭42字で行う（切り捨てで消える名前は付け直す）。
+    const titlePart = title.slice(0, 42);
     const actShort = actresses
-        ? actresses.split(',').map(s => s.trim()).filter(Boolean).slice(0, 2).join(', ')
+        ? actresses.split(',').map(s => s.trim()).filter(a => a && !titlePart.includes(a)).slice(0, 2).join(', ')
         : '';
-    const titleHead = [title.slice(0, 42), actShort].filter(Boolean).join(' ');
+    const titleHead = [titlePart, actShort].filter(Boolean).join(' ');
     const seoTitle = titleHead
         ? `${titleHead} ${displayId} | AVランキング`
         : `${displayId} | AVランキング`;
@@ -123,17 +137,24 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
     // ?og=pkg（SNS自動投稿フィード経由）の時はパッケージ表紙を使う（投稿で画像カードを出すため）。
     const ogImageUrl = preferPackage ? (posterUrl(imgUrl) || actressImageUrl || '') : (actressImageUrl || '');
 
-    // JSON-LD (VideoObject) にはパッケージ画像を使用（検索エンジン向け）
+    // JSON-LD は **Movie**（作品そのものの説明）。以前は VideoObject を出していたが、作品ページには
+    // 読み込み時点で再生できる動画が無い（サンプルはボタンで外部プレーヤーを開くだけ）ため、
+    // Search Console で 4,030件が「動画再生ページに動画がありません」になっていた（2026-09-13 確認）。
+    // VideoObject は「このページの主役が動画」という宣言なので、動画を置けない限り出さない。
     const actorList = actresses
         ? actresses.split(',').map(a => ({ '@type': 'Person', name: a.trim() }))
         : undefined;
     const jsonLd: Record<string, unknown> = {
         '@context': 'https://schema.org',
-        '@type': 'VideoObject',
+        '@type': 'Movie',
         name: title || displayId,
         description: desc,
     };
-    if (imgUrl)    jsonLd.thumbnailUrl = imgUrl;
+    if (imgUrl)    jsonLd.image = imgUrl; // パッケージ画像（検索エンジン向け）
+    const published = isoJst(saleDate);
+    if (published) jsonLd.datePublished = published;
+    const durMin = Number(product?.duration_min);
+    if (Number.isFinite(durMin) && durMin > 0) jsonLd.duration = `PT${Math.round(durMin)}M`;
     if (actorList) jsonLd.actor = actorList;
     if (maker)     jsonLd.productionCompany = { '@type': 'Organization', name: maker };
 
@@ -224,6 +245,11 @@ export async function GET(
         // ?og=pkg のときは og:image にパッケージ表紙を使う（SNS自動投稿フィード用）
         const preferPackage = new URL(request.url).searchParams.get('og') === 'pkg';
         html = injectSEOMeta(html, product, id, actressImageUrl, preferPackage);
+        // 作品名の見出しを H1 にしてサーバ側で埋める。テンプレは <h2 id="pd-title"> をクライアントJSが
+        // 埋める作りで、ヘッダーの H1 はレイアウト注入で消えるため**作品ページに H1 が1つも無かった**。
+        // クライアントは id で textContent を上書きするだけなのでタグを変えても動作は同じ。
+        html = html.replace(/<h2 id="pd-title"([^>]*)>[\s\S]*?<\/h2>/,
+            (_m, attrs: string) => `<h1 id="pd-title"${attrs}>${escHtml(String(product.title || id.toUpperCase()))}</h1>`);
         // 索引対象(18メーカー＋人気作)以外は noindex。Googleの索引/クロールを売れ筋に集中させ無料枠超過を防ぐ。
         if (!(await isIndexableProduct(id))) {
             html = html.replace('</head>', '<meta name="robots" content="noindex,follow"/>\n</head>');
