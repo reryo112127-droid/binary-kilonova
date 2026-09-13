@@ -15,6 +15,10 @@ set NPM=C:\Program Files\nodejs\npm.cmd
 set LOG_DIR=%PROJECT_DIR%\logs
 
 set PATH=C:\Program Files\nodejs;%PATH%
+REM PC has only 3.9GB RAM: without a heap cap the OpenNext bundle step of deploy:cf dies with
+REM "memory allocation ... failed" (0xC0000409, 2026-09-12). 1024MB is enough to finish.
+REM Applied ONLY around deploy:cf so the scrapers/aggregators keep node's default heap.
+set DEPLOY_NODE_OPTIONS=--max-old-space-size=1024
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
@@ -131,6 +135,12 @@ REM Guard: never deploy an empty cache (a failed generation must not wipe the li
 REM The count is written to a temp file and read back with `set /p`. The previous
 REM `for /f` one-liner was a cmd.exe SYNTAX ERROR that aborted this batch right here,
 REM so steps [5]-[7] (R2 invalidate / MGS price update / purge) never ran at all.
+REM Actress index list (sitemap_actresses.json: listed / noindex). Rebuilt weekly from D1 (~490k rows read)
+REM right after the 9:00 quota reset; --max-age-days=7 makes the other days a no-op. The weekly CI that
+REM used to rebuild it fails at its build step (since 2026-09-07), so the PC owns this now.
+echo [4a] actress index list (weekly): %time% >> "%LOG_FILE%"
+"%NODE%" scripts\generate-weekly-cache.mjs --actresses-only --max-age-days=7 >> "%LOG_FILE%" 2>&1
+echo [4a] done: %errorlevel% at %time% >> "%LOG_FILE%"
 set CACHE_CNT=0
 "%NODE%" -e "const a=require('./public/data/products_new_cache.json');process.stdout.write(String(a.length))" > "%LOG_DIR%\cache_cnt.txt" 2>nul
 if exist "%LOG_DIR%\cache_cnt.txt" set /p CACHE_CNT=<"%LOG_DIR%\cache_cnt.txt"
@@ -138,7 +148,9 @@ del "%LOG_DIR%\cache_cnt.txt" 2>nul
 if "%CACHE_CNT%"=="0" (
     echo [4/5] SKIP deploy: products_new_cache.json is empty >> "%LOG_FILE%"
 ) else (
+    set "NODE_OPTIONS=%DEPLOY_NODE_OPTIONS%"
     call "%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
+    set "NODE_OPTIONS="
     echo [4/5] done ^(%CACHE_CNT%^): %time% >> "%LOG_FILE%"
 )
 
@@ -158,7 +170,9 @@ echo [6/6] price update done: %errorlevel% at %time% >> "%LOG_FILE%"
 cd /d "%PROJECT_DIR%\site"
 "%NODE%" scripts\generate-static-cache-local.mjs >> "%LOG_FILE%" 2>&1
 "%NODE%" "%PROJECT_DIR%\scripts\build_actress_ranking_d1.js" >> "%LOG_FILE%" 2>&1
+set "NODE_OPTIONS=%DEPLOY_NODE_OPTIONS%"
 call "%NPM%" run deploy:cf >> "%LOG_FILE%" 2>&1
+set "NODE_OPTIONS="
 echo [6/6] price re-deploy done: %time% >> "%LOG_FILE%"
 
 REM === [7] purge works with unknown cast, older than 3 months (best-effort, LAST) ===

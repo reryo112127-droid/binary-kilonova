@@ -8,6 +8,9 @@ set PROJECT_DIR=C:\Users\Owner\.gemini\antigravity\playground\binary-kilonova
 set NPM=C:\Program Files\nodejs\npm.cmd
 set LOG_DIR=%PROJECT_DIR%\logs
 set PATH=C:\Program Files\nodejs;%PATH%
+REM PC has only 3.9GB RAM: without a heap cap the OpenNext bundle step dies with
+REM "memory allocation ... failed" (0xC0000409, 2026-09-12). 1024MB is enough to finish.
+set NODE_OPTIONS=--max-old-space-size=1024
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 for /f "delims=" %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd"') do set TODAY=%%D
 set LOG_FILE=%LOG_DIR%\deploy_only_%TODAY%.log
