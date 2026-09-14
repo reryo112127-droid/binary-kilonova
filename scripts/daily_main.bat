@@ -57,6 +57,17 @@ echo [1c/6] MGS release date backfill: %time% >> "%LOG_FILE%"
 "%NODE%" "%PROJECT_DIR%\scripts\backfill_mgs_release_dates.js" --days 60 --limit 300 >> "%LOG_FILE%" 2>&1
 echo [1c/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
 
+REM [1d] seesaawiki cast (real actress behind amateur / alias credits). GitHub Actions scrapes it and
+REM writes D1; the site's static caches are built from the LOCAL DBs, so apply the same map locally.
+REM This batch never git-pulls the work tree, so only the map file is taken from origin/main.
+echo [1d/6] seesaawiki cast to local DB: %time% >> "%LOG_FILE%"
+git -C "%PROJECT_DIR%" fetch -q origin main >> "%LOG_FILE%" 2>&1
+git -C "%PROJECT_DIR%" show origin/main:data/seesaawiki_actress_map_v2.jsonl > "%PROJECT_DIR%\data\seesaawiki_v2.tmp" 2>> "%LOG_FILE%"
+if not errorlevel 1 move /y "%PROJECT_DIR%\data\seesaawiki_v2.tmp" "%PROJECT_DIR%\data\seesaawiki_actress_map_v2.jsonl" >nul
+if exist "%PROJECT_DIR%\data\seesaawiki_v2.tmp" del "%PROJECT_DIR%\data\seesaawiki_v2.tmp"
+"%NODE%" "%PROJECT_DIR%\scripts\seesaawiki_by_actress.js" --apply-local >> "%LOG_FILE%" 2>&1
+echo [1d/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
+
 REM === [2] FANZA API500 ===
 echo [2/4] actress profiles: %time% >> "%LOG_FILE%"
 for /f %%W in ('powershell -NoProfile -Command "(Get-Date).DayOfWeek.value__"') do set DOW=%%W

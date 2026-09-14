@@ -16,14 +16,13 @@ on:
   schedule:
     # 21:00 UTC は D1の日次枠が枯渇済みの時間帯（枠は UTC 0時リセット）。
     # 週次の「Apply to D1」がそこで全滅していたのでリセット直後へ移動（2026-09-05）。
-    - cron: '0 1 * * *'       # 毎日 10:00 JST (= 1:00 UTC / D1枠リセット直後)
-    - cron: '30 2 * * 0'      # 毎週日曜 11:30 JST (= 2:30 UTC) — 収集後に D1 へ反映
+    - cron: '0 1 * * *'       # 毎日 10:00 JST (= 1:00 UTC / D1枠リセット直後)。収集→D1反映
   workflow_dispatch:
     inputs:
       apply:
-        description: 'D1へ反映する（通常は日曜のみ）'
+        description: 'D1へ反映する（既定: する）'
         required: false
-        default: 'false'
+        default: 'true'
         type: choice
         options: ['false', 'true']
 
@@ -54,36 +53,43 @@ jobs:
       - name: Set apply flag
         id: mode
         run: |
-          # ↑の週次cronと**必ず同じ文字列**にすること（ずれるとD1反映が永久に走らない）
-          if [ "${{ github.event.schedule }}" = "30 2 * * 0" ] || [ "${{ github.event.inputs.apply }}" = "true" ]; then
-            echo "apply=true" >> $GITHUB_OUTPUT
-          else
+          # v2 の取り直し（2026-09-14〜）で反映待ちが数万件あるので、毎日上限つきで反映する。
+          # 手動実行で apply=false を選んだときだけ止める。
+          if [ "${{ github.event.inputs.apply }}" = "false" ]; then
             echo "apply=false" >> $GITHUB_OUTPUT
+          else
+            echo "apply=true" >> $GITHUB_OUTPUT
           fi
 
-      # サイトマップを毎回取り直し、progress.completed に無いURLだけを続きから取得する。
-      # 現在 9,834ページ。2.5秒間隔なので1回(3時間)あたり約4,300ページ進む。
-      - name: Scrape seesaawiki (続きから)
-        run: timeout 3h node scripts/seesaawiki_by_actress.js || true
+      # サイトマップを毎回取り直し、progress_v2.completed に無いURLだけを続きから取得する。
+      # 約9,800ページ。2.5秒間隔なので1回(5時間)あたり約7,000ページ＝2日で一巡する。
+      # ジョブ上限は6時間なので、後続の反映・コミットの時間を残して5時間で切る。
+      - name: Scrape seesaawiki v2 (続きから)
+        run: timeout 5h node scripts/seesaawiki_by_actress.js || true
 
-      # 収集済みマッピングを D1(FANZA) へ反映。
-      # 既定は「出演者が空の作品だけ補完」で、正規APIで取れている出演者は書き換えない。
-      - name: Apply to D1 (週次)
+      # 収集済みマッピング(v2)を D1(FANZA/MGS) へ反映。
+      # 採用するのは「出演作品 > FANZA素人 / MGS動画 / 素人・別名名義・名前なし作品」欄だけで、
+      # 実在女優(site/data/actress_whitelist.json)に限る。空欄は補完し、既に出演者がいる作品は
+      # 元の名義を残したまま末尾に女優名を足す。1件の UPDATE は FTS トリガ込みで約3書込になり、
+      # 平常日の書込が既に約6.6万行/日あるので、D1 の書込枠(10万行/日)を守るため1回6,000件まで。
+      # 反映済みは次回スキップされる（冪等）ので、残りは翌日以降に続きから入る。
+      - name: Apply to D1 (毎日・上限つき)
         if: steps.mode.outputs.apply == 'true'
-        run: node scripts/seesaawiki_by_actress.js --apply-only || echo "apply failed (non-fatal)"
+        run: node scripts/seesaawiki_by_actress.js --apply-only --max-updates 6000 || echo "apply failed (non-fatal)"
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_D1_TOKEN:   ${{ secrets.CLOUDFLARE_D1_TOKEN }}
           D1_FANZA_0_ID:        ${{ secrets.D1_FANZA_0_ID }}
           D1_FANZA_1_ID:        ${{ secrets.D1_FANZA_1_ID }}
+          D1_MGS_ID:            ${{ secrets.D1_MGS_ID }}
 
       - name: Commit progress
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add \
-            data/seesaawiki_actress_map.jsonl \
-            data/seesaawiki_progress.json \
+            data/seesaawiki_actress_map_v2.jsonl \
+            data/seesaawiki_progress_v2.json \
             || true
           if ! git diff --staged --quiet; then
             git commit -m "seesaawiki: scraper progress [skip ci] [vercel skip]"

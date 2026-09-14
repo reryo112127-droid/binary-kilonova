@@ -53,7 +53,9 @@ export function buildActressDisplayShards(displayCache) {
 // 別名/X を、seesaawiki の収集結果(data/seesaawiki_actress_map.jsonl)から**空欄だけ**補う。
 // 既存の値は上書きしない（公式APIを優先し、コミュニティ編集は補助に留める）。
 // 実測: seesaawiki 6,414人のうち サイトに無い生年月日 2,292 / 身長 2,111 / カップ 1,963 / 別名 1,426 / X 2,132。
-const SEESAA_MAP = path.join(ROOT, '..', 'data', 'seesaawiki_actress_map.jsonl');
+// v1(旧収集) と v2(2026-09-14〜の取り直し) の両方を読む。v2 が後なので同じ女優は v2 の値で補う。
+const SEESAA_MAPS = ['seesaawiki_actress_map.jsonl', 'seesaawiki_actress_map_v2.jsonl']
+    .map(f => path.join(ROOT, '..', 'data', f));
 const validName = (s) => !!s && s.length > 1 && s.length <= 30 && !/\d+歳|[（()【】\[\]<>@:：]/.test(s) && s !== '----';
 const inRange = (v, lo, hi) => (Number.isFinite(v) && v >= lo && v <= hi ? v : null);
 
@@ -81,9 +83,10 @@ export function parseSeesaaProfile(p) {
 }
 
 function mergeSeesaawiki(displayCache) {
-    if (!fs.existsSync(SEESAA_MAP)) { console.warn('! seesaawiki_actress_map.jsonl が無いので補完をスキップ'); return; }
+    const files = SEESAA_MAPS.filter(f => fs.existsSync(f));
+    if (!files.length) { console.warn('! seesaawiki_actress_map*.jsonl が無いので補完をスキップ'); return; }
     const stat = { people: 0, created: 0, birthday: 0, height: 0, sizes: 0, cup: 0, aliases: 0, twitter: 0 };
-    for (const line of fs.readFileSync(SEESAA_MAP, 'utf-8').split('\n')) {
+    for (const line of files.flatMap(f => fs.readFileSync(f, 'utf-8').split('\n'))) {
         if (!line.trim()) continue;
         let j; try { j = JSON.parse(line); } catch { continue; }
         const name = String(j.actressName ?? '').trim();
