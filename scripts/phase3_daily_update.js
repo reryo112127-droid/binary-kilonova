@@ -68,7 +68,7 @@ const NO_PREORDER = _args.includes('--no-preorder');
 
 const MGS_COLUMNS = [
     'product_id','title','actresses','maker','label','duration_min',
-    'genres','sale_start_date','main_image_url','sample_images_json',
+    'genres','sale_start_date','release_date','main_image_url','sample_images_json',
     'sample_video_url','detail_scraped','scraped_at','updated_at',
     'list_price','current_price','discount_pct','sale_end_date','price_updated_at',
 ];
@@ -253,6 +253,7 @@ async function main() {
                         duration_min:       null,
                         genres:             null,
                         sale_start_date:    null,
+                        release_date:       null,
                         main_image_url:     product.main_image_url || null,
                         sample_images_json: product.sample_images ? JSON.stringify(product.sample_images) : null,
                         sample_video_url:   product.sample_video_url || null,
@@ -276,6 +277,8 @@ async function main() {
                         productRow.duration_min    = detail.duration_min || null;
                         productRow.genres          = detail.genres || null;
                         productRow.sale_start_date = detail.sale_start_date || null;
+                        // 商品発売日（旧作の再配信は配信開始日より古い）。欄が無ければ '' ＝取得済み
+                        productRow.release_date    = detail.release_date || '';
                         if (detail.actresses)      productRow.actresses = detail.actresses;
                         productRow.detail_scraped  = 1;
                         // 詳細ページの価格で上書き（より正確）

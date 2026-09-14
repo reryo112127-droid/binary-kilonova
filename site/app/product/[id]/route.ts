@@ -44,6 +44,8 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
 
     // R2 miss: Turso最小クエリ（R2書き込みはAPI側に任せ、全フィールドで保存させる）
     const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, duration_min FROM products WHERE product_id = ? LIMIT 1';
+    // MGS だけが商品発売日(release_date)を持つ（旧作の再配信で配信開始日と食い違う）
+    const SQL_MGS = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, release_date, duration_min FROM products WHERE product_id = ? LIMIT 1';
     let result: Record<string, unknown> | null = null;
 
     const fanzaClient = await getFanzaClient();
@@ -57,7 +59,7 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
         const mgsClient = await getMgsClient();
         if (mgsClient) {
             try {
-                const r = await mgsClient.execute({ sql: SQL, args: [id] });
+                const r = await mgsClient.execute({ sql: SQL_MGS, args: [id] });
                 if (r.rows.length > 0) result = { ...r.rows[0] } as Record<string, unknown>;
             } catch { /* ignore */ }
         }
@@ -111,6 +113,10 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
     const maker    = product ? String(product.maker   || '') : '';
     const imgUrl   = product ? String(product.main_image_url || '') : '';
     const saleDate = product ? String(product.sale_start_date || '') : '';
+    // 旧作の再配信は配信開始日だけ新しい。商品発売日が別にあれば併記し、構造化データは古い方を使う。
+    const dayOf = (s: string) => s.replace(/\//g, '-').slice(0, 10);
+    const rawRelease = product ? String(product.release_date || '') : '';
+    const releaseDate = rawRelease && dayOf(rawRelease) !== dayOf(saleDate) ? rawRelease : '';
 
     // タイトル: 「作品タイトル 出演者(最大2名) 品番 | AVランキング」。
     // 流入はほぼ品番検索なので品番は必須。旧実装は女優名を全員羅列し作品タイトルを使わず(20人羅列/品番のみ)
@@ -130,7 +136,7 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
     const descParts = [title.slice(0, 80)];
     if (actresses) descParts.push(`出演: ${actresses.split(',').slice(0, 5).join(', ')}`);
     if (maker)     descParts.push(`制作: ${maker}`);
-    if (saleDate)  descParts.push(`配信: ${saleDate}`);
+    if (saleDate)  descParts.push(`配信: ${saleDate}${releaseDate ? `（発売: ${releaseDate}）` : ''}`);
     const desc = descParts.filter(Boolean).join(' | ').slice(0, 130);
 
     // OGP画像: 通常は女優プロフィール写真（非露骨）を優先。
@@ -151,7 +157,7 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
         description: desc,
     };
     if (imgUrl)    jsonLd.image = imgUrl; // パッケージ画像（検索エンジン向け）
-    const published = isoJst(saleDate);
+    const published = isoJst(releaseDate && dayOf(releaseDate) < dayOf(saleDate) ? releaseDate : saleDate);
     if (published) jsonLd.datePublished = published;
     const durMin = Number(product?.duration_min);
     if (Number.isFinite(durMin) && durMin > 0) jsonLd.duration = `PT${Math.round(durMin)}M`;

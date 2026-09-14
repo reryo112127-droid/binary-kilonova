@@ -48,6 +48,71 @@ export function buildActressDisplayShards(displayCache) {
     return { shards, aliasIndex };
 }
 
+// ── seesaawiki(av_neme) の女優情報で欠けを埋める（2026-09-14）──────────────
+// 表示キャッシュの供給元（DMM ActressSearch＋AVWIKI）に無い 生年月日/身長/スリーサイズ/カップ/
+// 別名/X を、seesaawiki の収集結果(data/seesaawiki_actress_map.jsonl)から**空欄だけ**補う。
+// 既存の値は上書きしない（公式APIを優先し、コミュニティ編集は補助に留める）。
+// 実測: seesaawiki 6,414人のうち サイトに無い生年月日 2,292 / 身長 2,111 / カップ 1,963 / 別名 1,426 / X 2,132。
+const SEESAA_MAP = path.join(ROOT, '..', 'data', 'seesaawiki_actress_map.jsonl');
+const validName = (s) => !!s && s.length > 1 && s.length <= 30 && !/\d+歳|[（()【】\[\]<>@:：]/.test(s) && s !== '----';
+const inRange = (v, lo, hi) => (Number.isFinite(v) && v >= lo && v <= hi ? v : null);
+
+export function parseSeesaaProfile(p) {
+    const out = {};
+    const bd = String(p?.birthday ?? '').match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
+    if (bd && +bd[1] >= 1950 && +bd[1] <= 2010) out.birthday = `${bd[1]}-${bd[2].padStart(2, '0')}-${bd[3].padStart(2, '0')}`;
+    const size = String(p?.size ?? '');
+    const num = (re) => { const m = size.match(re); return m ? parseInt(m[1], 10) : NaN; };
+    out.height = inRange(num(/T\s*(\d{3})/), 130, 195);
+    out.bust = inRange(num(/B\s*(\d{2,3})/), 60, 130);
+    out.waist = inRange(num(/W\s*(\d{2})/), 40, 80);
+    out.hip = inRange(num(/H\s*(\d{2,3})/), 60, 130);
+    const cup = size.match(/[（(]\s*([A-Q])\s*(?:カップ)?\s*[)）]/) || size.match(/([A-Q])カップ/);
+    if (cup) out.cup = cup[1];
+    const tw = String(p?.twitter ?? '').replace(/^@/, '') || (size.match(/(?:Twitter|SNS)\s*[:：]\s*@([A-Za-z0-9_]{1,15})/i) || [])[1] || '';
+    if (/^[A-Za-z0-9_]{1,15}$/.test(tw)) out.twitter = tw;
+    // 「七栄ここ（ななえここ）・奈菜原心美（ななはらここみ）」→ 読みの括弧を落として区切る
+    out.aliases = String(p?.alias ?? '')
+        .replace(/[（(][^）)]*[）)]/g, '')
+        .split(/[・／/、,，]/)
+        .map(s => s.trim())
+        .filter(validName);
+    return out;
+}
+
+function mergeSeesaawiki(displayCache) {
+    if (!fs.existsSync(SEESAA_MAP)) { console.warn('! seesaawiki_actress_map.jsonl が無いので補完をスキップ'); return; }
+    const stat = { people: 0, created: 0, birthday: 0, height: 0, sizes: 0, cup: 0, aliases: 0, twitter: 0 };
+    for (const line of fs.readFileSync(SEESAA_MAP, 'utf-8').split('\n')) {
+        if (!line.trim()) continue;
+        let j; try { j = JSON.parse(line); } catch { continue; }
+        const name = String(j.actressName ?? '').trim();
+        if (!validName(name) || !j.profile) continue;
+        const s = parseSeesaaProfile(j.profile);
+        let e = displayCache[name];
+        if (!e) {
+            // DMM/AVWIKI に居ない女優。実データが1つでもあるときだけ作る（空のエントリは作らない）
+            if (!s.birthday && !s.height && !s.cup && !s.twitter && !s.aliases.length) continue;
+            e = displayCache[name] = { name, fanza_id: null, ruby: null, height: null, bust: null, waist: null, hip: null,
+                cup: null, birthday: null, blood_type: null, hobby: null, prefectures: null, image_url: null,
+                twitter: null, instagram: null, tiktok: null, aliases: [], avwiki_url: null, agency_url: null,
+                agency_source: null, augmented: null, retired: null };
+            stat.created++;
+        }
+        stat.people++;
+        if (!e.birthday && s.birthday) { e.birthday = s.birthday; stat.birthday++; }
+        if (!e.height && s.height) { e.height = s.height; stat.height++; }
+        if (!(e.bust && e.waist && e.hip) && s.bust && s.waist && s.hip) { e.bust = s.bust; e.waist = s.waist; e.hip = s.hip; stat.sizes++; }
+        if (!e.cup && s.cup) { e.cup = s.cup; stat.cup++; }
+        if (!e.twitter && s.twitter) { e.twitter = s.twitter; stat.twitter++; }
+        const have = new Set(e.aliases ?? []);
+        const add = s.aliases.filter(a => a !== name && !have.has(a));
+        if (add.length) { e.aliases = [...(e.aliases ?? []), ...add]; stat.aliases++; }
+    }
+    console.log(`✓ seesaawiki 補完: 照合${stat.people}人（新規${stat.created}人）/ 生年月日+${stat.birthday} 身長+${stat.height} `
+        + `スリーサイズ+${stat.sizes} カップ+${stat.cup} 別名+${stat.aliases} X+${stat.twitter}`);
+}
+
 function writeBoth(relPath, json) {
     for (const base of [path.join(ROOT, 'data'), path.join(ROOT, 'public', 'data')]) {
         const p = path.join(base, relPath);
@@ -63,6 +128,8 @@ function main() {
         process.exit(1);
     }
     const displayCache = JSON.parse(fs.readFileSync(src, 'utf-8'));
+    // 元の actress_display_cache.json は書き換えない（シャードにだけ反映する）
+    mergeSeesaawiki(displayCache);
     const { shards, aliasIndex } = buildActressDisplayShards(displayCache);
 
     let total = 0, maxBytes = 0;

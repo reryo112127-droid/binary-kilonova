@@ -50,6 +50,13 @@ echo [1b/6] MGS date backfill: %time% >> "%LOG_FILE%"
 "%NODE%" "%PROJECT_DIR%\scripts\backfill_mgs_dates.js" >> "%LOG_FILE%" 2>&1
 echo [1b/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
 
+REM [1c] MGS original release date (release_date). A re-release gets a NEW distribution-start date,
+REM so old titles showed up as new releases (906KAGH-045: dist 2026/09/13, release 2016/01/25).
+REM phase3 captures it for new titles; this backfills existing ones, 300 detail pages per day.
+echo [1c/6] MGS release date backfill: %time% >> "%LOG_FILE%"
+"%NODE%" "%PROJECT_DIR%\scripts\backfill_mgs_release_dates.js" --days 60 --limit 300 >> "%LOG_FILE%" 2>&1
+echo [1c/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
+
 REM === [2] FANZA API500 ===
 echo [2/4] actress profiles: %time% >> "%LOG_FILE%"
 for /f %%W in ('powershell -NoProfile -Command "(Get-Date).DayOfWeek.value__"') do set DOW=%%W

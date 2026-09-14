@@ -415,7 +415,13 @@ var _sampleImgs = [];
         if (srDt) srDt.style.display='';
       }
       if (p.vr_flag) show('pd-vr-badge');
-      set('pd-date', p.sale_start_date || '-');
+      // 旧作の再配信は配信開始日だけ新しいので、商品発売日が別にあれば併記する（MGSのみ）
+      var _day = function(s){ return String(s||'').replace(/\//g,'-').slice(0,10); };
+      set('pd-date', p.sale_start_date
+        ? (p.release_date && _day(p.release_date) !== _day(p.sale_start_date)
+            ? p.sale_start_date + '（発売日 ' + p.release_date + '）'
+            : p.sale_start_date)
+        : '-');
 
       // セール
       if (p.discount_pct > 0) {

@@ -1,0 +1,14 @@
+-- @targets: mgs
+-- MGS に商品発売日(release_date)を持たせる（2026-09-14）。
+--
+-- MGStage の詳細ページには「配信開始日」と「商品発売日」の2つがあり、従来は配信開始日だけを
+-- sale_start_date に入れていた。旧作を再配信すると配信開始日だけが新しくなるので、2016年の作品が
+-- 2026年の新作としてサイトに出ていた（906KAGH-045: 配信開始日 2026/09/13・商品発売日 2016/01/25）。
+--
+-- 適用は手動（2026-09-14 に D1 / ローカル mgs.db とも適用済み）。
+-- apply_perf_indexes.mjs は *_perf_indexes*.sql しか拾わないので、毎日の migrate:perf では流れない
+-- （ADD COLUMN は2回目以降「duplicate column」で失敗するため、そこへ混ぜないこと）。
+--   node scripts/d1_query.cjs mgs "ALTER TABLE products ADD COLUMN release_date TEXT"
+-- ADD COLUMN は既存行を書き換えないので読取・書込ともほぼ0行。
+-- 値の意味: NULL=未取得 / ''=詳細ページに商品発売日の欄が無い / 'YYYY/MM/DD'=商品発売日
+ALTER TABLE products ADD COLUMN release_date TEXT;

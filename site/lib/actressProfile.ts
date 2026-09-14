@@ -24,6 +24,8 @@ export type ActressProfile = {
     image_url?: string | null;
     aliases?: string[] | null;
     retired?: boolean | null;
+    /** X(Twitter) のユーザー名（@なし） */
+    twitter?: string | null;
 };
 
 type ShardMap = Record<string, ActressProfile>;
@@ -97,7 +99,10 @@ export function profileSummary(p: ActressProfile | null): string {
 export function profileHtml(name: string, p: ActressProfile | null, esc: (s: string) => string): string {
     const rows = profileRows(p);
     const aliases = (p?.aliases ?? []).filter(a => a && a !== name).slice(0, 6);
-    if (!rows.length && !aliases.length) return '';
+    // X のユーザー名は英数字と _ の15文字まで（それ以外はリンクにしない）
+    const twitter = String(p?.twitter ?? '').replace(/^@/, '').trim();
+    const twitterOk = /^[A-Za-z0-9_]{1,15}$/.test(twitter);
+    if (!rows.length && !aliases.length && !twitterOk) return '';
 
     const cells = rows.map(([k, v]) =>
         `<div class="flex gap-2 py-1"><dt class="w-20 shrink-0 text-slate-400">${esc(k)}</dt>`
@@ -107,7 +112,11 @@ export function profileHtml(name: string, p: ActressProfile | null, esc: (s: str
           + aliases.map(a => `<a class="underline decoration-dotted hover:text-primary" href="/actress/${encodeURIComponent(a)}">${esc(a)}</a>`).join('、')
           + `</dd></div>`
         : '';
+    const twitterHtml = twitterOk
+        ? `<div class="flex gap-2 py-1"><dt class="w-20 shrink-0 text-slate-400">X</dt><dd class="font-medium text-slate-700 dark:text-slate-200">`
+          + `<a class="underline decoration-dotted hover:text-primary" href="https://x.com/${esc(twitter)}" target="_blank" rel="nofollow noopener">@${esc(twitter)}</a></dd></div>`
+        : '';
 
     return `<section class="px-4 pt-3"><h2 class="text-sm font-bold mb-1 text-slate-700 dark:text-slate-300">${esc(name)}のプロフィール</h2>`
-        + `<dl class="text-xs leading-relaxed">${cells}${aliasHtml}</dl></section>`;
+        + `<dl class="text-xs leading-relaxed">${cells}${aliasHtml}${twitterHtml}</dl></section>`;
 }

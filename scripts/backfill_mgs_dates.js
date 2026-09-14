@@ -22,8 +22,9 @@ const { d1 } = require('./lib/d1.js');
   console.log('日付NULL 対象:', rows.length, '件');
 
   const mgs = d1('mgs');
+  // 商品発売日(release_date)も同じ詳細ページから取れるので一緒に入れる（2026-09-14）
   const upLocal = db.prepare(
-    "UPDATE products SET sale_start_date=@d, maker=COALESCE(NULLIF(@m,''),maker), duration_min=COALESCE(@dur,duration_min), genres=COALESCE(NULLIF(@g,''),genres), main_image_url=COALESCE(NULLIF(@img,''),main_image_url), updated_at=@now WHERE product_id=@id"
+    "UPDATE products SET sale_start_date=@d, release_date=@rd, maker=COALESCE(NULLIF(@m,''),maker), duration_min=COALESCE(@dur,duration_min), genres=COALESCE(NULLIF(@g,''),genres), main_image_url=COALESCE(NULLIF(@img,''),main_image_url), updated_at=@now WHERE product_id=@id"
   );
 
   let filled = 0, nodate = 0, err = 0;
@@ -36,10 +37,10 @@ const { d1 } = require('./lib/d1.js');
       if (!date) { nodate++; }
       else {
         const now = new Date().toISOString();
-        upLocal.run({ d: date, m: d.maker || '', dur: d.duration_min ?? null, g: d.genres || '', img: d.main_image_url || '', now, id });
+        upLocal.run({ d: date, rd: d.release_date || '', m: d.maker || '', dur: d.duration_min ?? null, g: d.genres || '', img: d.main_image_url || '', now, id });
         await mgs.execute({
-          sql: "UPDATE products SET sale_start_date=?, maker=COALESCE(NULLIF(?,''),maker), duration_min=COALESCE(?,duration_min), genres=COALESCE(NULLIF(?,''),genres), main_image_url=COALESCE(NULLIF(?,''),main_image_url), updated_at=? WHERE product_id=?",
-          args: [date, d.maker || '', d.duration_min ?? null, d.genres || '', d.main_image_url || '', now, id],
+          sql: "UPDATE products SET sale_start_date=?, release_date=?, maker=COALESCE(NULLIF(?,''),maker), duration_min=COALESCE(?,duration_min), genres=COALESCE(NULLIF(?,''),genres), main_image_url=COALESCE(NULLIF(?,''),main_image_url), updated_at=? WHERE product_id=?",
+          args: [date, d.release_date || '', d.maker || '', d.duration_min ?? null, d.genres || '', d.main_image_url || '', now, id],
         });
         filled++;
       }

@@ -108,6 +108,7 @@ function updateProductDetail(product_id, detail) {
       maker = ?,
       label = ?,
       duration_min = ?,
+      release_date = ?,
       detail_scraped = 1,
       updated_at = datetime('now','localtime')
     WHERE product_id = ?
@@ -115,6 +116,8 @@ function updateProductDetail(product_id, detail) {
         detail.maker || null,
         detail.label || null,
         detail.duration_min || null,
+        // 商品発売日（2026-09-14）。'' は「詳細ページに欄が無い＝取得済み」、undefined は旧パーサ
+        detail.release_date ?? null,
         product_id,
     ]);
 }

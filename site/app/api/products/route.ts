@@ -1019,17 +1019,29 @@ export async function GET(request: NextRequest) {
         return isMgs ? 'ORDER BY wish_count DESC' : 'ORDER BY sale_start_date DESC';
     }
 
+    const selectCols = (isMgs: boolean) => `product_id, title, actresses, main_image_url,
+                         ${isMgs ? 'wish_count,' : '0 AS wish_count,'}
+                         genres, maker, duration_min, sale_start_date,
+                         sample_video_url,
+                         ${isMgs ? 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag, sale_end_date' : 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag, 0) AS vr_flag, sale_end_date'}`;
+    const shapeRow = (row: unknown, isMgs: boolean) => {
+        const r = { ...(row as Record<string, unknown>) };
+        r.actresses = filterActresses(
+            (r.actresses as string | null) || null,
+            (r.genres as string | null) || null,
+            (r.maker as string | null) || null
+        );
+        r.source = isMgs ? 'mgs' : 'fanza';
+        return r;
+    };
+
     async function queryTurso(client: Awaited<ReturnType<typeof getMgsClient>>, isMgs: boolean, perLimit: number) {
         if (!client) return [];
         try {
             const plans = await preparePlans(client, isMgs);
             const { conditions, args } = buildConditions(isMgs, plans);
             const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-            const cols = `product_id, title, actresses, main_image_url,
-                         ${isMgs ? 'wish_count,' : '0 AS wish_count,'}
-                         genres, maker, duration_min, sale_start_date,
-                         sample_video_url,
-                         ${isMgs ? 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, NULL AS series_name, NULL AS series_id, 0 AS vr_flag, sale_end_date' : 'COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price, series_name, series_id, COALESCE(vr_flag, 0) AS vr_flag, sale_end_date'}`;
+            const cols = selectCols(isMgs);
             const sql = sort === 'random'
                 // 新着 RANDOM_POOL 件に絞ってからシャッフル（OFFSETはランダムでは無意味なので使わない）
                 ? `SELECT * FROM (SELECT ${cols} FROM products ${where} ${dateOrderBy(isMgs)} LIMIT ${RANDOM_POOL})
@@ -1037,20 +1049,46 @@ export async function GET(request: NextRequest) {
                 : `SELECT ${cols} FROM products ${where} ${buildOrderBy(isMgs)} LIMIT ${perLimit} OFFSET ${perOffset}`;
 
             const result = await client.execute({ sql, args });
-            return result.rows.map(row => {
-                const r = { ...row } as Record<string, unknown>;
-                r.actresses = filterActresses(
-                    (r.actresses as string | null) || null,
-                    (r.genres as string | null) || null,
-                    (r.maker as string | null) || null
-                );
-                r.source = isMgs ? 'mgs' : 'fanza';
-                return r;
-            });
+            return result.rows.map(row => shapeRow(row, isMgs));
         } catch (err) {
             console.error(`Query error (${isMgs ? 'mgs' : 'fanza'}):`, err);
             d1Unavailable = true;
             return [];
+        }
+    }
+
+    // ── 品番の完全一致（2026-09-14）─────────────────────────────────
+    // 「SSIS-123」「MIFD-060」のように品番を入れると、英字部の前方一致（ssis の全作品）が
+    // 配信日の新しい順に並び、**目当ての作品が先頭41件に入らない**ことがあった（旧作ほど埋もれる）。
+    // 完全な品番の形（数字プレフィクス可・英字・数字）で実在する作品が当たったら、それだけを返す。
+    // 当たらなければ従来の広い検索に落とす。主キーの点引きなので D1 は数行しか読まない。
+    const FULL_ID_RE = /^\d*[A-Za-z]+[-_ ]?\d{2,}[A-Za-z]?$/;
+    const qTrim = (q || '').trim();
+    if (qTrim && offset === 0 && FULL_ID_RE.test(qTrim)
+        && !genre && !maker && !label && !series && actressNames.length === 0) {
+        const safe = (ids: (string | null | undefined)[]) =>
+            [...new Set(ids.filter((x): x is string => !!x && /^[A-Za-z0-9_-]+$/.test(x)))];
+        const compact = qTrim.replace(/[\s_]/g, '');
+        const fanzaCands = safe([canonicalFanzaId(qTrim), compact.replace(/-/g, '').toLowerCase()]);
+        const mgsUpper = compact.toUpperCase();
+        const mgsCands = safe([...(mgsIdCandidates(qTrim) ?? []), mgsUpper.includes('-') ? mgsUpper : mgsUpper.replace(/^(\d*[A-Z]+)(\d+)$/, '$1-$2')]);
+        const exactQuery = async (client: Awaited<ReturnType<typeof getMgsClient>>, isMgs: boolean, ids: string[]) => {
+            if (!client || ids.length === 0) return [];
+            try {
+                const r = await client.execute({
+                    sql: `SELECT ${selectCols(isMgs)} FROM products WHERE product_id IN (${ids.map(id => `'${id}'`).join(',')}) LIMIT 10`,
+                    args: [],
+                });
+                return r.rows.map(row => shapeRow(row, isMgs));
+            } catch { return []; }
+        };
+        const [mgsExact, fanzaExact] = await Promise.all([
+            source === 'fanza' ? Promise.resolve([]) : exactQuery(mgsClient, true, mgsCands),
+            source === 'mgs' ? Promise.resolve([]) : exactQuery(fanzaClient, false, fanzaCands),
+        ]);
+        const exact = [...mgsExact, ...fanzaExact];
+        if (exact.length > 0) {
+            return NextResponse.json(exact, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 600) } });
         }
     }
 
