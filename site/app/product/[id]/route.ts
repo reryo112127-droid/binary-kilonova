@@ -3,7 +3,6 @@ import { readHtml } from '../../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../../lib/injectLayout';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { filterActresses } from '../../../lib/actressFilter';
-import { r2GetProduct } from '../../../lib/productR2';
 import { loadGenres, loadMakers, isIndexableProduct } from '../../../lib/lpData';
 import { fetchActressProfile } from '../../../lib/actressProfile';
 import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
@@ -25,7 +24,8 @@ function posterUrl(u: string): string {
     return u;
 }
 
-// SSR用プロダクトデータの取得（R2 read-through）
+// SSR用プロダクトデータの取得
+// （R2 read-through は課金のため 2026-07-04 に停止し、2026-09-15 にコードごと撤去。D1 直取得＋エッジキャッシュ）
 const _ssrProductCache = new Map<string, { data: Record<string, unknown>; at: number }>();
 const SSR_PRODUCT_TTL = 24 * 60 * 60 * 1000;
 
@@ -34,15 +34,7 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
     const mem = _ssrProductCache.get(id);
     if (mem && Date.now() - mem.at < SSR_PRODUCT_TTL) return mem.data;
 
-    // R2 read-through: /api/product/[id] が保存した全フィールドエントリを共有利用
-    // （SSRはtitle/actresses/maker等の一部のみ使用）
-    const r2 = await r2GetProduct(id);
-    if (r2) {
-        _ssrProductCache.set(id, { data: r2, at: Date.now() });
-        return r2;
-    }
-
-    // R2 miss: Turso最小クエリ（R2書き込みはAPI側に任せ、全フィールドで保存させる）
+    // D1 の最小クエリ（SSRはtitle/actresses/maker等の一部のみ使用）
     const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, duration_min FROM products WHERE product_id = ? LIMIT 1';
     // MGS だけが商品発売日(release_date)を持つ（旧作の再配信で配信開始日と食い違う）
     const SQL_MGS = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, release_date, duration_min FROM products WHERE product_id = ? LIMIT 1';

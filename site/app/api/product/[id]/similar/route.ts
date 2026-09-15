@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCached, setCached } from '../../../../../lib/apiCache';
 import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../../../lib/staticCache';
-import { r2GetProduct } from '../../../../../lib/productR2';
 import { getMgsClient, getFanzaClient } from '../../../../../lib/turso';
 import { filterActresses } from '../../../../../lib/actressFilter';
 
@@ -14,17 +13,13 @@ type ProductLite = Record<string, unknown>;
 
 /**
  * 類似作品の起点となる作品のメタ（出演者/メーカー/ジャンル）を取得する。
- * R2 read-through は無効化済み（productR2.R2_ENABLED=false）で r2GetProduct は常に null を返すため、
- * D1 への軽量フォールバックが無いと類似作品が常に空になる。
+ * （R2 read-through は課金のため停止・2026-09-15 にコードごと撤去したので、起点メタは D1 から引く）
  * Cloudflare無料枠を守るため、必要な3列だけ・1行だけ引き、メモリ+CF Cacheで再取得を抑える。
  */
 async function fetchBaseMeta(id: string): Promise<ProductLite | null> {
     const memoKey = `similar_base_${id}`;
     const memo = getCached<ProductLite>(memoKey, BASE_TTL);
     if (memo) return memo;
-
-    const r2 = await r2GetProduct(id);
-    if (r2) { setCached(memoKey, r2); return r2; }
 
     const SQL = 'SELECT actresses, maker, genres FROM products WHERE product_id = ? LIMIT 1';
     const [mgsClient, fanzaClient] = await Promise.all([getMgsClient(), getFanzaClient()]);

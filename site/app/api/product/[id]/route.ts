@@ -3,7 +3,6 @@ import { filterActresses } from '../../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../../lib/turso';
 import { getCached, setCached } from '../../../../lib/apiCache';
 import { cacheHeaders, readStaticCacheAsync } from '../../../../lib/staticCache';
-import { r2GetProduct, r2PutProduct } from '../../../../lib/productR2';
 import { readShardProduct } from '../../../../lib/productShard';
 import { isD1Blocked } from '../../../../lib/d1Breaker';
 
@@ -100,29 +99,6 @@ async function enrichCrossPlatform(data: Record<string, unknown>, id: string): P
     }
 }
 
-/**
- * D1(MGS→FANZA)から出演者文字列を1件引く。R2に古い空データが残っている作品を
- * スクレイプ後にD1値で補完(セルフヒール)するために使う。出演者がある方を返す。
- */
-async function fetchActressesFromD1(id: string): Promise<string | null> {
-    try {
-        const mgsClient = await getMgsClient();
-        if (mgsClient) {
-            const r = await mgsClient.execute({ sql: 'SELECT actresses FROM products WHERE product_id = ? LIMIT 1', args: [id] });
-            const a = (r.rows[0]?.actresses as string | null) || '';
-            if (a.trim()) return a;
-        }
-    } catch (e) { console.error('selfheal MGS error:', e); }
-    try {
-        const fanzaClient = await getFanzaClient();
-        if (fanzaClient) {
-            const r = await fanzaClient.execute({ sql: 'SELECT actresses FROM products WHERE product_id = ? LIMIT 1', args: [id] });
-            const a = (r.rows[0]?.actresses as string | null) || '';
-            if (a.trim()) return a;
-        }
-    } catch (e) { console.error('selfheal FANZA error:', e); }
-    return null;
-}
 
 export async function GET(
     request: NextRequest,
@@ -143,35 +119,7 @@ export async function GET(
     const cached = getCached<Record<string, unknown>>(cacheKey, PRODUCT_TTL);
     if (cached) return NextResponse.json(cached, { headers: cacheHeaders(86400, 3600) });
 
-    // R2 read-through: 永続キャッシュにあればTursoを叩かず返す
-    const r2data = await r2GetProduct(id);
-    if (r2data) {
-        // セルフヒール: R2の出演者が空なら、スクレイプ後にD1へ入った可能性があるため
-        // 一度だけD1を引いて補完し、R2へ書き戻して恒久修復する（出演者があった場合のみ）。
-        const rawActs = ((r2data.actresses as string | null) || '').trim();
-        if (!rawActs) {
-            const healed = await fetchActressesFromD1(id);
-            if (healed && healed.trim()) {
-                r2data.actresses = healed;
-                try { await r2PutProduct(id, r2data); } catch { /* 書き戻し失敗は無視（次回再試行） */ }
-            }
-        }
-        // R2キャッシュ生成時は filterActresses 未適用のため、配信時に役名/通称を除去する
-        r2data.actresses = filterActresses(
-            (r2data.actresses as string | null) || null,
-            (r2data.genres as string | null) || null,
-            (r2data.maker as string | null) || null
-        );
-        await enrichCrossPlatform(r2data, id);
-        setCached(cacheKey, r2data);
-        if (cfCache && cfCacheKey) {
-            await cfCache.put(cfCacheKey, new Response(JSON.stringify(r2data), {
-                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },
-            }));
-        }
-        return NextResponse.json(r2data, { headers: cacheHeaders(86400, 3600) });
-    }
-
+    // （R2 read-through は課金のため 2026-07-04 に停止し、2026-09-15 にコードごと撤去）
     // MGS と FANZA を並列検索（直列だと片方の往復ぶん丸ごと遅くなる）
     const [mgsClient, fanzaClient] = await Promise.all([getMgsClient(), getFanzaClient()]);
     const PRODUCT_SQL = 'SELECT * FROM products WHERE product_id = ? LIMIT 1';
@@ -313,14 +261,6 @@ export async function GET(
     }
 
     setCached(cacheKey, responseData);
-    // R2に永続保存（次回以降はD1不要）。
-    // ただし FANZA はスリムD1に sample_images を持たないため、空ギャラリーで上書きしないよう
-    // 画像がある場合のみ保存する（FANZAの完全な詳細は populate_r2_local が別途R2に投入する）。
-    const sampleImgs = responseData.sample_images;
-    const hasImages = Array.isArray(sampleImgs) && sampleImgs.length > 0;
-    if (responseData.source === 'mgs' || hasImages) {
-        await r2PutProduct(id, responseData);
-    }
     if (cfCache && cfCacheKey) {
         await cfCache.put(cfCacheKey, new Response(JSON.stringify(responseData), {
             headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' },

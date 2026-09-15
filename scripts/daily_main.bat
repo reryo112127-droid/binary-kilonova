@@ -172,11 +172,8 @@ if "%CACHE_CNT%"=="0" (
     echo [4/5] done ^(%CACHE_CNT%^): %time% >> "%LOG_FILE%"
 )
 
-REM === [5] R2 ===
-REM R2 read-throughR2
-echo [5/6] R2 invalidate sale products: %time% >> "%LOG_FILE%"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_DIR%\scripts\invalidate_sale_r2.ps1" >> "%LOG_FILE%" 2>&1
-echo [5/6] done: %errorlevel% at %time% >> "%LOG_FILE%"
+REM [5] (removed 2026-09-15) R2 invalidate of sale products. R2 was turned off for billing on
+REM 2026-07-04 and removed entirely on 2026-09-15; the script had also failed with a parse error daily.
 
 REM === [6] MGS price update (best-effort, LAST) ===
 REM The long price scan (200 pages with waits) can be killed when the PC sleeps.
