@@ -49,6 +49,31 @@ export async function preloadStaticCache(filename: string): Promise<void> {
     }
 }
 
+/**
+ * 常駐させずに1回だけ読む（_mem に載せない）。0.5MB 級のシャードを大量に読む経路用。
+ * 常駐させるかどうかは呼び出し側（lpCache の LRU など）が決める。
+ */
+export async function readStaticCacheNoMemo<T>(filename: string): Promise<T | null> {
+    if (_mem.has(filename)) return _mem.get(filename) as T;
+    try {
+        const { env } = await getCloudflareContext({ async: true });
+        const assets = (env as unknown as { ASSETS: { fetch: (r: Request) => Promise<Response> } }).ASSETS;
+        const res = await assets.fetch(new Request(`https://assets.internal/data/${filename}`));
+        if (res.ok) return await res.json() as T;
+        return null;
+    } catch { /* Node.js フォールバックへ */ }
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const fs = require('fs') as typeof import('fs');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const path = require('path') as typeof import('path');
+        const p = path.join(process.cwd(), 'data', filename);
+        return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf-8')) as T : null;
+    } catch {
+        return null;
+    }
+}
+
 export async function readStaticCacheAsync<T>(filename: string): Promise<T | null> {
     if (_mem.has(filename)) return _mem.get(filename) as T;
     await preloadStaticCache(filename);

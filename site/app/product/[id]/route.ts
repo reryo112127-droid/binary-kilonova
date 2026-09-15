@@ -7,6 +7,8 @@ import { loadGenres, loadMakers, isIndexableProduct } from '../../../lib/lpData'
 import { fetchActressProfile } from '../../../lib/actressProfile';
 import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
 import { readShardProduct } from '../../../lib/productShard';
+import { readLpCards } from '../../../lib/lpCache';
+import { fillById, carouselCardHtml, productCardsHtml, type Product } from '../../../lib/landingPage';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +37,8 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
     if (mem && Date.now() - mem.at < SSR_PRODUCT_TTL) return mem.data;
 
     // D1 の最小クエリ（SSRはtitle/actresses/maker等の一部のみ使用）
-    const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, duration_min FROM products WHERE product_id = ? LIMIT 1';
+    // series_name は FANZA だけが持つ（同じシリーズの作品への内部リンクに使う）
+    const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, duration_min, series_name FROM products WHERE product_id = ? LIMIT 1';
     // MGS だけが商品発売日(release_date)を持つ（旧作の再配信で配信開始日と食い違う）
     const SQL_MGS = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, release_date, duration_min FROM products WHERE product_id = ? LIMIT 1';
     let result: Record<string, unknown> | null = null;
@@ -176,15 +179,78 @@ function injectSEOMeta(html: string, product: Record<string, unknown> | null, id
     return html.replace(/<title>[^<]*<\/title>/, metaBlock);
 }
 
+/**
+ * 出演者欄の生の値を「実在女優」と「素人名義（年齢・職業入りの通称）」に分ける。
+ * 表示用の filterActresses は素人作品で通称を落とすので、名義を出すには生の値から拾い直す。
+ * seesaawiki で本人が特定された作品は「ひなこ 24歳 広告代理店, 瀬戸ひなこ」の形で入っている。
+ */
+function splitCast(product: Record<string, unknown>): { real: string[]; alias: string[] } {
+    const raw = String(product.actresses || '');
+    const filtered = filterActresses(raw || null, String(product.genres || '') || null, String(product.maker || '') || null) || '';
+    const real = filtered.split(',').map(s => s.trim()).filter(Boolean);
+    const strip = (s: string) => s.replace(/（[^）]*）|\([^)]*\)/g, '').trim();
+    const realSet = new Set(real.map(strip));
+    const alias = raw.replace(/（[^）]*）/g, m => m.replace(/[,、]/g, ' '))
+        .split(/[,、]/).map(s => s.trim())
+        .filter(s => s && !/^[＊*\-]+$/.test(s) && !realSet.has(strip(s)));
+    return { real, alias: alias.slice(0, 3) };
+}
+
+/**
+ * 関連作品（同じ女優 → 同じシリーズ → 同じメーカー）を静的キャッシュから集める。D1 は読まない。
+ * 作品ページは他の作品へのリンクが0本の行き止まりだった（2026-09-15 実測）。
+ */
+async function relatedCards(product: Record<string, unknown>, id: string, real: string[]): Promise<Product[]> {
+    const seen = new Set([id.toLowerCase()]);
+    const out: Product[] = [];
+    const add = (cards: Product[] | null | undefined, max: number) => {
+        let n = 0;
+        for (const c of cards ?? []) {
+            const k = String(c.product_id).toLowerCase();
+            if (seen.has(k)) continue;
+            seen.add(k); out.push(c); n++;
+            if (n >= max || out.length >= 12) break;
+        }
+    };
+    const series = String(product.series_name || '').trim();
+    const maker = String(product.maker || '').trim();
+    const [a1, a2, s, m] = await Promise.all([
+        real[0] ? readLpCards('actress', real[0]).catch(() => null) : null,
+        real[1] ? readLpCards('actress', real[1]).catch(() => null) : null,
+        series ? readLpCards('series', series).catch(() => null) : null,
+        maker ? readLpCards('maker', maker).catch(() => null) : null,
+    ]);
+    add(a1, 8); add(a2, 4); add(s, 12); add(m, 12);
+    return out.slice(0, 12);
+}
+
 // 作品の出演ジャンル・メーカーを、対応LPが存在するもの(キャッシュ掲載=有効ページ)に限り
 // クロール可能な内部リンクとして本文末に挿入する(404リンクを作らない)。
-async function injectProductLinks(html: string, product: Record<string, unknown> | null): Promise<string> {
+// あわせて出演者欄・おすすめ作品欄をサーバ側で埋める（クライアントJSは同じ id を innerHTML で
+// 描き直すので二重にはならない）。
+async function injectProductLinks(html: string, product: Record<string, unknown> | null, id: string, isMobile: boolean): Promise<string> {
     if (!product) return html;
-    const [genres, makers] = await Promise.all([loadGenres(), loadMakers()]);
+    const { real, alias } = splitCast(product);
+    const [genres, makers, related] = await Promise.all([loadGenres(), loadMakers(), relatedCards(product, id, real)]);
     const gset = new Set(genres.map(g => g.name));
     const mset = new Set(makers.map(m => m.name));
     const chip = (href: string, label: string) =>
         `<a class="inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1 text-xs hover:border-primary hover:text-primary transition-colors" href="${href}">${escHtml(label)}</a>`;
+    const actressLink = (n: string) => `<a class="text-primary hover:underline" href="/actress/${encodeURIComponent(n)}">${escHtml(n)}</a>`;
+
+    // 出演者欄（実在女優は女優ページへのリンク、素人名義は併記）
+    if (real.length || alias.length) {
+        const cell = (real.length ? real.map(actressLink).join('、') : '')
+            + (alias.length ? `${real.length ? '（' : ''}素人名義：${escHtml(alias.join('、'))}${real.length ? '）' : ''}` : '');
+        html = html.replace(/(<(dd|span)[^>]*id="pd-actresses"[^>]*>)[\s\S]*?(<\/\2>)/, (_m, open, _t, close) => `${open}${cell}${close}`);
+    }
+    // おすすめ作品欄（モバイルは横スクロール、PCはグリッド）
+    if (related.length) {
+        html = fillById(html, 'pd-recommend', isMobile
+            ? related.map(p => carouselCardHtml(p, 110)).join('')
+            : productCardsHtml(related));
+    }
+
     const links: string[] = [];
     for (const g of String(product.genres || '').split(/[,、]/).map(s => s.trim()).filter(Boolean)) {
         if (gset.has(g)) links.push(chip(`/genre/${encodeURIComponent(g)}`, g));
@@ -194,10 +260,19 @@ async function injectProductLinks(html: string, product: Record<string, unknown>
     if (maker && mset.has(maker)) links.push(chip(`/maker/${encodeURIComponent(maker)}`, maker));
     const label = String(product.label || '').trim();
     if (label && label !== maker && mset.has(label)) links.push(chip(`/maker/${encodeURIComponent(label)}`, label));
-    if (!links.length) return html;
+    // 出演者の一文（JS 実行後も残る本文テキスト）。「品番 女優」「素人名義 誰」の検索に当てる。
+    const castLine = real.length
+        ? `<p class="text-xs leading-relaxed text-slate-600 dark:text-slate-300 mb-3">この作品の出演者は${real.map(actressLink).join('、')}`
+          + `${alias.length ? `（${escHtml(alias.join('、'))} 名義）` : ''}です。</p>`
+        : '';
+    if (!links.length && !castLine) return html;
     const block = `<section class="px-4 py-4 border-t border-slate-200 dark:border-slate-800">`
-        + `<p class="font-bold text-xs mb-2 text-slate-700 dark:text-slate-300">関連ジャンル・メーカー</p>`
-        + `<div class="flex flex-wrap gap-2">${links.join('')}</div></section>`;
+        + castLine
+        + (links.length
+            ? `<p class="font-bold text-xs mb-2 text-slate-700 dark:text-slate-300">関連ジャンル・メーカー</p>`
+              + `<div class="flex flex-wrap gap-2">${links.join('')}</div>`
+            : '')
+        + `</section>`;
     return html.replace('</body>', block + '\n</body>');
 }
 
@@ -252,7 +327,7 @@ export async function GET(
         if (!(await isIndexableProduct(id))) {
             html = html.replace('</head>', '<meta name="robots" content="noindex,follow"/>\n</head>');
         }
-        html = await injectProductLinks(html, product); // 関連ジャンル/メーカーへの内部リンク
+        html = await injectProductLinks(html, product, id, isMobile); // 出演者・関連作品・ジャンル/メーカーへの内部リンク
 
         html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
         const resp = new NextResponse(html, {
