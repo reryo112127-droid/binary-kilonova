@@ -28,12 +28,21 @@
 --    フレーズ中の " は "" にエスケープする。
 --
 --  適用: node scripts/apply_fts_triggers.mjs（DDLなので0行。枠切れ中でも実行できる）
+--
+--  【2026-09-15 追記】題名が2文字以下の作品で全走査が残っていた。
+--  素人作品（FANZA videoc）は題名が「ゆい」のような2文字のものが多く、*_slow の
+--  `DELETE FROM products_fts WHERE product_id = ?` が1件あたり約13.5万行を読む。
+--  seesaawiki の出演者反映（数千件の UPDATE）でこれを踏み、1日で 4,950万行（枠の990%）読んだ。
+--  → 題名が短くても、出演者 / レーベル / ジャンル のどれかが3文字以上ならその列の MATCH で
+--    rowid を引く *_alt トリガを足した。全部2文字以下のときだけ *_slow（全走査）に落ちる。
 -- ============================================================
 
 DROP TRIGGER IF EXISTS products_ad;
 DROP TRIGGER IF EXISTS products_au;
 DROP TRIGGER IF EXISTS products_ad_slow;
 DROP TRIGGER IF EXISTS products_au_slow;
+DROP TRIGGER IF EXISTS products_ad_alt;
+DROP TRIGGER IF EXISTS products_au_alt;
 
 CREATE TRIGGER products_ad AFTER DELETE ON products
 WHEN old.title IS NOT NULL AND LENGTH(old.title) >= 3
@@ -46,8 +55,25 @@ BEGIN
      );
 END;
 
+CREATE TRIGGER products_ad_alt AFTER DELETE ON products
+WHEN (old.title IS NULL OR LENGTH(old.title) < 3)
+  AND (LENGTH(COALESCE(old.actresses, '')) >= 3 OR LENGTH(COALESCE(old.label, '')) >= 3 OR LENGTH(COALESCE(old.genres, '')) >= 3)
+BEGIN
+    DELETE FROM products_fts
+     WHERE rowid IN (
+        SELECT rowid FROM products_fts
+         WHERE products_fts MATCH (CASE
+                 WHEN LENGTH(COALESCE(old.actresses, '')) >= 3 THEN '{actresses} : "' || REPLACE(SUBSTR(old.actresses, 1, 60), '"', '""') || '"'
+                 WHEN LENGTH(COALESCE(old.label, '')) >= 3     THEN '{label} : "'     || REPLACE(SUBSTR(old.label, 1, 60), '"', '""')     || '"'
+                 ELSE                                               '{genres} : "'    || REPLACE(SUBSTR(old.genres, 1, 60), '"', '""')    || '"'
+               END)
+           AND product_id = old.product_id
+     );
+END;
+
 CREATE TRIGGER products_ad_slow AFTER DELETE ON products
-WHEN old.title IS NULL OR LENGTH(old.title) < 3
+WHEN (old.title IS NULL OR LENGTH(old.title) < 3)
+  AND LENGTH(COALESCE(old.actresses, '')) < 3 AND LENGTH(COALESCE(old.label, '')) < 3 AND LENGTH(COALESCE(old.genres, '')) < 3
 BEGIN
     DELETE FROM products_fts WHERE product_id = old.product_id;
 END;
@@ -69,12 +95,35 @@ BEGIN
     VALUES (new.product_id, new.title, new.actresses, new.genres, new.label);
 END;
 
+CREATE TRIGGER products_au_alt AFTER UPDATE ON products
+WHEN (old.title     IS NOT new.title
+   OR old.actresses IS NOT new.actresses
+   OR old.genres    IS NOT new.genres
+   OR old.label     IS NOT new.label)
+  AND (old.title IS NULL OR LENGTH(old.title) < 3)
+  AND (LENGTH(COALESCE(old.actresses, '')) >= 3 OR LENGTH(COALESCE(old.label, '')) >= 3 OR LENGTH(COALESCE(old.genres, '')) >= 3)
+BEGIN
+    DELETE FROM products_fts
+     WHERE rowid IN (
+        SELECT rowid FROM products_fts
+         WHERE products_fts MATCH (CASE
+                 WHEN LENGTH(COALESCE(old.actresses, '')) >= 3 THEN '{actresses} : "' || REPLACE(SUBSTR(old.actresses, 1, 60), '"', '""') || '"'
+                 WHEN LENGTH(COALESCE(old.label, '')) >= 3     THEN '{label} : "'     || REPLACE(SUBSTR(old.label, 1, 60), '"', '""')     || '"'
+                 ELSE                                               '{genres} : "'    || REPLACE(SUBSTR(old.genres, 1, 60), '"', '""')    || '"'
+               END)
+           AND product_id = old.product_id
+     );
+    INSERT INTO products_fts(product_id, title, actresses, genres, label)
+    VALUES (new.product_id, new.title, new.actresses, new.genres, new.label);
+END;
+
 CREATE TRIGGER products_au_slow AFTER UPDATE ON products
 WHEN (old.title     IS NOT new.title
    OR old.actresses IS NOT new.actresses
    OR old.genres    IS NOT new.genres
    OR old.label     IS NOT new.label)
   AND (old.title IS NULL OR LENGTH(old.title) < 3)
+  AND LENGTH(COALESCE(old.actresses, '')) < 3 AND LENGTH(COALESCE(old.label, '')) < 3 AND LENGTH(COALESCE(old.genres, '')) < 3
 BEGIN
     DELETE FROM products_fts WHERE product_id = old.product_id;
     INSERT INTO products_fts(product_id, title, actresses, genres, label)
@@ -99,6 +148,7 @@ END;
 
 DROP TRIGGER IF EXISTS products_bi;
 DROP TRIGGER IF EXISTS products_bi_slow;
+DROP TRIGGER IF EXISTS products_bi_alt;
 
 CREATE TRIGGER products_bi BEFORE INSERT ON products
 WHEN EXISTS (SELECT 1 FROM products p WHERE p.product_id = new.product_id
@@ -113,9 +163,27 @@ BEGIN
      );
 END;
 
+CREATE TRIGGER products_bi_alt BEFORE INSERT ON products
+WHEN EXISTS (SELECT 1 FROM products p WHERE p.product_id = new.product_id
+              AND (p.title IS NULL OR LENGTH(p.title) < 3)
+              AND (LENGTH(COALESCE(p.actresses, '')) >= 3 OR LENGTH(COALESCE(p.label, '')) >= 3 OR LENGTH(COALESCE(p.genres, '')) >= 3))
+BEGIN
+    DELETE FROM products_fts
+     WHERE rowid IN (
+        SELECT rowid FROM products_fts
+         WHERE products_fts MATCH (SELECT CASE
+                 WHEN LENGTH(COALESCE(p.actresses, '')) >= 3 THEN '{actresses} : "' || REPLACE(SUBSTR(p.actresses, 1, 60), '"', '""') || '"'
+                 WHEN LENGTH(COALESCE(p.label, '')) >= 3     THEN '{label} : "'     || REPLACE(SUBSTR(p.label, 1, 60), '"', '""')     || '"'
+                 ELSE                                             '{genres} : "'    || REPLACE(SUBSTR(p.genres, 1, 60), '"', '""')    || '"'
+               END FROM products p WHERE p.product_id = new.product_id)
+           AND product_id = new.product_id
+     );
+END;
+
 CREATE TRIGGER products_bi_slow BEFORE INSERT ON products
 WHEN EXISTS (SELECT 1 FROM products p WHERE p.product_id = new.product_id
-              AND (p.title IS NULL OR LENGTH(p.title) < 3))
+              AND (p.title IS NULL OR LENGTH(p.title) < 3)
+              AND LENGTH(COALESCE(p.actresses, '')) < 3 AND LENGTH(COALESCE(p.label, '')) < 3 AND LENGTH(COALESCE(p.genres, '')) < 3)
 BEGIN
     DELETE FROM products_fts WHERE product_id = new.product_id;
 END;
