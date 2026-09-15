@@ -20,9 +20,9 @@ on:
   workflow_dispatch:
     inputs:
       apply:
-        description: 'D1へ反映する（既定: する）'
+        description: 'D1へ反映する（一時停止中: FTS トリガの修正まで既定はしない）'
         required: false
-        default: 'true'
+        default: 'false'
         type: choice
         options: ['false', 'true']
 
@@ -53,12 +53,14 @@ jobs:
       - name: Set apply flag
         id: mode
         run: |
-          # v2 の取り直し（2026-09-14〜）で反映待ちが数万件あるので、毎日上限つきで反映する。
-          # 手動実行で apply=false を選んだときだけ止める。
-          if [ "${{ github.event.inputs.apply }}" = "false" ]; then
-            echo "apply=false" >> $GITHUB_OUTPUT
-          else
+          # 【一時停止 2026-09-15】初回の D1 反映で読取が 4,950万行（枠の990%）になった。
+          # 素人作品は題名が2文字以下のものが多く、FTS 同期トリガが products_fts を全走査する
+          # *_slow 版に落ちて、UPDATE 1件で約13.5万行を読んでいた（さらにバッチの再送で数十倍）。
+          # トリガを直すまで定期実行では反映しない。収集だけ続ける。手動実行で apply=true を選んだときだけ反映。
+          if [ "${{ github.event.inputs.apply }}" = "true" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "apply=true" >> $GITHUB_OUTPUT
+          else
+            echo "apply=false" >> $GITHUB_OUTPUT
           fi
 
       # サイトマップを毎回取り直し、progress_v2.completed に無いURLだけを続きから取得する。
