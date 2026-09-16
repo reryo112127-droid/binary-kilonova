@@ -223,6 +223,26 @@ B.resetD1Breaker();
     ok(one.length > 0 && one.every(c => c.product_id && c.title !== undefined), `LPカードに product_id と title がある (${genres[0].name}: ${one.length}件)`);
     ok((await L.readLpCards('genre', '存在しないジャンルZZZ')) === null, '未収録スラッグは null（D1へ落とす）');
 
+    // 1スラッグの収録上限はランタイム(lpCache)と生成側(build_lp_cache)で一致していること。
+    // ずれると「まだ続きがある」と誤判定して D1 の genres LIKE 走査へ落ちる（2026-09-16 の200万行/日）。
+    ok(JSON.stringify(L.LP_MAX_PER_BY_TYPE) === JSON.stringify(lpGen.LP_PER_BY_TYPE),
+      `LP収録上限がランタイムと生成側で一致 (${JSON.stringify(L.LP_MAX_PER_BY_TYPE)})`);
+    for (const [type, per] of Object.entries(L.LP_MAX_PER_BY_TYPE)) {
+      const dir = pathx.join(lpDir, type);
+      if (!fsx.existsSync(dir)) continue;
+      let over = 0, maxLen = 0, atCap = 0;
+      for (const f of fsx.readdirSync(dir)) {
+        const d = JSON.parse(fsx.readFileSync(pathx.join(dir, f), 'utf8'));
+        for (const slug of Object.keys(d)) {
+          const n = d[slug].length;
+          if (n > per) over++;
+          if (n === per) atCap++;
+          if (n > maxLen) maxLen = n;
+        }
+      }
+      ok(over === 0, `${type}: 収録が上限${per}件を超えるスラッグが無い（最大${maxLen}件・上限に達したのは${atCap}スラッグ）`);
+    }
+
     // ── 女優ページの静的キャッシュ（scripts/build_actress_cache.mjs） ──
     // 女優ページ(/actress/[name])は readLpCards('actress', name) を先に見る。
     // 生成側のハッシュ・上限・出演者整形がランタイムとずれると、黙って D1 に落ちるか

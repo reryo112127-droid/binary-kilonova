@@ -112,9 +112,26 @@ function readJson(p) {
     try { return JSON.parse(fs.readFileSync(p, 'utf-8')); } catch { return null; }
 }
 
+/**
+ * 1スラッグあたりの収録数。**site/lib/lpCache.ts の LP_MAX_PER_BY_TYPE と必ず同じにすること**
+ * （ずれるとランタイムが「まだ続きがある」と誤判定して D1 に落ちる）。
+ *
+ * ジャンルだけ 180件（30件×6ページ）に増やした（2026-09-16）。ジャンルLPの「続きを読み込む」が
+ * キャッシュ範囲(60件)を超えると D1 の `genres LIKE` 走査に落ち、**1回 2.5〜3万行 × 73回 = 約200万行/日**
+ * （その日の読取の40%）を食っていた。メーカーは3,431スラッグあり増やすと資産が膨らむので60のまま。
+ */
+export const LP_PER_BY_TYPE = { genre: 180, maker: 60, series: 60 };
+
 function main() {
     const perArg = process.argv.find(a => a.startsWith('--per='));
-    const PER = perArg ? parseInt(perArg.split('=')[1], 10) : 60;   // 30件×2ページぶん
+    const PER_DEFAULT = perArg ? parseInt(perArg.split('=')[1], 10) : 60;   // 30件×2ページぶん
+    const perOf = (type) => {
+        const a = process.argv.find(x => x.startsWith(`--per-${type}=`));
+        if (a) return parseInt(a.split('=')[1], 10);
+        return perArg ? PER_DEFAULT : (LP_PER_BY_TYPE[type] ?? PER_DEFAULT);
+    };
+    // バケツに詰める段階は一番大きい上限で受けておき、書き出しで type ごとに切る
+    const PER = Math.max(...Object.keys(LP_PER_BY_TYPE).map(perOf));
 
     const Database = require('better-sqlite3');
     const mgsPath = path.join(REPO, 'data', 'mgs.db');
@@ -225,6 +242,7 @@ function main() {
     // ── MGS/FANZA を交互マージして書き出し（/api/products の人気順と同じ並べ方）──
     let grandTotal = 0, grandBytes = 0;
     for (const [type, map] of Object.entries(buckets)) {
+        const perType = perOf(type);
         const shards = {};
         for (let i = 0; i < LP_SHARD_COUNT; i++) shards[i.toString(16).padStart(2, '0')] = {};
         let filled = 0;
@@ -238,12 +256,12 @@ function main() {
                 out.push(c);
             };
             const max = Math.max(b.mgs.length, b.fanza.length);
-            for (let i = 0; i < max && out.length < PER; i++) {
+            for (let i = 0; i < max && out.length < perType; i++) {
                 if (b.mgs[i]) push(b.mgs[i]);
-                if (b.fanza[i] && out.length < PER) push(b.fanza[i]);
+                if (b.fanza[i] && out.length < perType) push(b.fanza[i]);
             }
             if (out.length === 0) continue;   // 0件はキャッシュせずD1へ落とす
-            shards[lpShardKey(slug)][slug] = out.slice(0, PER);
+            shards[lpShardKey(slug)][slug] = out.slice(0, perType);
             filled++;
         }
         let bytes = 0;
@@ -257,9 +275,9 @@ function main() {
             }
         }
         grandTotal += filled; grandBytes += bytes;
-        console.log(`[LP] ${type}: ${filled}スラッグ収録 / ${(bytes / 1024 / 1024).toFixed(2)}MB`);
+        console.log(`[LP] ${type}: ${filled}スラッグ収録 / ${(bytes / 1024 / 1024).toFixed(2)}MB（1LPあたり最大${perType}件）`);
     }
-    console.log(`[LP] 合計 ${grandTotal} スラッグ / ${(grandBytes / 1024 / 1024).toFixed(2)}MB（1LPあたり最大${PER}件）`);
+    console.log(`[LP] 合計 ${grandTotal} スラッグ / ${(grandBytes / 1024 / 1024).toFixed(2)}MB`);
 }
 
 // テストからは関数だけ import したいので、直接実行のときだけ走らせる

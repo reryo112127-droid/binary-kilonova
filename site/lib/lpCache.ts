@@ -15,11 +15,16 @@ import { readStaticCacheNoMemo } from './staticCache';
 export const LP_SHARD_COUNT = 128;
 
 /**
- * 1スラッグあたりの収録上限（scripts/build_lp_cache.mjs の --per 既定値と同じ）。
+ * 1スラッグあたりの収録上限（scripts/build_lp_cache.mjs の LP_PER_BY_TYPE と **必ず同じ**にすること）。
  * 収録数がこれ未満なら「そのLPの全件が入っている」＝短いページを返しても正しい。
- * ちょうど上限なら打ち切られている可能性があるので、続きは D1 に任せる。
+ *
+ * ジャンルだけ 180件（30件×6ページ）。ジャンルLPの「続きを読み込む」が 60件を超えると
+ * D1 の `genres LIKE` 走査（1回 2.5〜3万行）に落ちて、2026-09-16 は約200万行＝その日の読取の40%を
+ * 食っていた。メーカーは3,431スラッグあり増やすと資産が膨らむので60のまま。
  */
+export const LP_MAX_PER_BY_TYPE: Record<string, number> = { genre: 180, maker: 60, series: 60 };
 export const LP_MAX_PER = 60;
+export const lpMaxPer = (type: string): number => LP_MAX_PER_BY_TYPE[type] ?? LP_MAX_PER;
 
 export type LpCard = {
     product_id: string;

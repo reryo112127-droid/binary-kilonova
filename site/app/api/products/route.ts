@@ -5,7 +5,7 @@ import { getCached, setCached } from '../../../lib/apiCache';
 import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../lib/staticCache';
 import { bestExclusionSql } from '../../../lib/bestFilter';
 import { degradedProducts } from '../../../lib/degradedProducts';
-import { readLpCards, LP_MAX_PER } from '../../../lib/lpCache';
+import { readLpCards } from '../../../lib/lpCache';
 import { isD1Blocked } from '../../../lib/d1Breaker';
 
 export const dynamic = 'force-dynamic';
@@ -216,13 +216,16 @@ export async function GET(request: NextRequest) {
         if (lpType) {
             const slug = lpGenre || lpMaker || lpSeries;
             const cards = await readLpCards(lpType, slug);
-            // ページを丸ごと満たせるとき、または「収録上限未満＝そのLPの全件が入っている」ときに返す。
-            // 後者は短いページを返してよい（クライアントは件数不足で hasMore=false と判断する＝正しい）。
-            const complete = !!cards && cards.length < LP_MAX_PER;
-            if (cards && offset < cards.length && (complete || offset + limit <= cards.length)) {
-                const page = cards.slice(offset, offset + limit);
-                const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(21600, 86400) } });
-                if (cfCache && cfCacheKey) {
+            // 収録範囲はキャッシュから返し、**その先は D1 に行かずに打ち切る**（2026-09-16）。
+            // 以前は「ページを丸ごと満たせないなら D1」に落としており、ジャンルLPの無限スクロールが
+            // `genres LIKE` の走査（1回 2.5〜3万行・日付条件なし）を叩いて 1日約200万行＝読取の40%を
+            // 食っていた。ジャンルは180件（6ページ）まで焼いてあり、それ以上は打ち切ってよい
+            // （?page= は robots で拒否＝クロール対象外。利用者には6ページぶん出る）。
+            if (cards) {
+                const page = offset < cards.length ? cards.slice(offset, offset + limit) : [];
+                const ttl = page.length > 0 ? 21600 : 1800;
+                const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(ttl, 86400) } });
+                if (cfCache && cfCacheKey && page.length > 0) {
                     await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
                         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=21600' },
                     }));
