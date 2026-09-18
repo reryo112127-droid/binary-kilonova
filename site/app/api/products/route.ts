@@ -326,6 +326,20 @@ export async function GET(request: NextRequest) {
         }
     }
 
+    // ── 深いページ送りの上限（2026-09-18）──────────────────────────────
+    // OFFSET は読み飛ばす行も全部読むので、日付順走査の検索は深くなるほど線形に高くなる。
+    // 09-17 の実測: /search?genre=A,B の無限スクロールで 1回 2,500→16,000→39,000→49,000行と増え、
+    // JST 15時台の1時間に約1,000万行（枠の2倍）。検索結果ページは robots で拒否・noindex なので、
+    // ここまで深く読むのは人ではなくクローラと見てよい。
+    // 対象は q / ジャンル / レーベルの検索（LIKE・FTS の走査）だけ。期間・女優・メーカー・シリーズ指定は
+    // 索引で範囲が狭まる（新着一覧やメーカーページの続きは従来どおり）。
+    // 空配列を返すとクライアントは hasMore=false になり、スクロールが自然に止まる。
+    const MAX_SEARCH_OFFSET = 400; // モバイル20件×20ページ / Web40件×10ページ
+    if (offset >= MAX_SEARCH_OFFSET && (q || genre || label)
+        && !fromDate && !toDate && actressNames.length === 0 && !maker && !makers && !series) {
+        return NextResponse.json([], { headers: { 'Content-Type': 'application/json', ...cacheHeaders(21600, 86400) } });
+    }
+
     // プロフィールフィルター
     let profileActresses: string[] = [];
     let hasProfileFilter = false;
@@ -589,6 +603,9 @@ export async function GET(request: NextRequest) {
     const SHORT_Q_FLOOR = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
     const shortQFloorCond = (isMgs: boolean) =>
         isMgs ? "REPLACE(sale_start_date, '/', '-') >= ?" : 'sale_start_date >= ?';
+    // ジャンル以外に範囲を狭める絞り込みが無いか（ジャンルの配信日下限はこのときだけ付ける）
+    const genreOnlyFilter = !q && actressNames.length === 0 && !maker && !makers && !label
+        && !series && !fromDate && !toDate;
 
     // ── MATCH式の組み立て（プローブ側とSQL組み立て側で必ず同じ文字列を使う）─────────
     const qMatch = q && q.length >= 3 ? `{title actresses} : "${esc5(q)}"` : null;
@@ -811,6 +828,17 @@ export async function GET(request: NextRequest) {
             });
             // 長いジャンルが「一致0件」で短いジャンルも無いなら 0件（走査しない）
             conditions.push(subConds.length > 0 ? `(${subConds.join(' OR ')})` : '0=1');
+            // ジャンルが LIKE の日付順走査になるときは配信日の下限を付けて走査距離を頭打ちにする
+            // （2026-09-18）。/search?genre=A,B（sort=new）の無限スクロールが 1回 2.5万〜5万行を読み、
+            // 09-17 は JST 15時台だけで約1,000万行＝枠の2倍を食った。直近1年は FANZA で約2.4万件あり、
+            // ありふれたジャンルの結果は変わらない（下のオフセット上限の範囲に収まる）。
+            // 他の絞り込み（q/女優/メーカー/レーベル/シリーズ/期間）があるときはそちらで範囲が狭まるので付けない。
+            const genreUsesLike = shortGenres.length > 0
+                || (!!genreMatch && plans.get(genreMatch)?.kind === 'like');
+            if (genreUsesLike && genreOnlyFilter && sort !== 'pre-order') {
+                conditions.push(shortQFloorCond(isMgs));
+                args.push(SHORT_Q_FLOOR);
+            }
         }
         if (maker) {
             // MGS/FANZA共にlabelも検索対象に含める（メーカー一覧のレーベル項目に対応）
