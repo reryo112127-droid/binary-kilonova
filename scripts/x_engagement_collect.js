@@ -10,7 +10,12 @@
  * を書き出す。x_browser_post.js の prepareItems はこのスコアで承認キュー内の作品を
  * 並べ替える(実績の高い女優を優先)。
  *
- * Xの公開アルゴリズムに倣い weighted = replies*13.5 + reposts*1 + likes*0.5。
+ * Xの公開アルゴリズムに倣い weighted = replies*13.5 + reposts*1 + likes*0.5 + impressions/100。
+ * （表示回数の項は、反応0件ばかりの時期でも「どれが多く見られたか」で差が付くようにするため）
+ *
+ * 返信数の注意: 投稿はツリー型で、2ポスト目（URL付き）を**自分で返信として付けている**。
+ * そのまま数えると全投稿が「返信1」になり（2026-10-08 実測で全件 💬1）、全作品が同点になっていた。
+ * 自分の1件を引いた値を記録する。
  *
  * 利用:
  *   node scripts/x_engagement_collect.js              # 直近7日・未計測 or 6h超を更新
@@ -42,7 +47,7 @@ function parseCount(s) {
     if (u === 'K') n *= 1e3; else if (u === 'M') n *= 1e6; else if (u === 'B') n *= 1e9; else if (m[2] === '万') n *= 1e4;
     return Math.round(n);
 }
-const weighted = (m) => (m.replies || 0) * 13.5 + (m.reposts || 0) * 1 + (m.likes || 0) * 0.5;
+const weighted = (m) => (m.replies || 0) * 13.5 + (m.reposts || 0) * 1 + (m.likes || 0) * 0.5 + (m.impressions || 0) / 100;
 
 async function notifyDiscord(content) {
     const url = process.env.DISCORD_WEBHOOK_URL || process.env.DISCORD_WEBHOOK;
@@ -63,7 +68,7 @@ async function scrapeTweet(page, tweetId) {
         const label = await el.getAttribute('aria-label', { timeout: 3000 }).catch(() => null);
         return parseCount(label);
     }
-    const replies = await countFor('reply');
+    const replies = Math.max(0, (await countFor('reply')) - 1); // 自分で付けた2ポスト目を除く
     const reposts = await countFor('retweet');
     const likes = await countFor('like');
     // インプレッション(views): analytics リンクの aria-label もしくは表示テキスト
@@ -76,21 +81,48 @@ async function scrapeTweet(page, tweetId) {
     return { replies, reposts, likes, impressions };
 }
 
-async function runAccount(browser, site, account, rows) {
+function launchBrowser() {
+    const { chromium } = require('playwright');
+    return chromium.launch({
+        headless: !SHOW,
+        args: ['--disable-blink-features=AutomationControlled', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer'],
+    });
+}
+
+// アカウントごとにブラウザを起動する。以前は1つのブラウザを全アカウントで使い回しており、
+// 途中で "Page crashed" になると残り全アカウントが「browser has been closed」で全滅していた（2026-10-08）。
+// ページが落ちたら作り直して続きから計測する（同じアカウントで3回まで）。
+async function runAccount(site, account, rows) {
     const auth = process.env[`XCK_${account}_AUTH_TOKEN`], ct0 = process.env[`XCK_${account}_CT0`];
     if (!auth || !ct0) { console.log(`@${account}: Cookie未設定のためskip (${rows.length}件)`); return 0; }
-    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' });
-    let updated = 0;
-    try {
+    let browser = null, ctx = null, page = null, restarts = 0;
+    const open = async () => {
+        await browser?.close().catch(() => {});
+        browser = await launchBrowser();
+        ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' });
         const cookies = [];
         for (const dom of ['.x.com', '.twitter.com']) {
             cookies.push({ name: 'auth_token', value: auth, domain: dom, path: '/', secure: true, httpOnly: true });
             cookies.push({ name: 'ct0', value: ct0, domain: dom, path: '/', secure: true });
         }
         await ctx.addCookies(cookies);
-        const page = await ctx.newPage();
+        page = await ctx.newPage();
+    };
+    let updated = 0;
+    try {
+        await open();
         for (const r of rows) {
-            const m = await scrapeTweet(page, String(r.tweet_id)).catch((e) => { console.warn(`  ✗ ${r.tweet_id}: ${e.message}`); return null; });
+            let m = null;
+            for (;;) {
+                try { m = await scrapeTweet(page, String(r.tweet_id)); break; }
+                catch (e) {
+                    const dead = /closed|crash/i.test(e.message);
+                    console.warn(`  ✗ ${r.tweet_id}: ${String(e.message).split(/\r?\n/)[0]}`);
+                    if (!dead || restarts >= 3) break;
+                    restarts++; console.warn(`  ↻ ブラウザを作り直して続行（${restarts}回目）`);
+                    await open();
+                }
+            }
             if (!m) { console.warn(`  - ${r.tweet_id} 取得できず(削除/非公開?)`); continue; }
             await site.execute({
                 sql: `UPDATE x_post_metrics SET impressions=?, likes=?, replies=?, reposts=?, checked_at=datetime('now') WHERE tweet_id=?`,
@@ -101,7 +133,7 @@ async function runAccount(browser, site, account, rows) {
             await page.waitForTimeout(1500 + Math.random() * 1500);
         }
     } finally {
-        await ctx.close().catch(() => {});
+        await browser?.close().catch(() => {});
     }
     return updated;
 }
@@ -109,7 +141,7 @@ async function runAccount(browser, site, account, rows) {
 // metrics 全体(直近DAYS)から女優別・時間帯別の平均加重エンゲージを再計算してJSON出力
 async function rebuildPerf(site) {
     const rs = await site.execute({
-        sql: `SELECT actresses, posted_hour, replies, reposts, likes FROM x_post_metrics WHERE posted_at >= datetime('now', ?) AND checked_at IS NOT NULL`,
+        sql: `SELECT actresses, posted_hour, replies, reposts, likes, impressions FROM x_post_metrics WHERE posted_at >= datetime('now', ?) AND checked_at IS NOT NULL`,
         args: [`-${DAYS} days`],
     });
     const aAgg = {}, hAgg = {};
@@ -144,23 +176,16 @@ async function rebuildPerf(site) {
     console.log(`計測対象: ${due.rows.length}件 (直近${DAYS}日)`);
 
     if (due.rows.length) {
-        let chromium;
-        try { ({ chromium } = require('playwright')); }
+        try { require.resolve('playwright'); }
         catch { throw new Error('playwright 未インストール。ルートで `npm install playwright` → `npx playwright install chromium`'); }
-        const browser = await chromium.launch({
-            headless: !SHOW,
-            args: ['--disable-blink-features=AutomationControlled', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer'],
-        });
         // アカウントごとにまとめて(Cookieコンテキストを使い回す)
         const byAcct = {};
         for (const r of due.rows) (byAcct[r.account] = byAcct[r.account] || []).push(r);
         let total = 0;
-        try {
-            for (const [account, rows] of Object.entries(byAcct)) {
-                console.log(`@${account}(${ACCOUNT_LABEL[account] || ''}) ${rows.length}件`);
-                total += await runAccount(browser, site, account, rows);
-            }
-        } finally { await browser.close(); }
+        for (const [account, rows] of Object.entries(byAcct)) {
+            console.log(`@${account}(${ACCOUNT_LABEL[account] || ''}) ${rows.length}件`);
+            total += await runAccount(site, account, rows).catch((e) => { console.warn(`@${account} 中断: ${e.message}`); return 0; });
+        }
         console.log(`\n計測更新: ${total}/${due.rows.length}件`);
     }
 

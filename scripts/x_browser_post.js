@@ -123,49 +123,95 @@ function isToday(dateStr) {
     const now = new Date();
     return Number(m[1]) === now.getFullYear() && Number(m[2]) === now.getMonth() + 1 && Number(m[3]) === now.getDate();
 }
-// 1ポスト目のフック文。女優名・人数・割引・配信日を織り込む。素材が無い時は genre 既定フレーズ。
+// ─── アカウントごとのキャラ（口調をそろえる） ─────────────────────────
+// 以前は全アカウントが同じ「〜きた！」「〜やばすぎた」調の機械的な文で、誰が言っているのか分からなかった。
+// 伸びているアカウントは「中の人」の好みと口調が一定で、それがフォローの理由になっている。
+// 担当ジャンルごとに1人のキャラを決め、作品の具体的な数字（分数・価格・残り日数・メーカー）を必ず1つ入れる。
+//   005 新作ウォッチャー: 毎日新作を全部見ている人。短く言い切る。
+//   004 セール番:         値段の話しかしない。定価→セール価格と残り日数を必ず言う。
+//   007 VR部:             機材と画質の話が好き。
+//   002 共演マニア:       組み合わせに一番こだわる。
+//   008 素人発掘係:       「当たり」を探している人。
+//   006 大人系担当:       落ち着いた丁寧語。
+const PERSONA = {
+    new: '新作ウォッチャー', sale: 'セール番', vr: 'VR部', collab: '共演マニア', anon: '素人発掘係', lady: '大人系担当',
+};
+
+/** 日本時間の今日から見た残り日数（0=今日まで）。日付が無ければ null。 */
+function daysLeft(dateStr) {
+    const m = String(dateStr || '').match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if (!m) return null;
+    const end = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+    const j = new Date(Date.now() + 9 * 3600000);
+    const today = Date.UTC(j.getUTCFullYear(), j.getUTCMonth(), j.getUTCDate());
+    return Math.round((end - today) / 86400000);
+}
+/** 「今日まで」「明日まで」「あと3日」など。4日以上先・不明は ''。 */
+function urgency(dateStr) {
+    const d = daysLeft(dateStr);
+    if (d === null || d < 0 || d > 3) return '';
+    return d === 0 ? '今日まで' : d === 1 ? '明日まで' : `あと${d}日`;
+}
+const yen = (n) => `${Number(n).toLocaleString('ja-JP')}円`;
+
+// 1ポスト目のフック文。キャラの口調で、作品の具体的な数字を1つ以上入れる。素材が無い時は genre 既定フレーズ。
 function buildHook(genre, p) {
     const names = actressNames(p.actresses);
     const a = names[0] || '';
     const pct = parseInt(p && p.discount_pct, 10) || 0;
+    const dur = parseInt(p && p.duration_min, 10) || 0;
+    const cur = parseInt(p && p.current_price, 10) || 0;
+    const list = parseInt(p && p.list_price, 10) || 0;
+    const maker = String((p && p.maker) || '').trim();
+    const durTxt = dur ? `${dur}分` : '';
     switch (genre) {
         case 'new': {
             const tag = isToday(p.sale_start_date) ? '【本日配信】' : '【新作】';
             if (a) return pick([
-                `${tag}${a}の新作きた。これ待ってた人多いはず`,
-                `${tag}${a}、第一印象めちゃくちゃ良い。今日チェックして`,
-                `${tag}${a}の最新作。これは見逃せないやつ`,
+                `${tag}${a}。${maker ? `${maker}から` : ''}${durTxt ? `${durTxt}収録。` : ''}今日見た新作の中で一番手が止まった`,
+                `${tag}${a}の新作、${durTxt ? `${durTxt}あって` : ''}最初の数分で当たりだと分かった`,
+                `${tag}毎日新作を見てるけど、${a}のこれは久しぶりに推せる`,
             ]);
-            return pick([`${tag}今日配信のこれ、第一印象がかなり良い`, `${tag}新作きた。完成度高い`]);
+            return pick([`${tag}${maker ? `${maker}の` : ''}新作、${durTxt ? `${durTxt}。` : ''}今日の中ではこれが一番`, `${tag}今日の新作チェックで残った1本`]);
         }
         case 'sale': {
-            const off = pct >= 1 ? `${pct}%OFF` : 'セール';
+            const u = urgency(p.sale_end_date);
+            const price = cur && list > cur ? `${yen(list)}→${yen(cur)}` : (pct >= 1 ? `${pct}%OFF` : 'セール中');
+            const when = u ? `（${u}）` : '';
             if (a) return pick([
-                `${a}の作品が今${off}。このタイミング逃すと損`,
-                `${off}きた。${a}気になってた人は今のうち`,
+                `${a}が${price}${when}。この値段なら迷う理由がない`,
+                `${u ? `【${u}】` : ''}${a}の作品、${price}。セールが終わる前に`,
+                `値段だけ見て。${price}${when}。${a}`,
             ]);
-            return pick([`今${off}中。気になってたやつ今のうちに`, `${off}のお得情報。これはマジで買い`]);
+            return pick([`${price}${when}。この値段で買えるのは今だけ`, `${u ? `【${u}】` : ''}${price}。気になってたなら今`]);
         }
         case 'vr': {
+            const hq = /8K/i.test(String(p.genres || '') + String(p.title || '')) ? '8K' : '';
             if (a) return pick([
-                `${a}のVR、没入感やばすぎた。距離感バグる`,
-                `${a}が目の前にいる感覚がリアルすぎるVR作品`,
+                `${a}のVR。${hq ? '8Kで' : ''}距離が近すぎてゴーグル外したくなくなる`,
+                `${hq ? `${hq}VR。` : ''}${a}が目の前にいる距離感、平面じゃ絶対に出ない`,
+                `VR部として言わせて。${a}のこれは${durTxt ? `${durTxt}ずっと` : 'ずっと'}没入できる`,
             ]);
-            return pick([`VRで見たら没入感やばすぎた`, `これVR持ってる人は絶対見て。距離感バグる`]);
+            return pick([`${hq ? '8K、' : ''}距離感が本物。VR持ってる人はこれから`, `VRで見る意味がちゃんとある1本`]);
         }
         case 'collab': {
             if (names.length >= 2) return pick([
-                `${names[0]}×${names[1]}の共演、神すぎる…この組み合わせは今しかない`,
-                `${names[0]}と${names[1]}が揃った。共演派にこれは刺さる`,
+                `${names[0]}×${names[1]}。この組み合わせを待ってた`,
+                `${names[0]}と${names[1]}が同じ画面にいる。共演はこれだから見る`,
+                `組み合わせで選ぶならこれ。${names[0]}×${names[1]}${names.length > 2 ? `ほか${names.length - 2}人` : ''}`,
             ]);
-            if (a) return `${a}の豪華共演作。この組み合わせは奇跡`;
-            return pick([`この共演、神すぎる…`, `共演って奇跡だよね。この面子は今しかない`]);
+            if (a) return `${a}の共演作。${names.length > 1 ? `${names.length}人` : 'この面子'}がそろうのは珍しい`;
+            return pick([`この共演、組み合わせが良すぎる`, `共演派はこれを見て`]);
         }
         case 'anon':
-            return pick([`この素人感がリアルでめちゃくちゃ良い`, `ガチ感がすごい。演技じゃ出せないリアクション`, `隠れた名作見つけた。素人系の当たり`]);
+            return pick([
+                `素人の当たりを探してて見つけた。${durTxt ? `${durTxt}、` : ''}反応が作り物じゃない`,
+                `${maker ? `${maker}の` : ''}素人もの、今週の当たり`,
+                `演技じゃ出ないリアクション。素人系はこういうのを探してる`,
+            ]);
         case 'lady': {
-            if (a) return pick([`${a}の大人の色気、こういうことだよね`, `${a}、夜にゆっくり見てほしい一本`]);
-            return pick([`大人の色気ってこういうことだよね`, `癒されたい夜にぴったりの一本`]);
+            if (a) return pick([`${a}さん。落ち着いた色気で、夜にゆっくり見たい1本です`, `${a}さんの${durTxt ? `${durTxt}の` : ''}作品。大人の余裕がある作品が好きな方に`]);
+            return pick([`大人の色気がちゃんとある作品です。夜にゆっくりどうぞ`, `落ち着いて見られる大人系の1本です`]);
         }
         default:
             return pick(PHRASES.new);
@@ -211,7 +257,8 @@ async function ensureMetricsTable(site) {
 function saleInfoLine(p) {
     const pct = parseInt(p && p.discount_pct, 10) || 0;
     const m = String((p && p.sale_end_date) || '').match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-    const until = m ? ` ${Number(m[2])}/${Number(m[3])}まで` : '';
+    const u = urgency(p && p.sale_end_date);
+    const until = m ? ` ${Number(m[2])}/${Number(m[3])}まで${u && u !== '今日まで' && u !== '明日まで' ? `（${u}）` : u ? `（${u}！）` : ''}` : '';
     if (pct >= 1) return `🔥${pct}%OFFセール中${until}`;
     return until ? `🔥セール中${until}` : '🔥セール中';
 }
@@ -256,9 +303,83 @@ async function gotoRetry(page, url, tries = 3) {
     throw last;
 }
 
-// サンプル動画 → 実mp4(本番リゾルバ経由)をDLし、5秒目から10秒(=5〜15秒)を切り出してX互換に再エンコード。
-// FANZA(litevideo)もMGS(sampleplayer)も対応。冒頭のタイトル/ロゴを避けて5秒スキップ。失敗時 null（→画像）。
-async function makeSampleClip(pid, sampleUrl, account, dir) {
+// ─── サンプル動画の編集（見せ場の自動選択＋テロップ） ─────────────────────
+// 旧方式は 30/50/70% 地点を機械的に4秒ずつ抜くだけで、暗転・タイトル・会話の静かな場面に当たることが多かった。
+// 他の伸びているアカウントは「見せ場」を選び、冒頭にテロップを入れて最初の1秒で引き止めている。
+// そこで動画を低解像度で一度なめて、1秒ごとの「動き(シーン差分)」と「明るさ」を測り、
+//   - 冒頭15%・末尾10%は使わない（タイトル/ロゴ/エンドカード）
+//   - 暗い区間（輝度 < 35）と、区間の途中に場面転換（scene > 0.4）がある区間は避ける
+//   - 残りから動きの大きい SEG 秒を、互いに離れた3か所選んで時系列順につなぐ
+// うえで、先頭3秒にテロップ（作品の一言）を焼き込む。解析に失敗したら従来の固定地点にフォールバック。
+const CAPTION_FONT = ['C:/Windows/Fonts/BIZ-UDGothicB.ttc', 'C:/Windows/Fonts/YuGothB.ttc', 'C:/Windows/Fonts/meiryob.ttc'].find(p => fs.existsSync(p)) || '';
+
+/** 1秒ごとの { motion, luma, cut }。失敗時 null。 */
+async function analyzeClip(raw) {
+    try {
+        const { stdout } = await execFileP(ffmpegBin, ['-hide_banner', '-i', raw, '-an',
+            '-vf', "fps=4,scale=160:-2,signalstats,select='gte(scene\\,0)',metadata=print:file=-",
+            '-f', 'null', '-'], { timeout: 120000, maxBuffer: 64 * 1024 * 1024 });
+        const sec = [];
+        let t = -1;
+        for (const line of String(stdout).split('\n')) {
+            const m = line.match(/pts_time:([\d.]+)/);
+            if (m) { t = Math.floor(parseFloat(m[1])); sec[t] = sec[t] || { sc: [], y: [] }; continue; }
+            if (t < 0) continue;
+            const sc = line.match(/lavfi\.scene_score=([\d.]+)/); if (sc) sec[t].sc.push(parseFloat(sc[1]));
+            const y = line.match(/lavfi\.signalstats\.YAVG=([\d.]+)/); if (y) sec[t].y.push(parseFloat(y[1]));
+        }
+        const avg = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+        const out = [];
+        for (let i = 0; i < sec.length; i++) {
+            const v = sec[i] || { sc: [], y: [] };
+            out.push({ motion: avg(v.sc.map(x => Math.min(x, 0.3))), luma: avg(v.y), cut: v.sc.length ? Math.max(...v.sc) : 0 });
+        }
+        return out.length >= 10 ? out : null;
+    } catch (e) { console.warn('  動画解析失敗:', e.message); return null; }
+}
+
+/** 見せ場の開始秒を n 個（時系列順）。選べなければ null。 */
+function pickHighlights(stats, seg, n) {
+    const len = stats.length;
+    const lo = Math.floor(len * 0.15), hi = Math.floor(len * 0.90) - seg;
+    const cands = [];
+    for (let s = lo; s <= hi; s++) {
+        const w = stats.slice(s, s + seg);
+        if (w.some(x => x.luma < 35)) continue;                       // 暗転・黒画面
+        if (w.slice(1).some(x => x.cut > 0.4)) continue;              // 区間の途中で場面が切り替わる
+        cands.push({ s, score: w.reduce((a, x) => a + x.motion, 0) / seg });
+    }
+    cands.sort((a, b) => b.score - a.score);
+    const chosen = [];
+    for (const c of cands) {
+        if (chosen.every(x => Math.abs(x - c.s) >= seg + 3)) chosen.push(c.s);
+        if (chosen.length >= n) break;
+    }
+    return chosen.length >= n ? chosen.sort((a, b) => a - b) : null;
+}
+
+/** テロップ（1〜2行・各14字まで）。ジャンルと作品メタから短く作る。 */
+function captionFor(genre, p) {
+    const names = actressNames(p && p.actresses);
+    const a = names[0] || '';
+    const pct = parseInt(p && p.discount_pct, 10) || 0;
+    const cut = (x) => String(x).slice(0, 14);
+    switch (genre) {
+        case 'new':    return [isToday(p && p.sale_start_date) ? '本日配信' : '新作', a].filter(Boolean).map(cut);
+        case 'sale':   return [pct >= 1 ? `いま${pct}%OFF` : 'セール中', a].filter(Boolean).map(cut);
+        case 'collab': return names.length >= 2 ? [cut(`${names[0]}×`), cut(names[1])] : ['豪華共演', a].filter(Boolean).map(cut);
+        case 'anon':   return ['素人のガチ反応'];
+        case 'lady':   return ['大人の色気', a].filter(Boolean).map(cut);
+        default:       return [a || '注目作'].map(cut);
+    }
+}
+
+// drawtext のフィルタ引数用エスケープ（Windowsパスの「\」→「/」、ドライブの「:」→「\:」）
+const ffEsc = (p) => p.replace(/\\/g, '/').replace(/:/g, '\\:');
+
+// サンプル動画 → 実mp4(本番リゾルバ経由)をDLし、見せ場3か所×SEG秒をつないで X 互換に再エンコード。
+// FANZA(litevideo)もMGS(sampleplayer)も対応。caption があれば先頭3秒にテロップ。失敗時 null。
+async function makeSampleClip(pid, sampleUrl, account, dir, caption = []) {
     if (!ffmpegBin || !sampleUrl) return null;
     const isFanza = /dmm\.co\.jp/.test(sampleUrl);
     const isMgs = /mgstage\.com\/sampleplayer/.test(sampleUrl);
@@ -268,6 +389,7 @@ async function makeSampleClip(pid, sampleUrl, account, dir) {
     const safe = pid.replace(/[^a-zA-Z0-9_-]/g, '_');
     const raw = path.join(dir, `${account}_${safe}_src.mp4`);
     const out = path.join(dir, `${account}_${safe}.mp4`);
+    const capFile = path.join(dir, `${account}_${safe}_cap.txt`);
     try {
         // litevideo/sampleplayer → mp4 は本番API経由で解決（ローカル直リゾルブは各サイトにブロックされる）
         const j = await fetch(`${SITE}${api}?url=` + encodeURIComponent(sampleUrl)).then(r => r.json()).catch(() => null);
@@ -282,25 +404,38 @@ async function makeSampleClip(pid, sampleUrl, account, dir) {
         catch (e) { const m = String(e.stderr || '').match(/Duration:\s*(\d+):(\d+):(\d+\.?\d*)/); if (m) dsec = (+m[1]) * 3600 + (+m[2]) * 60 + parseFloat(m[3]); }
         const ENC = ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '24', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart'];
         const SEG = 4; // 1シーンの秒数
+
+        // テロップ（先頭3秒・上部中央・半透明の帯）。フォントが無ければ付けない。
+        // 文字列は textfile で渡す（drawtext の text= は「:」「'」「%」のエスケープが壊れやすい）。
+        let cap = '';
+        if (CAPTION_FONT && caption.length) {
+            fs.writeFileSync(capFile, caption.join('\n'), 'utf8');
+            cap = `,drawtext=fontfile='${ffEsc(CAPTION_FONT)}':textfile='${ffEsc(capFile)}':fontsize=h/11:fontcolor=white:line_spacing=8`
+                + `:box=1:boxcolor=black@0.55:boxborderw=18:x=(w-text_w)/2:y=h*0.07:enable='lt(t\\,3)'`;
+        }
+
         if (dsec >= 20) {
-            // 見栄え・テンポ重視: 30/50/70%地点から各SEG秒を抜き、繋いでダイジェスト(本編中盤〜後半なので女優も自然に写る)
-            const starts = [0.30, 0.50, 0.70].map(p => Math.max(1, Math.round(dsec * p)));
+            // 見せ場を自動で3か所選ぶ（失敗時は従来どおり 30/50/70% 地点）
+            const stats = await analyzeClip(raw);
+            let starts = stats ? pickHighlights(stats, SEG, 3) : null;
+            if (starts) console.log(`  🎬 ${pid}: 見せ場 ${starts.map(x => x + 's').join(' / ')}（全${Math.round(dsec)}秒）`);
+            else starts = [0.30, 0.50, 0.70].map(p => Math.max(1, Math.round(dsec * p)));
             let fc = '', cc = '';
             starts.forEach((s, i) => {
                 fc += `[0:v]trim=start=${s}:end=${s + SEG},setpts=PTS-STARTPTS,scale=720:-2,setsar=1[v${i}];`
                     + `[0:a]atrim=start=${s}:end=${s + SEG},asetpts=PTS-STARTPTS[a${i}];`;
                 cc += `[v${i}][a${i}]`;
             });
-            fc += `${cc}concat=n=${starts.length}:v=1:a=1[v][a]`;
+            fc += `${cc}concat=n=${starts.length}:v=1:a=1[vc][a];[vc]null${cap}[v]`;
             await execFileP(ffmpegBin, ['-y', '-i', raw, '-filter_complex', fc, '-map', '[v]', '-map', '[a]', ...ENC, out], { timeout: 180000 });
         } else {
             // 短い動画は中盤(30%)から10秒1カット
             const ss = String(Math.max(0, Math.round(dsec * 0.3)));
-            await execFileP(ffmpegBin, ['-y', '-ss', ss, '-i', raw, '-t', '10', '-vf', 'scale=720:-2', ...ENC, out], { timeout: 120000 });
+            await execFileP(ffmpegBin, ['-y', '-ss', ss, '-i', raw, '-t', '10', '-vf', 'scale=720:-2' + cap, ...ENC, out], { timeout: 120000 });
         }
-        try { fs.unlinkSync(raw); } catch {}
+        for (const x of [raw, capFile]) try { fs.unlinkSync(x); } catch {}
         return fs.existsSync(out) && fs.statSync(out).size > 1000 ? out : null;
-    } catch (e) { console.warn('動画編集失敗:', pid, e.message); try { fs.unlinkSync(raw); } catch {} return null; }
+    } catch (e) { console.warn('動画編集失敗:', pid, e.message); for (const x of [raw, capFile]) try { fs.unlinkSync(x); } catch {} return null; }
 }
 
 // 動画アップロード後、Xの変換完了(進捗バー消滅)を待つ。完了しないと投稿でメディアが付かない/拒否される。
@@ -430,7 +565,7 @@ async function prepareItems(site, account, batch, dir) {
     for (let idx = 0; idx < dec.rows.length; idx++) {
         const d = dec.rows[idx];
         const pid = String(d.product_id), genre = String(d.new_genre || 'new');
-        const sel = `SELECT title, actresses, main_image_url, sample_video_url, discount_pct, sale_start_date, sale_end_date FROM products WHERE product_id=? LIMIT 1`;
+        const sel = `SELECT title, actresses, main_image_url, sample_video_url, discount_pct, sale_start_date, sale_end_date, maker, duration_min, current_price, list_price, genres FROM products WHERE product_id=? LIMIT 1`;
         let pr = await d1('mgs').execute({ sql: sel, args: [pid] }).catch(() => ({ rows: [] }));
         if (!pr.rows.length) pr = await fanzaShards().execute({ sql: sel, args: [pid] }).catch(() => ({ rows: [] }));
         if (!pr.rows.length) continue;
@@ -442,6 +577,16 @@ async function prepareItems(site, account, batch, dir) {
     for (const c of cands) {
         if (items.length >= batch) break;
         const { d, pid, genre, p } = c;
+        // セールはキューに積んだ時点（ローカルDB）から状況が変わる。D1 の最新値で、もう終わっていれば投稿しない
+        // （「◯%OFF」と言ってリンク先が定価だと信用を落とす）。
+        if (genre === 'sale') {
+            const left = daysLeft(p.sale_end_date);
+            if (!(parseInt(p.discount_pct, 10) > 0) || (left !== null && left < 0)) {
+                console.log(`  - skip(セール終了): [sale] ${pid}`);
+                await site.execute({ sql: `UPDATE x_post_decisions SET posted_at=datetime('now'), tweet_id='skipped' WHERE id=?`, args: [d.id] }).catch(() => {});
+                continue;
+            }
+        }
         // ツリー型: 1ポスト目=動的フック文＋(サンプル動画 or 画像) / 2ポスト目(リプライ)=セール情報＋返信CTA＋女優ハッシュタグ＋URL
         const text1 = buildHook(genre, p);
         // セールジャンルは下段に割引率と終了日を明記(終了日がDBにあれば「〜M/Dまで」、無ければ割引率のみ)
@@ -467,7 +612,7 @@ async function prepareItems(site, account, batch, dir) {
             if (!imgPath) continue; // サンプル画像が取れなければ次の作品へ
         } else {
             // VR以外はサンプル動画のみ投稿。動画が取れない作品はスキップ(パッケージ画像へはフォールバックしない)
-            videoPath = await makeSampleClip(pid, String(p.sample_video_url || ''), account, dir);
+            videoPath = await makeSampleClip(pid, String(p.sample_video_url || ''), account, dir, captionFor(genre, p));
             if (!videoPath) { console.log(`  - skip(サンプル動画なし): [${genre}] ${pid}`); continue; }
         }
         items.push({ id: d.id, pid, genre, text1, text2, videoPath, imgPath, actresses: String(p.actresses || '') });
@@ -538,7 +683,9 @@ async function runAccount(browser, site, account, opts) {
     return done;
 }
 
-(async () => {
+// テスト・プレビュー用に関数を公開し、直接実行のときだけ投稿処理を走らせる
+module.exports = { makeSampleClip, analyzeClip, pickHighlights, captionFor, buildHook, replyCta };
+if (require.main === module) (async () => {
     const site = d1('site');
     // 時間帯の重み付け: ゴールデンタイム(22-26時=22,23,0,1時JST)は初速が伸びやすいので1回あたりの投稿数を増やす。
     // --batch 明示時はそれを優先。投稿の発火間隔自体はタスクスケジューラ(2時間毎)が制御する。

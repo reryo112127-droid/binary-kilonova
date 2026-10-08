@@ -110,12 +110,14 @@ const GENRES = [
           fresh: freshFanzaNew },
     ] },
     { genre: 'sale', sources: [
-        { platform: 'fanza', where: `COALESCE(discount_pct,0) >= 30 AND actresses IS NOT NULL AND TRIM(actresses)<>''`,
-          order: `ORDER BY discount_pct DESC, RANDOM()`, whereArgs: () => [], limit: PER * 8 },
+        // 終わったセールを宣伝しないよう終了日で絞り、「終了が近い順」に並べる（投稿で「今日まで」「あと1日」と言える）。
+        // sale_end_date が無い作品は後回し。日付は FANZA='YYYY-MM-DD' / MGS='YYYY/MM/DD' なので '/' を '-' に揃えて比べる。
+        { platform: 'fanza', where: `COALESCE(discount_pct,0) >= 30 AND actresses IS NOT NULL AND TRIM(actresses)<>'' AND (sale_end_date IS NULL OR REPLACE(sale_end_date,'/','-') >= ?)`,
+          order: `ORDER BY (sale_end_date IS NULL), REPLACE(sale_end_date,'/','-') ASC, discount_pct DESC, RANDOM()`, whereArgs: () => [today], limit: PER * 8 },
         // MGSの割引作品。※現状 MGS D1 の discount_pct は全件0(価格がD1へ同期されていない)ため
         //   このソースは0件を返す。ローカルmgs.dbには224件あるので、同期が入れば自動的に投稿対象になる。
-        { platform: 'mgs', where: `COALESCE(discount_pct,0) >= 30 AND actresses IS NOT NULL AND TRIM(actresses)<>''`,
-          order: `ORDER BY discount_pct DESC, RANDOM()`, whereArgs: () => [], limit: PER * 8 },
+        { platform: 'mgs', where: `COALESCE(discount_pct,0) >= 30 AND actresses IS NOT NULL AND TRIM(actresses)<>'' AND (sale_end_date IS NULL OR REPLACE(sale_end_date,'/','-') >= ?)`,
+          order: `ORDER BY (sale_end_date IS NULL), REPLACE(sale_end_date,'/','-') ASC, discount_pct DESC, RANDOM()`, whereArgs: () => [today], limit: PER * 8 },
     ] },
     { genre: 'vr', sources: [
         { platform: 'fanza', where: `genres LIKE '%VR専用%' AND actresses IS NOT NULL AND TRIM(actresses)<>'' AND REPLACE(sale_start_date,'/','-') <= ?`,
