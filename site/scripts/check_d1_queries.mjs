@@ -77,7 +77,12 @@ async function main() {
         // SELECT句は全クエリほぼ同一で見分けがつかないので FROM 以降（WHERE/ORDER BY）を出す
         const raw = (g.dimensions.query || '').replace(/\s+/g, ' ');
         const fi = raw.indexOf(' FROM ');
-        const q = (fi >= 0 ? raw.slice(fi + 1) : raw).slice(0, process.argv.includes("--full") ? 4000 : 200);
+        const body = fi >= 0 ? raw.slice(fi + 1) : raw;
+        // --full は長い IN リストで末尾の条件が切れないよう「先頭＋…＋末尾」で出す（IN の件数も添える）
+        const inCount = (body.match(/'[^']*'/g) || []).length;
+        const q = !process.argv.includes("--full") ? body.slice(0, 200)
+            : body.length <= 4000 ? body
+            : `${body.slice(0, 600)} …［全${body.length}文字・引用値${inCount}個］… ${body.slice(-1500)}`;
         console.log(`  ${rows.toLocaleString().padStart(11)} ${String(n).padStart(7)} ${per.toLocaleString().padStart(11)}  ${db.padEnd(8)}  ${q}`);
     }
     console.log('');

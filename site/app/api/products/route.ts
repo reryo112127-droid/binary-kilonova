@@ -571,17 +571,22 @@ export async function GET(request: NextRequest) {
     // 20件そろった時点で止まる計画になるので、**一致が密な語ほど安い**（浅い走査で済む）。
     // 疎な語では深く舐めるので高い ―― つまり2つの計画はちょうど逆の特性を持つ。
     //
-    // そこで先に「一致が Q_PROBE_CAP 件を超えるか」だけを測り、
+    // そこで先に「一致が qProbeCap 件を超えるか」だけを測り、
     //   疎(≦2000件) → 一致IDを直接 IN に埋める（点引き。FTSサブクエリより更に安い）
     //   密(>2000件) → LIKE に切り替えて日付順スキャンで早期打ち切りさせる
-    // と振り分ける。どちらもコストは概ね 2×Q_PROBE_CAP 行で頭打ちになる。
+    // と振り分ける。どちらもコストは概ね 2×qProbeCap 行で頭打ちになる。
     //
     // **この振り分けは q だけでなく genre / label / 女優 の FTS 条件すべてに要る**（2026-09-09）。
     // q だけ直したあと、残りの FTS_IN が同じ形で枠を食い続けていた。実測(fanza-0, LIMIT 21):
     //   genres:"中出し"  FTS_IN 255,855行 / genres LIKE '%中出し%' 35行  （7,300倍）
     //   genres:"美少女"  FTS_IN  96,409行 / LIKE 116行
     // ジャンルLPや女優ページは「ありふれた語＝密」ばかりなので、ここが最大の消費源になる。
-    const Q_PROBE_CAP = 2000;
+    // 一致件数の境目（2026-10-08 に実測して見直し、旧 2000）。
+    // 主キーの IN 点引きは1件あたり約3行（MGS 実測: 200件→560行 / 1000件→2,960行 / 2000件→5,960行）、
+    // ありふれた語の LIKE＋新着順は数十行で止まる（「ナンパ」14行）。点引き 3c 行と LIKE の約 41×N/c 行
+    // （N=テーブル行数）が釣り合うのは MGS(約6.6万) で c≈950、FANZA 1シャード(約13万) で c≈1,300。
+    // 2000 だと 1,000〜2,000件一致の語で MGS 1回 約1万行を読んでいた（1日 約38万行）。少し安全側に置く。
+    const qProbeCap = (isMgs: boolean) => (isMgs ? 700 : 1000);
     type QPlan = { kind: 'ids'; ids: string[] } | { kind: 'like' };
     /** MATCH式 → 実行計画。プラットフォームごとに1つ持つ（同じ式は1回だけプローブする）。 */
     type PlanMap = Map<string, QPlan | null>;
@@ -658,13 +663,14 @@ export async function GET(request: NextRequest) {
         if (!client) return plans;
         const c = client;
         const pf = isMgs ? 'm' : 'f';
+        const cap = qProbeCap(isMgs);
         const exprs = new Set<string>();
         for (const e of [qMatch, genreMatch, isExactLabel(isMgs) ? null : labelMatch,
                          ...actressGroups.map(actressMatch),
                          hasProfileFilter ? actressMatch(profileActresses) : null]) {
             if (e) exprs.add(e);
         }
-        /** 一致 id を最大 Q_PROBE_CAP 件まで取る。失敗したら null（呼び出し側は従来の計画に戻す）。 */
+        /** 一致 id を最大 cap 件まで取る。失敗したら null（呼び出し側は従来の計画に戻す）。 */
         const probe = async (key: string, sql: string, args: string[]): Promise<ProbeResult | null> => {
             const hit = probeCacheGet(key);
             if (hit) return hit;
@@ -675,7 +681,7 @@ export async function GET(request: NextRequest) {
                 // 行数のまま数えると疎な語を「密」と誤判定して LIKE の日付順走査に落ち、
                 // 実測 1回 104,798行（女優指定・fanza-0）を読んでいた。IN にも同じ id が32回並んでいた。
                 const ids = [...new Set(res.rows.map(row => String((row as Record<string, unknown>).product_id)))];
-                const r: ProbeResult = ids.length > Q_PROBE_CAP
+                const r: ProbeResult = ids.length > cap
                     ? { dense: true }
                     // SQLへ直接埋め込むので、埋め込み可能な文字だけに限る（D1のバインドは1文100個まで）。
                     : { ids: ids.filter(id => /^[A-Za-z0-9_-]+$/.test(id)) };
@@ -688,7 +694,7 @@ export async function GET(request: NextRequest) {
         await Promise.all([
             ...[...exprs].map(async expr => {
                 const r = await probe(`${pf}|${expr}`,
-                    `SELECT DISTINCT product_id FROM products_fts WHERE products_fts MATCH ? LIMIT ${Q_PROBE_CAP + 1}`,
+                    `SELECT DISTINCT product_id FROM products_fts WHERE products_fts MATCH ? LIMIT ${cap + 1}`,
                     [expr]);
                 // プローブが失敗したら従来どおり FTS サブクエリで引く（null）
                 plans.set(expr, !r ? null
@@ -698,7 +704,7 @@ export async function GET(request: NextRequest) {
             (async () => {
                 if (isMgs || !fanzaIdRange) return;
                 const r = await probe(`${pf}|idrange|${fanzaIdRange[0]}`,
-                    `SELECT product_id FROM products WHERE product_id >= ? AND product_id < ? LIMIT ${Q_PROBE_CAP + 1}`,
+                    `SELECT product_id FROM products WHERE product_id >= ? AND product_id < ? LIMIT ${cap + 1}`,
                     fanzaIdRange);
                 // 範囲が密（2000件超）なら従来の範囲条件のまま（その場合は日付順走査でもすぐ埋まる）
                 plans.set(ID_RANGE_KEY, r && !('dense' in r) ? { kind: 'ids', ids: r.ids } : null);
