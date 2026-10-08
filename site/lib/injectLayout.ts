@@ -40,6 +40,21 @@ const LIKE_UTILS_SCRIPT = `<script id="like-utils">
     if(!parts.length)return '';
     return '<p class="flex flex-wrap items-center gap-x-1 gap-y-0.5 '+(big?'text-xs':'text-[10px]')+' leading-tight mt-0.5">'+parts.join('')+'</p>';
   };
+  // 女優フォロー（ブラウザ保存・ログイン不要）。ホームの「フォロー中の女優の新作・予約」が読む。
+  // 一度来た人が戻ってくる理由が無かったので、気になる女優の新作をホームで拾えるようにする。
+  try{window._followSet=new Set(JSON.parse(localStorage.getItem('_follow_act')||'[]'));}catch(e){window._followSet=new Set();}
+  window.paintFollowBtns=function(){
+    document.querySelectorAll('[data-follow-act]').forEach(function(b){
+      var on=window._followSet.has(b.getAttribute('data-follow-act'));
+      b.textContent=on?'フォロー中':'＋ フォロー';
+      b.className='inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold transition-colors '+(on?'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200':'bg-primary text-white');
+    });
+  };
+  window.toggleFollowActress=function(name){
+    if(window._followSet.has(name))window._followSet.delete(name);else window._followSet.add(name);
+    try{localStorage.setItem('_follow_act',JSON.stringify(Array.from(window._followSet)));}catch(e){}
+    window.paintFollowBtns();
+  };
   window.restoreLikes=function(){
     document.querySelectorAll('[data-like-pid]').forEach(function(btn){
       if(window._likedSet.has(btn.getAttribute('data-like-pid'))){

@@ -10,6 +10,7 @@ import {
 import { edgeLookup, edgeStore } from '../lib/edgeCache';
 import { fillById, carouselCardHtml, rowCardHtml, type Product } from '../lib/landingPage';
 import { ssrSaleList } from '../lib/hubSsr';
+import { insertFollowFeed } from '../lib/followFeed';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +84,8 @@ export async function GET(request: NextRequest) {
         } catch (e) {
             console.error('SSR home data fetch failed:', e);
         }
+        // フォロー中の女優の新作・予約（枠だけ置いてブラウザ側で埋める。フォロー0人なら出ない）
+        html = insertFollowFeed(html, isMobile);
 
         const resp = new NextResponse(html, {
             // Cache API に保存。s-maxage(30分)窓内のアクセスは Worker非起動で返り、D1優先化した予約取得の

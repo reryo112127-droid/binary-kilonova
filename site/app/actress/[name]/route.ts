@@ -118,6 +118,12 @@ export async function GET(
         // プレースホルダ「女優名」を実名へ(生HTMLでGooglebotに実名が見えるように)
         html = html.replace(/(<h1[^>]*>)女優名(<\/h1>)/, `$1${esc(actressName)}$2`);
         html = html.replace(/(<h2 id="actress-name"[^>]*>)女優名(<\/h2>)/, `$1${esc(actressName)}$2`);
+        // フォローボタン（ブラウザ保存。ホームの「フォロー中の女優の新作・予約」に出る）。
+        // 名前欄はモバイルが <h2 id="actress-name">、PCが <h1 id="actress-name">。
+        const followBtn = `<div class="my-2"><button type="button" data-follow-act="${esc(actressName)}" onclick="toggleFollowActress(this.dataset.followAct)" class="inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold bg-primary text-white">＋ フォロー</button>`
+            + `<p class="hidden md:block text-[10px] text-slate-400 mt-1">フォローすると、新作・予約がホームに表示されます</p></div>`
+            + `<script>window.paintFollowBtns&&window.paintFollowBtns();</script>`;
+        html = html.replace(/(<(h1|h2) id="actress-name"[^>]*>[\s\S]*?<\/\2>)/, (_m, el: string) => el + followBtn);
 
         // ─ SEO meta(既存ベース＋ItemList/Breadcrumb、ページネーション、noindex) ─
         const base = `/actress/${encodeURIComponent(actressName)}`;
