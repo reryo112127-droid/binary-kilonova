@@ -169,24 +169,14 @@ const WEB_SEARCH_SCRIPT = `<script>
 })();
 </script>`;
 
-// ─── 共通フッター(内部リンク/クロール導線) ──────────────────────
-// 全ページに人気ジャンル・各ハブ(ジャンル/メーカー/シリーズ/カップ)への実リンクを置き、
-// Googlebot がどのページからでも長尾LPを発見できるようにする(クロール深度↓・評価分配)。
+// ─── 共通フッター ────────────────────────────────────────────
+// Xへのリンク・PR表記・運営者情報だけ。人気ジャンル/探すのリンク一覧は 2026-10-09 にユーザーの指示で外した
+// （ジャンル・メーカー等のLPはサイトマップと各一覧ページから辿れる）。
 import { xFollowHtml } from './xFollow';
 
-const POPULAR_GENRES = ['巨乳', '人妻・主婦', '素人', '熟女', '美少女', '中出し', '痴女', 'スレンダー', '美乳', 'フェラ', 'ハメ撮り', '3P・4P'];
 const SITE_FOOTER = `<footer class="border-t border-slate-200 dark:border-slate-800 px-4 py-6 mb-24 text-xs text-slate-500 dark:text-slate-400">
 <div class="text-center mb-5">` + xFollowHtml('new') + `</div>
-<div class="grid grid-cols-2 gap-5 max-w-3xl mx-auto">
-<div><p class="font-bold mb-1.5 text-slate-700 dark:text-slate-300">人気ジャンル</p><div class="flex flex-wrap gap-x-3 gap-y-1.5">`
-    + POPULAR_GENRES.map(g => `<a class="hover:text-primary" href="/genre/${encodeURIComponent(g)}">${g}</a>`).join('')
-    + `<a class="hover:text-primary font-medium" href="/genres">ジャンル一覧 ›</a></div></div>
-<div><p class="font-bold mb-1.5 text-slate-700 dark:text-slate-300">探す</p><div class="flex flex-wrap gap-x-3 gap-y-1.5">`
-    + [['/ranking', 'ランキング'], ['/new', '新作'], ['/pre-order', '予約'], ['/sale', 'セール'], ['/features', '特集'], ['/makers', 'メーカー'], ['/series', 'シリーズ'], ['/cup', 'カップ別'], ['/video', '動画']]
-        .map(([h, l]) => `<a class="hover:text-primary" href="${h}">${l}</a>`).join('')
-    + `</div></div>
-</div>
-<p class="text-center text-[10px] text-slate-400 mt-5">当サイトはアフィリエイト広告（PR）を利用しています。ランキングの順位は紹介料では決めていません。</p>
+<p class="text-center text-[10px] text-slate-400">当サイトはアフィリエイト広告（PR）を利用しています。ランキングの順位は紹介料では決めていません。</p>
 <p class="text-center text-[10px] text-slate-400 mt-1"><a class="underline hover:text-primary" href="/about">AVランキングについて（運営者情報・ランキングの決め方）</a>・<a class="underline hover:text-primary" href="/terms">利用規約</a>・<a class="underline hover:text-primary" href="/privacy">プライバシーポリシー</a></p>
 <p class="text-center text-[10px] text-slate-400 mt-1">AVランキング — MGS・FANZA作品の人気ランキング/最安値比較</p>
 </footer>`;

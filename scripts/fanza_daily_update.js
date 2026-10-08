@@ -62,6 +62,12 @@ const BLOCKED_MAKERS = new Set(
         ? JSON.parse(require('fs').readFileSync(BLOCKED_MAKERS_PATH, 'utf-8')).makers
         : []
 );
+// ブロック対象: メーカー名 **またはレーベル名** が一覧にある作品、blockedGenres のジャンルを含む作品（2026-10-09）。
+// 以前はメーカー名しか見ておらず、レーベル名で指定したもの（例: 「あじさい」「エイトマン」）が登録され続けていた。
+const BLOCKED_GENRES = require('fs').existsSync(BLOCKED_MAKERS_PATH)
+    ? (JSON.parse(require('fs').readFileSync(BLOCKED_MAKERS_PATH, 'utf-8')).blockedGenres || []) : [];
+const isBlockedProduct = (p) => BLOCKED_MAKERS.has(p.maker || '') || BLOCKED_MAKERS.has(p.label || '')
+    || BLOCKED_GENRES.some(g => String(p.genres || '').includes(g));
 const HITS_PER_REQUEST = 100;
 const RATE_LIMIT_MS    = 1200;
 const PRICE_SCAN_YEARS_DEFAULT = 2; // cid[]スキャンで対象とする年数（デフォルト2年）
@@ -519,7 +525,7 @@ async function main() {
     if (compilationSkipped > 0) console.log(`  総集編系スキップ: ${compilationSkipped}件`);
 
     // ブロックメーカーはDBに登録しない
-    const afterMaker = afterCompilation.filter(p => !BLOCKED_MAKERS.has(p.maker || ''));
+    const afterMaker = afterCompilation.filter(p => !isBlockedProduct(p));
     const makerSkipped = afterCompilation.length - afterMaker.length;
     if (makerSkipped > 0) console.log(`  ブロックメーカースキップ: ${makerSkipped}件`);
 

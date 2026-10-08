@@ -270,7 +270,7 @@ function headingBlock(opts: LandingOptions): string {
     return `<section class="px-4 pt-3 pb-1">`
         + `<nav class="text-[11px] text-slate-400 mb-1"><a href="/" class="hover:text-primary">ホーム</a> › <a href="${esc(opts.hub.path)}" class="hover:text-primary">${esc(opts.hub.label)}</a> › <span>${esc(opts.h1)}</span></nav>`
         + `<h1 class="text-lg font-bold leading-tight">${esc(opts.h1)}</h1>`
-        + `<p class="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">${esc(opts.intro)}</p>`
+        // 説明文（「メーカー/レーベル「〇〇」の作品を人気順に表示しています。…」）は 2026-10-09 にユーザーの指示で外した
         + `</section>`;
 }
 
@@ -287,6 +287,7 @@ function paginationNav(opts: LandingOptions, page: number, hasNext: boolean): st
 
 // 可視FAQ(索引テキスト。FAQPage構造化データと対応)
 function faqVisible(faq: Faq[]): string {
+    if (!faq.length) return '';
     return `<section class="px-4 py-5 border-t border-slate-200 dark:border-slate-800">`
         + `<h2 class="text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">よくある質問</h2>`
         + faq.map(f => `<div class="mb-2"><p class="text-xs font-bold text-slate-700 dark:text-slate-300">Q. ${esc(f.q)}</p><p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">${esc(f.a)}</p></div>`).join('')
@@ -303,7 +304,9 @@ export async function renderLandingPage(req: NextRequest, opts: LandingOptions):
     const page = Math.max(0, parseInt(new URL(req.url).searchParams.get('page') || '0', 10) || 0);
     const offset = page * SSR_COUNT;
     const { products, hasNext } = await fetchLpProducts(req, opts, offset);
-    const faq = faqFor(opts);
+    // よくある質問は 2026-10-09 にユーザーの指示で外した。表示しないなら FAQPage 構造化データも出さない
+    // （見えない内容を構造化データにだけ載せるのは Google のガイドライン違反）。
+    const faq: Faq[] = [];
     const nav: PageNav = {
         canonical: BASE + pagePath(opts.canonicalPath, page),
         prevUrl: page > 0 ? BASE + pagePath(opts.canonicalPath, page - 1) : '',

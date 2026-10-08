@@ -51,6 +51,13 @@ const BLOCKED_MAKERS = new Set(
         : []
 );
 
+// ブロック対象: メーカー名 **またはレーベル名** が一覧にある作品、blockedGenres のジャンルを含む作品（2026-10-09）。
+// 以前はメーカー名しか見ておらず、レーベル名で指定したもの（例: 「あじさい」「エイトマン」）が登録され続けていた。
+const BLOCKED_GENRES = fs.existsSync(BLOCKED_MAKERS_PATH)
+    ? (JSON.parse(fs.readFileSync(BLOCKED_MAKERS_PATH, 'utf-8')).blockedGenres || []) : [];
+const isBlockedProduct = (p) => BLOCKED_MAKERS.has(p.maker || '') || BLOCKED_MAKERS.has(p.label || '')
+    || BLOCKED_GENRES.some(g => String(p.genres || '').includes(g));
+
 const IS_CI = !!process.env.CI;
 
 // STEP2: 1ページ=120件
@@ -233,7 +240,7 @@ async function main() {
                     consecutiveKnown++;
                 } else if (/BEST|ベスト|総集編|オムニバス|リマスター/i.test(product.title || '')) {
                     // 総集編系はスキップ
-                } else if (BLOCKED_MAKERS.has(product.maker || '')) {
+                } else if (isBlockedProduct(product)) {
                     // ブロックメーカーはスキップ
                 } else {
                     // 新規作品！
@@ -403,7 +410,7 @@ async function main() {
         if (compilationSkipped > 0) console.log(`[D1] 総集編系スキップ: ${compilationSkipped}件`);
 
         // ブロックメーカーはTursoに登録しない
-        const filteredNewProducts = afterCompilation.filter(p => !BLOCKED_MAKERS.has(p.maker || ''));
+        const filteredNewProducts = afterCompilation.filter(p => !isBlockedProduct(p));
         const makerSkipped = afterCompilation.length - filteredNewProducts.length;
         if (makerSkipped > 0) console.log(`[D1] ブロックメーカースキップ: ${makerSkipped}件`);
 

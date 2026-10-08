@@ -715,6 +715,11 @@ function mergeMakers(fresh, pubDir) {
             cur.sources = [...new Set([...(cur.sources || []), ...m.sources])];
         }
     }
+    // 削除・ブロックしたメーカー/レーベル（data/blocked_makers.json）と作品0件は一覧に残さない（2026-10-09）。
+    // マージは「既存の名前を消さない」作りなので、ここで落とさないと消したメーカーが古い件数のまま残り続ける。
+    let blocked = new Set();
+    try { blocked = new Set(JSON.parse(fs.readFileSync(path.join(ROOT, '..', 'data', 'blocked_makers.json'), 'utf-8')).makers || []); } catch { /* 無ければ何もしない */ }
+    for (const [name, m] of byName) if (blocked.has(name) || !(m.count > 0)) byName.delete(name);
     const merged = [...byName.values()].sort((a, b) => (b.count || 0) - (a.count || 0));
     if (merged.length > fresh.length) {
         console.log(`  ↳ メーカー一覧: ローカルDB ${fresh.length}件 → 既存とマージして ${merged.length}件を維持`);
