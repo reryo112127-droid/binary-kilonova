@@ -307,7 +307,8 @@ var _sampleImgs = [];
 
       // タイトル
       set('pd-title', p.title);
-      document.title = (p.title||'作品詳細') + ' - AVコンシェルジュ';
+      // document.title はサーバ側（品番・出演者入り）のものを使う。ここで上書きすると
+      // Google が描画後のタイトル「作品名 - 旧サイト名」を採用し、品番が消えていた。
 
       // FANZA星評価
       if (p.review_average && Number(p.review_average) > 0) {

@@ -155,7 +155,9 @@ const SITE_FOOTER = `<footer class="border-t border-slate-200 dark:border-slate-
         .map(([h, l]) => `<a class="hover:text-primary" href="${h}">${l}</a>`).join('')
     + `</div></div>
 </div>
-<p class="text-center text-[10px] text-slate-400 mt-5">AVランキング — MGS・FANZA作品の人気ランキング/最安値比較</p>
+<p class="text-center text-[10px] text-slate-400 mt-5">当サイトはアフィリエイト広告（PR）を利用しています。ランキングの順位は紹介料では決めていません。</p>
+<p class="text-center text-[10px] text-slate-400 mt-1"><a class="underline hover:text-primary" href="/about">AVランキングについて（運営者情報・ランキングの決め方）</a>・<a class="underline hover:text-primary" href="/terms">利用規約</a>・<a class="underline hover:text-primary" href="/privacy">プライバシーポリシー</a></p>
+<p class="text-center text-[10px] text-slate-400 mt-1">AVランキング — MGS・FANZA作品の人気ランキング/最安値比較</p>
 </footer>`;
 
 function injectFooter(html: string): string {

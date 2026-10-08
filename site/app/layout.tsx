@@ -4,14 +4,14 @@ import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import AgeGate from '@/components/AgeGate';
 
-const SITE_NAME = 'AVコンシェルジュ';
+const SITE_NAME = 'AVランキング';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
-const DESCRIPTION = 'MGS動画11万件以上の作品情報を横断検索。女優・ジャンル・スリーサイズによる高精度フィルター搭載。期待度ランキング・新着・素人作品も完全網羅。';
+const DESCRIPTION = 'FANZA・MGS動画の作品を横断して、人気ランキング・新作・予約・セールと両サイトの価格を比較できます。女優・ジャンル・メーカーから探せます。';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — 高級AVコンシェルジュ`,
+    default: `${SITE_NAME} — FANZA・MGSの人気AV作品ランキング`,
     template: `%s | ${SITE_NAME}`,
   },
   description: DESCRIPTION,
@@ -27,12 +27,12 @@ export const metadata: Metadata = {
     locale: 'ja_JP',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — 高級AVコンシェルジュ`,
+    title: `${SITE_NAME} — FANZA・MGSの人気AV作品ランキング`,
     description: DESCRIPTION,
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} — 高級AVコンシェルジュ`,
+    title: `${SITE_NAME} — FANZA・MGSの人気AV作品ランキング`,
     description: DESCRIPTION,
   },
   alternates: {
