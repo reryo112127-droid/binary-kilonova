@@ -363,18 +363,33 @@ if(grid){
     grid.insertAdjacentHTML('beforeend',next.map(cardHtml).join(''));
     rendered+=next.length;
   }
-  fetch('/api/products?actress='+encodeURIComponent(actressName)+'&sort=new&limit=1000').then(function(r){return r.json();}).then(function(items){
-    if(!Array.isArray(items)||items.length===0){grid.innerHTML='<p class="col-span-3 text-center text-slate-400 py-8 text-xs">作品がありません</p>';return;}
-    allItems=items;
-    grid.innerHTML='';
+  // 並び順の切り替え（「新着順／人気順」のボタン。以前は見た目だけで押しても何も起きなかった）。
+  // 並び順ごとに1回だけ取得して覚えておく。
+  var byOrder={}, observing=false;
+  function show(items){
+    allItems=items; rendered=0; grid.innerHTML='';
     renderChunk();
+    if(observing)return; observing=true;
     if('IntersectionObserver' in window){
       var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)renderChunk();});},{rootMargin:'500px'});
       io.observe(sentinel);
     }else{
       window.addEventListener('scroll',function(){if(window.innerHeight+window.scrollY>=document.body.offsetHeight-600)renderChunk();});
     }
-  }).catch(function(){grid.innerHTML='<p class="col-span-3 text-center text-slate-400 py-8 text-xs">エラーが発生しました</p>';});
+  }
+  function load(sort){
+    if(byOrder[sort]){show(byOrder[sort]);return;}
+    grid.innerHTML='<p class="col-span-3 text-center text-slate-400 py-8 text-xs">読み込み中...</p>';
+    fetch('/api/products?actress='+encodeURIComponent(actressName)+'&sort='+sort+'&excludeBest=1&limit=1000').then(function(r){return r.json();}).then(function(items){
+      if(!Array.isArray(items)||items.length===0){grid.innerHTML='<p class="col-span-3 text-center text-slate-400 py-8 text-xs">作品がありません</p>';return;}
+      byOrder[sort]=items;
+      show(items);
+    }).catch(function(){grid.innerHTML='<p class="col-span-3 text-center text-slate-400 py-8 text-xs">エラーが発生しました</p>';});
+  }
+  document.querySelectorAll('input[name="sort-order"]').forEach(function(r){
+    r.addEventListener('change',function(){ if(r.checked) load(r.value==='popular'?'wish_count':'new'); });
+  });
+  load('new');
 }
 })();
 </script>

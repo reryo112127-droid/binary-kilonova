@@ -232,12 +232,11 @@
 </div>
 <div class="flex items-center space-x-4">
 <!-- Segmented Control -->
-<div class="flex p-1 bg-gray-100 rounded-lg">
-<button class="px-4 py-1.5 text-[11px] font-bold rounded-md bg-white shadow-sm text-primary" style="">すべて</button>
-<button class="px-4 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700" style="">予約作品</button>
-<button class="px-4 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700" style="">新作</button>
+<div class="flex p-1 bg-gray-100 rounded-lg" id="act-sort">
+<button type="button" data-sort="new" class="px-4 py-1.5 text-[11px] font-bold rounded-md bg-white shadow-sm text-primary">新着順</button>
+<button type="button" data-sort="wish_count" class="px-4 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:text-gray-700">人気順</button>
 </div>
-<p class="text-[11px] text-gray-400 hidden sm:block" style="">15 / 128 作品</p>
+<p id="act-count" class="text-[11px] text-gray-400 hidden sm:block"></p>
 </div>
 </div>
 <!-- 商品グリッド -->
@@ -859,19 +858,40 @@ if(grid){
     grid.insertAdjacentHTML('beforeend',next.map(cardHtml).join(''));
     rendered+=next.length;
   }
-  fetch('/api/products?actress='+encodeURIComponent(actressName)+'&sort=new&limit=1000').then(function(r){return r.json();}).then(function(items){
-    if(!Array.isArray(items)||items.length===0){grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">作品がありません</p>';return;}
-    allItems=items;
-    if(photoEl&&!photoEl.dataset.set&&items[0]&&items[0].main_image_url)photoEl.src=items[0].main_image_url;
-    grid.innerHTML='';
+  // 並び順の切り替え（新着順が既定）。並び順ごとに1回だけ取得して覚えておく。
+  var byOrder={}, observing=false, countEl=document.getElementById('act-count');
+  function show(items){
+    allItems=items; rendered=0; grid.innerHTML='';
+    if(countEl)countEl.textContent=items.length+' 作品';
     renderChunk();
+    if(observing)return; observing=true;
     if('IntersectionObserver' in window){
       var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)renderChunk();});},{rootMargin:'500px'});
       io.observe(sentinel);
     }else{
       window.addEventListener('scroll',function(){if(window.innerHeight+window.scrollY>=document.body.offsetHeight-600)renderChunk();});
     }
-  }).catch(function(){grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">エラーが発生しました</p>';});
+  }
+  function load(sort){
+    if(byOrder[sort]){show(byOrder[sort]);return;}
+    grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">読み込み中...</p>';
+    fetch('/api/products?actress='+encodeURIComponent(actressName)+'&sort='+sort+'&excludeBest=1&limit=1000').then(function(r){return r.json();}).then(function(items){
+      if(!Array.isArray(items)||items.length===0){grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">作品がありません</p>';return;}
+      byOrder[sort]=items;
+      if(photoEl&&!photoEl.dataset.set&&items[0]&&items[0].main_image_url)photoEl.src=items[0].main_image_url;
+      show(items);
+    }).catch(function(){grid.innerHTML='<p class="col-span-5 text-center text-gray-400 py-8">エラーが発生しました</p>';});
+  }
+  var sortBox=document.getElementById('act-sort');
+  if(sortBox)sortBox.addEventListener('click',function(e){
+    var b=e.target.closest('[data-sort]'); if(!b)return;
+    sortBox.querySelectorAll('[data-sort]').forEach(function(x){
+      var on=x===b;
+      x.className='px-4 py-1.5 text-[11px] rounded-md '+(on?'font-bold bg-white shadow-sm text-primary':'font-medium text-gray-500 hover:text-gray-700');
+    });
+    load(b.getAttribute('data-sort'));
+  });
+  load('new');
 }
 })();
 </script>

@@ -63,7 +63,11 @@ const pagePath = (base: string, p: number) => (p > 0 ? `${base}?page=${p}` : bas
 async function fetchActressProducts(
     req: NextRequest, name: string, apiQuery: string, offset: number,
 ): Promise<{ products: Product[]; hasNext: boolean }> {
-    const cards = await readLpCards('actress', name).catch(() => null);
+    // 女優ページは新着順が既定（2026-10-08）。静的キャッシュは人気順で並んでいるので配信日の新しい順に並べ直す。
+    const day = (v: unknown) => String(v ?? '').replace(/\//g, '-').slice(0, 10);
+    const cached = await readLpCards('actress', name).catch(() => null);
+    const cards = cached ? [...cached].sort((a, b) =>
+        day((b as Record<string, unknown>).sale_start_date).localeCompare(day((a as Record<string, unknown>).sale_start_date))) : null;
     if (cards) {
         const truncated = cards.length >= ACTRESS_CACHE_PER;
         if (offset < cards.length) {
@@ -99,7 +103,7 @@ export async function GET(
         // 出演作品をD1から同一プロセスで取得(本番でSSRカード化＝索引可能に)。
         // excludeBest=1 は検索バー・詳細検索(/search)と同じ既定。付けないと同じ女優でも
         // 入口によって件数が食い違う（実測: 三上悠亜 検索284件 / 女優ページ330件）。
-        const apiQuery = `actress=${encodeURIComponent(actressName)}&sort=wish_count&excludeBest=1`;
+        const apiQuery = `actress=${encodeURIComponent(actressName)}&sort=new&excludeBest=1`;
         // プロフィールは静的シャード(0.4MB以下)から。作品取得と並行して引く。
         const [{ products, hasNext }, profile, indexable] = await Promise.all([
             fetchActressProducts(request, actressName, apiQuery, offset),
