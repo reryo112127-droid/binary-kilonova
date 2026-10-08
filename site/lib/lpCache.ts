@@ -15,6 +15,15 @@ import { readStaticCacheNoMemo } from './staticCache';
 export const LP_SHARD_COUNT = 128;
 
 /**
+ * 種類ごとの分割数（2026-10-08）。女優・メーカーは 128分割だと1ファイル平均 918KB / 491KB あり、
+ * 作品ページは1回の表示で女優2人＋シリーズ＋メーカーの最大4ファイルを JSON.parse するので、
+ * それだけで 1回 数十ms の CPU を使い、混雑時に Workers の資源上限超過（1日 約3,000件のエラー）になっていた。
+ * 細かく分けて1ファイル 約60KB にする。scripts/build_lp_cache.mjs・build_actress_cache.mjs と必ず同じ値にすること。
+ */
+export const LP_SHARD_COUNTS: Record<string, number> = { actress: 2048, maker: 1024, genre: 512 };
+export const lpShardCountOf = (type?: string): number => (type && LP_SHARD_COUNTS[type]) || LP_SHARD_COUNT;
+
+/**
  * 1スラッグあたりの収録上限（scripts/build_lp_cache.mjs の LP_PER_BY_TYPE と **必ず同じ**にすること）。
  * 収録数がこれ未満なら「そのLPの全件が入っている」＝短いページを返しても正しい。
  *
@@ -34,17 +43,18 @@ export type LpCard = {
     source?: string;
 };
 
-/** FNV-1a 32bit → "00".."3f"。scripts/build_lp_cache.mjs の lpShardKey と同じ実装。 */
-export function lpShardKey(slug: string): string {
+/** FNV-1a 32bit → 16進（分割数が256を超える種類は3桁）。scripts/build_lp_cache.mjs の lpShardKey と同じ実装。 */
+export function lpShardKey(slug: string, type?: string): string {
+    const count = lpShardCountOf(type);
     let h = 2166136261;
     for (let i = 0; i < slug.length; i++) {
         h ^= slug.charCodeAt(i);
         h = Math.imul(h, 16777619);
     }
-    return ((h >>> 0) % LP_SHARD_COUNT).toString(16).padStart(2, '0');
+    return ((h >>> 0) % count).toString(16).padStart(count > 256 ? 3 : 2, '0');
 }
 
-export const lpShardFile = (type: string, slug: string) => `lp/${type}/${lpShardKey(slug)}.json`;
+export const lpShardFile = (type: string, slug: string) => `lp/${type}/${lpShardKey(slug, type)}.json`;
 
 /**
  * LPの作品カードを静的キャッシュから引く。未収録なら null（呼び出し側は D1 経由へ）。

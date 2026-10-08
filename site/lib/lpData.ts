@@ -1,5 +1,6 @@
 // 長尾LP用のスラッグ検証・一覧データ(週次生成の静的キャッシュをASSETSから読む)。
 // genres_cache.json / series_cache.json / makers_cache.json は generate-weekly-cache.mjs が生成。
+import { BEST_GENRE } from './bestFilter';
 import { readStaticCacheAsync as readStaticCache } from './staticCache';
 
 export type NamedCount = { name: string; count: number };
@@ -9,7 +10,10 @@ export type MakerEntry = { name: string; count: number; floor?: string; sources?
 export const CUPS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
 
 export async function loadGenres(): Promise<NamedCount[]> {
-    return (await readStaticCache<NamedCount[]>('genres_cache.json')) || [];
+    // 「ベスト・総集編」「女優ベスト・総集編」のジャンルは作品をすべて除外・削除したので
+    // （lib/bestFilter.ts）、LP・ハブ・サイトマップに出すと空ページへのリンクになる。
+    return ((await readStaticCache<NamedCount[]>('genres_cache.json')) || [])
+        .filter(g => !g.name.includes(BEST_GENRE));
 }
 export async function loadSeries(): Promise<NamedCount[]> {
     return (await readStaticCache<NamedCount[]>('series_cache.json')) || [];

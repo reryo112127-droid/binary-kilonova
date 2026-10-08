@@ -21,7 +21,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const SHARD_COUNT = 64;
+// site/lib/actressShard.ts の ACTRESS_SHARD_COUNT と必ず同じ値（2026-10-08 に 64→512）
+export const SHARD_COUNT = 512;
+const PAD = SHARD_COUNT > 256 ? 3 : 2;
 
 /** FNV-1a 32bit。site/lib/actressShard.ts と必ず同じ実装にすること。 */
 export function actressShardKey(name) {
@@ -30,12 +32,12 @@ export function actressShardKey(name) {
         h ^= name.charCodeAt(i);
         h = Math.imul(h, 16777619);
     }
-    return ((h >>> 0) % SHARD_COUNT).toString(16).padStart(2, '0');
+    return ((h >>> 0) % SHARD_COUNT).toString(16).padStart(PAD, '0');
 }
 
 export function buildActressDisplayShards(displayCache) {
     const shards = {};
-    for (let i = 0; i < SHARD_COUNT; i++) shards[i.toString(16).padStart(2, '0')] = {};
+    for (let i = 0; i < SHARD_COUNT; i++) shards[i.toString(16).padStart(PAD, '0')] = {};
     const aliasIndex = {};
 
     for (const [canonical, entry] of Object.entries(displayCache)) {

@@ -35,7 +35,9 @@ const REPO = path.resolve(ROOT, '..');
 
 /** 1女優あたりの収録上限。app/actress/[name]/route.ts の ACTRESS_CACHE_PER と同じ値にすること */
 export const ACTRESS_CACHE_PER = 60;
-const SHARD_COUNT = 128;
+// site/lib/lpCache.ts の LP_SHARD_COUNTS.actress と必ず同じ値（2026-10-08 に 128→2048。1ファイル平均 918KB を 約60KB に）
+const SHARD_COUNT = 2048;
+const PAD = SHARD_COUNT > 256 ? 3 : 2;
 
 // lib/bestFilter.ts / scripts/build_lp_cache.mjs と同じ除外条件
 const BEST_PATTERNS = ['%BEST%', '%ベスト%', '%総集編%', '%コレクション%', '%福袋%', '%詰め合わせ%', '%コンプリート%', '%枚組%'];
@@ -43,14 +45,14 @@ const BEST_PATTERNS = ['%BEST%', '%ベスト%', '%総集編%', '%コレクショ
 const BEST_SQL = BEST_PATTERNS.map(() => 'title NOT LIKE ?').join(' AND ') + ' AND COALESCE(duration_min, 0) <= 480'
     + " AND COALESCE(genres, '') NOT LIKE '%ベスト・総集編%'";
 
-/** FNV-1a 32bit → "00".."7f"。lib/lpCache.ts の lpShardKey と同じ実装 */
+/** FNV-1a 32bit → "000".."7ff"。lib/lpCache.ts の lpShardKey(name, "actress") と同じ実装 */
 export function shardKey(slug) {
     let h = 2166136261;
     for (let i = 0; i < slug.length; i++) {
         h ^= slug.charCodeAt(i);
         h = Math.imul(h, 16777619);
     }
-    return ((h >>> 0) % SHARD_COUNT).toString(16).padStart(2, '0');
+    return ((h >>> 0) % SHARD_COUNT).toString(16).padStart(PAD, '0');
 }
 
 // MGS裏表紙→表紙（lib/landingPage.ts の poster と同じ）
@@ -203,7 +205,7 @@ function main() {
 
     // MGS/FANZA を交互マージ（/api/products の人気順と同じ並べ方）
     const shards = {};
-    for (let i = 0; i < SHARD_COUNT; i++) shards[i.toString(16).padStart(2, '0')] = {};
+    for (let i = 0; i < SHARD_COUNT; i++) shards[i.toString(16).padStart(PAD, '0')] = {};
     let filled = 0, cards = 0, full = 0;
     for (const name of names) {
         const b = buckets.get(name);
@@ -229,6 +231,8 @@ function main() {
 
     let bytes = 0, maxShard = 0;
     for (const base of [path.join(ROOT, 'data', 'lp', 'actress'), path.join(ROOT, 'public', 'data', 'lp', 'actress')]) {
+        // 分割数を変えたときに古い名前のファイルが残って配信され続けないよう、先に空にする
+        fs.rmSync(base, { recursive: true, force: true });
         fs.mkdirSync(base, { recursive: true });
         for (const [nn, obj] of Object.entries(shards)) {
             const json = JSON.stringify(obj);

@@ -170,6 +170,7 @@ B.resetD1Breaker();
     ok(false, 'data/lp/ が無い（npm run build:lp を先に実行）');
   } else {
     ok(L.LP_SHARD_COUNT === lpGen.LP_SHARD_COUNT, 'LP分割数がランタイムと生成側で一致');
+    ok(JSON.stringify(L.LP_SHARD_COUNTS) === JSON.stringify(lpGen.LP_SHARD_COUNTS), '種類別のLP分割数がランタイムと生成側で一致');
     let lpMis = 0, lpCount = 0, emptyList = 0;
     for (const type of fsx.readdirSync(lpDir)) {
       for (const f of fsx.readdirSync(pathx.join(lpDir, type))) {
@@ -177,7 +178,7 @@ B.resetD1Breaker();
         const d = JSON.parse(fsx.readFileSync(pathx.join(lpDir, type, f), 'utf8'));
         for (const slug of Object.keys(d)) {
           lpCount++;
-          if (L.lpShardKey(slug) !== lpGen.lpShardKey(slug) || L.lpShardKey(slug) !== nn) lpMis++;
+          if (L.lpShardKey(slug, type) !== lpGen.lpShardKey(slug, type) || L.lpShardKey(slug, type) !== nn) lpMis++;
           if (!Array.isArray(d[slug]) || d[slug].length === 0) emptyList++;
         }
       }
@@ -187,7 +188,7 @@ B.resetD1Breaker();
 
     const genres = JSON.parse(fsx.readFileSync(pathx.join(__dirname, '..', 'data', 'genres_cache.json'), 'utf8'));
     let gMissing = 0;
-    for (const g of genres) if (!(await L.readLpCards('genre', g.name))) gMissing++;
+    for (const g of genres) if (!g.name.includes('ベスト・総集編') && !(await L.readLpCards('genre', g.name))) gMissing++; // 総集編ジャンルは除外済み（loadGenres で外す）
     ok(gMissing === 0, `ジャンルLP ${genres.length}件すべてにカードがある`);
 
     // 商品詳細の「関連作品」は作品の genres 列の値でそのまま /api/products?genre= を叩くので、
@@ -258,7 +259,7 @@ B.resetD1Breaker();
         const nn = f.replace(/.json$/, '');
         for (const name of Object.keys(JSON.parse(fsx.readFileSync(pathx.join(acDir, f), 'utf8')))) {
           cached.add(name);
-          if (acGen.shardKey(name) !== L.lpShardKey(name) || acGen.shardKey(name) !== nn) acMis++;
+          if (acGen.shardKey(name) !== L.lpShardKey(name, 'actress') || acGen.shardKey(name) !== nn) acMis++;
         }
       }
       ok(acMis === 0, `女優キャッシュのハッシュがランタイムと一致し正しいシャードにある (${cached.size}人)`);

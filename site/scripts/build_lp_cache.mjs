@@ -33,16 +33,21 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');  
 const REPO = path.resolve(ROOT, '..');
 
 export const LP_SHARD_COUNT = 128;   // メーカーが3,400件あり、16分割だと1シャード1.3MBでisolateに重い
+/** 種類ごとの分割数（site/lib/lpCache.ts の LP_SHARD_COUNTS と必ず同じ）。女優・メーカーは1ファイル 約60KB に */
+export const LP_SHARD_COUNTS = { actress: 2048, maker: 1024, genre: 512 };
+export const lpShardCountOf = (type) => (type && LP_SHARD_COUNTS[type]) || LP_SHARD_COUNT;
+const shardName = (i, count) => i.toString(16).padStart(count > 256 ? 3 : 2, '0');
 
 /** FNV-1a 32bit。site/lib/lpCache.ts の lpShardKey と **必ず同じ実装**にすること。 */
-export function lpShardKey(slug) {
+export function lpShardKey(slug, type) {
+    const count = lpShardCountOf(type);
     const s = String(slug);
     let h = 2166136261;
     for (let i = 0; i < s.length; i++) {
         h ^= s.charCodeAt(i);
         h = Math.imul(h, 16777619);
     }
-    return ((h >>> 0) % LP_SHARD_COUNT).toString(16).padStart(2, '0');
+    return shardName((h >>> 0) % count, count);
 }
 
 // lib/bestFilter.ts と同じ除外条件
@@ -246,7 +251,8 @@ function main() {
     for (const [type, map] of Object.entries(buckets)) {
         const perType = perOf(type);
         const shards = {};
-        for (let i = 0; i < LP_SHARD_COUNT; i++) shards[i.toString(16).padStart(2, '0')] = {};
+        const count = lpShardCountOf(type);
+        for (let i = 0; i < count; i++) shards[shardName(i, count)] = {};
         let filled = 0;
         for (const [slug, b] of map) {
             const out = [];
@@ -263,11 +269,13 @@ function main() {
                 if (b.fanza[i] && out.length < perType) push(b.fanza[i]);
             }
             if (out.length === 0) continue;   // 0件はキャッシュせずD1へ落とす
-            shards[lpShardKey(slug)][slug] = out.slice(0, perType);
+            shards[lpShardKey(slug, type)][slug] = out.slice(0, perType);
             filled++;
         }
         let bytes = 0;
         for (const base of [path.join(ROOT, 'data', 'lp', type), path.join(ROOT, 'public', 'data', 'lp', type)]) {
+            // 分割数を変えたときに古い名前のファイルが残って配信され続けないよう、先に空にする
+            fs.rmSync(base, { recursive: true, force: true });
             fs.mkdirSync(base, { recursive: true });
             for (const [nn, obj] of Object.entries(shards)) {
                 const json = JSON.stringify(obj);
