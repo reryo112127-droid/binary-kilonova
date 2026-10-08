@@ -7,7 +7,8 @@ import { loadGenres, loadMakers, isIndexableProduct } from '../../../lib/lpData'
 import { fetchActressProfile } from '../../../lib/actressProfile';
 import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
 import { readShardProduct } from '../../../lib/productShard';
-import { readLpCards } from '../../../lib/lpCache';
+import { readLpCards, lpMaxPer } from '../../../lib/lpCache';
+import { buildIntroHtml } from '../../../lib/productIntro';
 import { fillById, carouselCardHtml, productCardsHtml, type Product } from '../../../lib/landingPage';
 
 export const dynamic = 'force-dynamic';
@@ -38,9 +39,10 @@ async function fetchProduct(id: string): Promise<Record<string, unknown> | null>
 
     // D1 の最小クエリ（SSRはtitle/actresses/maker等の一部のみ使用）
     // series_name は FANZA だけが持つ（同じシリーズの作品への内部リンクに使う）
-    const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, duration_min, series_name FROM products WHERE product_id = ? LIMIT 1';
+    // 価格・レビュー列は「作品の見どころ」の文章に使う（同じ1行なので読み取り行数は増えない）
+    const SQL = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, duration_min, series_name, review_count, review_average, list_price, current_price, discount_pct, sale_end_date FROM products WHERE product_id = ? LIMIT 1';
     // MGS だけが商品発売日(release_date)を持つ（旧作の再配信で配信開始日と食い違う）
-    const SQL_MGS = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, release_date, duration_min FROM products WHERE product_id = ? LIMIT 1';
+    const SQL_MGS = 'SELECT product_id, title, actresses, maker, label, genres, main_image_url, sale_start_date, release_date, duration_min, wish_count, list_price, current_price, discount_pct, sale_end_date FROM products WHERE product_id = ? LIMIT 1';
     let result: Record<string, unknown> | null = null;
 
     const fanzaClient = await getFanzaClient();
@@ -200,7 +202,7 @@ function splitCast(product: Record<string, unknown>): { real: string[]; alias: s
  * 関連作品（同じ女優 → 同じシリーズ → 同じメーカー）を静的キャッシュから集める。D1 は読まない。
  * 作品ページは他の作品へのリンクが0本の行き止まりだった（2026-09-15 実測）。
  */
-async function relatedCards(product: Record<string, unknown>, id: string, real: string[]): Promise<Product[]> {
+async function relatedCards(product: Record<string, unknown>, id: string, real: string[]): Promise<{ related: Product[]; leadWorks: Product[] | null; seriesWorks: Product[] | null }> {
     const seen = new Set([id.toLowerCase()]);
     const out: Product[] = [];
     const add = (cards: Product[] | null | undefined, max: number) => {
@@ -221,7 +223,7 @@ async function relatedCards(product: Record<string, unknown>, id: string, real: 
         maker ? readLpCards('maker', maker).catch(() => null) : null,
     ]);
     add(a1, 8); add(a2, 4); add(s, 12); add(m, 12);
-    return out.slice(0, 12);
+    return { related: out.slice(0, 12), leadWorks: a1, seriesWorks: s };
 }
 
 // 作品の出演ジャンル・メーカーを、対応LPが存在するもの(キャッシュ掲載=有効ページ)に限り
@@ -231,7 +233,22 @@ async function relatedCards(product: Record<string, unknown>, id: string, real: 
 async function injectProductLinks(html: string, product: Record<string, unknown> | null, id: string, isMobile: boolean): Promise<string> {
     if (!product) return html;
     const { real, alias } = splitCast(product);
-    const [genres, makers, related] = await Promise.all([loadGenres(), loadMakers(), relatedCards(product, id, real)]);
+    const [genres, makers, rel, leadProfile] = await Promise.all([
+        loadGenres(), loadMakers(), relatedCards(product, id, real),
+        real[0] ? fetchActressProfile(real[0]).catch(() => null) : null,
+    ]);
+    const related = rel.related;
+
+    // 作品の見どころ（独自の本文）。モバイルは購入ボタンの下、PCは左カラムの末尾。
+    const intro = buildIntroHtml({
+        id, product, cast: real, leadProfile,
+        leadWorks: rel.leadWorks, seriesWorks: rel.seriesWorks, lpMax: lpMaxPer('actress'),
+    }, isMobile);
+    if (intro) {
+        html = isMobile
+            ? html.replace('<!-- 7. Review Section -->', () => `${intro}\n<!-- 7. Review Section -->`)
+            : html.replace(/(<\/section>\s*)(<\/div>\s*<!-- Right Column: Actress Profiles -->)/, (_m, a: string, b: string) => `${a}${intro}\n${b}`);
+    }
     const gset = new Set(genres.map(g => g.name));
     const mset = new Set(makers.map(m => m.name));
     const chip = (href: string, label: string) =>
