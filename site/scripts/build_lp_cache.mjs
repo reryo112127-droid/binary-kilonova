@@ -48,8 +48,10 @@ export function lpShardKey(slug) {
 // lib/bestFilter.ts と同じ除外条件
 const BEST_PATTERNS = ['%BEST%', '%ベスト%', '%総集編%', '%コレクション%', '%福袋%', '%詰め合わせ%', '%コンプリート%', '%枚組%'];
 const COMPILATION_MAX_MIN = 480;
+// 公式ジャンル「ベスト・総集編」も除外（lib/bestFilter.ts の BEST_GENRE と同じ）
 const BEST_SQL = BEST_PATTERNS.map(() => 'title NOT LIKE ?').join(' AND ')
-    + ` AND COALESCE(duration_min, 0) <= ${COMPILATION_MAX_MIN}`;
+    + ` AND COALESCE(duration_min, 0) <= ${COMPILATION_MAX_MIN}`
+    + " AND COALESCE(genres, '') NOT LIKE '%ベスト・総集編%'";
 
 // MGS裏表紙→表紙（lib/landingPage.ts の poster と同じ）
 function poster(url) {

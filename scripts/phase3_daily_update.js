@@ -397,7 +397,8 @@ async function main() {
 
         // Best/総集編/オムニバス/リマスターはTursoに登録しない
         const COMPILATION_RE = /BEST|ベスト|総集編|オムニバス|リマスター/i;
-        const afterCompilation = afterDuration.filter(p => !COMPILATION_RE.test(p.title || ''));
+        // 公式ジャンル「ベスト・総集編」も登録しない（タイトルに語が無い総集編が FANZA だけで 8,746件 入っていた。2026-10-08）
+        const afterCompilation = afterDuration.filter(p => !COMPILATION_RE.test(p.title || '') && !String(p.genres || '').includes('ベスト・総集編'));
         const compilationSkipped = afterDuration.length - afterCompilation.length;
         if (compilationSkipped > 0) console.log(`[D1] 総集編系スキップ: ${compilationSkipped}件`);
 

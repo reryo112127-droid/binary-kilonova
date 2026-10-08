@@ -296,7 +296,7 @@
         var badge=rank===1?'bg-primary':'bg-black/60 backdrop-blur-md';
         var hasActress = !!(p.actresses&&p.actresses.trim());
         return '<a href="'+purl(p.product_id)+'" class="relative min-w-[160px] aspect-[3/4] rounded-xl overflow-hidden shadow-md block">'
-          +(ps?'<div class="absolute inset-0 bg-cover bg-center" style="background-image:url(\''+esc(ps)+'\')"></div>':'')
+          +(ps?'<img class="absolute inset-0 w-full h-full object-cover object-right" src="'+esc(ps)+'" alt="" loading="lazy"/>':'')
           +'<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>'
           +'<div class="absolute top-2 left-2 size-7 '+badge+' rounded flex items-center justify-center text-white text-xs font-bold border border-white/20">'+rank+'</div>'
           +'<div class="absolute bottom-0 p-2.5 w-full"><p class="text-white text-[13px] font-bold line-clamp-2 pr-14">'+esc(p.title||'')+'</p>'+(window.cardMeta?window.cardMeta(p):'')+'</div>'

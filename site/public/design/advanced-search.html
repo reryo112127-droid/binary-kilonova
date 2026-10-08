@@ -352,7 +352,8 @@
     if(preMaker)  qp.set('maker', preMaker);
     if(preActress)qp.set('actress', preActress);
     if(preSource) qp.set('source', preSource);
-    if(sortMap[ctx]){ CTX.sort = sortMap[ctx]; var ss=document.getElementById('as-sort'); if(ss) ss.value = sortMap[ctx]; }
+    // 検索結果は新着順で始める（人気の一覧から開いても人気順にしない）。予約一覧から来たときだけ予約順。
+    if(sortMap[ctx]){ CTX.sort = sortMap[ctx]; var ss=document.getElementById('as-sort'); if(ss) ss.value = (ctx==='pre-order') ? 'pre-order' : 'new'; }
 
     var LABELS = { 'new':'新作', 'popular':'人気作品', 'pre-order':'予約作品', 'sale':'セール作品' };
     var ctxLabel = LABELS[ctx] || (preMaker ? '「'+preMaker+'」' : preActress ? '「'+preActress+'」' : 'この一覧');

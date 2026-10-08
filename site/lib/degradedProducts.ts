@@ -132,7 +132,7 @@ async function actressCacheRows(qy: DegradedQuery): Promise<Row[] | null> {
     }
     return rows.filter(p =>
         (!qy.source || String(p.source ?? '') === qy.source)
-        && (!qy.excludeBest || !isBestOrCompilation(p.title, p.duration_min)));
+        && (!qy.excludeBest || !isBestOrCompilation(p.title, p.duration_min, p.genres)));
 }
 
 /**
@@ -156,7 +156,7 @@ export async function degradedProducts(qy: DegradedQuery): Promise<Row[]> {
 
     let rows = pool.filter(p => {
         if (qy.source && String(p.source ?? '') !== qy.source) return false;
-        if (qy.excludeBest && isBestOrCompilation(p.title, p.duration_min)) return false;
+        if (qy.excludeBest && isBestOrCompilation(p.title, p.duration_min, p.genres)) return false;
         if (q && !textOf(p).includes(q)) return false;
         if (genre && !String(p.genres ?? '').includes(genre)) return false;
         if (maker) {

@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         const cached = await readStaticCache<Record<string, unknown>[]>('ranking_default_cache.json');
         if (cached && cached.length > 0) {
             const filtered = excludeBestParam
-                ? cached.filter(p => !isBestOrCompilation(p.title, p.duration_min))
+                ? cached.filter(p => !isBestOrCompilation(p.title, p.duration_min, p.genres))
                 : cached;
             const page = filtered.slice(0, limit);
             if (cfCache && cfCacheKey) await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         const cached = await readStaticCache<Record<string, unknown>[]>('ranking_2026_cache.json');
         if (cached && cached.length > 0) {
             const filtered = excludeBestParam
-                ? cached.filter(p => !isBestOrCompilation(p.title, p.duration_min))
+                ? cached.filter(p => !isBestOrCompilation(p.title, p.duration_min, p.genres))
                 : cached;
             const page = filtered.slice(0, limit);
             if (cfCache && cfCacheKey) await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {

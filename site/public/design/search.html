@@ -205,8 +205,10 @@
       // BEST/総集編除外
       if (!filters.showBest){
         var t = p.title||'';
-        if (/BEST|ベスト|総集編|コレクション/i.test(t)) return false;
-        if (p.duration_min && Number(p.duration_min) > 200) return false;
+        // lib/bestFilter.ts と同じ基準（語・公式ジャンル・8時間超）。以前は「200分超」で通常の長尺作品まで消していた
+        if (/BEST|ベスト|総集編|コレクション|福袋|詰め合わせ|コンプリート|枚組/i.test(t)) return false;
+        if (p.genres && String(p.genres).indexOf('ベスト・総集編') !== -1) return false;
+        if (p.duration_min && Number(p.duration_min) > 480) return false;
       }
       // ソース（MGS/FANZA）
       if (filters.source && p.source && p.source !== filters.source) return false;

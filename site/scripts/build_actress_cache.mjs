@@ -39,7 +39,9 @@ const SHARD_COUNT = 128;
 
 // lib/bestFilter.ts / scripts/build_lp_cache.mjs と同じ除外条件
 const BEST_PATTERNS = ['%BEST%', '%ベスト%', '%総集編%', '%コレクション%', '%福袋%', '%詰め合わせ%', '%コンプリート%', '%枚組%'];
-const BEST_SQL = BEST_PATTERNS.map(() => 'title NOT LIKE ?').join(' AND ') + ' AND COALESCE(duration_min, 0) <= 480';
+// 公式ジャンル「ベスト・総集編」も除外（lib/bestFilter.ts の BEST_GENRE と同じ）
+const BEST_SQL = BEST_PATTERNS.map(() => 'title NOT LIKE ?').join(' AND ') + ' AND COALESCE(duration_min, 0) <= 480'
+    + " AND COALESCE(genres, '') NOT LIKE '%ベスト・総集編%'";
 
 /** FNV-1a 32bit → "00".."7f"。lib/lpCache.ts の lpShardKey と同じ実装 */
 export function shardKey(slug) {

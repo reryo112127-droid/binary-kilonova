@@ -507,7 +507,7 @@ function workPodItem(p,rank,wrap,imgSz,border,podCls,podH){
   var pid=encodeURIComponent(p.product_id||'');
   return '<div class="flex flex-col items-center group '+wrap+' cursor-pointer" onclick="location.href=\'/product/'+pid+'\'">'
     +'<div class="relative mb-6"><div class="'+imgSz+' '+border+' overflow-hidden shadow-2xl relative z-10">'
-    +(img?'<div class="h-full w-full bg-cover bg-center" style="background-image:url(\''+img+'\')"></div>':'<div class="w-full h-full bg-slate-200"></div>')
+    +(img?'<img class="h-full w-full object-cover object-right" src="'+img+'" alt=""/>':'<div class="w-full h-full bg-slate-200"></div>')
     +'</div><div class="absolute -top-4 -right-2 '+podCls+' w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white z-20">'+rank+'</div></div>'
     +'<div class="w-full '+podCls+' '+podH+' rounded-t-2xl flex items-center justify-center p-3 shadow-2xl"><span class="font-bold text-sm text-black text-center line-clamp-2">'+t+'</span></div></div>';
 }

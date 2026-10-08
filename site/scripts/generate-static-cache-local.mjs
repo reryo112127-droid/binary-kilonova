@@ -136,7 +136,8 @@ function isValidActressName(name) {
 }
 
 const BEST = ['%BEST%','%ベスト%','%総集編%','%コレクション%','%Best%','%リマスター%','%AIリマスター%'];
-const bestConds = BEST.map(() => 'title NOT LIKE ?').join(' AND ');
+// 公式ジャンル「ベスト・総集編」も除外（lib/bestFilter.ts の BEST_GENRE と同じ）
+const bestConds = BEST.map(() => 'title NOT LIKE ?').join(' AND ') + " AND COALESCE(genres, '') NOT LIKE '%ベスト・総集編%'";
 const bestArgs  = BEST;
 
 const today = new Date().toISOString().slice(0, 10);

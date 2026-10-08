@@ -75,9 +75,18 @@ const NOW_PRINTING_SCRIPT = `<script id="np-fix">(function(){
   var SVG="<svg xmlns='http://www.w3.org/2000/svg' width='600' height='800' viewBox='0 0 600 800'><rect width='600' height='800' fill='#f1f2f4'/><g fill='none' stroke='#c7cbd2' stroke-width='13' stroke-linecap='round' stroke-linejoin='round'><rect x='205' y='312' width='190' height='150' rx='16'/><path d='M250 312l22-30h56l22 30'/><circle cx='300' cy='388' r='37'/></g><text x='300' y='548' font-family='-apple-system,sans-serif' font-size='33' fill='#9aa0a6' text-anchor='middle'>準備中</text></svg>";
   var PH="data:image/svg+xml,"+encodeURIComponent(SVG);
   function bad(img){var s=img.currentSrc||img.src||"";if(!s||s.indexOf("data:")===0)return false;if(!/pics\\.dmm\\.co\\.jp\\/digital\\/.*pl\\.jpg/.test(s))return false;return img.naturalWidth>0&&img.naturalHeight>img.naturalWidth;}
-  function fix(img){if(img.dataset.npFixed)return;img.dataset.npFixed="1";img.removeAttribute("srcset");img.src=PH;img.style.objectFit="cover";img.style.background="#f1f2f4";}
-  function scan(root){try{(root||document).querySelectorAll("img").forEach(function(im){if(im.complete&&bad(im))fix(im);});}catch(e){}}
-  document.addEventListener("load",function(e){var t=e.target;if(t&&t.tagName==="IMG"&&bad(t))fix(t);},true);
+  // 一覧の作品カードなら、画像の出ない作品（NOW PRINTING・リンク切れ）はカードごと隠す（2026-10-08）。
+  // 作品ページ上部の大きな画像やサンプル画像は、隠すとページが崩れるので「準備中」に差し替えるだけ。
+  function card(img){if(img.closest("#pd-hero,#pd-samples,#pd-hero-img"))return null;return img.closest('a[href*="/product/"],[onclick*="/product/"]');}
+  function hide(img){var c=card(img);if(!c)return false;c.style.display="none";c.setAttribute("data-noimg","1");return true;}
+  function fix(img){if(img.dataset.npFixed)return;img.dataset.npFixed="1";if(hide(img))return;img.removeAttribute("srcset");img.src=PH;img.style.objectFit="cover";img.style.background="#f1f2f4";}
+  // カードの切り抜き位置を画像の縦横比で自動調整（2026-10-08）。カードは「右端を縦長に切る」作りで、
+  // FANZA の表裏が並んだジャケット（横:縦≒1.49、右半分が表紙）には合うが、16:9 の1枚絵（素人・一部の通常作品）や
+  // VR の画像（1.33/1.60）では中央の人物が切れて顔が写らなかった。ジャケット以外の横長は中央で切る。
+  function crop(img){try{var w=img.naturalWidth,h=img.naturalHeight;if(!w||!h||w<=h)return;if(getComputedStyle(img).objectFit!=="cover")return;var r=w/h;img.style.objectPosition=(r>=1.42&&r<=1.56)?"100% 50%":"50% 50%";}catch(e){}}
+  function scan(root){try{(root||document).querySelectorAll("img").forEach(function(im){if(im.complete&&(bad(im)||(im.naturalWidth===0&&im.getAttribute("src"))))fix(im);else if(im.complete)crop(im);});}catch(e){}}
+  document.addEventListener("load",function(e){var t=e.target;if(t&&t.tagName==="IMG"){if(bad(t))fix(t);else crop(t);}},true);
+  document.addEventListener("error",function(e){var t=e.target;if(t&&t.tagName==="IMG"&&t.getAttribute("src")&&t.src.indexOf("data:")!==0)fix(t);},true);
   document.readyState==="loading"?document.addEventListener("DOMContentLoaded",function(){scan();}):scan();
   try{new MutationObserver(function(muts){muts.forEach(function(m){m.addedNodes&&m.addedNodes.forEach(function(n){if(n.nodeType===1){if(n.tagName==="IMG"){if(n.complete&&bad(n))fix(n);}else if(n.querySelectorAll)scan(n);}});});}).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
 })();<\/script>`;
@@ -130,12 +139,16 @@ const MOBILE_SEARCH_SCRIPT = `<script>
     fetch('/api/suggest?q='+encodeURIComponent(q)).then(function(r){return r.json();}).then(function(data){
       var acts=(data.actresses||[]).slice(0,4);
       var makes=(data.makers||[]).slice(0,2);
+      // 移動先は data-go に持たせる。以前は onclick 内の \\' がこのTSテンプレート文字列で ' に化け、
+      // スクリプト全体が構文エラーでヘッダー検索の候補が一度も出ていなかった（2026-10-08 発見）。
+      var LI='padding:10px 16px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f9fafb';
       var html=acts.map(function(a){
-        return '<li style="padding:10px 16px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f9fafb" onclick="location.href=\'/actress/\'+encodeURIComponent(\''+esc(a)+'\')"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13">person</span><span>'+esc(a)+'</span></li>';
+        return '<li data-go="/actress/'+encodeURIComponent(a)+'" style="'+LI+'"><span class="material-symbols-outlined" style="font-size:16px;color:#ec5b13">person</span><span>'+esc(a)+'</span></li>';
       }).concat(makes.map(function(m){
-        return '<li style="padding:10px 16px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f9fafb" onclick="location.href=\'/search?maker=\'+encodeURIComponent(\''+esc(m)+'\')"><span class="material-symbols-outlined" style="font-size:16px;color:#9ca3af">business</span><span>'+esc(m)+'</span></li>';
+        return '<li data-go="/search?maker='+encodeURIComponent(m)+'" style="'+LI+'"><span class="material-symbols-outlined" style="font-size:16px;color:#9ca3af">business</span><span>'+esc(m)+'</span></li>';
       })).join('');
       list.innerHTML=html;
+      list.onclick=function(e){var li=e.target.closest&&e.target.closest('[data-go]');if(li)location.href=li.getAttribute('data-go');};
       if(html)showDrop();else hideDrop();
     }).catch(function(){hideDrop();});
   }

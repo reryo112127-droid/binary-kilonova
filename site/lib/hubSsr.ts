@@ -32,7 +32,7 @@ async function load(file: string): Promise<Row[]> {
 export async function ssrNewList(limit: number): Promise<Product[]> {
     const today = todayJst();
     return (await load('products_new_cache.json'))
-        .filter(p => !isBestOrCompilation(p.title, p.duration_min) && normDate(p.sale_start_date) <= today)
+        .filter(p => !isBestOrCompilation(p.title, p.duration_min, p.genres) && normDate(p.sale_start_date) <= today)
         .slice(0, limit) as Product[];
 }
 

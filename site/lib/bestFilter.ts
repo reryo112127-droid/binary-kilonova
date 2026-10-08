@@ -35,10 +35,18 @@ export const BEST_TITLE_PATTERNS = [
 ];
 
 /**
- * BEST/総集編かどうかの JS 判定（静的キャッシュ上のフィルタ用）。
- * SQL 版 bestExclusionSql と同じパターン・同じ閾値を使う。
+ * 配信元が付ける公式ジャンル「ベスト・総集編」（FANZA・MGS 共通の表記）。
+ * タイトルの語だけでは「◯◯大全集8時間」「15人4時間」「Special 30名」「S1 女優…（OFJE）」のような総集編が
+ * すり抜け、FANZA だけで **8,746件**（タグ付き 11,059件中）が一覧・検索・ランキングに出ていた（2026-10-08 実測）。
  */
-export function isBestOrCompilation(title: unknown, durationMin?: unknown): boolean {
+export const BEST_GENRE = 'ベスト・総集編';
+
+/**
+ * BEST/総集編かどうかの JS 判定（静的キャッシュ上のフィルタ用）。
+ * SQL 版 bestExclusionSql と同じパターン・同じ閾値を使う。genres が渡れば公式ジャンルも見る。
+ */
+export function isBestOrCompilation(title: unknown, durationMin?: unknown, genres?: unknown): boolean {
+    if (genres && String(genres).includes(BEST_GENRE)) return true;
     const t = String(title ?? '').toUpperCase();
     for (const p of BEST_TITLE_PATTERNS) {
         const word = p.replace(/%/g, '').toUpperCase();
@@ -59,6 +67,9 @@ export function bestExclusionSql(opts: { skipDuration?: boolean } = {}): { conds
         conds.push('title NOT LIKE ?');
         args.push(p);
     }
+    // 公式ジャンル。COALESCE しないと genres が NULL の行が NOT LIKE で落ちる（NULL は真にならない）
+    conds.push("COALESCE(genres, '') NOT LIKE ?");
+    args.push(`%${BEST_GENRE}%`);
     if (!opts.skipDuration) {
         // **`(duration_min IS NULL OR duration_min <= 480)` と書いてはいけない**（2026-09-09）。
         // この OR があると SQLite は idx_duration の MULTI-INDEX OR を選び、

@@ -21,7 +21,8 @@ const REPO = path.resolve(ROOT, '..');
 
 // lib/bestFilter.ts と同じ除外条件（総集編が上位を占めないように）
 const BEST_PATTERNS = ['%BEST%', '%ベスト%', '%総集編%', '%コレクション%', '%福袋%', '%詰め合わせ%', '%コンプリート%', '%枚組%'];
-const BEST_SQL = BEST_PATTERNS.map(() => 'title NOT LIKE ?').join(' AND ') + ' AND COALESCE(duration_min, 0) <= 480';
+const BEST_SQL = BEST_PATTERNS.map(() => 'title NOT LIKE ?').join(' AND ') + ' AND COALESCE(duration_min, 0) <= 480'
+    + " AND COALESCE(genres, '') NOT LIKE '%ベスト・総集編%'";
 
 /** 月別の新作ランキングを作るジャンル（作品数が多く検索もある順） */
 const MONTHLY_GENRES = ['巨乳', '人妻・主婦', '素人', '熟女', '美少女', '中出し', '痴女', 'スレンダー', '美乳', 'ハメ撮り', 'VR専用', 'ギャル'];

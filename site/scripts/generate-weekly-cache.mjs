@@ -433,6 +433,7 @@ function mergeBestExcludeSort(mgsRows, fanzaRows, limit) {
         if (seen.has(pid)) return false;
         seen.add(pid);
         if (BEST_RE.test(String(r.title ?? ''))) return false; // BEST/総集編除外
+        if (String(r.genres ?? '').includes('ベスト・総集編')) return false; // 公式ジャンル（lib/bestFilter.ts の BEST_GENRE）
         const d = Number(r.duration_min);
         if (Number.isFinite(d) && d > COMPILATION_MAX_MIN) return false;
         return true;

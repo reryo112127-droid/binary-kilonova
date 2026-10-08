@@ -62,7 +62,9 @@ const HITS = 100;
 const MAX_ITEMS = 300;
 const CURATED_MAX = 60;
 
-function isBest(title, durationMin) {
+function isBest(title, durationMin, genres) {
+    // 公式ジャンル「ベスト・総集編」（lib/bestFilter.ts の BEST_GENRE と同じ）
+    if (String(genres ?? '').includes('ベスト・総集編')) return true;
     const t = String(title ?? '').toUpperCase();
     if (BEST_WORDS.some(w => t.includes(w.toUpperCase()))) return true;
     return Number.isFinite(durationMin) && durationMin > COMPILATION_MAX_MIN;
@@ -188,7 +190,7 @@ async function main() {
             for (const item of page.items) {
                 const rec = convert(item);
                 if (!rec.product_id || seen.has(rec.product_id)) continue;
-                if (isBest(rec.title, rec.duration_min)) continue;
+                if (isBest(rec.title, rec.duration_min, rec.genres)) continue;
                 if (/LadyHunter/i.test(rec.label ?? '')) continue;   // 既存の除外条件に合わせる
                 seen.add(rec.product_id);
                 records.push(rec);

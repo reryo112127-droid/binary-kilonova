@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeQuery } from '../../../lib/normalizeQuery';
 import { filterActresses } from '../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { getCached, setCached } from '../../../lib/apiCache';
 import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../lib/staticCache';
-import { bestExclusionSql } from '../../../lib/bestFilter';
+import { bestExclusionSql, isBestOrCompilation } from '../../../lib/bestFilter';
 import { degradedProducts } from '../../../lib/degradedProducts';
 import { readLpCards } from '../../../lib/lpCache';
 import { isD1Blocked } from '../../../lib/d1Breaker';
@@ -110,8 +111,14 @@ export async function GET(request: NextRequest) {
         // extended は約19MBあり、パースするとisolateメモリ(128MB)を大きく削る。
         // top(2MB)で当たる女優のほうが多いので、外れたときだけ extended を読み込む。
         const topCache = await readStaticCache<Record<string, unknown[]>>('actress_top_products.json');
-        const products = topCache?.[actressParam]
+        const raw = topCache?.[actressParam]
             ?? (await readStaticCache<Record<string, unknown[]>>('actress_extended_products.json'))?.[actressParam];
+        // キャッシュは週次生成で、公式ジャンル「ベスト・総集編」の除外を足す前の版が残っている
+        // （2026-10-08 時点で 3,359件中 813件が総集編）。生成し直しを待たず、返す前にも同じ判定で落とす。
+        const products = raw?.filter(p => {
+            const r = p as Record<string, unknown>;
+            return !isBestOrCompilation(r.title, r.duration_min, r.genres);
+        });
         // キャッシュ(actress_top/extended)は女優あたり最大20件程度に打ち切られているため、
         // 要求件数を満たせる場合のみキャッシュを返す。満たせない（=全作品を見たい）場合は
         // D1のFTSクエリ(軽量)にフォールスルーして出演作品をすべて取得する。
@@ -276,7 +283,10 @@ export async function GET(request: NextRequest) {
         // 結果取得後にキャッシュ（後続の処理で設定）
         (request as NextRequest & { _cacheKey?: string })._cacheKey = cacheKey;
     }
-    const q = searchParams.get('q') || '';
+    // 検索語の表記ゆれをそろえる。スマホの日本語入力では品番が「ＳＳＩＳ－１２３」「SSIS－123」「SSIS ー123」の
+    // ように全角や別のダッシュで入り、品番の点引きも英字コアの照合も外れて 0件 になっていた（2026-10-08 実測）。
+    // NFKC で全角英数字を半角に、英数字にはさまれたダッシュ類（‐－―ーなど）を '-' にする。
+    const q = normalizeQuery(searchParams.get('q') || '');
     const genre = searchParams.get('genre') || '';
     const actress = searchParams.get('actress') || '';
     const maker = searchParams.get('maker') || '';
@@ -516,9 +526,11 @@ export async function GET(request: NextRequest) {
     // FANZA は数字部を5桁ゼロ詰めで格納しているため、従来の LIKE '%ssis-123%' では
     // **1件も当たらなかった**（この正規化で品番検索がむしろ改善する）。
     function canonicalFanzaId(raw: string): string | null {
-        const m = raw.match(/^([A-Za-z]+)[-_ ]?(\d{1,5})$/);
+        // 先頭の数字（FANZA の「1fns00249」「118abp00123」の 1 / 118）も保つ。
+        // 以前は英字始まりしか受けず「1FNS-249」が 1fns の全作品一覧に広がっていた。
+        const m = raw.match(/^(\d*)([A-Za-z]+)[-_ ]?(\d{1,5})$/);
         if (!m) return null;
-        return m[1].toLowerCase() + m[2].padStart(5, '0');
+        return m[1] + m[2].toLowerCase() + m[3].padStart(5, '0');
     }
 
     // 短名（3文字未満）女優の条件を作る。静的インデックスに載っていれば主キーの IN 引きに、
@@ -1158,11 +1170,20 @@ export async function GET(request: NextRequest) {
     // 女優検索: FTS(trigram)/短名LIKEは部分一致（「ちな」→「ちなみ」「ちなつ」等）で
     // 別人を巻き込む。actressesのcomma区切りエントリと完全一致するものだけに絞る。
     // 複数女優(共演検索)のときは **全グループが一致する作品だけ** を残す。
+    // 出演者欄は「河北彩花（河北彩伽）」のように別名がかっこ書きで付くことがあり、丸ごと比べると
+    // 「河北彩花」で1件も一致せず、詳細検索の女優指定が 0件 になっていた（2026-10-08 実測）。
+    // かっこの外の名前と、かっこの中の別名の両方で照合する。
     if (actressGroups.length > 0) {
         const wantedSets = actressGroups.map(g => new Set(g));
+        const namesOf = (entry: string): string[] => {
+            const outer = entry.replace(/[（(][^）)]*[）)]/g, '').trim();
+            const inner = [...entry.matchAll(/[（(]([^）)]*)[）)]/g)].flatMap(m => m[1].split(/[、,・/／]/)).map(s => s.trim());
+            return [entry.trim(), outer, ...inner].filter(Boolean);
+        };
         combined = combined.filter(p => {
             const acts = String((p as Record<string, unknown>).actresses ?? '')
-                .split(/[,、]/).map(s => s.trim());
+                .replace(/（[^）]*）|\([^)]*\)/g, m => m.replace(/[,、]/g, '・')) // かっこ内の区切りで分割しない
+                .split(/[,、]/).flatMap(namesOf);
             return wantedSets.every(w => acts.some(a => w.has(a)));
         });
     }
