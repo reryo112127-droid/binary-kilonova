@@ -1,0 +1,26 @@
+{
+  "new": {
+    "account": "005",
+    "handle": "shinsakushirase"
+  },
+  "sale": {
+    "account": "004",
+    "handle": "salenoshirase"
+  },
+  "vr": {
+    "account": "007",
+    "handle": "oshiraseVR"
+  },
+  "collab": {
+    "account": "002",
+    "handle": "avencyclopedia"
+  },
+  "anon": {
+    "account": "008",
+    "handle": "unKnownoshirase"
+  },
+  "lady": {
+    "account": "006",
+    "handle": "VRnooshirase"
+  }
+}

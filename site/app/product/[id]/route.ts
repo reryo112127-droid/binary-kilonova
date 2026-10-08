@@ -9,6 +9,7 @@ import { edgeLookup, edgeStore } from '../../../lib/edgeCache';
 import { readShardProduct } from '../../../lib/productShard';
 import { readLpCards, lpMaxPer } from '../../../lib/lpCache';
 import { buildIntroHtml } from '../../../lib/productIntro';
+import { xFollowHtml, setXFollow, xGenreOfProduct } from '../../../lib/xFollow';
 import { fillById, carouselCardHtml, productCardsHtml, type Product } from '../../../lib/landingPage';
 
 export const dynamic = 'force-dynamic';
@@ -243,7 +244,7 @@ async function injectProductLinks(html: string, product: Record<string, unknown>
     const intro = buildIntroHtml({
         id, product, cast: real, leadProfile,
         leadWorks: rel.leadWorks, seriesWorks: rel.seriesWorks, lpMax: lpMaxPer('actress'),
-    }, isMobile);
+    }, isMobile).replace(/<\/section>$/, () => `<div class="mt-4">${xFollowHtml(xGenreOfProduct(product, real.length))}</div></section>`);
     if (intro) {
         html = isMobile
             ? html.replace('<!-- 7. Review Section -->', () => `${intro}\n<!-- 7. Review Section -->`)
@@ -347,6 +348,8 @@ export async function GET(
         html = await injectProductLinks(html, product, id, isMobile); // 出演者・関連作品・ジャンル/メーカーへの内部リンク
 
         html = isMobile ? injectMobileLayout(html) : injectWebLayout(html);
+        // フッターの「Xでフォロー」を作品の系統（VR/セール/素人/人妻/共演/新作）のアカウントへ
+        html = setXFollow(html, xGenreOfProduct(product, splitCast(product).real.length));
         const resp = new NextResponse(html, {
             // Cache API に保存され、再クロール・リピート訪問は Worker非起動で返る=無料枠の消費を大幅削減。
             // max-age=60 で bfcache(戻る復元)維持。価格は最大1時間古くなり得るが R2 read-through(1h)もあり許容。

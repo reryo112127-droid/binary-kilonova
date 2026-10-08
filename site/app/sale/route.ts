@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readHtml } from '../../lib/readHtml';
 import { injectMobileLayout, injectWebLayout } from '../../lib/injectLayout';
+import { setXFollow } from '../../lib/xFollow';
 import { injectHubSeo, replaceH1 } from '../../lib/pageMeta';
 import { edgeLookup, edgeStore } from '../../lib/edgeCache';
 import { fillById, productCardsHtml } from '../../lib/landingPage';
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
     try {
         let html = await readHtml(request.url, htmlFile);
         html = isMobile ? injectMobileLayout(html, 'sale', { skipClean: true }) : injectWebLayout(html);
+        html = setXFollow(html, 'sale'); // フッターの「Xでフォロー」をセール担当のアカウントへ
         html = injectHubSeo(html, {
             title: 'AV セール中の作品',
             description: 'FANZA・MGSで今セール中のAV作品をまとめて掲載。割引率と両プラットフォームの最安値を比べて、安く買えるタイミングを逃さずチェックできます。',

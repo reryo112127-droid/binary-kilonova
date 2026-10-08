@@ -11,6 +11,7 @@ import { injectMobileLayout } from './injectLayout';
 import { edgeLookup, edgeStore } from './edgeCache';
 import { readStaticCacheAsync as readStaticCache } from './staticCache';
 import { esc, poster, cardMetaHtml, replaceGridInner, type Product } from './landingPage';
+import { setXFollow, xGenreOfFeature } from './xFollow';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 
@@ -130,6 +131,7 @@ export async function renderFeature(req: NextRequest, slug: string): Promise<Nex
     html = html.replace(/<div[^>]*id="products-grid"[^>]*>/, m => heading + m);
     html = replaceGridInner(html, `<div class="col-span-3 px-4">${f.items.map((p, i) => itemRow(p, i + 1)).join('')}</div>`);
     html = html.replace('<footer id="site-footer"', otherFeatures(data.features, slug) + '<footer id="site-footer"');
+    html = setXFollow(html, xGenreOfFeature(slug));
     const resp = respond(html);
     await edgeStore(edge, resp);
     return resp;

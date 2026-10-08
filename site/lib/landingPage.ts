@@ -13,6 +13,7 @@ import { injectMobileLayout } from './injectLayout';
 import { GET as productsGET } from '../app/api/products/route';
 import { edgeLookup, edgeStore } from './edgeCache';
 import { readLpCards } from './lpCache';
+import { setXFollow, xGenreOfGenres } from './xFollow';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 const SSR_COUNT = 30;
@@ -314,6 +315,8 @@ export async function renderLandingPage(req: NextRequest, opts: LandingOptions):
     html = html.replace('</head>', seoHead(opts, products, nav, faq) + '\n</head>');
     html = html.replace(/<div[^>]*id="products-grid"[^>]*>/, m => headingBlock(opts) + m);
     html = replaceGridInner(html, productCardsHtml(products));
+    // ジャンルLPは「Xでフォロー」を系統のアカウント（VR/素人/人妻・熟女）へ
+    if (opts.type === 'genre') { const g = xGenreOfGenres(opts.slug); if (g) html = setXFollow(html, g); }
     // グリッド後・フッター前に ページネーション＋FAQ を挿入(injectFooterで </body>直前にfooterが入っている)
     html = html.replace('<footer id="site-footer"', paginationNav(opts, page, hasNext) + faqVisible(faq) + '<footer id="site-footer"');
     // このページ専用のページャ(SSR済みの続きから無限スクロール)

@@ -54,7 +54,7 @@ function aboutMain(): string {
         + section('運営者情報', `<dl class="grid grid-cols-3 gap-y-3 text-sm">`
             + `<dt class="text-slate-500">サイト名</dt><dd class="col-span-2">AVランキング</dd>`
             + `<dt class="text-slate-500">URL</dt><dd class="col-span-2">https://avrankings.com</dd>`
-            + `<dt class="text-slate-500">運営</dt><dd class="col-span-2">AVランキング運営事務局</dd>`
+            + `<dt class="text-slate-500">運営</dt><dd class="col-span-2">AVランキング管理人</dd>`
             + `<dt class="text-slate-500">お問い合わせ</dt><dd class="col-span-2"><a class="text-primary underline" href="mailto:contact@avrankings.com">contact@avrankings.com</a></dd>`
             + `<dt class="text-slate-500">関連ページ</dt><dd class="col-span-2"><a class="text-primary underline" href="/terms">利用規約</a>・<a class="text-primary underline" href="/privacy">プライバシーポリシー</a></dd>`
             + `</dl>`)

@@ -159,8 +159,11 @@ const WEB_SEARCH_SCRIPT = `<script>
 // ─── 共通フッター(内部リンク/クロール導線) ──────────────────────
 // 全ページに人気ジャンル・各ハブ(ジャンル/メーカー/シリーズ/カップ)への実リンクを置き、
 // Googlebot がどのページからでも長尾LPを発見できるようにする(クロール深度↓・評価分配)。
+import { xFollowHtml } from './xFollow';
+
 const POPULAR_GENRES = ['巨乳', '人妻・主婦', '素人', '熟女', '美少女', '中出し', '痴女', 'スレンダー', '美乳', 'フェラ', 'ハメ撮り', '3P・4P'];
 const SITE_FOOTER = `<footer class="border-t border-slate-200 dark:border-slate-800 px-4 py-6 mb-24 text-xs text-slate-500 dark:text-slate-400">
+<div class="text-center mb-5">` + xFollowHtml('new') + `</div>
 <div class="grid grid-cols-2 gap-5 max-w-3xl mx-auto">
 <div><p class="font-bold mb-1.5 text-slate-700 dark:text-slate-300">人気ジャンル</p><div class="flex flex-wrap gap-x-3 gap-y-1.5">`
     + POPULAR_GENRES.map(g => `<a class="hover:text-primary" href="/genre/${encodeURIComponent(g)}">${g}</a>`).join('')
