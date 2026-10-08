@@ -294,7 +294,7 @@
           return '<a href="'+purl(p.product_id)+'" class="flex flex-col bg-white dark:bg-white/5 p-1.5 rounded-lg border border-primary/5 shadow-sm">'
             +'<div class="relative"><div class="w-full aspect-[3/4] overflow-hidden rounded-md mb-1.5">'+img+'</div>'
             +'<span class="absolute top-0 left-0 bg-black/50 text-white text-[9px] px-1 rounded-br-md font-bold">'+rank+'</span></div>'
-            +'<h3 class="font-bold text-[10px] line-clamp-2">'+esc(p.title||'')+'</h3></a>';
+            +'<h3 class="font-bold text-[10px] line-clamp-2">'+esc(p.title||'')+'</h3>'+(window.cardMeta?window.cardMeta(p):'')+'</a>';
         }).join('');
       }
       var el = document.getElementById('ranking-update-date');

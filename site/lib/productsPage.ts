@@ -111,6 +111,7 @@ const PRODUCTS_SCRIPT = `<script>
         +'</div></div>'
         +'<p class="line-clamp-2 text-[11px] font-bold leading-tight">'+esc(p.title)+'</p>'
         +actHtml
+        +(window.cardMeta?window.cardMeta(p):'')
         +'</div>';
     }).join('');
     if(append)grid.insertAdjacentHTML('beforeend',h);

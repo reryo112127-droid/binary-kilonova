@@ -362,7 +362,7 @@ function cardHtml(p){
     +'<button data-like-pid="'+rawPid+'" onclick="event.preventDefault();event.stopPropagation();toggleLike(this,this.dataset.likePid)" class="w-7 h-7 flex items-center justify-center bg-white/90 rounded-full shadow-sm text-red-500 hover:bg-red-500 hover:text-white transition-colors"><span class="material-symbols-outlined text-[16px]">favorite</span></button>'
     +'</div></div>'
     +'<div class="p-3"><h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight h-8">'+t+'</h3>'
-    +'<p class="text-[10px] text-gray-400">'+dt+' 発売</p></div></article>';
+    +'<p class="text-[10px] text-gray-400">'+dt+' 発売</p>'+(window.cardMeta?window.cardMeta(p):'')+'</div></article>';
 }
 function loadProducts(){
   fetchOffset=0;

@@ -118,7 +118,8 @@ export async function GET(request: NextRequest) {
         mgsClient
             ? mgsClient.execute({
                   sql: `SELECT product_id, title, actresses, main_image_url, wish_count,
-                               genres, maker, sale_start_date
+                               genres, maker, sale_start_date,
+                               COALESCE(discount_pct, 0) AS discount_pct, list_price, current_price
                         FROM products
                         WHERE ${mgsConds.conds.join(' AND ')}
                         ORDER BY wish_count DESC
@@ -135,7 +136,8 @@ export async function GET(request: NextRequest) {
                                genres, maker, sale_start_date,
                                COALESCE(discount_pct, 0) AS discount_pct,
                                COALESCE(review_count, 0) AS review_count,
-                               COALESCE(review_average, 0) AS review_average
+                               COALESCE(review_average, 0) AS review_average,
+                               list_price, current_price
                         FROM products
                         ${fanzaConds.conds.length ? 'WHERE ' + fanzaConds.conds.join(' AND ') : ''}
                         ORDER BY products.review_count DESC, products.sale_start_date DESC
@@ -153,6 +155,9 @@ export async function GET(request: NextRequest) {
         main_image_url: string;
         wish_count: number;
         discount_pct: number;
+        /** カードに価格を出すため（同じ行の列なので読み取り行数は増えない） */
+        list_price: number | null;
+        current_price: number | null;
         review_count: number;
         review_average: number;
         genres: string | null;
@@ -176,7 +181,9 @@ export async function GET(request: NextRequest) {
                 ),
                 main_image_url: String(r.main_image_url ?? ''),
                 wish_count: Number(r.wish_count ?? 0),
-                discount_pct: 0,
+                discount_pct: Number(r.discount_pct ?? 0),
+                list_price: r.list_price == null ? null : Number(r.list_price),
+                current_price: r.current_price == null ? null : Number(r.current_price),
                 review_count: 0,
                 review_average: 0,
                 genres: (r.genres as string | null) || null,
@@ -201,6 +208,8 @@ export async function GET(request: NextRequest) {
                 main_image_url: String(r.main_image_url ?? ''),
                 wish_count: Number(r.wish_count ?? 0),
                 discount_pct: Number(r.discount_pct ?? 0),
+                list_price: r.list_price == null ? null : Number(r.list_price),
+                current_price: r.current_price == null ? null : Number(r.current_price),
                 review_count: Number(r.review_count ?? 0),
                 review_average: Number(r.review_average ?? 0),
                 genres: (r.genres as string | null) || null,

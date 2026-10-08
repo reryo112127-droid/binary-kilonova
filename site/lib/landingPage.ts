@@ -50,7 +50,32 @@ export function poster(url: string): string {
     return url;
 }
 
-export type Product = { product_id: string; title?: string; actresses?: string; main_image_url?: string };
+export type Product = {
+    product_id: string; title?: string; actresses?: string; main_image_url?: string;
+    list_price?: number | null; current_price?: number | null; discount_pct?: number | null;
+    review_count?: number | null; review_average?: number | null; wish_count?: number | null;
+};
+
+/**
+ * カードの「価格・割引・評価」の1行。クライアント側の window.cardMeta（lib/injectLayout.ts）と同じ見た目。
+ * 他サイトは一覧の時点で価格と★を見せてクリックを取っているのに、こちらは画像とタイトルだけだった。
+ */
+export function cardMetaHtml(p: Product, big = false): string {
+    const n = (v: unknown) => { const x = Number(v); return Number.isFinite(x) && x > 0 ? x : 0; };
+    const cur = n(p.current_price), list = n(p.list_price), d = n(p.discount_pct);
+    const ra = n(p.review_average), rc = n(p.review_count), w = n(p.wish_count);
+    const parts: string[] = [];
+    if (cur) {
+        parts.push(`<span class="font-black text-red-500">¥${cur.toLocaleString('ja-JP')}</span>`
+            + (d > 0 && list > cur ? `<span class="line-through text-slate-400">¥${list.toLocaleString('ja-JP')}</span><span class="bg-red-500 text-white font-bold px-1 rounded-sm">${d}%OFF</span>` : ''));
+    } else if (d > 0) {
+        parts.push(`<span class="bg-red-500 text-white font-bold px-1 rounded-sm">${d}%OFF</span>`);
+    }
+    if (ra && rc) parts.push(`<span class="text-amber-500 font-bold">★${ra.toFixed(1)}</span><span class="text-slate-400">(${rc})</span>`);
+    else if (w >= 100) parts.push(`<span class="text-pink-500 font-bold">♥${w >= 10000 ? (w / 10000).toFixed(1) + '万' : w.toLocaleString('ja-JP')}</span>`);
+    if (!parts.length) return '';
+    return `<p class="flex flex-wrap items-center gap-x-1 gap-y-0.5 ${big ? 'text-xs' : 'text-[10px]'} leading-tight mt-0.5">${parts.join('')}</p>`;
+}
 
 // SSR用の作品カード(実 <a> リンク = クロール可能)
 export function cardHtml(p: Product): string {
@@ -66,6 +91,7 @@ export function cardHtml(p: Product): string {
         + `</div>`
         + `<p class="line-clamp-2 text-[11px] font-bold leading-tight">${esc(p.title)}</p>`
         + (act ? `<p class="text-[10px] text-slate-400 truncate">${esc(act)}</p>` : '')
+        + cardMetaHtml(p)
         + `</a>`;
 }
 
@@ -82,7 +108,7 @@ export function carouselCardHtml(p: Product, widthPx = 120): string {
     return `<a class="shrink-0 block" style="width:${widthPx}px;min-width:${widthPx}px" href="/product/${encodeURIComponent(pid)}">`
         + `<div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800">`
         + (img ? `<img class="w-full h-full object-cover object-right block" src="${esc(img)}" alt="${esc(p.title)}" loading="lazy"/>` : '')
-        + `</div><p class="text-[10px] font-bold leading-tight line-clamp-2 mt-1.5">${esc(p.title)}</p></a>`;
+        + `</div><p class="text-[10px] font-bold leading-tight line-clamp-2 mt-1.5">${esc(p.title)}</p>${cardMetaHtml(p)}</a>`;
 }
 
 // 縦並びリスト(ランキング行)用の SSR カード
@@ -93,7 +119,7 @@ export function rowCardHtml(p: Product, rank: number): string {
         + `<span class="w-8 text-center text-sm font-bold text-slate-400 shrink-0">${rank}</span>`
         + `<div class="w-14 h-[75px] shrink-0 overflow-hidden rounded bg-slate-200">`
         + (img ? `<img class="w-full h-full object-cover object-right block" src="${esc(img)}" alt="${esc(p.title)}" loading="lazy"/>` : '')
-        + `</div><p class="flex-1 min-w-0 text-xs font-bold line-clamp-2">${esc(p.title)}</p></a>`;
+        + `</div><div class="flex-1 min-w-0"><p class="text-xs font-bold line-clamp-2">${esc(p.title)}</p>${cardMetaHtml(p)}</div></a>`;
 }
 
 // #products-grid の中身を SSR カードに差し替える(対応する </div> を深さカウントで特定)

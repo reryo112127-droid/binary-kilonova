@@ -228,6 +228,7 @@
       +'</div>'
       +'<h5 class="text-xs font-bold truncate">'+esc(p.title)+'</h5>'
       +'<p class="text-[10px] text-gray-400">'+esc(p.actresses||p.maker||'')+'</p>'
+      +(window.cardMeta?window.cardMeta(p):'')
       +'</a>';
   }
 
@@ -245,6 +246,7 @@
       +'</div>'
       +'<h5 class="text-[11px] font-bold line-clamp-2 mt-2 leading-snug">'+esc(p.title)+'</h5>'
       +(date?'<p class="text-[10px] text-red-500 font-medium mt-0.5">'+date+'</p>':'')
+      +(window.cardMeta?window.cardMeta(p):'')
       +'</a>';
   }
 
@@ -262,6 +264,7 @@
       +'<div class="flex-1 min-w-0">'
       +'<p class="text-xs font-bold truncate">'+esc(p.title)+'</p>'
       +'<p class="text-[10px] text-gray-400 truncate">'+esc(p.actresses||p.maker||'')+'</p>'
+      +(window.cardMeta?window.cardMeta(p):'')
       +'</div>'
       +'<div class="flex gap-1 shrink-0">'
       +(!(p.actresses&&p.actresses.trim())?'<button data-pid="'+esc(p.product_id)+'" onclick="event.preventDefault();event.stopPropagation();location.href=\'/cast/register/\'+encodeURIComponent(this.dataset.pid)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-800 transition-colors"><span class="material-symbols-outlined text-[18px]">add_circle</span></button>':'')

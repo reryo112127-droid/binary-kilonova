@@ -882,7 +882,7 @@
 <script>
 (function(){
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');return url;}url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;}
+  function poster(url){if(!url)return '';if(url.includes('pb_e_'))return url.replace('pb_e_','pf_e_');if(url.includes('/digital/amateur/')&&url.endsWith('jm.jpg'))return url.replace('jm.jpg','jp-001.jpg');return url;}
   function purl(id){return '/product/'+encodeURIComponent(id);}
   function setCard(n,p){
     var img=document.getElementById('rank-'+n+'-img');
@@ -905,7 +905,7 @@
       +'<div class="flex-1 min-w-0">'
       +'<h4 class="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">'+esc(p.title||'')+'</h4>'
       +(actress?'<p class="text-xs text-slate-500 truncate mt-0.5">'+esc(actress)+'</p>':'')
-      +'<span class="text-[10px] text-slate-400 mt-1 block">詳細へ ›</span>'
+      +((window.cardMeta&&window.cardMeta(p))||'<span class="text-[10px] text-slate-400 mt-1 block">詳細へ ›</span>')
       +'</div></a>';
   }
   fetch('/api/ranking?limit=100&fromDate=2026-01-01&toDate=2026-12-31&excludeBest=1')

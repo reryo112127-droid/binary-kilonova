@@ -217,6 +217,7 @@ function cardHtml(p){
     +'<div class="p-3 flex flex-col flex-1">'
     +'<h3 class="text-[12px] font-bold line-clamp-2 mb-1 leading-tight">'+esc(p.title||'')+'</h3>'
     +(p.actresses?'<p class="text-[10px] text-orange-500 truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>':'')
+    +(window.cardMeta?window.cardMeta(p):'')
     +'<p class="text-[10px] text-gray-400 mt-auto pt-1">'+dt+'</p>'
     +'</div></article>';
 }

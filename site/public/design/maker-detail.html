@@ -226,6 +226,7 @@ body { min-height: max(884px, 100dvh); }
       +'</div></div>'
       +'<p class="line-clamp-2 text-[11px] font-bold leading-tight">'+esc(p.title||'')+'</p>'
       +(p.actresses ? '<p class="text-[10px] text-slate-400 truncate">'+esc(p.actresses.split(',')[0].trim())+'</p>' : '')
+      +(window.cardMeta?window.cardMeta(p):'')
       +'</div>';
   }
 

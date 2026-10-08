@@ -23,6 +23,23 @@ const LIKE_UTILS_SCRIPT = `<script id="like-utils">
     try{localStorage.setItem('_liked',JSON.stringify(Array.from(window._likedSet)));}catch(e){}
     fetch('/api/like/product/'+encodeURIComponent(pid),{method:'POST',headers:{'x-session-id':window._sid()}}).catch(function(){});
   };
+  // 作品カードの「価格・割引・評価」の1行（全テンプレのカードから呼ぶ。サーバ側は landingPage.cardMetaHtml）
+  window.cardMeta=function(p,big){
+    if(!p)return '';
+    var cur=parseInt(p.current_price)||0,list=parseInt(p.list_price)||0,d=parseInt(p.discount_pct)||0;
+    var ra=parseFloat(p.review_average)||0,rc=parseInt(p.review_count)||0,w=parseInt(p.wish_count)||0;
+    var parts=[];
+    if(cur){
+      parts.push('<span class="font-black text-red-500">¥'+cur.toLocaleString()+'</span>'
+        +(d>0&&list>cur?'<span class="line-through text-slate-400">¥'+list.toLocaleString()+'</span><span class="bg-red-500 text-white font-bold px-1 rounded-sm">'+d+'%OFF</span>':''));
+    }else if(d>0){
+      parts.push('<span class="bg-red-500 text-white font-bold px-1 rounded-sm">'+d+'%OFF</span>');
+    }
+    if(ra>0&&rc>0)parts.push('<span class="text-amber-500 font-bold">★'+ra.toFixed(1)+'</span><span class="text-slate-400">('+rc+')</span>');
+    else if(w>=100)parts.push('<span class="text-pink-500 font-bold">♥'+(w>=10000?(w/10000).toFixed(1)+'万':w.toLocaleString())+'</span>');
+    if(!parts.length)return '';
+    return '<p class="flex flex-wrap items-center gap-x-1 gap-y-0.5 '+(big?'text-xs':'text-[10px]')+' leading-tight mt-0.5">'+parts.join('')+'</p>';
+  };
   window.restoreLikes=function(){
     document.querySelectorAll('[data-like-pid]').forEach(function(btn){
       if(window._likedSet.has(btn.getAttribute('data-like-pid'))){
