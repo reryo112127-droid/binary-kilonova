@@ -70,3 +70,18 @@ export function filterActresses(actressesStr: string | null, genres: string | nu
     if (!/[＊*]/.test(actressesStr)) return actressesStr;
     return entries.join(', ');
 }
+
+/**
+ * 一覧カードに出す前に、出演者欄から役名（素人作品の「いと 22歳 カラオケ店員」のような名義）を外す（2026-10-08）。
+ * D1 から取る経路は API 内で filterActresses を通していたが、静的キャッシュ（新作・人気・ランキング・LP・特集）から
+ * 返す経路は素通しで、人気作 400件中149件・2026ランキング 100件中41件の先頭に役名が出ていた。
+ * 実在女優が1人もいなければ空文字（カードは女優名の行を出さない）。
+ */
+export function cleanCast<T>(rows: T[]): T[] {
+    return rows.map(row => {
+        const r = row as unknown as Record<string, unknown>;
+        if (!r || typeof r.actresses !== 'string' || !r.actresses) return row;
+        const cleaned = filterActresses(r.actresses, (r.genres as string) ?? null, (r.maker as string) ?? null) ?? '';
+        return (cleaned === r.actresses ? row : { ...r, actresses: cleaned }) as unknown as T;
+    });
+}

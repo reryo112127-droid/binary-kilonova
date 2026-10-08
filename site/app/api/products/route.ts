@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { normalizeQuery } from '../../../lib/normalizeQuery';
-import { filterActresses } from '../../../lib/actressFilter';
+import { filterActresses, cleanCast } from '../../../lib/actressFilter';
 import { getMgsClient, getFanzaClient } from '../../../lib/turso';
 import { getCached, setCached } from '../../../lib/apiCache';
 import { readStaticCacheAsync as readStaticCache, cacheHeaders } from '../../../lib/staticCache';
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
         // 要求件数を満たせる場合のみキャッシュを返す。満たせない（=全作品を見たい）場合は
         // D1のFTSクエリ(軽量)にフォールスルーして出演作品をすべて取得する。
         if (products && products.length >= limit) {
-            const page = products.slice(0, limit + 1);
+            const page = cleanCast(products.slice(0, limit + 1));
             const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 600) } });
             if (cfCache && cfCacheKey) {
                 await cfCache.put(cfCacheKey, new Response(JSON.stringify(page), {
@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
                 // 最終バッチなど limit 未満しか残っていない場合は Turso にフォールスルーして
                 // hasMore 判定が正確に行われるようにする。
                 if (offset + limit <= cached.length) {
-                    const page = cached.slice(offset, offset + limit);
+                    const page = cleanCast(cached.slice(offset, offset + limit));
                     const res = NextResponse.json(
                         page,
                         { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } }
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
             };
             const minD = parseInt(searchParams.get('minDiscount') || '0', 10);
             const filtered = saleCached.filter(p => notExpired(p) && (minD <= 0 || Number(p.discount_pct) >= minD));
-            const page = filtered.slice(0, limit);
+            const page = cleanCast(filtered.slice(0, limit));
             const res = NextResponse.json(
                 page,
                 { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } }
@@ -229,7 +229,7 @@ export async function GET(request: NextRequest) {
             // 食っていた。ジャンルは180件（6ページ）まで焼いてあり、それ以上は打ち切ってよい
             // （?page= は robots で拒否＝クロール対象外。利用者には6ページぶん出る）。
             if (cards) {
-                const page = offset < cards.length ? cards.slice(offset, offset + limit) : [];
+                const page = cleanCast(offset < cards.length ? cards.slice(offset, offset + limit) : []);
                 const ttl = page.length > 0 ? 21600 : 1800;
                 const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(ttl, 86400) } });
                 if (cfCache && cfCacheKey && page.length > 0) {
@@ -254,9 +254,9 @@ export async function GET(request: NextRequest) {
         if (preCached && preCached.length > 0) {
             const today = new Date().toISOString().slice(0, 10);
             const dateOf = (p: Record<string, unknown>) => String(p.sale_start_date ?? '').replace(/\//g, '-').slice(0, 10);
-            const page = preCached.filter(p => dateOf(p) > today)
+            const page = cleanCast(preCached.filter(p => dateOf(p) > today)
                 .sort((a, b) => dateOf(b).localeCompare(dateOf(a)))   // 配信が遠い順（D1経路と同じ並び）
-                .slice(0, limit);
+                .slice(0, limit));
             if (page.length > 0) {
                 const res = NextResponse.json(page, { headers: { 'Content-Type': 'application/json', ...cacheHeaders(1800, 300) } });
                 if (cfCache && cfCacheKey) {

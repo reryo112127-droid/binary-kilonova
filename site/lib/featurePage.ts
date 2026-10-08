@@ -12,6 +12,7 @@ import { edgeLookup, edgeStore } from './edgeCache';
 import { readStaticCacheAsync as readStaticCache } from './staticCache';
 import { esc, poster, cardMetaHtml, replaceGridInner, type Product } from './landingPage';
 import { setXFollow, xGenreOfFeature } from './xFollow';
+import { filterActresses } from './actressFilter';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 
@@ -53,6 +54,8 @@ function head(title: string, desc: string, path: string, crumb: string, ld: obje
 
 function itemRow(p: FeatureItem, rank: number): string {
     const img = poster(String(p.main_image_url || ''));
+    // 役名は出さない（実在女優だけ）
+    p = { ...p, actresses: p.actresses ? (filterActresses(String(p.actresses), null, p.maker ?? null) ?? '') : '' };
     const pid = String(p.product_id);
     const medal = rank === 1 ? 'bg-amber-400 text-white' : rank === 2 ? 'bg-slate-400 text-white' : rank === 3 ? 'bg-orange-400 text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-800';
     return `<a class="flex gap-3 py-3 border-b border-slate-100 dark:border-slate-800" href="/product/${encodeURIComponent(pid)}">`

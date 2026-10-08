@@ -14,6 +14,7 @@ import { GET as productsGET } from '../app/api/products/route';
 import { edgeLookup, edgeStore } from './edgeCache';
 import { readLpCards } from './lpCache';
 import { setXFollow, xGenreOfGenres } from './xFollow';
+import { filterActresses } from './actressFilter';
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://avrankings.com';
 const SSR_COUNT = 30;
@@ -82,7 +83,10 @@ export function cardMetaHtml(p: Product, big = false): string {
 export function cardHtml(p: Product): string {
     const pid = String(p.product_id);
     const img = poster(String(p.main_image_url || ''));
-    const act = p.actresses ? String(p.actresses).split(',')[0].trim() : '';
+    // 役名（素人作品の「いと 22歳 カラオケ店員」など）は出さず、実在女優の先頭1人だけ
+    const r = p as Record<string, unknown>;
+    const cast = p.actresses ? filterActresses(String(p.actresses), (r.genres as string) ?? null, (r.maker as string) ?? null) : null;
+    const act = cast ? cast.split(',')[0].trim() : '';
     const imgTag = img
         ? `<img class="h-full w-full object-cover object-right" src="${esc(img)}" alt="${esc(p.title)}" loading="lazy"/>`
         : `<div class="h-full w-full bg-slate-200 dark:bg-slate-700"></div>`;

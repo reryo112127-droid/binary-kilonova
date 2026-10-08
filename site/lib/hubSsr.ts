@@ -9,6 +9,7 @@
 import { readStaticCacheAsync as readStaticCache } from './staticCache';
 import { isBestOrCompilation } from './bestFilter';
 import type { Product } from './landingPage';
+import { cleanCast } from './actressFilter';
 
 type Row = Record<string, unknown>;
 
@@ -31,24 +32,24 @@ async function load(file: string): Promise<Row[]> {
 /** 新作（配信済み・BEST/総集編除外）。/new とホームの既定表示と同じ条件。 */
 export async function ssrNewList(limit: number): Promise<Product[]> {
     const today = todayJst();
-    return (await load('products_new_cache.json'))
+    return cleanCast((await load('products_new_cache.json'))
         .filter(p => !isBestOrCompilation(p.title, p.duration_min, p.genres) && normDate(p.sale_start_date) <= today)
-        .slice(0, limit) as Product[];
+        .slice(0, limit) as Product[]);
 }
 
 /** 予約（未配信のみ） */
 export async function ssrPreorderList(limit: number): Promise<Product[]> {
     const today = todayJst();
-    return (await load('home_preorder_cache.json'))
+    return cleanCast((await load('home_preorder_cache.json'))
         .filter(p => normDate(p.sale_start_date) > today)
-        .slice(0, limit) as Product[];
+        .slice(0, limit) as Product[]);
 }
 
 /** セール中（割引1%以上・終了済みを除外・割引率の高い順） */
 export async function ssrSaleList(limit: number): Promise<Product[]> {
     const today = todayJst();
-    return (await load('sale_cache.json'))
+    return cleanCast((await load('sale_cache.json'))
         .filter(p => Number(p.discount_pct ?? 0) >= 1 && (!normDate(p.sale_end_date) || normDate(p.sale_end_date) >= today))
         .sort((a, b) => Number(b.discount_pct ?? 0) - Number(a.discount_pct ?? 0))
-        .slice(0, limit) as Product[];
+        .slice(0, limit) as Product[]);
 }
