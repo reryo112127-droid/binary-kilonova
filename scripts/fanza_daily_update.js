@@ -279,6 +279,58 @@ async function tursoUpsertBatch(turso, rows, columns) {
     }
 }
 
+// ---- 差分だけ書く upsert（2026-10-08）----
+// 予約作品は毎日「明日〜先の予約」を全部取り直しており、既にある作品まで INSERT OR REPLACE で
+// 丸ごと書き直していた。INSERT OR REPLACE は「既存行の削除＋挿入＋FTSの削除/再挿入＋全索引の更新」で
+// 1件あたり約12行の書込になる（D1 書込枠10万行/日の1割前後を、ほぼ値の変わらない行に使っていた）。
+// さらに丸ごと置き換えるので、seesaawiki / avwiki が後から補った出演者名を API の空欄で消していた。
+// → 既存行を主キーで読み（1件1行）、無ければ INSERT、あれば「値が変わった列だけ」UPDATE、同じなら書かない。
+//   出演者は API が空なら既存の値を残す。時刻列（取得日時など）は比較に使わず、他の列が変わったときだけ書く。
+const VOLATILE_COLS = new Set(['price_updated_at', 'scraped_at', 'updated_at']);
+async function upsertChanged(db, rows, columns) {
+    const norm = v => (v === null || v === undefined) ? '' : String(v);
+    const emptyCast = v => { const s = norm(v).trim(); return s === '' || s === '----'; };
+    const insertSql = `INSERT OR REPLACE INTO products (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`;
+    const BATCH = 50;
+    const stat = { inserted: 0, updated: 0, unchanged: 0 };
+    for (let i = 0; i < rows.length; i += BATCH) {
+        const chunk = rows.slice(i, i + BATCH);
+        let existing;
+        try {
+            const r = await db.execute({
+                sql: `SELECT ${columns.join(', ')} FROM products WHERE product_id IN (${chunk.map(() => '?').join(',')})`,
+                args: chunk.map(r => r.product_id),
+            });
+            existing = new Map((r.rows || r).map(x => [String(x.product_id), x]));
+        } catch (e) {
+            // 読めなければ従来どおり丸ごと書く（新作の取りこぼしを避ける）
+            console.warn(`  [差分判定できず→従来の上書き] ${e.message}`);
+            await tursoUpsertBatch(db, chunk, columns);
+            stat.inserted += chunk.length;
+            continue;
+        }
+        const inserts = [], updates = [];
+        for (const row of chunk) {
+            const cur = existing.get(String(row.product_id));
+            if (!cur) { inserts.push({ sql: insertSql, args: columns.map(c => row[c] ?? null) }); continue; }
+            const sets = [], vals = [];
+            for (const c of columns) {
+                if (c === 'product_id' || VOLATILE_COLS.has(c)) continue;
+                const v = row[c] ?? null;
+                if (c === 'actresses' && emptyCast(v) && !emptyCast(cur.actresses)) continue; // 補完済みの出演者を消さない
+                if (norm(v) !== norm(cur[c])) { sets.push(`${c} = ?`); vals.push(v); }
+            }
+            if (!sets.length) { stat.unchanged++; continue; }
+            for (const c of columns) if (VOLATILE_COLS.has(c) && row[c] !== undefined) { sets.push(`${c} = ?`); vals.push(row[c]); }
+            updates.push({ sql: `UPDATE products SET ${sets.join(', ')} WHERE product_id = ?`, args: [...vals, row.product_id] });
+        }
+        // INSERT と UPDATE は別々に送る（混ぜるとシャード振り分けが効かず両シャードに挿入される）
+        if (inserts.length) { await db.batch(inserts, 'write'); stat.inserted += inserts.length; }
+        if (updates.length) { await db.batch(updates, 'write'); stat.updated += updates.length; }
+    }
+    return stat;
+}
+
 // ============================================================
 //  STEP 1: 予約商品取得（明日以降のリリース予定作品）— 全floor対応
 // ============================================================
@@ -600,8 +652,8 @@ async function main() {
 
         // 新作 upsert
         if (newItems.length > 0) {
-            await tursoUpsertBatch(turso, newItems, allColumns);
-            console.log(`  新作: ${newItems.length}件 Turso書き込み完了`);
+            const st = await upsertChanged(turso, newItems, allColumns);
+            console.log(`  新作/予約: ${newItems.length}件 → 追加 ${st.inserted} / 変更 ${st.updated} / 変化なし ${st.unchanged}（書き込みなし）`);
         }
 
         // 価格 update (バッチ UPDATE)

@@ -40,6 +40,10 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const DATA_DIR      = path.join(__dirname, '..', 'data');
 const MAP_FILE      = path.join(DATA_DIR, 'seesaawiki_actress_map_v2.jsonl');
+// D1 反映済みの記録（DB別・女優ごとの出演作リストの指紋）。変わっていない女優は次回 D1 を読まない。
+// 以前は毎日 約7,800人ぶんの全作品を50件ずつ読み直し、1日 約5,000クエリ・約34万行（読取枠の約7%）を
+// 「既に掲載」の確認だけに使っていた（2026-10-08 実測）。--full で全件やり直す。
+const APPLIED_FILE  = path.join(DATA_DIR, 'seesaawiki_applied.json');
 const PROGRESS_FILE = path.join(DATA_DIR, 'seesaawiki_progress_v2.json');
 const WHITELIST     = path.join(__dirname, '..', 'site', 'data', 'actress_whitelist.json');
 const SITEMAP_URL   = 'https://seesaawiki.jp/av_neme/sitemap.xml';
@@ -240,6 +244,12 @@ function nextCast(current, name, aliases) {
 
 async function applyToD1() {
     const { fanzaShards, d1 } = require('./lib/d1');
+    const crypto = require('crypto');
+    const FULL = process.argv.includes('--full');
+    let applied = {};
+    try { if (!FULL) applied = JSON.parse(fs.readFileSync(APPLIED_FILE, 'utf-8')); } catch { applied = {}; }
+    const sigOf = (ids) => crypto.createHash('md5').update(ids.slice().sort().join(',')).digest('hex').slice(0, 12);
+    let skippedSame = 0;
     const targets = [
         { label: 'FANZA', db: fanzaShards(), key: 'pids' },
         { label: 'MGS',   db: d1('mgs'),     key: 'mgsPids' },
@@ -252,6 +262,16 @@ async function applyToD1() {
     for (const { label, db, key } of targets) {
         for (const e of entries) {
             const ids = [...new Set(e[key] || [])];
+            const akey = `${label}:${e.actressName}`;
+            const sig = ids.length ? sigOf(ids) : '';
+            // 記録は「指紋|反映日」。指紋が同じでも14日たったら照合し直す（日次の取り込みが既存行を
+            // INSERT OR REPLACE で上書きし、足した女優名が消えることがあるため）。
+            const [prevSig, prevDay] = String(applied[akey] || '').split('|');
+            // 期限は女優ごとに10〜18日へばらす（初回に全員同じ日で記録され、2週間後に一斉に読み直すのを避ける）
+            const ttlDays = 10 + (parseInt(sig.slice(0, 2) || '0', 16) % 9);
+            const fresh = prevDay && (Date.now() - Date.parse(prevDay)) < ttlDays * 86400000;
+            if (!ids.length || (prevSig === sig && fresh)) { if (ids.length) skippedSame++; continue; }
+            const errorsBefore = stat.errors;
             const aliases = aliasesOf(e.profile);
             // D1 のバインド変数は 1クエリ100個まで。余裕を取って50件ずつ。
             for (let i = 0; i < ids.length; i += 50) {
@@ -287,11 +307,14 @@ async function applyToD1() {
                     if (stat.errors >= 50) { console.warn('\n  エラーが多いので中断（D1 枠切れの可能性）'); break outer; }
                 }
             }
+            // この女優のチャンクを最後まで処理できた（エラー・上限での中断なし）ときだけ反映済みにする
+            if (stat.errors === errorsBefore) applied[akey] = `${sig}|${new Date().toISOString().slice(0, 10)}`;
             process.stdout.write(`\r  [${label}] 確認 ${stat.checked.toLocaleString()} / 空欄補完 ${stat.filled} / 追記 ${stat.appended}`);
         }
         console.log('');
     }
-    console.log(`  完了: 確認 ${stat.checked.toLocaleString()}件 / 空欄補完 ${stat.filled}件 / 追記 ${stat.appended}件 / 既に掲載 ${stat.present}件 / エラー ${stat.errors}件`);
+    console.log(`  完了: 確認 ${stat.checked.toLocaleString()}件 / 空欄補完 ${stat.filled}件 / 追記 ${stat.appended}件 / 既に掲載 ${stat.present}件 / エラー ${stat.errors}件 / 前回から変化なしで省略 ${skippedSame}人`);
+    if (!DRY_RUN) fs.writeFileSync(APPLIED_FILE, JSON.stringify(applied));
     for (const { db } of targets) try { db.close?.(); } catch { }
 }
 

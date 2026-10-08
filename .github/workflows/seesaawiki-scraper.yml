@@ -93,6 +93,7 @@ jobs:
           git add \
             data/seesaawiki_actress_map_v2.jsonl \
             data/seesaawiki_progress_v2.json \
+            data/seesaawiki_applied.json \
             || true
           if ! git diff --staged --quiet; then
             git commit -m "seesaawiki: scraper progress [skip ci] [vercel skip]"

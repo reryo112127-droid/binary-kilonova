@@ -613,6 +613,10 @@ export async function GET(request: NextRequest) {
     // 変わるのは「1年より古い作品しか無い珍しい2文字」だけで、そこが高コストの正体。
     // 3文字以上は FTS が効くので対象外。
     const SHORT_Q_FLOOR = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+    // 1〜2文字の検索語（FTS が効かず日付順に LIKE で舐める）だけは 120日 に縮める（2026-10-08）。
+    // 1年だと珍しい語で1回 約1万行を読み、検索だけで1日 約160万行（読取枠の3割）になっていた。
+    // 2文字の語で古い作品まで探す需要は薄い（品番・3文字以上の語・女優名は別経路で全期間を引ける）。
+    const SHORT_TEXT_Q_FLOOR = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10);
     const shortQFloorCond = (isMgs: boolean) =>
         isMgs ? "REPLACE(sale_start_date, '/', '-') >= ?" : 'sale_start_date >= ?';
     // ジャンル以外に範囲を狭める絞り込みが無いか（ジャンルの配信日下限はこのときだけ付ける）
@@ -815,12 +819,12 @@ export async function GET(request: NextRequest) {
                 conditions.push(`(title LIKE ? OR actresses LIKE ? OR product_id LIKE ?)`);
                 args.push(`%${q}%`, `%${q}%`, `%${q}%`);
                 conditions.push(shortQFloorCond(isMgs));
-                args.push(SHORT_Q_FLOOR);
+                args.push(SHORT_TEXT_Q_FLOOR);
             } else {
                 conditions.push(`(title LIKE ? OR actresses LIKE ?)`);
                 args.push(`%${q}%`, `%${q}%`);
                 conditions.push(shortQFloorCond(isMgs));
-                args.push(SHORT_Q_FLOOR);
+                args.push(SHORT_TEXT_Q_FLOOR);
             }
         }
         if (genre && genreList.length > 0) {
@@ -1217,9 +1221,11 @@ export async function GET(request: NextRequest) {
     if (cacheKey) setCached(cacheKey, result);
 
     // CF Cache API に保存（空結果はキャッシュしない → 次回リクエストで再取得）
+    // D1 を実際に読んだ結果は6時間持つ（2026-10-08、旧30分）。作品データの更新は1日1回なので
+    // 鮮度はほぼ落ちず、同じ検索・ページ送りが D1 を読み直す回数を減らせる。
     if (result.length > 0 && cfCache && cfCacheKey) {
         await cfCache.put(cfCacheKey, new Response(JSON.stringify(result), {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800' },
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=21600' },
         }));
     }
     // 空結果は短いTTLで返す（キャッシュ汚染防止）
