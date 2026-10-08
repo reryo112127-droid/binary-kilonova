@@ -782,6 +782,14 @@ async function main() {
         console.warn(`⚠ actress_profiles.json の再生成をスキップ: ${e.message}`);
     }
 
+    // 特集ページ(/feature/<slug>)のデータ。ローカルDBだけで作る（D1 は読まない）。
+    try {
+        const { buildFeatures } = await import('./build_features.mjs');
+        buildFeatures();
+    } catch (e) {
+        console.warn(`⚠ features.json の再生成をスキップ: ${e.message}`);
+    }
+
     console.log('\n完了！次のコマンドでデプロイしてください:');
     console.log('  npm run deploy:cf');
     process.exit(0);

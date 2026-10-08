@@ -151,7 +151,7 @@ const SITE_FOOTER = `<footer class="border-t border-slate-200 dark:border-slate-
     + POPULAR_GENRES.map(g => `<a class="hover:text-primary" href="/genre/${encodeURIComponent(g)}">${g}</a>`).join('')
     + `<a class="hover:text-primary font-medium" href="/genres">ジャンル一覧 ›</a></div></div>
 <div><p class="font-bold mb-1.5 text-slate-700 dark:text-slate-300">探す</p><div class="flex flex-wrap gap-x-3 gap-y-1.5">`
-    + [['/ranking', 'ランキング'], ['/new', '新作'], ['/pre-order', '予約'], ['/sale', 'セール'], ['/makers', 'メーカー'], ['/series', 'シリーズ'], ['/cup', 'カップ別'], ['/video', '動画']]
+    + [['/ranking', 'ランキング'], ['/new', '新作'], ['/pre-order', '予約'], ['/sale', 'セール'], ['/features', '特集'], ['/makers', 'メーカー'], ['/series', 'シリーズ'], ['/cup', 'カップ別'], ['/video', '動画']]
         .map(([h, l]) => `<a class="hover:text-primary" href="${h}">${l}</a>`).join('')
     + `</div></div>
 </div>

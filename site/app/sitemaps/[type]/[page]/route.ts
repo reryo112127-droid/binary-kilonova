@@ -21,6 +21,7 @@ const STATIC_PATHS: { path: string; changefreq: string; priority: string }[] = [
     { path: '/pre-order', changefreq: 'daily', priority: '0.8' },
     { path: '/sale', changefreq: 'daily', priority: '0.8' },
     { path: '/about', changefreq: 'monthly', priority: '0.3' },
+    { path: '/features', changefreq: 'daily', priority: '0.7' },
     { path: '/search', changefreq: 'weekly', priority: '0.7' },
     { path: '/search/advanced', changefreq: 'monthly', priority: '0.5' },
     { path: '/video', changefreq: 'weekly', priority: '0.6' },
@@ -57,8 +58,11 @@ export async function GET(
         urls = STATIC_PATHS.map(s => ({ loc: BASE + s.path, changefreq: s.changefreq, priority: s.priority }));
     } else if (type === 'landing') {
         // 長尾LP: ジャンル/メーカー/シリーズ/カップ(計~1000未満なので1チャンク)
-        const [genres, makers, series] = await Promise.all([loadGenres(), loadMakers(), loadSeries()]);
+        const [genres, makers, series, feats] = await Promise.all([loadGenres(), loadMakers(), loadSeries(),
+            readStaticCache<{ features: { slug: string }[] }>('features.json').catch(() => null)]);
         urls = [
+            // 特集（scripts/build_features.mjs が日次で作る）
+            ...(feats?.features ?? []).map(x => ({ loc: `${BASE}/feature/${encodeURIComponent(x.slug)}`, changefreq: 'daily', priority: '0.7' })),
             ...genres.map(g => ({ loc: `${BASE}/genre/${encodeURIComponent(g.name)}`, changefreq: 'weekly', priority: '0.7' })),
             ...makers.map(m => ({ loc: `${BASE}/maker/${encodeURIComponent(m.name)}`, changefreq: 'weekly', priority: '0.6' })),
             ...series.map(s => ({ loc: `${BASE}/series/${encodeURIComponent(s.name)}`, changefreq: 'weekly', priority: '0.5' })),
