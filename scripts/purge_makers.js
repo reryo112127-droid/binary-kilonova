@@ -72,10 +72,11 @@ async function deleteChunked(d1Client, local, ids) {
         const local = fs.existsSync(t.db) ? openLocal(t.db, { readonly: DRY }) : null;
         const byId = new Map();
 
-        // ① メーカー/レーベル（D1 から索引で）
-        const ph = NAMES.map(() => '?').join(',');
-        for (const col of ['maker', 'label']) {
-            const r = await remote.execute({ sql: `SELECT * FROM products WHERE ${col} IN (${ph})`, args: NAMES });
+        // ① メーカー/レーベル（D1 から索引で）。D1 のバインド変数は1文100個までなので名前を90件ずつに分ける
+        const chunks = [];
+        for (let i = 0; i < NAMES.length; i += 90) chunks.push(NAMES.slice(i, i + 90));
+        for (const col of ['maker', 'label']) for (const ch of chunks) {
+            const r = await remote.execute({ sql: `SELECT * FROM products WHERE ${col} IN (${ch.map(() => '?').join(',')})`, args: ch });
             for (const row of (r.rows || r)) {
                 byId.set(String(row.product_id), row);
                 const k = NAMES.includes(row.maker) ? row.maker : row.label;
@@ -84,8 +85,8 @@ async function deleteChunked(d1Client, local, ids) {
         }
         // ローカルにだけ残っている行も消す（D1 では既に消えている・表記が古いなど。D1 側の DELETE は空振りで済む）
         if (local) {
-            for (const col of ['maker', 'label']) {
-                const r = await local.execute({ sql: `SELECT * FROM products WHERE ${col} IN (${ph})`, args: NAMES });
+            for (const col of ['maker', 'label']) for (const ch of chunks) {
+                const r = await local.execute({ sql: `SELECT * FROM products WHERE ${col} IN (${ch.map(() => '?').join(',')})`, args: ch });
                 for (const row of r.rows) if (!byId.has(String(row.product_id))) byId.set(String(row.product_id), row);
             }
         }
