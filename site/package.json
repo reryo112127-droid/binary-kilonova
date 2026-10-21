@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cf": "node scripts/build_short_name_index.mjs && node scripts/build_preorder_cache.mjs && node scripts/build_actress_display_shards.mjs && node scripts/build_lp_cache.mjs && node scripts/build_actress_cache.mjs && node scripts/build_product_shards.mjs && opennextjs-cloudflare build",
-    "deploy:cf": "node scripts/build_short_name_index.mjs && node scripts/build_preorder_cache.mjs && node scripts/build_actress_display_shards.mjs && node scripts/build_lp_cache.mjs && node scripts/build_actress_cache.mjs && node scripts/build_product_shards.mjs && opennextjs-cloudflare build && wrangler deploy && node scripts/indexnow_ping.mjs",
+    "build:cf": "node scripts/build_short_name_index.mjs && node scripts/build_preorder_cache.mjs && node scripts/build_actress_display_shards.mjs && node scripts/build_lp_cache.mjs && node scripts/build_actress_cache.mjs && node scripts/build_product_shards.mjs && opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
+    "deploy:cf": "node scripts/build_short_name_index.mjs && node scripts/build_preorder_cache.mjs && node scripts/build_actress_display_shards.mjs && node scripts/build_lp_cache.mjs && node scripts/build_actress_cache.mjs && node scripts/build_product_shards.mjs && opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && wrangler deploy && node scripts/indexnow_ping.mjs",
     "deploy:cf:only": "opennextjs-cloudflare deploy",
     "indexnow": "node scripts/indexnow_ping.mjs",
     "start": "next start",
@@ -27,7 +27,7 @@
     "jimp": "^1.6.1",
     "jpeg-js": "^0.4.4",
     "lucide-react": "^0.577.0",
-    "next": "^15.5.15",
+    "next": "^15.5.28",
     "nsfwjs": "^4.3.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -41,7 +41,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "^15.5.15",
+    "eslint-config-next": "^15.5.28",
     "typescript": "^5",
     "wrangler": "^4.87.0"
   }
