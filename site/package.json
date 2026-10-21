@@ -22,13 +22,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
-    "@tensorflow/tfjs": "^4.22.0",
-    "@tensorflow/tfjs-backend-cpu": "^4.22.0",
     "jimp": "^1.6.1",
     "jpeg-js": "^0.4.4",
     "lucide-react": "^0.577.0",
     "next": "^16.4.2",
-    "nsfwjs": "^4.3.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "sql.js": "^1.14.1",
@@ -44,5 +41,10 @@
     "eslint-config-next": "^16.4.2",
     "typescript": "^5",
     "wrangler": "^4.151.3"
+  },
+  "overrides": {
+    "@node-minify/core": {
+      "glob": "^10.5.0"
+    }
   }
 }

@@ -18,7 +18,6 @@
         "avwiki:bg": "start /B node scripts/avwiki_local_runner.js >> logs/avwiki.log 2>&1"
     },
     "dependencies": {
-        "@anthropic-ai/sdk": "^0.80.0",
         "@atproto/api": "^0.19.4",
         "@google/generative-ai": "^0.24.1",
         "agent-twitter-client": "^0.0.18",
