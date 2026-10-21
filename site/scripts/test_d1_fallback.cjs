@@ -208,7 +208,8 @@ B.resetD1Breaker();
       if (!fsx.existsSync(p)) continue;
       const db = new (require('better-sqlite3'))(p, { readonly: true });
       for (const row of db.prepare('SELECT genres, title, duration_min FROM products WHERE genres IS NOT NULL').iterate()) {
-        if (BF.isBestOrCompilation(row.title, row.duration_min)) continue;
+        // 公式ジャンル「ベスト・総集編」も見る（サイト側は 2026-10-08 から genres でも除外している）
+        if (BF.isBestOrCompilation(row.title, row.duration_min, row.genres)) continue;
         for (const el of String(row.genres).split(/,\s*/)) { const g = el.trim(); if (g) catalogGenres.add(g); }
       }
       db.close();

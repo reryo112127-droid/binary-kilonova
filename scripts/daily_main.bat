@@ -159,6 +159,13 @@ REM used to rebuild it fails at its build step (since 2026-09-07), so the PC own
 echo [4a] actress index list (weekly): %time% >> "%LOG_FILE%"
 "%NODE%" scripts\generate-weekly-cache.mjs --actresses-only --max-age-days=7 >> "%LOG_FILE%" 2>&1
 echo [4a] done: %errorlevel% at %time% >> "%LOG_FILE%"
+REM Genre/series lists for the landing pages (genres_cache.json / series_cache.json). Same weekly
+REM pattern as [4a]: the weekly CI owned these but has failed every run since 2026-09-06, and its
+REM commits never reached this PC anyway (this batch does not git pull), so the PC owns them now.
+REM Must run before deploy:cf: build_lp_cache.mjs builds the LP shards from genres_cache.json.
+echo [4b] LP genre/series lists (weekly): %time% >> "%LOG_FILE%"
+"%NODE%" scripts\generate-weekly-cache.mjs --lp-caches --max-age-days=7 >> "%LOG_FILE%" 2>&1
+echo [4b] done: %errorlevel% at %time% >> "%LOG_FILE%"
 set CACHE_CNT=0
 "%NODE%" -e "const a=require('./public/data/products_new_cache.json');process.stdout.write(String(a.length))" > "%LOG_DIR%\cache_cnt.txt" 2>nul
 if exist "%LOG_DIR%\cache_cnt.txt" set /p CACHE_CNT=<"%LOG_DIR%\cache_cnt.txt"

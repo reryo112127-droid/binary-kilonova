@@ -315,6 +315,12 @@ async function genGenresCache() {
         'アウトレット', '数量限定', 'セット商品', 'ダウンロード版限定', 'DMM限定', 'FANZA限定',
         '4時間以上作品', '16時間以上作品', '20時間以上作品', 'ベスト・総集編', '昔の作品',
     ]);
+    // 作品ごと削除・今後も登録しないジャンル（data/blocked_makers.json の blockedGenres＝イメージビデオ）。
+    // 削除の取りこぼしが D1 に残っていても、空に近いLPやサイトマップの行を作らない（2026-10-22）
+    try {
+        const blocked = JSON.parse(fs.readFileSync(path.join(ROOT, '..', 'data', 'blocked_makers.json'), 'utf-8'));
+        for (const g of blocked.blockedGenres || []) BLOCK.add(g);
+    } catch { /* 無ければ固定のBLOCKだけ */ }
     const bad = (g) => !g || g.length < 2 || g.length > 20 || /\d{4}年|\d+歳|[【】\[\]]/.test(g) || g === '----' || BLOCK.has(g);
     const accumulate = (rows) => {
         for (const r of rows) {
@@ -667,9 +673,25 @@ async function main() {
     const wait = ms => new Promise(r => setTimeout(r, ms));
 
     if (lpCachesOnly) {
-        write('makers_cache.json', await genMakersList()); await wait(200);
+        // --max-age-days=N: 前回の生成が N日以内なら何もしない（daily_main.bat から毎日呼び、D1 の全表集計は週1回だけ）。
+        // 鮮度は mtime ではなく lp_caches_meta.json の generatedAt で見る（--actresses-only と同じ考え方）
+        const metaPath = path.join(dataDir, 'lp_caches_meta.json');
+        const maxAgeArg = process.argv.find(a => a.startsWith('--max-age-days='));
+        if (maxAgeArg) {
+            const days = Number(maxAgeArg.split('=')[1]);
+            let gen = '';
+            try { gen = JSON.parse(fs.readFileSync(metaPath, 'utf-8')).generatedAt || ''; } catch { /* 無ければ作る */ }
+            const ageDays = gen ? (Date.now() - Date.parse(gen)) / 86400000 : Infinity;
+            if (ageDays < days) {
+                console.log(`[--lp-caches] ${ageDays.toFixed(1)}日前に生成済み（${days}日以内）のためスキップ`);
+                process.exit(0);
+            }
+        }
+        // makers_cache.json は PC の日次 generate-static-cache-local.mjs が持ち主（ブロック対象と0件を外す mergeMakers を通す）。
+        // ここで書くとその除外が効かない一覧で上書きするので、ジャンルとシリーズだけにする（2026-10-22）
         write('genres_cache.json', await genGenresCache()); await wait(200);
         write('series_cache.json', await genSeriesCache());
+        fs.writeFileSync(metaPath, JSON.stringify({ generatedAt: new Date().toISOString() }));
         console.log('\n[--lp-caches] 完了！'); process.exit(0);
     }
 
